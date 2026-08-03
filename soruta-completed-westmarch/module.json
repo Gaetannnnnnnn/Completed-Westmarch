@@ -27,7 +27,7 @@
     "./styles/tutoriel.css",
     "./styles/midi-range-fix.css"
   ],
-  "url": "https://github.com/Gaetannnnnnnn/westmarch.git",
-  "manifest": "https://raw.githubusercontent.com/Gaetannnnnnnn/westmarch/main/soruta-completed-westmarch/module.json",
-  "download": "https://github.com/Gaetannnnnnnn/westmarch/raw/main/soruta-completed-westmarch.zip"
+  "url": "https://github.com/Gaetannnnnnnn/Completed-Westmarch",
+  "manifest": "https://raw.githubusercontent.com/Gaetannnnnnnn/Completed-Westmarch/main/soruta-completed-westmarch/module.json",
+  "download": "https://github.com/Gaetannnnnnnn/Completed-Westmarch/raw/main/soruta-completed-westmarch.zip"
 }

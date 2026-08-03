@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 1.0.0
+Version : 1.0.2
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -144,6 +144,20 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v1.0.2 | 2026-08-03
+   - Config du module refondue en menus par catégorie : chaque grande section
+     (Party, Serveur, Toolkit, Fiche PJ, Carte, Midi, Tutoriel) est un bouton
+     "Configurer" qui ouvre une fenêtre dédiée. Tous les réglages passent en
+     config:false et sont édités via ces fenêtres (registerMenu + DialogV2).
+
+v1.0.1 | 2026-08-03
+   - Retrait de la fonctionnalité Webhook Discord (chat IC par scène) et de la
+     lib TurndownService associée.
+   - Retrait des mentions "Ashara" (branding). Les identifiants legacy des
+     anciens modules sont conservés uniquement pour la migration des données.
+   - Ajout : masquage de la barre de macros pour les joueurs (réglage Toolkit,
+     "enableHideHotbar", live, GM exclu).
 
 v1.0.0 | 2026-08-03
    Fusion initiale des 9 modules Soruta en un module unique

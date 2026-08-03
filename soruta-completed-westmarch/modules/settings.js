@@ -27,14 +27,16 @@ export function partyFeatureEnabled(key) {
     return game.settings.get(MOD, key);
 }
 
+// config: false → les réglages ne s'affichent plus en liste dans la config du
+// module ; ils sont édités via les fenêtres de catégorie (registerMenu).
 const B = (name, hint, def = true, extra = {}) => ({
-    name, hint, scope: "world", config: true, type: Boolean, default: def, requiresReload: false, ...extra
+    name, hint, scope: "world", config: false, type: Boolean, default: def, requiresReload: false, ...extra
 });
 const N = (name, hint, def) => ({
-    name, hint, scope: "world", config: true, type: Number, default: def, requiresReload: false
+    name, hint, scope: "world", config: false, type: Number, default: def, requiresReload: false
 });
 const S = (name, hint, def = "") => ({
-    name, hint, scope: "world", config: true, type: String, default: def, requiresReload: false
+    name, hint, scope: "world", config: false, type: String, default: def, requiresReload: false
 });
 
 export function registerSettings() {
@@ -123,7 +125,7 @@ export function registerSettings() {
     game.settings.register(MOD, "enableHideHotbar", {
         name: "Masquer la barre de macros (joueurs)",
         hint: "Cache la barre de macros (hotbar) pour les joueurs non-GM. Le GM la conserve toujours. Modifiable sans rechargement.",
-        scope: "world", config: true, type: Boolean, default: false, requiresReload: false,
+        scope: "world", config: false, type: Boolean, default: false, requiresReload: false,
         onChange: () => applyHotbarVisibility()
     });
     game.settings.register(MOD, "enableTemplateSnap", B(
@@ -245,9 +247,9 @@ export function registerSettings() {
     });
 
     // ============================================================
-    // MISE EN FORME de la page de configuration
+    // MENUS PAR CATÉGORIE (boutons "Configurer" dans la config du module)
     // ============================================================
-    registerSettingsUI();
+    registerCategoryMenus();
 }
 
 // ============================================================
@@ -261,18 +263,9 @@ const CATEGORIES = [
     { firstKey: "enableXpBlock",         icon: "fa-server",          title: "Serveur",
       desc: "Personnalisations du serveur : blocage XP / Level Up, logs Discord, webhooks.",
       keys: ["enableXpBlock","enableDiscordLog","discordLogWebhookUrl","downtimeWebhookUrl","tmWebhookUrl"] },
-    { firstKey: "enableTokenAppearance", icon: "fa-toolbox",         title: "Toolkit — Tokens & GM",
-      desc: "Apparences multiples, transformations, tailles Large (Rage / Goliath), protégé TGCM, utilitaires GM.",
-      keys: ["enableTokenAppearance","enableTokenPortraitButton","enableRageSize","enableLargeForm","enablePolymorph","enableTgcm","enableFolderMove","enableToolAbilityFix","enableHideHotbar"] },
-    { firstKey: "enableTemplateSnap",    icon: "fa-ruler-combined",  title: "Toolkit — Templates AoE",
-      desc: "Snap des gabarits de zone au dixième de pied.",
-      keys: ["enableTemplateSnap"] },
-    { firstKey: "enableMejShopFix",      icon: "fa-store",           title: "Toolkit — Boutiques MEJ",
-      desc: "Correctifs des boutiques Monk's Enhanced Journal.",
-      keys: ["enableMejShopFix"] },
-    { firstKey: "enableMejRestock",      icon: "fa-arrows-rotate",   title: "Toolkit — Réapprovisionnement",
-      desc: "Restock automatique des boutiques, avec délais configurables par rareté.",
-      keys: ["enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
+    { firstKey: "enableTokenAppearance", icon: "fa-toolbox",         title: "Toolkit",
+      desc: "Apparences de tokens, transformations, tailles Large, TGCM, utilitaires GM, templates AoE, boutiques MEJ et réapprovisionnement.",
+      keys: ["enableTokenAppearance","enableTokenPortraitButton","enableRageSize","enableLargeForm","enablePolymorph","enableTgcm","enableFolderMove","enableToolAbilityFix","enableHideHotbar","enableTemplateSnap","enableMejShopFix","enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
     { firstKey: "relationsEnabled",      icon: "fa-heart",           title: "Fiche PJ — Relations",
       desc: "Onglet Relations : liens entre personnages, détection automatique des rencontres, anonymisation.",
       keys: ["relationsEnabled","relationsAnonymization","relationsFolderPJ","relationsFolderPNJ","relationsFolderCreatures"] },
@@ -295,138 +288,183 @@ const CATEGORIES = [
 
 const ACCENT = "#e67e22";
 
-function registerSettingsUI() {
-    Hooks.on("renderSettingsConfig", (app, html) => {
-        const root = $(html);
+// ============================================================
+// Menus par catégorie — chaque grande section devient un bouton
+// "Configurer" (registerMenu) qui ouvre une fenêtre dédiée (DialogV2)
+// avec uniquement les réglages de cette section.
+// ============================================================
 
-        // ---- Bandeau module en tête ----
-        const firstGroup = root.find(`[name="${MOD}.enableParty"]`).closest(".form-group");
-        if (firstGroup.length) {
-            const version = game.modules.get(MOD)?.version ?? "?";
-            firstGroup.before(`
-                <div style="margin-bottom:14px;padding:12px 16px;border:1px solid ${ACCENT};border-radius:6px;background:rgba(230,126,34,0.09);">
-                    <p style="margin:0 0 4px 0;font-size:1.05em;"><i class="fas fa-hammer" style="color:${ACCENT};"></i> <strong>Soruta — Completed Westmarch</strong> — v${version}</p>
-                    <p style="margin:0;font-size:0.9em;">Module West March unifié. Chaque fonctionnalité ci-dessous est activable indépendamment.</p>
-                    <p style="margin:6px 0 0 0;font-size:0.85em;font-style:italic;color:${ACCENT};">© 2026 Soruta — Usage personnel autorisé.</p>
-                </div>
-            `);
+function registerCategoryMenus() {
+    for (const cat of CATEGORIES) {
+        try {
+            game.settings.registerMenu(MOD, `menu-${cat.firstKey}`, {
+                name:       cat.title,
+                label:      "Configurer",
+                hint:       cat.desc,
+                icon:       `fas ${cat.icon}`,
+                type:       makeLauncher(cat),
+                restricted: true   // GM uniquement (réglages "world")
+            });
+        } catch (e) {
+            console.warn(`[${MOD}] registerMenu "${cat.title}" échec :`, e);
         }
-
-        // ---- En-têtes de catégorie (titre + icône + description + tout activer/désactiver) ----
-        for (const cat of CATEGORIES) buildCategoryHeader(root, cat);
-
-        // ---- Conversion des champs dossier en <select> arborescent ----
-        buildFolderSelects(root, [
-            "relationsFolderPJ", "relationsFolderPNJ", "relationsFolderCreatures",
-            "bestiaryFolderPJ", "bestiaryFolderCreatures"
-        ]);
-
-        // ---- Conversion du champ scène (carte) en <select> ----
-        const sceneInput = root.find(`[name="${MOD}.expeditionMapSceneId"]`);
-        if (sceneInput.length && sceneInput.is("input")) {
-            const cur = game.settings.get(MOD, "expeditionMapSceneId");
-            const select = $(`<select name="${MOD}.expeditionMapSceneId" style="width:100%"></select>`);
-            select.append(`<option value="">— Aucune —</option>`);
-            game.scenes.contents.forEach(s => select.append(`<option value="${s.id}">${s.name}</option>`));
-            select.val(cur || "");
-            sceneInput.replaceWith(select);
-        }
-
-        // ---- Cascade visuelle des options dépendantes de la Party ----
-        applyPartyCascade(root);
-    });
-}
-
-// Coche/décoche toutes les cases à cocher d'une catégorie.
-function setCategory(root, keys, value) {
-    for (const k of keys) {
-        const cb = root.find(`input[name="${MOD}.${k}"][type="checkbox"]`);
-        if (cb.length) cb.prop("checked", value).prop("disabled", false);
     }
 }
 
-function buildCategoryHeader(root, cat) {
-    const g = root.find(`[name="${MOD}.${cat.firstKey}"]`).closest(".form-group");
-    if (!g.length) return;
+// Classe minimale : Foundry fait new type().render(true) au clic du bouton.
+// On détourne render() pour ouvrir la fenêtre de catégorie.
+function makeLauncher(category) {
+    return class {
+        render()        { openCategoryDialog(category); return this; }
+        close()         { return this; }
+        get element()   { return null; }
+        set element(_)  {}
+        get rendered()  { return false; }
+    };
+}
 
-    // Cases à cocher réellement présentes dans cette catégorie
-    const boolKeys = cat.keys.filter(k =>
-        root.find(`input[name="${MOD}.${k}"][type="checkbox"]`).length > 0);
+async function openCategoryDialog(category) {
+    const uid = `scwm-cat-${category.firstKey}`;
+    await foundry.applications.api.DialogV2.wait({
+        window:      { title: `Configurer — ${category.title}`, icon: `fas ${category.icon}` },
+        position:    { width: 560 },
+        rejectClose: false,
+        content:     buildCategoryForm(category, uid),
+        render:      () => wireCategoryForm(category, document.getElementById(uid)),
+        buttons: [
+            {
+                action: "save", default: true,
+                label: "Enregistrer", icon: '<i class="fas fa-save"></i>',
+                callback: async () => await saveCategoryForm(category, document.getElementById(uid))
+            },
+            { action: "close", label: "Fermer", icon: '<i class="fas fa-xmark"></i>', callback: () => {} }
+        ]
+    });
+}
 
-    const toggleAll = boolKeys.length >= 2 ? `
-        <span style="font-size:0.72em;font-weight:400;text-transform:none;letter-spacing:0;white-space:nowrap;">
-            <a class="scwm-check-all"   style="color:#8fd19e;cursor:pointer;">Tout activer</a>
+function boolKeysOf(category) {
+    return category.keys.filter(k => game.settings.settings.get(`${MOD}.${k}`)?.type === Boolean);
+}
+
+function buildCategoryForm(category, uid) {
+    const toggleBar = boolKeysOf(category).length >= 2 ? `
+        <div style="display:flex;gap:12px;justify-content:flex-end;margin:0 4px 8px;font-size:.8em;">
+            <a class="scwm-all-on"  style="color:#8fd19e;cursor:pointer;">Tout activer</a>
             <span style="color:#555;">·</span>
-            <a class="scwm-uncheck-all" style="color:#e58f8f;cursor:pointer;">Tout désactiver</a>
-        </span>` : "";
-
-    const header = $(`
-        <div class="scwm-cat-header" style="margin:18px 0 8px;">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;
-                        border-bottom:1px solid ${ACCENT};padding-bottom:4px;">
-                <span style="color:${ACCENT};font-size:0.95em;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">
-                    <i class="fas ${cat.icon}"></i> ${cat.title}
-                </span>
-                ${toggleAll}
-            </div>
-            <p style="margin:4px 0 0 0;font-size:0.82em;color:#999;font-style:italic;">${cat.desc}</p>
-        </div>
-    `);
-
-    g.before(header);
-
-    header.find(".scwm-check-all").on("click", (e) => { e.preventDefault(); setCategory(root, boolKeys, true); });
-    header.find(".scwm-uncheck-all").on("click", (e) => { e.preventDefault(); setCategory(root, boolKeys, false); });
+            <a class="scwm-all-off" style="color:#e58f8f;cursor:pointer;">Tout désactiver</a>
+        </div>` : "";
+    return `
+    <div id="${uid}" class="scwm-cat-form" style="display:flex;flex-direction:column;max-height:60vh;overflow-y:auto;padding-right:4px;">
+        ${category.desc ? `<p style="margin:0 0 8px;font-size:.85em;color:#aaa;font-style:italic;">${category.desc}</p>` : ""}
+        ${toggleBar}
+        ${category.keys.map(settingControlHtml).join("")}
+    </div>`;
 }
 
-function buildFolderSelects(root, keys) {
-    const options = (currentVal) => {
-        const all = game.folders.filter(f => f.type === "Actor");
-        const walk = (parentId, depth) => all
-            .filter(f => (f.folder?.id ?? null) === parentId)
-            .sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0) || a.name.localeCompare(b.name))
-            .flatMap(f => [
-                `<option value="${f.id}" ${f.id === currentVal ? "selected" : ""}>${"  ".repeat(depth * 2)}${depth > 0 ? "└ " : ""}${f.name}</option>`,
-                ...walk(f.id, depth + 1)
-            ]);
-        return [`<option value="">— aucun —</option>`, ...walk(null, 0)].join("");
-    };
-    for (const key of keys) {
-        const input = root.find(`[name="${MOD}.${key}"]`);
-        if (!input.length) continue;
-        const cur = game.settings.get(MOD, key);
-        input.replaceWith(`<select name="${MOD}.${key}" style="width:100%">${options(cur)}</select>`);
+function settingControlHtml(key) {
+    const cfg = game.settings.settings.get(`${MOD}.${key}`);
+    if (!cfg) return "";
+    const val    = game.settings.get(MOD, key);
+    const reload = cfg.requiresReload ? ` <span style="color:${ACCENT};font-size:.78em;">⟳ rechargement</span>` : "";
+    const hint   = cfg.hint ? `<p style="margin:3px 0 0;font-size:.8em;color:#999;">${cfg.hint}</p>` : "";
+    const wrap   = "padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.06);";
+
+    if (cfg.type === Boolean) {
+        return `<div class="scwm-set" data-key="${key}" style="${wrap}">
+            <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;font-weight:600;margin:0;">
+                <span>${cfg.name}${reload}</span>
+                <input type="checkbox" name="${key}" ${val ? "checked" : ""} style="width:18px;height:18px;flex-shrink:0;">
+            </label>${hint}</div>`;
+    }
+
+    let control;
+    if (cfg.type === Number) {
+        control = `<input type="number" name="${key}" value="${val ?? 0}" step="any" style="width:100%;">`;
+    } else if (key.includes("Folder")) {
+        control = `<select name="${key}" style="width:100%;">${folderOptionsHtml(val)}</select>`;
+    } else if (key === "expeditionMapSceneId") {
+        control = `<select name="${key}" style="width:100%;">${sceneOptionsHtml(val)}</select>`;
+    } else {
+        control = `<input type="text" name="${key}" value="${escapeAttr(val ?? "")}" style="width:100%;">`;
+    }
+    return `<div class="scwm-set" data-key="${key}" style="${wrap}">
+        <label style="display:block;font-weight:600;margin-bottom:4px;">${cfg.name}${reload}</label>
+        ${control}${hint}</div>`;
+}
+
+function wireCategoryForm(category, root) {
+    if (!root) return;
+
+    // Tout activer / désactiver
+    const boolKeys = boolKeysOf(category);
+    const setAll = (v) => boolKeys.forEach(k => {
+        const el = root.querySelector(`[name="${k}"]`);
+        if (el) { el.checked = v; el.disabled = false; el.closest(".scwm-set").style.opacity = "1"; }
+    });
+    root.querySelector(".scwm-all-on")?.addEventListener("click",  e => { e.preventDefault(); setAll(true); });
+    root.querySelector(".scwm-all-off")?.addEventListener("click", e => { e.preventDefault(); setAll(false); });
+
+    // Cascade Party : grise les sous-options quand le maître est décoché.
+    const master = root.querySelector(`[name="enableParty"]`);
+    if (master) {
+        const subs = PARTY_DEPENDENT_SETTINGS
+            .map(k => root.querySelector(`[name="${k}"]`))
+            .filter(Boolean);
+        const apply = () => subs.forEach(cb => {
+            cb.disabled = !master.checked;
+            const box = cb.closest(".scwm-set");
+            if (box) box.style.opacity = master.checked ? "1" : "0.5";
+        });
+        master.addEventListener("change", apply);
+        apply();
     }
 }
 
-function applyPartyCascade(root) {
-    const partyGroup = root.find(`[name="${MOD}.enableParty"]`).closest(".form-group");
-    if (!partyGroup.length) return;
-
-    // Indente les options dépendantes juste sous "Système de Party".
-    let anchor = partyGroup;
-    const subs = [];
-    PARTY_DEPENDENT_SETTINGS.forEach(key => {
-        const group = root.find(`[name="${MOD}.${key}"]`).closest(".form-group");
-        if (!group.length) return;
-        group.css({ marginLeft: "24px", borderLeft: `2px solid ${ACCENT}`, paddingLeft: "8px" });
-        group.insertAfter(anchor);
-        anchor = group;
-        const cb = group.find(`[name="${MOD}.${key}"]`);
-        if (cb.length) subs.push({ cb, group });
-    });
-
-    // Quand le maître est décoché, on grise et désactive les sous-options SANS
-    // les décocher (leur valeur stockée est préservée ; partyFeatureEnabled()
-    // renvoie déjà false tant que le maître est off).
-    const master = partyGroup.find(`[name="${MOD}.enableParty"]`);
-    const apply = () => {
-        const on = master.prop("checked");
-        subs.forEach(({ cb, group }) => {
-            cb.prop("disabled", !on);
-            group.css("opacity", on ? "1" : "0.5");
+async function saveCategoryForm(category, root) {
+    if (!root) return;
+    let needsReload = false;
+    for (const key of category.keys) {
+        const cfg = game.settings.settings.get(`${MOD}.${key}`);
+        const el  = root.querySelector(`[name="${key}"]`);
+        if (!cfg || !el) continue;
+        let v;
+        if (cfg.type === Boolean)      v = el.checked;
+        else if (cfg.type === Number)  { v = Number(el.value); if (Number.isNaN(v)) v = cfg.default ?? 0; }
+        else                           v = el.value;
+        if (game.settings.get(MOD, key) !== v) {
+            await game.settings.set(MOD, key, v);
+            if (cfg.requiresReload) needsReload = true;
+        }
+    }
+    ui.notifications?.info(`${category.title} — réglages enregistrés.`);
+    if (needsReload) {
+        const ok = await foundry.applications.api.DialogV2.confirm({
+            window:  { title: "Rechargement requis" },
+            content: "<p>Certains changements nécessitent un rechargement de la page pour s'appliquer. Recharger maintenant ?</p>"
         });
-    };
-    master.on("change", apply);
-    apply();
+        if (ok) window.location.reload();
+    }
+}
+
+function escapeAttr(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function folderOptionsHtml(currentVal) {
+    const all = game.folders.filter(f => f.type === "Actor");
+    const walk = (parentId, depth) => all
+        .filter(f => (f.folder?.id ?? null) === parentId)
+        .sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0) || a.name.localeCompare(b.name))
+        .flatMap(f => [
+            `<option value="${f.id}" ${f.id === currentVal ? "selected" : ""}>${"  ".repeat(depth * 2)}${depth > 0 ? "└ " : ""}${f.name}</option>`,
+            ...walk(f.id, depth + 1)
+        ]);
+    return [`<option value="">— aucun —</option>`, ...walk(null, 0)].join("");
+}
+
+function sceneOptionsHtml(currentVal) {
+    return [
+        `<option value="">— Aucune —</option>`,
+        ...game.scenes.contents.map(s => `<option value="${s.id}" ${s.id === currentVal ? "selected" : ""}>${s.name}</option>`)
+    ].join("");
 }

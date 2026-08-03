@@ -6,7 +6,7 @@
 // © 2026 Soruta.
 // ============================================================
 
-import { MOD, TUTO_TOGGLES } from "./const.js";
+import { MOD, TUTO_TOGGLES, TM_DEFAULT_SCROLL, TM_DEFAULT_MAGIC } from "./const.js";
 import { applyHotbarVisibility } from "./hotbar.js";
 
 // Settings dont l'utilité dépend entièrement du système de party.
@@ -66,8 +66,11 @@ export function registerSettings() {
         "Filtrage du chat par party",
         "Les joueurs ne voient que les messages des membres de leur propre party."));
     game.settings.register(MOD, "enableSessionLog", B(
-        "Journal de session",
-        "Active le bouton 'Clore la session' (capture XP, ennemis, PNJ, objets et génère un journal)."));
+        "Rapport de session",
+        "Active le suivi de session (dès la création de party) et le bouton 'Clore la session', qui envoie le récap (XP, ennemis, PNJ, objets) sur le webhook Discord ci-dessous."));
+    game.settings.register(MOD, "sessionLogWebhookUrl", S(
+        "URL du Webhook Discord (rapport de session)",
+        "Le bouton 'Clore la session' envoie le rapport (même contenu que les anciens journaux) sur ce webhook. Laisser vide pour désactiver l'envoi."));
     game.settings.register(MOD, "enableCombatParty", B(
         "Combat lié à la party (plutôt qu'à la scène)",
         "Les combats créés par un GM sont détachés de la scène et associés à sa party. Chaque joueur ne voit que le combat de sa party."));
@@ -94,6 +97,54 @@ export function registerSettings() {
     game.settings.register(MOD, "tmWebhookUrl", S(
         "URL du Webhook Discord (résultats temps morts)",
         "Quand le GM applique les gains de temps morts, envoie le récapitulatif sur ce webhook (salon staff/MJ). Laisser vide pour désactiver."));
+
+    // ============================================================
+    // TEMPS MORTS — règles configurables (valeurs + formules + tables)
+    // ============================================================
+    // -- Gain de compétence --
+    game.settings.register(MOD, "tmSkillBase", N(
+        "Gain — Base par jour",
+        "Valeur de base ajoutée chaque jour avant caractéristique et bonus.", 1));
+    game.settings.register(MOD, "tmAddAbilityMod", B(
+        "Gain — Ajouter le modificateur de caractéristique",
+        "Si activé, le modificateur de la caractéristique de la compétence est ajouté au taux journalier."));
+    game.settings.register(MOD, "tmBonusMaitrise", N(
+        "Gain — Bonus Maîtrise", "Bonus journalier si la compétence est maîtrisée.", 2));
+    game.settings.register(MOD, "tmBonusExpertise", N(
+        "Gain — Bonus Expertise", "Bonus journalier si la compétence est en expertise.", 4));
+    game.settings.register(MOD, "tmBonusTools", N(
+        "Gain — Bonus Outils", "Bonus journalier pour une maîtrise d'outil.", 4));
+    game.settings.register(MOD, "tmRollMinDays", N(
+        "Gain — Jours min. pour le jet d20", "Nombre de jours minimum pour autoriser le jet de compétence optionnel.", 5));
+    game.settings.register(MOD, "tmSkillFormula", S(
+        "Gain — Formule (avancé)",
+        "Formule du taux JOURNALIER. Vide = calcul par défaut max(0, base + mod + bonus). Variables : base, mod, bonus, maitrise, expertise, tools. Fonctions : max, min, floor, ceil, round, abs, pow, sqrt."));
+
+    // -- Artisanat : non-magique --
+    game.settings.register(MOD, "tmCraftNonMagicCostDiv", N(
+        "Craft non-magique — Diviseur de coût", "Coût par défaut = prix / ce diviseur.", 2));
+    game.settings.register(MOD, "tmCraftNonMagicDaysPerGp", N(
+        "Craft non-magique — PO par jour", "Durée par défaut = arrondi sup. de prix / cette valeur.", 10));
+    game.settings.register(MOD, "tmCraftNonMagicCostFormula", S(
+        "Craft non-magique — Formule coût (avancé)",
+        "Vide = prix / div. Variables : price, div, daysPerGp. Fonctions math disponibles."));
+    game.settings.register(MOD, "tmCraftNonMagicDaysFormula", S(
+        "Craft non-magique — Formule durée (avancé)",
+        "Vide = ceil(price / daysPerGp). Variables : price, div, daysPerGp. Fonctions math disponibles."));
+
+    // -- Artisanat : usage unique --
+    game.settings.register(MOD, "tmSingleUseFactor", N(
+        "Craft magique — Facteur usage unique", "Multiplie jours et coût pour un objet magique à usage unique (0.5 = moitié).", 0.5));
+
+    // -- Tables (éditées via champs structurés dans la fenêtre) --
+    game.settings.register(MOD, "tmScrollTable", {
+        name: "Table des parchemins (par niveau de sort 0→9)",
+        scope: "world", config: false, type: Object, default: TM_DEFAULT_SCROLL
+    });
+    game.settings.register(MOD, "tmMagicTable", {
+        name: "Table des objets magiques (par rareté)",
+        scope: "world", config: false, type: Object, default: TM_DEFAULT_MAGIC
+    });
 
     // ============================================================
     // TOOLKIT — Features génériques
@@ -184,11 +235,8 @@ export function registerSettings() {
         "Dossier acteur des joueurs. Chaque joueur voit les créatures rencontrées par son personnage."));
     game.settings.register(MOD, "bestiaryPackCreatures", S(
         "Bestiaire — Compendium des créatures (ID)",
-        "ID du compendium des monstres (ex : world.creature). Prioritaire sur le dossier si renseigné.",
+        "ID du compendium des monstres/créatures (ex : world.creatures). La détection automatique et l'ajout manuel lisent uniquement depuis ce compendium.",
         "world.creature"));
-    game.settings.register(MOD, "bestiaryFolderCreatures", S(
-        "Bestiaire — Dossier des créatures (legacy)",
-        "Dossier acteur de secours si aucun compendium n'est configuré."));
 
     // ============================================================
     // CARNET & EXPÉDITIONS (clés préfixées carnet*)
@@ -259,10 +307,13 @@ export function registerSettings() {
 const CATEGORIES = [
     { firstKey: "enableParty",           icon: "fa-users",           title: "Système de Party",
       desc: "Groupes de joueurs : chat filtré, combat par party, téléportation de groupe, journal de session, anti-cheat.",
-      keys: ["enableParty","enableJoinScene","enableShowParty","enablePlayerGrouping","enableGoWithPartyScenes","enableGoWithPartyJournal","enableChatFilter","enableSessionLog","enableCombatParty","enableAntiCheat"] },
+      keys: ["enableParty","enableJoinScene","enableShowParty","enablePlayerGrouping","enableGoWithPartyScenes","enableGoWithPartyJournal","enableChatFilter","enableSessionLog","sessionLogWebhookUrl","enableCombatParty","enableAntiCheat"] },
     { firstKey: "enableXpBlock",         icon: "fa-server",          title: "Serveur",
       desc: "Personnalisations du serveur : blocage XP / Level Up, logs Discord, webhooks.",
       keys: ["enableXpBlock","enableDiscordLog","discordLogWebhookUrl","downtimeWebhookUrl","tmWebhookUrl"] },
+    { firstKey: "tmSkillBase",           icon: "fa-hourglass-half",  title: "Temps morts",
+      desc: "Règles configurables des temps morts : valeurs, formules (gain de compétence, artisanat) et tables (parchemins, objets magiques). Chaque serveur peut avoir ses propres règles.",
+      keys: ["tmSkillBase","tmAddAbilityMod","tmBonusMaitrise","tmBonusExpertise","tmBonusTools","tmRollMinDays","tmSkillFormula","tmCraftNonMagicCostDiv","tmCraftNonMagicDaysPerGp","tmCraftNonMagicCostFormula","tmCraftNonMagicDaysFormula","tmSingleUseFactor","tmScrollTable","tmMagicTable"] },
     { firstKey: "enableTokenAppearance", icon: "fa-toolbox",         title: "Toolkit",
       desc: "Apparences de tokens, transformations, tailles Large, TGCM, utilitaires GM, templates AoE, boutiques MEJ et réapprovisionnement.",
       keys: ["enableTokenAppearance","enableTokenPortraitButton","enableRageSize","enableLargeForm","enablePolymorph","enableTgcm","enableFolderMove","enableToolAbilityFix","enableHideHotbar","enableTemplateSnap","enableMejShopFix","enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
@@ -271,7 +322,7 @@ const CATEGORIES = [
       keys: ["relationsEnabled","relationsAnonymization","relationsFolderPJ","relationsFolderPNJ","relationsFolderCreatures"] },
     { firstKey: "bestiaryEnabled",       icon: "fa-dragon",          title: "Fiche PJ — Bestiaire",
       desc: "Onglet Bestiaire : créatures rencontrées, répertoriées par personnage.",
-      keys: ["bestiaryEnabled","bestiaryAnonymization","bestiaryFolderPJ","bestiaryPackCreatures","bestiaryFolderCreatures"] },
+      keys: ["bestiaryEnabled","bestiaryAnonymization","bestiaryFolderPJ","bestiaryPackCreatures"] },
     { firstKey: "carnetEnabled",         icon: "fa-book-open",       title: "Fiche PJ — Carnet & Expéditions",
       desc: "Onglets Carnet (notes enrichies) et Expéditions (dates + durée).",
       keys: ["carnetEnabled"] },
@@ -287,6 +338,61 @@ const CATEGORIES = [
 ];
 
 const ACCENT = "#e67e22";
+
+// Schémas des tables de temps morts éditées en grille (champs structurés).
+const TM_TABLE_SCHEMAS = {
+    tmScrollTable: {
+        fallback: TM_DEFAULT_SCROLL,
+        rowLabel: (i) => `Niveau ${i}${i === 0 ? " (mineur)" : ""}`,
+        cols: [
+            { field: "days", label: "Jours",     type: "number" },
+            { field: "cost", label: "Coût (PO)", type: "number" }
+        ]
+    },
+    tmMagicTable: {
+        fallback: TM_DEFAULT_MAGIC,
+        rowLabel: (i, row) => row.key,
+        cols: [
+            { field: "label", label: "Nom",         type: "text"   },
+            { field: "days",  label: "Jours",       type: "number" },
+            { field: "cost",  label: "Coût (PO)",   type: "number" },
+            { field: "lvl",   label: "Niv. requis", type: "number" }
+        ]
+    }
+};
+
+function normalizeTable(key) {
+    const val = game.settings.get(MOD, key);
+    return (Array.isArray(val) && val.length) ? val : TM_TABLE_SCHEMAS[key].fallback;
+}
+
+function tableControlHtml(key, cfg) {
+    const schema = TM_TABLE_SCHEMAS[key];
+    const rows   = normalizeTable(key);
+    const th = `<tr><th style="text-align:left;font-size:.72em;color:#888;padding:0 6px 3px 0;"></th>${
+        schema.cols.map(c => `<th style="text-align:left;font-size:.72em;color:#888;padding:0 4px 3px;">${c.label}</th>`).join("")}</tr>`;
+    const tb = rows.map((row, i) => `<tr>
+        <td style="font-size:.8em;color:#aaa;white-space:nowrap;padding:2px 6px 2px 0;">${schema.rowLabel(i, row)}</td>
+        ${schema.cols.map(c => `<td style="padding:1px 4px;"><input type="${c.type}" ${c.type === "number" ? 'step="any"' : ""} name="${key}__${i}__${c.field}" value="${escapeAttr(row[c.field] ?? "")}" style="width:100%;box-sizing:border-box;"></td>`).join("")}
+    </tr>`).join("");
+    return `<div class="scwm-set" data-key="${key}" style="padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.06);">
+        <label style="display:block;font-weight:600;margin-bottom:4px;">${cfg.name}</label>
+        <table style="width:100%;border-collapse:collapse;"><thead>${th}</thead><tbody>${tb}</tbody></table>
+    </div>`;
+}
+
+function readTableFromForm(key, root) {
+    const schema = TM_TABLE_SCHEMAS[key];
+    return normalizeTable(key).map((row, i) => {
+        const out = { ...row };
+        for (const c of schema.cols) {
+            const el = root.querySelector(`[name="${key}__${i}__${c.field}"]`);
+            if (!el) continue;
+            out[c.field] = c.type === "number" ? Number(el.value) : el.value;
+        }
+        return out;
+    });
+}
 
 // ============================================================
 // Menus par catégorie — chaque grande section devient un bouton
@@ -364,6 +470,7 @@ function buildCategoryForm(category, uid) {
 function settingControlHtml(key) {
     const cfg = game.settings.settings.get(`${MOD}.${key}`);
     if (!cfg) return "";
+    if (TM_TABLE_SCHEMAS[key]) return tableControlHtml(key, cfg);
     const val    = game.settings.get(MOD, key);
     const reload = cfg.requiresReload ? ` <span style="color:${ACCENT};font-size:.78em;">⟳ rechargement</span>` : "";
     const hint   = cfg.hint ? `<p style="margin:3px 0 0;font-size:.8em;color:#999;">${cfg.hint}</p>` : "";
@@ -425,8 +532,19 @@ async function saveCategoryForm(category, root) {
     let needsReload = false;
     for (const key of category.keys) {
         const cfg = game.settings.settings.get(`${MOD}.${key}`);
-        const el  = root.querySelector(`[name="${key}"]`);
-        if (!cfg || !el) continue;
+        if (!cfg) continue;
+
+        // Tables de temps morts (grille de champs) — reconstruites à part.
+        if (TM_TABLE_SCHEMAS[key]) {
+            const arr = readTableFromForm(key, root);
+            if (JSON.stringify(game.settings.get(MOD, key)) !== JSON.stringify(arr)) {
+                await game.settings.set(MOD, key, arr);
+            }
+            continue;
+        }
+
+        const el = root.querySelector(`[name="${key}"]`);
+        if (!el) continue;
         let v;
         if (cfg.type === Boolean)      v = el.checked;
         else if (cfg.type === Number)  { v = Number(el.value); if (Number.isNaN(v)) v = cfg.default ?? 0; }

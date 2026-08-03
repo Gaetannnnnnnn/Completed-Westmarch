@@ -60,26 +60,13 @@ export function PlayerHooks() {
             name: "Create Party",
             icon: '<i class="fa-solid fa-users"></i>',
             callback: li => {
-                game.user.setFlag(MOD, "partyId", game.user.id).then(() => { 
+                game.user.setFlag(MOD, "partyId", game.user.id).then(() => {
+                    if (partyFeatureEnabled("enableSessionLog")) startSessionLog(game.user.id);
                     ReloadChat();
                     appPlayerList.render();
                 });
             },
             condition: li => game.settings.get(MOD, "enableParty") && game.users.get(li.dataset.userId).isGM && game.user.id == li.dataset.userId && game.user.id != game.user.getFlag(MOD, 'partyId')
-        });
-
-        // ---- Créer une party avec journal de session ----
-        contextMenu.push({
-            name: "Create Party with Log",
-            icon: '<i class="fa-solid fa-book-open"></i>',
-            callback: li => {
-                game.user.setFlag(MOD, "partyId", game.user.id).then(() => {
-                    startSessionLog(game.user.id);
-                    ReloadChat();
-                    appPlayerList.render();
-                });
-            },
-            condition: li => partyFeatureEnabled("enableSessionLog") && game.users.get(li.dataset.userId).isGM && game.user.id == li.dataset.userId && game.user.id != game.user.getFlag(MOD, 'partyId')
         });
 
         // ---- Rejoindre la party d'un GM ----

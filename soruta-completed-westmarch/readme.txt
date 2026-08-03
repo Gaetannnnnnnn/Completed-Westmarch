@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 1.0.2
+Version : 1.0.5
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -144,6 +144,28 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v1.0.5 | 2026-08-03
+   - Temps morts entièrement paramétrable (nouvelle catégorie "Temps morts") :
+     valeurs (base, bonus maîtrise/expertise/outils, mod de carac, seuil du jet
+     d20), formules éditables (gain journalier, coût/durée de craft non-magique,
+     évaluées en sécurité côté GM) et tables (parchemins 0→9, objets magiques par
+     rareté) éditées en champs structurés. Les labels de l'UI reflètent les
+     valeurs configurées. Défauts = anciennes règles (aucun changement si non
+     modifié).
+
+v1.0.4 | 2026-08-03
+   - Bestiaire : utilise désormais uniquement le compendium des créatures
+     (réglage "Compendium des créatures"). Le dossier de créatures est abandonné
+     (réglage "Dossier des créatures (legacy)" retiré). La détection auto
+     reconnaît aussi les acteurs importés depuis ce compendium (compendiumSource).
+
+v1.0.3 | 2026-08-03
+   - Rapport de session refondu : plus de "Create Party with Log" ni de journaux
+     auto. Le "Create Party" normal démarre le suivi ; "Clore la session" envoie
+     le récap (même contenu qu'avant : joueurs/XP, ennemis, PNJ, objets) sur un
+     webhook Discord (nouveau réglage "URL du Webhook Discord (rapport de session)"
+     dans la section Système de Party).
 
 v1.0.2 | 2026-08-03
    - Config du module refondue en menus par catégorie : chaque grande section

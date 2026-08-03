@@ -1,4 +1,4 @@
-import { MOD } from "./const.js";
+import { MOD, TM_DEFAULT_SCROLL, TM_DEFAULT_MAGIC } from "./const.js";
 // ============================================================
 // tm.js — Temps morts : déclaration joueur + validation GM
 //
@@ -10,6 +10,42 @@ import { MOD } from "./const.js";
 //   → fenêtre pré-remplie depuis les déclarations joueurs
 //   → le GM valide et applique en un clic
 // ============================================================
+
+// ============================================================
+// Règles configurables (valeurs / formules / tables) — voir settings.js
+// ============================================================
+const TM_MATH = { max: Math.max, min: Math.min, floor: Math.floor, ceil: Math.ceil,
+                  round: Math.round, abs: Math.abs, pow: Math.pow, sqrt: Math.sqrt };
+
+function tmNum(key, def) {
+    const n = game.settings.get(MOD, key);
+    return Number.isFinite(n) ? n : def;
+}
+
+// Évalue une formule GM (chaîne). Vide/invalide -> fallback().
+function tmEval(formula, vars, fallback) {
+    const f = (formula ?? "").toString().trim();
+    if (!f) return fallback();
+    try {
+        const scope = { ...TM_MATH, ...vars };
+        const names = Object.keys(scope);
+        const fn = new Function(...names, `"use strict"; return (${f});`);
+        const r = fn(...names.map(n => scope[n]));
+        return Number.isFinite(r) ? r : fallback();
+    } catch (e) {
+        console.warn("[TM] Formule invalide, valeur par défaut utilisée :", formula, e);
+        return fallback();
+    }
+}
+
+function getScrollTable() {
+    const t = game.settings.get(MOD, "tmScrollTable");
+    return (Array.isArray(t) && t.length) ? t : TM_DEFAULT_SCROLL;
+}
+function getMagicTable() {
+    const t = game.settings.get(MOD, "tmMagicTable");
+    return (Array.isArray(t) && t.length) ? t : TM_DEFAULT_MAGIC;
+}
 
 export function TmHooks() {
 
@@ -157,8 +193,17 @@ function getProfLevel(actor, skillId) {
 function calcDailyRate(actor, skillId, hasMaitrise, hasExpertise, hasTools) {
     const abilityId  = CONFIG.DND5E.skills[skillId]?.ability ?? "int";
     const abilityMod = actor.system.abilities[abilityId]?.mod ?? 0;
-    const profBonus  = hasTools ? 4 : hasExpertise ? 4 : hasMaitrise ? 2 : 0;
-    return Math.max(0, 1 + abilityMod + profBonus);
+    const base  = tmNum("tmSkillBase", 1);
+    const mod   = (game.settings.get(MOD, "tmAddAbilityMod") !== false) ? abilityMod : 0;
+    const bonus = hasTools     ? tmNum("tmBonusTools", 4)
+                : hasExpertise ? tmNum("tmBonusExpertise", 4)
+                : hasMaitrise  ? tmNum("tmBonusMaitrise", 2)
+                : 0;
+    const vars  = { base, mod, bonus,
+                    maitrise: hasMaitrise ? 1 : 0,
+                    expertise: hasExpertise ? 1 : 0,
+                    tools: hasTools ? 1 : 0 };
+    return tmEval(game.settings.get(MOD, "tmSkillFormula"), vars, () => Math.max(0, base + mod + bonus));
 }
 
 // Convertit une date du calendrier en nombre total de jours depuis l'an 0
@@ -222,20 +267,20 @@ function profRowHtml(idPrefix, hasMaitrise, hasExpertise, hasTools) {
         <input type="checkbox" name="tm-maitrise-${idPrefix}"
                ${hasMaitrise && !hasTools ? "checked" : ""}
                ${profBlocked ? "disabled" : ""} style="margin:0;">
-        Maîtrise <em style="color:#888;">(+2 po/j)</em>
+        Maîtrise <em style="color:#888;">(+${tmNum("tmBonusMaitrise", 2)} po/j)</em>
     </label>
     <label style="display:flex; align-items:center; gap:5px; cursor:pointer; opacity:${profOp};">
         <input type="checkbox" name="tm-expertise-${idPrefix}"
                ${hasExpertise && !hasTools ? "checked" : ""}
                ${expBlocked ? "disabled" : ""} style="margin:0;">
-        Expertise <em style="color:#888;">(+2 po/j)</em>
+        Expertise <em style="color:#888;">(+${tmNum("tmBonusExpertise", 4)} po/j)</em>
     </label>
     <span style="color:#888; font-style:italic;">ou</span>
     <label style="display:flex; align-items:center; gap:5px; cursor:pointer; opacity:${toolsOp};">
         <input type="checkbox" name="tm-tools-${idPrefix}"
                ${hasTools ? "checked" : ""}
                ${toolsBlocked ? "disabled" : ""} style="margin:0;">
-        Tools <em style="color:#888;">(+4 po/j)</em>
+        Tools <em style="color:#888;">(+${tmNum("tmBonusTools", 4)} po/j)</em>
     </label>
 </div>`;
 }
@@ -246,7 +291,7 @@ function previewHtml(idPrefix) {
 
 function dateAndRollHtml(idPrefix, sDay, sMonth, sYear, eDay, eMonth, eYear, preDoRoll) {
     const days         = getDaysFromDates(sDay, sMonth, sYear, eDay, eMonth, eYear);
-    const tooFew       = days < 5;
+    const tooFew       = days < tmNum("tmRollMinDays", 5);
     const rollDisabled = tooFew ? " disabled" : "";
     const rollChecked  = preDoRoll && !tooFew ? " checked" : "";
     const rollOpacity  = tooFew ? " opacity:0.4;" : "";
@@ -268,7 +313,7 @@ function dateAndRollHtml(idPrefix, sDay, sMonth, sYear, eDay, eMonth, eYear, pre
 </div>
 <div class="tm-d20-row-${idPrefix}" style="display:flex; gap:6px; align-items:center;${rollOpacity}">
     <input type="checkbox" name="tm-roll-${idPrefix}"${rollChecked}${rollDisabled} style="margin:0;">
-    <label style="margin:0;">Test de compétence <em style="color:#888;">(≥ 5 jours requis)</em></label>
+    <label style="margin:0;">Test de compétence <em style="color:#888;">(≥ ${tmNum("tmRollMinDays", 5)} jours requis)</em></label>
 </div>`;
 }
 
@@ -294,7 +339,7 @@ function wireControls(html, actor, idPrefix) {
     }
 
     function refreshD20() {
-        const tooFew = getDays() < 5;
+        const tooFew = getDays() < tmNum("tmRollMinDays", 5);
         const d20box = html.find(`[name="tm-roll-${idPrefix}"]`);
         d20box.prop("disabled", tooFew);
         if (tooFew) d20box.prop("checked", false);
@@ -388,40 +433,27 @@ function wireControls(html, actor, idPrefix) {
 // Tables de craft (règles serveur — Fabriquer un objet)
 // ============================================================
 
-const TM_SCROLL_TABLE = [
-    { days: 1,   cost: 15    },  // sort mineur
-    { days: 1,   cost: 25    },  // niveau 1
-    { days: 3,   cost: 100   },  // niveau 2
-    { days: 5,   cost: 150   },  // niveau 3
-    { days: 10,  cost: 1000  },  // niveau 4
-    { days: 25,  cost: 1500  },  // niveau 5
-    { days: 40,  cost: 10000 },  // niveau 6
-    { days: 50,  cost: 12500 },  // niveau 7
-    { days: 60,  cost: 15000 },  // niveau 8
-    { days: 120, cost: 50000 },  // niveau 9
-];
-
-const TM_MAGIC_TABLE = [
-    { key: "courant",    label: "Common",    days: 5,   cost: 50,     lvl: 1  },
-    { key: "peucourant", label: "Uncommon",  days: 10,  cost: 200,    lvl: 1  },
-    { key: "rare",       label: "Rare",      days: 50,  cost: 2000,   lvl: 5  },
-    { key: "tresrare",   label: "Very Rare", days: 125, cost: 20000,  lvl: 11 },
-    { key: "legendaire", label: "Legendary", days: 250, cost: 100000, lvl: 17 },
-];
+// Tables déplacées vers les réglages configurables : getScrollTable() / getMagicTable().
 
 function getCraftStats(craftType, price, scrollLevel, rarity, singleUse) {
     let totalDays = 0, cost = 0;
     if (craftType === "nonmagique") {
-        cost      = Math.floor(price / 2);
-        totalDays = Math.ceil(price / 10);
+        const div       = tmNum("tmCraftNonMagicCostDiv", 2);
+        const daysPerGp = tmNum("tmCraftNonMagicDaysPerGp", 10);
+        const vars      = { price, div, daysPerGp };
+        cost      = Math.floor(tmEval(game.settings.get(MOD, "tmCraftNonMagicCostFormula"), vars, () => price / div));
+        totalDays = Math.ceil(tmEval(game.settings.get(MOD, "tmCraftNonMagicDaysFormula"), vars, () => Math.ceil(price / daysPerGp)));
     } else if (craftType === "parchemin") {
-        const row = TM_SCROLL_TABLE[Math.min(Math.max(scrollLevel, 0), 9)];
+        const table = getScrollTable();
+        const row   = table[Math.min(Math.max(scrollLevel, 0), table.length - 1)] ?? { days: 0, cost: 0 };
         totalDays = row.days;
         cost      = row.cost;
     } else if (craftType === "magique") {
-        const row = TM_MAGIC_TABLE.find(r => r.key === rarity) ?? TM_MAGIC_TABLE[0];
-        totalDays = singleUse ? Math.ceil(row.days / 2) : row.days;
-        cost      = singleUse ? Math.ceil(row.cost / 2) : row.cost;
+        const table  = getMagicTable();
+        const row    = table.find(r => r.key === rarity) ?? table[0] ?? { days: 0, cost: 0 };
+        const factor = tmNum("tmSingleUseFactor", 0.5);
+        totalDays = singleUse ? Math.ceil(row.days * factor) : row.days;
+        cost      = singleUse ? Math.ceil(row.cost * factor) : row.cost;
     }
     return { totalDays, cost };
 }
@@ -478,7 +510,7 @@ function craftInfoStr(item) {
         return `Parchemin ${levels[item.craftScrollLevel ?? 0] ?? "?"} — ${cost} po`;
     }
     if (type === "magique") {
-        const row    = TM_MAGIC_TABLE.find(r => r.key === item.craftRarity) ?? TM_MAGIC_TABLE[0];
+        const row    = getMagicTable().find(r => r.key === item.craftRarity) ?? getMagicTable()[0];
         const label  = item.craftSingleUse ? `${row.label} (usage unique)` : row.label;
         return `${label} — ${cost} po`;
     }
@@ -496,7 +528,7 @@ function craftDeclFormHtml(id, craftType, craftName, price, scrollLevel, rarity,
         "Niveau 5",    "Niveau 6", "Niveau 7", "Niveau 8", "Niveau 9"
     ].map((l, i) => `<option value="${i}"${i === scrollLevel ? " selected" : ""}>${l}</option>`).join("");
 
-    const rarityOptions = TM_MAGIC_TABLE.map(r =>
+    const rarityOptions = getMagicTable().map(r =>
         `<option value="${r.key}"${r.key === rarity ? " selected" : ""}>${r.label} (≥ niv. ${r.lvl})</option>`
     ).join("");
 
@@ -1190,7 +1222,7 @@ async function applyDowntimeGains($html, actors) {
                 const dateLabel    = item.dateRangeLabel ?? `${sDay} ${getMonthName(sMonth)} → ${eDay} ${getMonthName(eMonth)}`;
                 let total = dailyRate * days, rollResult = null;
 
-                if (doRoll && days >= 5) {
+                if (doRoll && days >= tmNum("tmRollMinDays", 5)) {
                     const abilityId  = CONFIG.DND5E.skills[skillId]?.ability ?? "int";
                     const abilityMod = actor.system.abilities[abilityId]?.mod ?? 0;
                     const prof       = actor.system.attributes?.prof ?? 2;

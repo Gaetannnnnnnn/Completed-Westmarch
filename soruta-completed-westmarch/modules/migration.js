@@ -61,7 +61,7 @@ function buildSettingsMap() {
     map["ashara-bestiary.anonymization"]    = "bestiaryAnonymization";
     map["ashara-bestiary.folderPJ"]         = "bestiaryFolderPJ";
     map["ashara-bestiary.packCreatures"]    = "bestiaryPackCreatures";
-    map["ashara-bestiary.folderCreatures"]  = "bestiaryFolderCreatures";
+    // (bestiaryFolderCreatures retiré : le bestiaire n'utilise plus le dossier)
 
     // Carnet (clé préfixée)
     map["carnet.enabled"]                   = "carnetEnabled";

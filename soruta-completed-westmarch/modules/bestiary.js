@@ -6,7 +6,7 @@
 //                hostility(-2→+2), note, firstScene } ]
 // Interface : onglet "Bestiaire" sur la fiche personnage (PJ uniquement)
 // Auto-det. : canvasReady / createToken / updateToken (GM only)
-//             → acteurs du dossier "Creatures" (et sous-dossiers)
+//             → créatures issues du compendium configuré (ou importées de celui-ci)
 // © 2026 Soruta — Tous droits réservés. Usage personnel autorisé. Redistribution et modification interdites.
 // ============================================================
 
@@ -88,32 +88,27 @@ function isInPJFolder(actor) { return isInFolder(actor, game.settings.get(MOD, "
 async function availableCreatures(actor) {
     const existing = new Set(beastList(actor).map(e => e.targetId));
     const packId   = game.settings.get(MOD, "bestiaryPackCreatures");
-    if (packId) {
-        const pack = game.packs.get(packId);
-        if (pack) {
-            const docs = await pack.getDocuments();
-            return docs
-                .filter(a => !existing.has(a.id))
-                .sort((a, b) => a.name.localeCompare(b.name));
-        }
-    }
-    // Fallback : dossier monde (legacy)
-    const folderId = game.settings.get(MOD, "bestiaryFolderCreatures");
-    return game.actors
-        .filter(a => isInFolder(a, folderId) && !existing.has(a.id))
+    const pack     = packId ? game.packs.get(packId) : null;
+    if (!pack) return [];
+    const docs = await pack.getDocuments();
+    return docs
+        .filter(a => !existing.has(a.id))
         .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 // Retourne true si le token est une créature (compendium ou dossier monde)
 function isCreatureToken(token) {
-    if (!token.actor?.id) return false;
-    // Tokens non-liés issus du compendium → actor.pack est renseigné
+    const actor = token.actor;
+    if (!actor?.id) return false;
     const packId = game.settings.get(MOD, "bestiaryPackCreatures");
-    if (packId && token.actor.pack === packId) return true;
-    // Fallback : acteurs monde dans le dossier creatures (legacy)
-    const folderId = game.settings.get(MOD, "bestiaryFolderCreatures");
-    if (folderId && isInFolder(token.actor, folderId)) return true;
-    return false;
+    if (!packId) return false;
+    // (1) token directement lié à un acteur du compendium
+    if (actor.pack === packId) return true;
+    // (2) acteur du monde importé depuis ce compendium (drag & drop) :
+    //     on retrouve la source via _stats.compendiumSource (v12+) ou
+    //     le flag core.sourceId (v10-11).
+    const src = actor._stats?.compendiumSource ?? actor.getFlag?.("core", "sourceId") ?? "";
+    return typeof src === "string" && src.startsWith(`Compendium.${packId}.`);
 }
 
 // ---- HTML onglet -------------------------------------------

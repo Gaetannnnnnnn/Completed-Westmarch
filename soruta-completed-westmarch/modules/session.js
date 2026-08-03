@@ -112,7 +112,7 @@ export function SessionHooks() {
 
     // ============================================================
     // SECTION : Capture des joueurs qui rejoignent la party en cours
-    // - Au moment de "Create Party with Log", seul le GM a sa partyId
+    // - Au moment de "Create Party", seul le GM a sa partyId
     //   posée : les joueurs la posent ensuite via "Join Party", donc
     //   après le snapshot initial fait dans startSessionLog(). Sans ce
     //   hook, sessionData.players restait vide (d'où l'absence des
@@ -195,7 +195,7 @@ export function SessionHooks() {
 }
 
 // ============================================================
-// SECTION : Initialisation de la session (Create Party with Log)
+// SECTION : Initialisation de la session (Create Party)
 // ============================================================
 export function startSessionLog(partyId) {
     const gm = game.user;
@@ -263,54 +263,60 @@ async function closeSession(playerListApp) {
         });
     }
 
-    // Générer le contenu HTML du journal
-    const date = new Date().toLocaleDateString("fr-FR");
-    let content = `<h2>Rapport de session — ${date}</h2>`;
-    content += `<p><strong>Meneur :</strong> ${sessionData.gmName}</p>`;
+    // Construire le récap (même contenu que les anciens journaux) et l'envoyer
+    // sur le webhook Discord "rapport de session".
+    const date  = new Date().toLocaleDateString("fr-FR");
+    const trunc = (str) => str.length > 1024 ? str.slice(0, 1021) + "…" : str;
 
-    // Joueurs
-    content += `<h3>Joueurs</h3><ul>`;
-    playersReport.forEach(p => {
-        content += `<li><strong>${p.name}</strong> — XP : ${p.xpBefore} → ${p.xpAfter}`;
-        if (p.xpGained > 0) content += ` (+${p.xpGained})`;
-        if (p.levelUp) content += ` <strong style="color:#e67e22;">⬆ Level Up ! (Niveau ${p.levelAfter})</strong>`;
-        content += `</li>`;
+    const playersLines = playersReport.map(p => {
+        let l = `**${p.name}** — XP : ${p.xpBefore} → ${p.xpAfter}`;
+        if (p.xpGained > 0) l += ` (+${p.xpGained})`;
+        if (p.levelUp)      l += ` ⬆ **Level Up ! (Niveau ${p.levelAfter})**`;
+        return l;
     });
-    content += `</ul>`;
+    const fields = [{ name: "Joueurs", value: trunc(playersLines.join("\n") || "—") }];
 
-    // Ennemis rencontrés
     if (sessionData.combatants.length > 0) {
-        content += `<h3>Ennemis rencontrés</h3><ul>`;
-        sessionData.combatants.forEach(e => {
-            content += `<li><strong>${e.name}</strong>`;
-            if (e.cr !== null) content += ` — CR ${e.cr}`;
-            if (e.hp !== null) content += ` — HP ${e.hp}`;
-            if (e.ac !== null) content += ` — CA ${e.ac}`;
-            if (e.legendaryActions) content += ` — Actions légendaires : ${e.legendaryActions}`;
-            if (e.legendaryResistances) content += ` — Résistances légendaires : ${e.legendaryResistances}`;
-            content += `</li>`;
+        const lines = sessionData.combatants.map(e => {
+            let l = `**${e.name}**`;
+            if (e.cr !== null) l += ` — CR ${e.cr}`;
+            if (e.hp !== null) l += ` — HP ${e.hp}`;
+            if (e.ac !== null) l += ` — CA ${e.ac}`;
+            if (e.legendaryActions)     l += ` — Actions lég. : ${e.legendaryActions}`;
+            if (e.legendaryResistances) l += ` — Résist. lég. : ${e.legendaryResistances}`;
+            return l;
         });
-        content += `</ul>`;
+        fields.push({ name: "Ennemis rencontrés", value: trunc(lines.join("\n")) });
     }
-
-    // PNJ rencontrés
     if (npcs.length > 0) {
-        content += `<h3>PNJ rencontrés</h3><ul>`;
-        npcs.forEach(n => { content += `<li>${n.name}</li>`; });
-        content += `</ul>`;
+        fields.push({ name: "PNJ rencontrés", value: trunc(npcs.map(n => n.name).join("\n")) });
     }
-
-    // Items récupérés
     if (sessionData.items.length > 0) {
-        content += `<h3>Objets récupérés</h3><ul>`;
-        sessionData.items.forEach(i => {
-            content += `<li><strong>${i.playerName}</strong> — ${i.itemName}</li>`;
-        });
-        content += `</ul>`;
+        fields.push({ name: "Objets récupérés", value: trunc(sessionData.items.map(i => `**${i.playerName}** — ${i.itemName}`).join("\n")) });
     }
 
-    // Créer la structure de dossiers et le journal
-    await createSessionJournal(date, content);
+    const embed = {
+        title:       `Rapport de session — ${date}`,
+        description: `**Meneur :** ${sessionData.gmName}`,
+        color:       0xe67e22,
+        fields
+    };
+
+    const webhookUrl = game.settings.get(MOD, "sessionLogWebhookUrl");
+    if (webhookUrl) {
+        try {
+            await fetch(webhookUrl, {
+                method:  "POST",
+                headers: { "Content-Type": "application/json" },
+                body:    JSON.stringify({ embeds: [embed] })
+            });
+        } catch (err) {
+            console.error("[WestMarch] Webhook rapport de session :", err);
+            ui.notifications.warn("Échec de l'envoi du rapport sur Discord (voir console).");
+        }
+    } else {
+        ui.notifications.warn("Aucun webhook Discord configuré (Paramètres → Système de Party → URL webhook rapport de session).");
+    }
 
     // Leave Party
     if (game.user.isGM && game.user.id === game.user.getFlag(MOD, 'partyId')) {
@@ -327,44 +333,7 @@ async function closeSession(playerListApp) {
     // Reset session
     sessionData = { gmName: null, partyId: null, players: [], enemies: [], combatants: [], items: [], sceneId: null };
 
-    ui.notifications.info("Session close — journal créé.");
-}
-
-// ============================================================
-// SECTION : Création de la structure de dossiers et du journal
-// ============================================================
-async function createSessionJournal(date, content) {
-    // Trouver ou créer le dossier racine "MJ"
-    let rootFolder = game.folders.find(f => f.name === "MJ" && f.type === "JournalEntry" && !f.folder);
-    if (!rootFolder) {
-        rootFolder = await Folder.create({ name: "MJ", type: "JournalEntry" });
-    }
-
-    // Trouver ou créer le dossier du GM
-    let gmFolder = game.folders.find(f => f.name === sessionData.gmName && f.type === "JournalEntry" && f.folder?.id === rootFolder.id);
-    if (!gmFolder) {
-        gmFolder = await Folder.create({ name: sessionData.gmName, type: "JournalEntry", folder: rootFolder.id });
-    }
-
-    // Trouver ou créer le dossier "Rapport de session"
-    let reportFolder = game.folders.find(f => f.name === "Rapport de session" && f.type === "JournalEntry" && f.folder?.id === gmFolder.id);
-    if (!reportFolder) {
-        reportFolder = await Folder.create({ name: "Rapport de session", type: "JournalEntry", folder: gmFolder.id });
-    }
-
-    // Créer le journal
-    // Depuis v10/v11, JournalEntry n'a plus de champ "content" direct :
-    // le texte doit être posé sur une JournalEntryPage de type "text".
-    await JournalEntry.create({
-        name: date,
-        folder: reportFolder.id,
-        pages: [{
-            name: date,
-            type: "text",
-            text: { content: content, format: 1 } // 1 = CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML
-        }],
-        permission: { default: 2 }
-    });
+    ui.notifications.info("Session close — rapport envoyé sur Discord.");
 }
 
 // ============================================================

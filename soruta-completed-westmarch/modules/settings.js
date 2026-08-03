@@ -417,15 +417,18 @@ function registerCategoryMenus() {
     }
 }
 
-// Classe minimale : Foundry fait new type().render(true) au clic du bouton.
-// On détourne render() pour ouvrir la fenêtre de catégorie.
+// Foundry fait new type().render(true) au clic du bouton. registerMenu EXIGE
+// que type soit une sous-classe de FormApplication ou d'ApplicationV2 (sinon
+// l'enregistrement échoue et le module n'apparaît pas dans la config). On étend
+// donc ApplicationV2 et on détourne render() pour ouvrir notre fenêtre DialogV2.
 function makeLauncher(category) {
-    return class {
-        render()        { openCategoryDialog(category); return this; }
-        close()         { return this; }
-        get element()   { return null; }
-        set element(_)  {}
-        get rendered()  { return false; }
+    return class extends foundry.applications.api.ApplicationV2 {
+        static DEFAULT_OPTIONS = {
+            id:     `scwm-menu-${category.firstKey}`,
+            window: { title: category.title }
+        };
+        async render() { openCategoryDialog(category); return this; }
+        async close()  { return this; }
     };
 }
 

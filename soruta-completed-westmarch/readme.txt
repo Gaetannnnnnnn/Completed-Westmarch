@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 1.0.5
+Version : 1.0.6
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -144,6 +144,12 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v1.0.6 | 2026-08-03
+   - Fix : les boutons de configuration n'apparaissaient pas (module absent de
+     la liste des réglages). registerMenu exige un type sous-classe de
+     FormApplication/ApplicationV2 ; le launcher des catégories étend désormais
+     ApplicationV2.
 
 v1.0.5 | 2026-08-03
    - Temps morts entièrement paramétrable (nouvelle catégorie "Temps morts") :

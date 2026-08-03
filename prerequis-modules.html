@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Prérequis — Modules Soruta</title>
+<title>Prérequis — Soruta Completed Westmarch</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -24,6 +24,27 @@
     margin-bottom: 28px;
   }
 
+  /* Intro */
+  .intro {
+    margin-bottom: 24px;
+    padding: 14px 18px;
+    background: #1e1912;
+    border: 1px solid rgba(201,162,39,0.2);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: #b0a490;
+  }
+  .intro strong { color: #e0d5c0; }
+  .intro code {
+    background: rgba(201,162,39,0.1);
+    color: #c9a227;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 0.8rem;
+    font-family: monospace;
+  }
+
   /* Legend */
   .legend {
     display: flex;
@@ -34,11 +55,10 @@
   }
   .legend-item { display: flex; align-items: center; gap: 6px; }
   .badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 0.75rem; font-weight: 600; }
-  .badge-req  { background: #8b2635; color: #f5c6cc; }
-  .badge-rec  { background: #1a4a2e; color: #7ecfa0; border: 1px solid #2d6a4f; }
-  .badge-ext-req { background: #3a2c00; color: #f0c040; border: 1px solid #c9a227; }
+  .badge-sys     { background: #3a2c00; color: #f0c040; border: 1px solid #c9a227; }
+  .badge-ext-req { background: #8b2635; color: #f5c6cc; }
   .badge-ext-opt { background: #2a2a2a; color: #a0a0a0; border: 1px solid #555; }
-  .badge-none { color: #8a7a65; font-style: italic; font-weight: normal; }
+  .empty { color: #8a7a65; font-style: italic; font-size: 0.8rem; }
 
   /* Table */
   .wrap { overflow-x: auto; border-radius: 8px; }
@@ -72,63 +92,34 @@
     vertical-align: top;
     line-height: 1.5;
   }
-  .module-name {
-    font-weight: 600;
-    color: #e0d5c0;
-  }
+  .module-name { font-weight: 600; color: #e0d5c0; }
   .module-id {
     font-size: 0.75rem;
     color: #8a7a65;
     font-family: monospace;
   }
-  .version {
-    font-size: 0.75rem;
-    color: #8a7a65;
-    white-space: nowrap;
-  }
-  .tags { display: flex; flex-direction: column; gap: 4px; }
-  .tag { display: inline-flex; align-items: center; gap: 5px; }
-  .tag-label { font-size: 0.8rem; }
-  .empty { color: #8a7a65; font-style: italic; font-size: 0.8rem; }
-
-  /* Chain description */
-  .chain {
-    margin-top: 24px;
-    padding: 16px 20px;
-    background: #1e1912;
-    border: 1px solid rgba(201,162,39,0.15);
-    border-radius: 6px;
-    font-size: 0.82rem;
-    line-height: 1.7;
-    color: #b0a490;
-  }
-  .chain h2 {
-    font-size: 0.85rem;
-    color: #c9a227;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-bottom: 10px;
-  }
-  .chain code {
-    background: rgba(201,162,39,0.1);
-    color: #c9a227;
-    padding: 1px 5px;
-    border-radius: 3px;
-    font-size: 0.8rem;
-  }
-  .arrow { color: #c9a227; margin: 0 4px; }
+  .feature { color: #d4c9b0; }
+  .fallback { color: #8a7a65; font-size: 0.82rem; }
 </style>
 </head>
 <body>
 
-<h1>⚔ Prérequis — Modules Soruta</h1>
-<p class="subtitle">Foundry VTT v13 · D&D 5e v3 · Mis à jour 25/07/2026</p>
+<h1>⚔ Prérequis — Soruta Completed Westmarch</h1>
+<p class="subtitle">Foundry VTT v13+ (ciblé v14) · D&D 5e v3 · Mis à jour 03/08/2026</p>
+
+<div class="intro">
+  <strong>Un seul module</strong> — <code>soruta-completed-westmarch</code> — regroupe désormais toutes
+  les fonctionnalités (party, chat, combat, temps morts, toolkit, fiches Relations / Bestiaire / Carnet,
+  carte, midi range fix, tutoriel). Il n'y a <strong>plus aucune dépendance entre modules Soruta</strong> :
+  chaque fonctionnalité s'active individuellement dans les paramètres. Ne restent que les modules
+  <strong>externes</strong> ci-dessous ; chaque feature qui en dépend se désactive silencieusement si
+  le module tiers est absent.
+</div>
 
 <div class="legend">
-  <div class="legend-item"><span class="badge badge-req">Requis</span> sans ce module, la fonctionnalité centrale ne fonctionne pas</div>
-  <div class="legend-item"><span class="badge badge-rec">Recommandé</span> fonctionne seul mais incomplet sans</div>
-  <div class="legend-item"><span class="badge badge-ext-req">Externe requis</span> module tiers indispensable</div>
-  <div class="legend-item"><span class="badge badge-ext-opt">Externe optionnel</span> améliore une feature spécifique</div>
+  <div class="legend-item"><span class="badge badge-sys">Système</span> indispensable au fonctionnement</div>
+  <div class="legend-item"><span class="badge badge-ext-req">Externe requis</span> nécessaire à la feature concernée</div>
+  <div class="legend-item"><span class="badge badge-ext-opt">Externe optionnel</span> améliore une feature (fallback si absent)</div>
 </div>
 
 <div class="wrap">
@@ -136,186 +127,82 @@
   <thead>
     <tr>
       <th>Module</th>
-      <th>Version</th>
-      <th>Soruta requis</th>
-      <th>Soruta recommandé</th>
-      <th>Externe requis</th>
-      <th>Externe optionnel</th>
+      <th>Type</th>
+      <th>Fonctionnalité concernée</th>
+      <th>Si absent</th>
     </tr>
   </thead>
   <tbody>
 
     <tr>
       <td>
-        <div class="module-name">WestMarch Système</div>
-        <div class="module-id">westmarch</div>
+        <div class="module-name">D&D 5e</div>
+        <div class="module-id">dnd5e (v3+)</div>
       </td>
-      <td class="version">v2.0.8</td>
-      <td><span class="empty">—</span></td>
-      <td><span class="empty">—</span></td>
-      <td><span class="empty">—</span></td>
-      <td>
-        <div class="tags">
-          <span class="tag"><span class="badge badge-ext-opt">Ext</span> <span class="tag-label">monks-tokenbar <small>(mouvement en combat)</small></span></span>
-        </div>
-      </td>
+      <td><span class="badge badge-sys">Système</span></td>
+      <td class="feature">Tout le module (fiches, items, calculs)</td>
+      <td class="fallback">Le module ne se charge pas</td>
     </tr>
 
     <tr>
       <td>
-        <div class="module-name">WestMarch Ashara</div>
-        <div class="module-id">westmarch-ashara</div>
+        <div class="module-name">Midi QOL</div>
+        <div class="module-id">midi-qol</div>
       </td>
-      <td class="version">v1.0.7</td>
-      <td>
-        <div class="tags">
-          <span class="tag"><span class="badge badge-req">Requis</span> <span class="tag-label">westmarch</span></span>
-        </div>
-      </td>
-      <td><span class="empty">—</span></td>
-      <td><span class="empty">—</span></td>
-      <td><span class="empty">—</span></td>
+      <td><span class="badge badge-ext-req">Externe requis</span></td>
+      <td class="feature">Midi Range Fix (portée tokens Large+)</td>
+      <td class="fallback">La feature s'inactive seule</td>
     </tr>
 
     <tr>
       <td>
-        <div class="module-name">Relations</div>
-        <div class="module-id">ashara-relations</div>
+        <div class="module-name">Monk's Enhanced Journal</div>
+        <div class="module-id">monks-enhanced-journal</div>
       </td>
-      <td class="version">v1.6.0</td>
-      <td><span class="empty">—</span></td>
-      <td><span class="empty">—</span></td>
-      <td><span class="empty">—</span></td>
-      <td><span class="empty">—</span></td>
+      <td><span class="badge badge-ext-req">Externe requis</span></td>
+      <td class="feature">Boutiques MEJ : correctifs, réapprovisionnement, section guide du tutoriel</td>
+      <td class="fallback">Les features boutiques ne s'appliquent pas</td>
     </tr>
 
     <tr>
       <td>
-        <div class="module-name">Bestiaire</div>
-        <div class="module-id">ashara-bestiary</div>
+        <div class="module-name">Simple Calendar</div>
+        <div class="module-id">simple-calendar</div>
       </td>
-      <td class="version">v1.3.1</td>
-      <td><span class="empty">—</span></td>
-      <td>
-        <div class="tags">
-          <span class="tag"><span class="badge badge-rec">Rec.</span> <span class="tag-label">ashara-relations <small>(fiche enrichie)</small></span></span>
-        </div>
-      </td>
-      <td><span class="empty">—</span></td>
-      <td><span class="empty">—</span></td>
+      <td><span class="badge badge-ext-opt">Externe optionnel</span></td>
+      <td class="feature">Dates du Carnet / Expéditions, notification Discord de changement de date</td>
+      <td class="fallback">Formatage via l'API Foundry native (game.time.calendar)</td>
     </tr>
 
     <tr>
       <td>
-        <div class="module-name">Carnet d'Expéditions</div>
-        <div class="module-id">carnet</div>
+        <div class="module-name">libWrapper</div>
+        <div class="module-id">lib-wrapper</div>
       </td>
-      <td class="version">v1.1.8</td>
-      <td>
-        <div class="tags">
-          <span class="tag"><span class="badge badge-req">Requis</span> <span class="tag-label">westmarch <small>(party flags, bouton GM)</small></span></span>
-        </div>
-      </td>
-      <td>
-        <div class="tags">
-          <span class="tag"><span class="badge badge-rec">Rec.</span> <span class="tag-label">ashara-bestiary <small>(fiche enrichie)</small></span></span>
-          <span class="tag"><span class="badge badge-rec">Rec.</span> <span class="tag-label">ashara-relations <small>(fallback fiche)</small></span></span>
-        </div>
-      </td>
-      <td><span class="empty">—</span></td>
-      <td>
-        <div class="tags">
-          <span class="tag"><span class="badge badge-ext-opt">Ext</span> <span class="tag-label">simple-calendar <small>(format dates; fallback API Foundry)</small></span></span>
-        </div>
-      </td>
+      <td><span class="badge badge-ext-opt">Externe optionnel</span></td>
+      <td class="feature">Snap live des templates AoE, patch clic droit token</td>
+      <td class="fallback">Le snap à la création reste actif ; live désactivé</td>
     </tr>
 
     <tr>
       <td>
-        <div class="module-name">Map Ouvert Systèmes</div>
-        <div class="module-id">carte-expeditions</div>
+        <div class="module-name">Monk's TokenBar</div>
+        <div class="module-id">monks-tokenbar</div>
       </td>
-      <td class="version">v1.0.2</td>
-      <td><span class="empty">—</span></td>
-      <td><span class="empty">—</span></td>
-      <td><span class="empty">—</span></td>
-      <td><span class="empty">—</span></td>
-    </tr>
-
-    <tr>
-      <td>
-        <div class="module-name">Midi Range Fix</div>
-        <div class="module-id">midi-range-fix</div>
-      </td>
-      <td class="version">v1.2.4</td>
-      <td><span class="empty">—</span></td>
-      <td><span class="empty">—</span></td>
-      <td>
-        <div class="tags">
-          <span class="tag"><span class="badge badge-ext-req">Ext requis</span> <span class="tag-label">midi-qol <small>(s'inactive seul si absent)</small></span></span>
-        </div>
-      </td>
-      <td><span class="empty">—</span></td>
-    </tr>
-
-    <tr>
-      <td>
-        <div class="module-name">Toolkit</div>
-        <div class="module-id">toolkit</div>
-      </td>
-      <td class="version">v1.0.7</td>
-      <td><span class="empty">—</span></td>
-      <td><span class="empty">—</span></td>
-      <td>
-        <div class="tags">
-          <span class="tag"><span class="badge badge-ext-req">Ext requis</span> <span class="tag-label">monks-enhanced-journal <small>(boutiques MEJ)</small></span></span>
-        </div>
-      </td>
-      <td>
-        <div class="tags">
-          <span class="tag"><span class="badge badge-ext-opt">Ext</span> <span class="tag-label">lib-wrapper <small>(patch clic droit token)</small></span></span>
-          <span class="tag"><span class="badge badge-ext-opt">Ext</span> <span class="tag-label">monks-tokenbar <small>(override mouvement)</small></span></span>
-        </div>
-      </td>
-    </tr>
-
-    <tr>
-      <td>
-        <div class="module-name">Tutoriel</div>
-        <div class="module-id">tutoriel</div>
-      </td>
-      <td class="version">v1.1.5</td>
-      <td><span class="empty">—</span></td>
-      <td>
-        <div class="tags">
-          <span class="tag"><span class="badge badge-rec">Rec.</span> <span class="tag-label">westmarch <small>(bouton dans toolbar WestMarch)</small></span></span>
-        </div>
-      </td>
-      <td><span class="empty">—</span></td>
-      <td>
-        <div class="tags">
-          <span class="tag"><span class="badge badge-ext-opt">Ext</span> <span class="tag-label">monks-enhanced-journal <small>(section guide boutiques)</small></span></span>
-        </div>
-      </td>
+      <td><span class="badge badge-ext-opt">Externe optionnel</span></td>
+      <td class="feature">Override du mouvement pendant le combat (lié à la party)</td>
+      <td class="fallback">Pas d'override du mouvement</td>
     </tr>
 
   </tbody>
 </table>
 </div>
 
-<div class="chain">
-  <h2>Chaîne d'héritage des fiches PJ</h2>
-  <code>CharacterActorSheet (dnd5e)</code>
-  <span class="arrow">→</span>
-  <code>AshCharacterSheet</code> (ashara-relations)
-  <span class="arrow">→</span>
-  <code>AshBestiarySheet</code> (ashara-bestiary)
-  <span class="arrow">→</span>
-  <code>CarnetSheet</code> (carnet)
-  <br><br>
-  Chaque module détecte ceux qui lui précèdent via <code>CONFIG.asharaSheets</code> et hérite de leur fiche.
-  Si un maillon manque, il remonte la chaîne et hérite du dernier disponible.
-  Le <strong>carnet</strong> enregistre toujours la fiche finale active.
+<div class="intro" style="margin-top:24px;">
+  <strong>Migration automatique</strong> — au premier chargement par un GM, le module reprend
+  les données des anciens modules Soruta (réglages et flags sur les acteurs, scènes, tokens,
+  joueurs, objets, journaux, pages et combats) sous son identifiant unique. Opération
+  non destructive et exécutée une seule fois.
 </div>
 
 </body>

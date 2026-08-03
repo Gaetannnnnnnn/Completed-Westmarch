@@ -158,13 +158,10 @@ export function buildRowHtml(r, actor, canEdit) {
     </div>`;
 }
 
-export function emptyStateHtml(canAdd) {
+export function emptyStateHtml() {
     return `<div class="rel-empty">
         <i class="fas fa-heart-broken"></i>
         <span>Aucune relation enregistrée.</span>
-        ${canAdd ? `<a class="rel-add-btn" style="margin-top:4px;">
-            <i class="fas fa-plus"></i> Ajouter une relation
-        </a>` : ""}
     </div>`;
 }
 

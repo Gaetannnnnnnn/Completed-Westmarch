@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 1.0.6
+Version : 1.0.7
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -144,6 +144,10 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v1.0.7 | 2026-08-03
+   - Relations : retrait du bouton "Ajouter une relation" de l'état vide de
+     l'onglet (le bouton "+ Ajouter" du bandeau, GM, reste inchangé).
 
 v1.0.6 | 2026-08-03
    - Fix : les boutons de configuration n'apparaissaient pas (module absent de

@@ -7,7 +7,7 @@ import { MOD } from "./const.js";
 // précis, pour lui faire croire qu'un problème a été réglé.
 // ============================================================
 
-import { sendFakeWarning } from './ashara-socket.js';
+import { sendFakeWarning } from './serveur-socket.js';
 
 const DEFAULT_MESSAGE = "Mise à jour effectuée — le problème devrait être résolu.";
 
@@ -25,7 +25,7 @@ export function FakeWarningHooks() {
         // les outils button:true — onClick n'existe pas en v13 et est ignoré.
         // Pas besoin d'activeTool : sans lui le groupe s'ouvre normalement.
         // Guard pattern : ne pas écraser les outils déjà ajoutés par d'autres
-        // modules (ex. carnet ajoute carnetDate avant westmarch-ashara en
+        // modules (ex. carnet ajoute carnetDate avant celui du serveur en
         // raison de l'ordre alphabétique des IDs de module).
         if (!controls.westmarch) {
             controls.westmarch = {

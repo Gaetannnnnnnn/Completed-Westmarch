@@ -16,7 +16,7 @@ export function ExportDialogHooks() {
     console.log("[Toolkit Export] ExportDialogHooks() démarré");
 
     // Toutes les données custom des features sont désormais regroupées
-    // sous le scope unique MOD (plus de liste asharaSheetsModules).
+    // sous le scope unique MOD (plus de liste de modules à nettoyer).
 
     // Détection large de l'option export native
     const isExportOption = (o) =>

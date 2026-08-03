@@ -137,3 +137,5 @@
     border-color: rgba(201, 168, 76, 0.5);
     color: #c8b89a;
 }
+/* Masquer la barre de macros pour les joueurs (reglage enableHideHotbar) */
+body.scwm-hide-hotbar #hotbar { display: none !important; }

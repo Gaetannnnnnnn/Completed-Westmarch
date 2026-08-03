@@ -30,6 +30,7 @@ import { MejShopHooks }      from "./modules/mejshop.js";
 import { MejRestockHooks }   from "./modules/mejrestock.js";
 import { ExportDialogHooks } from "./modules/export-dialog.js";
 import { TemplateHooks }     from "./modules/template.js";
+import { HotbarHooks }       from "./modules/hotbar.js";
 
 // --- Phase 4 : Westmarch core ---
 import { ChatHooks }      from "./modules/chat.js";
@@ -44,8 +45,8 @@ import { SocketHooks }    from "./modules/socket.js";
 import { CombatHooks }    from "./modules/combat.js";
 import { AudioHooks }     from "./modules/audio.js";
 
-// --- Phase 5 : Ashara ---
-import { SocketHooks as AsharaSocketHooks } from "./modules/ashara-socket.js";
+// --- Phase 5 : Serveur ---
+import { SocketHooks as ServeurSocketHooks } from "./modules/serveur-socket.js";
 import { XpHooks }          from "./modules/xp.js";
 import { CalDateHooks }     from "./modules/caldate.js";
 import { DiscordLogHooks }  from "./modules/discordlog.js";
@@ -90,6 +91,7 @@ Hooks.on("init", () => {
     MejRestockHooks();
     ExportDialogHooks();
     TemplateHooks();
+    HotbarHooks();
 
     // --- Phase 4 : Westmarch core (ordre d'origine) ---
     ChatHooks();
@@ -104,8 +106,8 @@ Hooks.on("init", () => {
     CombatHooks();
     AudioHooks();
 
-    // --- Phase 5 : Ashara (ordre d'origine) ---
-    AsharaSocketHooks();
+    // --- Phase 5 : Serveur (ordre d'origine) ---
+    ServeurSocketHooks();
     XpHooks();
     CalDateHooks();
     DiscordLogHooks();

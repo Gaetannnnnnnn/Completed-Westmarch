@@ -7,6 +7,7 @@
 // ============================================================
 
 import { MOD, TUTO_TOGGLES } from "./const.js";
+import { applyHotbarVisibility } from "./hotbar.js";
 
 // Settings dont l'utilité dépend entièrement du système de party.
 export const PARTY_DEPENDENT_SETTINGS = [
@@ -62,9 +63,6 @@ export function registerSettings() {
     game.settings.register(MOD, "enableChatFilter", B(
         "Filtrage du chat par party",
         "Les joueurs ne voient que les messages des membres de leur propre party."));
-    game.settings.register(MOD, "enableWebhook", B(
-        "Webhook Discord (chat IC par scène)",
-        "Permet de configurer un webhook Discord sur chaque scène. Les messages IC sont relayés vers le webhook de la scène active."));
     game.settings.register(MOD, "enableSessionLog", B(
         "Journal de session",
         "Active le bouton 'Clore la session' (capture XP, ennemis, PNJ, objets et génère un journal)."));
@@ -76,7 +74,7 @@ export function registerSettings() {
         "Pendant un combat actif, avertit les GM en privé si un joueur modifie ses sorts préparés, son attunement ou son équipement."));
 
     // ============================================================
-    // ASHARA — Personnalisations serveur
+    // SERVEUR — Personnalisations
     // ============================================================
     game.settings.register(MOD, "enableXpBlock", B(
         "Blocage de l'XP et du Level Up",
@@ -122,6 +120,12 @@ export function registerSettings() {
     game.settings.register(MOD, "enableToolAbilityFix", B(
         "Correction de la stat des outils (tools)",
         "À la création d'un outil sans stat, corrige automatiquement vers la stat canonique dnd5e."));
+    game.settings.register(MOD, "enableHideHotbar", {
+        name: "Masquer la barre de macros (joueurs)",
+        hint: "Cache la barre de macros (hotbar) pour les joueurs non-GM. Le GM la conserve toujours. Modifiable sans rechargement.",
+        scope: "world", config: true, type: Boolean, default: false, requiresReload: false,
+        onChange: () => applyHotbarVisibility()
+    });
     game.settings.register(MOD, "enableTemplateSnap", B(
         "Snap des templates AoE au dixième de pied",
         "Pendant le placement d'un template, la taille s'incrémente par paliers de 0,1 ft. Nécessite lib-wrapper pour le snap live."));
@@ -220,7 +224,7 @@ export function registerSettings() {
     game.settings.register(MOD, "serverName", S(
         "Tutoriel — Nom affiché dans le message de bienvenue",
         "Titre de la fenêtre d'accueil des joueurs.",
-        "Bienvenue sur le serveur Ashara !"));
+        "Bienvenue sur le serveur !"));
     for (const { key, label } of TUTO_TOGGLES) {
         game.settings.register(MOD, key, B(
             `Tutoriel — ${label}`,
@@ -253,13 +257,13 @@ export function registerSettings() {
 const CATEGORIES = [
     { firstKey: "enableParty",           icon: "fa-users",           title: "Système de Party",
       desc: "Groupes de joueurs : chat filtré, combat par party, téléportation de groupe, journal de session, anti-cheat.",
-      keys: ["enableParty","enableJoinScene","enableShowParty","enablePlayerGrouping","enableGoWithPartyScenes","enableGoWithPartyJournal","enableChatFilter","enableWebhook","enableSessionLog","enableCombatParty","enableAntiCheat"] },
-    { firstKey: "enableXpBlock",         icon: "fa-server",          title: "Ashara — Serveur",
+      keys: ["enableParty","enableJoinScene","enableShowParty","enablePlayerGrouping","enableGoWithPartyScenes","enableGoWithPartyJournal","enableChatFilter","enableSessionLog","enableCombatParty","enableAntiCheat"] },
+    { firstKey: "enableXpBlock",         icon: "fa-server",          title: "Serveur",
       desc: "Personnalisations du serveur : blocage XP / Level Up, logs Discord, webhooks.",
       keys: ["enableXpBlock","enableDiscordLog","discordLogWebhookUrl","downtimeWebhookUrl","tmWebhookUrl"] },
     { firstKey: "enableTokenAppearance", icon: "fa-toolbox",         title: "Toolkit — Tokens & GM",
       desc: "Apparences multiples, transformations, tailles Large (Rage / Goliath), protégé TGCM, utilitaires GM.",
-      keys: ["enableTokenAppearance","enableTokenPortraitButton","enableRageSize","enableLargeForm","enablePolymorph","enableTgcm","enableFolderMove","enableToolAbilityFix"] },
+      keys: ["enableTokenAppearance","enableTokenPortraitButton","enableRageSize","enableLargeForm","enablePolymorph","enableTgcm","enableFolderMove","enableToolAbilityFix","enableHideHotbar"] },
     { firstKey: "enableTemplateSnap",    icon: "fa-ruler-combined",  title: "Toolkit — Templates AoE",
       desc: "Snap des gabarits de zone au dixième de pied.",
       keys: ["enableTemplateSnap"] },

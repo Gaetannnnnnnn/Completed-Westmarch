@@ -2,7 +2,7 @@
 // character-sheet.js — Fiche PJ unifiée (dnd5e v3, ApplicationV2)
 //
 // Remplace l'ancienne cascade relations → bestiary → carnet (3 modules
-// séparés qui s'empilaient via CONFIG.asharaSheets). Ici, une SEULE
+// séparés qui s'empilaient via un mécanisme partagé). Ici, une SEULE
 // sous-classe compose les onglets Relations / Bestiaire / Carnet /
 // Expéditions selon les settings activés, enregistrée une seule fois.
 //

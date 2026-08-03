@@ -17,7 +17,7 @@ DESCRIPTION
 Module West March unifié. Regroupe en un seul paquet l'ensemble des anciens
 modules Soruta, jusque-là distribués séparément :
 
-  westmarch · westmarch-ashara · toolkit · ashara-relations · ashara-bestiary
+  westmarch · serveur · toolkit · relations · bestiaire
   carnet · carte-expeditions · midi-range-fix · tutoriel
 
 Toutes les fonctionnalités restent activables / désactivables individuellement
@@ -67,14 +67,14 @@ WESTMARCH CORE
    chat.js combat.js player.js session.js anticheat.js scenes.js journal.js
    image.js audio.js document.js socket.js
    — Party, filtrage du chat, combat par party, journal de session, anti-cheat,
-     téléportation de groupe, partage d'images, relais Discord.
+     téléportation de groupe, partage d'images.
 
-ASHARA (serveur)
+SERVEUR
    tm.js         — Temps morts (gain de compétence + artisanat, panier, validation GM).
    xp.js         — Blocage XP / Level Up côté joueur.
    caldate.js    — Notification Discord au changement de date (Simple Calendar).
    discordlog.js — Logs Discord des modifications (objets, monnaie, XP, persos).
-   fake-warning.js + ashara-socket.js — Faux message d'avertissement GM (queries v13).
+   fake-warning.js + serveur-socket.js — Faux message d'avertissement GM (queries v13).
 
 TOOLKIT
    rage.js goliath.js polymorph.js token.js items.js tgcm.js foldermove.js
@@ -111,7 +111,7 @@ PARAMÈTRES CONFIGURABLES
 
 Paramètres du jeu → Configuration des modules → Soruta — Completed Westmarch
 
-Regroupés par section : Système de Party · Ashara — Serveur · Toolkit ·
+Regroupés par section : Système de Party · Serveur · Toolkit ·
 Fiche PJ (Relations / Bestiaire / Carnet) · Carte des expéditions ·
 Midi Range Fix · Tutoriel.
 
@@ -121,17 +121,17 @@ NOTE DE FUSION (clés renommées)
 
 Collisions résolues lors de la fusion :
   Settings :
-    ashara-relations.enabled/anonymization/folderPJ/folderPNJ/folderCreatures
+    relations (enabled/anonymization/folderPJ/folderPNJ/folderCreatures)
       → relationsEnabled / relationsAnonymization / relationsFolderPJ / …
-    ashara-bestiary.enabled/anonymization/folderPJ/packCreatures/folderCreatures
+    bestiaire (enabled/anonymization/folderPJ/packCreatures/folderCreatures)
       → bestiaryEnabled / bestiaryAnonymization / bestiaryFolderPJ / …
     carnet.enabled              → carnetEnabled
     midi-range-fix.enabled      → rangeFixEnabled  (rangeAdjust inchangé)
     tutoriel.<toggles>          → tuto<Toggle>      (serverName/showWelcome inchangés)
   Flags :
-    ashara-relations.list       → relationsList
-    ashara-bestiary.list        → bestiaryList
-    (toutes les autres clés convergent sans conflit : partyId, webhook, tm,
+    relations « list »          → relationsList
+    bestiaire « list »          → bestiaryList
+    (toutes les autres clés convergent sans conflit : partyId, tm,
      carnetNotes, expeditions, tgcm, polymorphForms, images, restock, etc.)
 
 --------------------------------------------------------------------------------
@@ -150,7 +150,7 @@ v1.0.0 | 2026-08-03
    "soruta-completed-westmarch", ciblé Foundry VTT v14.
    - Namespace unique pour tous les settings et flags.
    - Fiche PJ unifiée : une seule sous-classe compose Relations, Bestiaire,
-     Carnet et Expéditions (fin de la cascade CONFIG.asharaSheets entre modules).
+     Carnet et Expéditions (fin de la cascade de fiches entre modules).
    - Migration automatique et non destructive des données des anciens modules
      au premier lancement (settings + flags de tous les types de documents),
      avec remappage des clés en collision (list → relationsList / bestiaryList).

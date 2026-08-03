@@ -379,7 +379,7 @@ const STEPS_BY_FEATURE = {
         },
         {
             beforeShow: _toSheet("relations"),
-            target:     ".ashara-exclude-btn",
+            target:     ".scwm-exclude-btn",
             title:      "Retirer des listes",
             text:       "Le bouton <i class='fas fa-ban'></i> dans l'en-tête de la fiche <strong>retire ce personnage de toutes les Relations et du Bestiaire</strong> et bloque les ajouts automatiques futurs. Pratique pour les figurants ou les doublons.",
             textGM:     "Le bouton <i class='fas fa-ban'></i> dans l'en-tête d'une fiche retire ce personnage des Relations et du Bestiaire de <strong>tous les joueurs</strong> et empêche tout ajout automatique futur. Cliquez à nouveau pour réactiver. S'applique à n'importe quelle fiche PJ ou PNJ.",
@@ -620,14 +620,14 @@ const STEPS_BY_FEATURE = {
         {
             target:   null,
             title:    "Blocage XP et Level Up",
-            text:     "Activez le <strong>blocage XP</strong> dans les paramètres de <em>WestMarch Ashara</em> pour empêcher les joueurs de modifier leur XP ou monter de niveau eux-mêmes. Seul le GM peut le faire.",
+            text:     "Activez le <strong>blocage XP</strong> dans les paramètres de <em>Serveur</em> pour empêcher les joueurs de modifier leur XP ou monter de niveau eux-mêmes. Seul le GM peut le faire.",
             position: "center",
             gmOnly:   true
         },
         {
             target:   null,
             title:    "Logs Discord",
-            text:     "Configurez des URLs <strong>webhook</strong> dans les paramètres de <em>WestMarch Ashara</em> pour recevoir des notifications automatiques sur Discord : modifications d'objets, changements de date de jeu, et résultats des temps morts.",
+            text:     "Configurez des URLs <strong>webhook</strong> dans les paramètres de <em>Serveur</em> pour recevoir des notifications automatiques sur Discord : modifications d'objets, changements de date de jeu, et résultats des temps morts.",
             position: "center",
             gmOnly:   true
         },

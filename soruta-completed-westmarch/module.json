@@ -13,7 +13,7 @@
     "minimum": "13",
     "verified": "14"
   },
-  "description": "Module unifié West March pour Foundry VTT (dnd5e). Regroupe l'ancien ensemble de modules Soruta en un seul : système de party / chat / combat West March, temps morts & personnalisations Ashara, toolkit (tokens, transformations, MEJ, templates), onglets de fiche Relations / Bestiaire / Carnet & Expéditions, carte des expéditions, fix de portée midi-qol et tutoriel interactif. Chaque fonctionnalité reste activable individuellement. Migration automatique des données des anciens modules au premier lancement.",
+  "description": "Module unifié West March pour Foundry VTT (dnd5e). Regroupe l'ancien ensemble de modules Soruta en un seul : système de party / chat / combat West March, temps morts & personnalisations serveur, toolkit (tokens, transformations, MEJ, templates), onglets de fiche Relations / Bestiaire / Carnet & Expéditions, carte des expéditions, fix de portée midi-qol et tutoriel interactif. Chaque fonctionnalité reste activable individuellement. Migration automatique des données des anciens modules au premier lancement.",
   "esmodules": [
     "./index.js"
   ],

@@ -28,10 +28,10 @@ function buildSettingsMap() {
     same("westmarch", [
         "enableParty", "enableJoinScene", "enableShowParty", "enablePlayerGrouping",
         "enableGoWithPartyScenes", "enableGoWithPartyJournal", "enableChatFilter",
-        "enableWebhook", "enableSessionLog", "enableCombatParty", "enableAntiCheat"
+        "enableSessionLog", "enableCombatParty", "enableAntiCheat"
     ]);
 
-    // Ashara (clés inchangées)
+    // Serveur — ancien module "westmarch-ashara" (clés inchangées)
     same("westmarch-ashara", [
         "enableXpBlock", "enableDiscordLog",
         "discordLogWebhookUrl", "downtimeWebhookUrl", "tmWebhookUrl"

@@ -108,7 +108,7 @@ export function MejRestockHooks() {
         if (changed) {
             _restockingPages.add(page.id);
             try {
-                await page.update({ "flags.toolkit.restock": timers });
+                await page.update({ [`flags.${MOD}.restock`]: timers });
             } finally {
                 _restockingPages.delete(page.id);
             }
@@ -151,7 +151,7 @@ export function MejRestockHooks() {
                 if (anyExpired) {
                     _restockingPages.add(page.id);
                     try {
-                        await page.update({ "flags.toolkit.restock": newTimers, ...updates });
+                        await page.update({ [`flags.${MOD}.restock`]: newTimers, ...updates });
                     } finally {
                         _restockingPages.delete(page.id);
                     }
@@ -253,7 +253,7 @@ export function MejRestockHooks() {
                     const nowEnabled = !!((freshPg.getFlag(MOD, "restockEnabled") ?? {})[itemId]);
                     const newEnabled = foundry.utils.deepClone(freshPg.getFlag(MOD, "restockEnabled") ?? {});
                     newEnabled[itemId] = !nowEnabled;
-                    const updates = { "flags.toolkit.restockEnabled": newEnabled };
+                    const updates = { [`flags.${MOD}.restockEnabled`]: newEnabled };
 
                     // Mise à jour visuelle immédiate du bouton
                     btn.style.color = newEnabled[itemId] ? "#4db6ac" : "#888";
@@ -261,7 +261,7 @@ export function MejRestockHooks() {
 
                     if (!newEnabled[itemId]) {
                         // Désactivé → supprimer le timer via clé explicite (évite le merge Foundry)
-                        updates[`flags.toolkit.restock.${itemId}`] = null;
+                        updates[`flags.${MOD}.restock.${itemId}`] = null;
                         row.querySelector(".wm-restock-countdown")?.remove();
                     } else {
                         // Activé → si l'article est à 0, (re)lancer le timer (overwrite si existant)
@@ -270,7 +270,7 @@ export function MejRestockHooks() {
                         const qty      = itemData?.flags?.["monks-enhanced-journal"]?.quantity ?? 1;
                         if (qty === 0) {
                             const days = getRestockDays(getItemRarity(itemData));
-                            updates[`flags.toolkit.restock.${itemId}`] = game.time.worldTime + days * getSecondsPerDay();
+                            updates[`flags.${MOD}.restock.${itemId}`] = game.time.worldTime + days * getSecondsPerDay();
                             if (qtyDiv) {
                                 const existing = row.querySelector(".wm-restock-countdown");
                                 if (existing) {

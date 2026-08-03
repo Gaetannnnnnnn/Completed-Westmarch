@@ -30,13 +30,13 @@ export function PlayerHooks() {
         if (!partyFeatureEnabled("enablePlayerGrouping")) return;
         $(html).find('.player.gm').each((index, gmElement) => {
             var user = game.users.get(gmElement.dataset.userId);
-            if(user.getFlag('westmarch', 'partyId') === user.id) { 
+            if(user.getFlag(MOD, 'partyId') === user.id) { 
                 gmElement.insertAdjacentHTML('beforebegin', '<hr style="margin: 0px; border: 1px solid '+ getComputedStyle(gmElement).getPropertyValue("--player-color").trim()+'"/>');
 
                 var firstElement = gmElement;
                 $(html).find('.player').each((index, playerElement) => {
                     if(playerElement.dataset.userId !== gmElement.dataset.userId 
-                        && game.users.get(gmElement.dataset.userId).getFlag('westmarch', 'partyId') == game.users.get(playerElement.dataset.userId).getFlag('westmarch', 'partyId')
+                        && game.users.get(gmElement.dataset.userId).getFlag(MOD, 'partyId') == game.users.get(playerElement.dataset.userId).getFlag(MOD, 'partyId')
                     ) {
                         let clone = playerElement.cloneNode(true);
                         if(firstElement == gmElement)
@@ -65,7 +65,7 @@ export function PlayerHooks() {
                     appPlayerList.render();
                 });
             },
-            condition: li => game.settings.get(MOD, "enableParty") && game.users.get(li.dataset.userId).isGM && game.user.id == li.dataset.userId && game.user.id != game.user.getFlag('westmarch', 'partyId')
+            condition: li => game.settings.get(MOD, "enableParty") && game.users.get(li.dataset.userId).isGM && game.user.id == li.dataset.userId && game.user.id != game.user.getFlag(MOD, 'partyId')
         });
 
         // ---- Créer une party avec journal de session ----
@@ -79,7 +79,7 @@ export function PlayerHooks() {
                     appPlayerList.render();
                 });
             },
-            condition: li => partyFeatureEnabled("enableSessionLog") && game.users.get(li.dataset.userId).isGM && game.user.id == li.dataset.userId && game.user.id != game.user.getFlag('westmarch', 'partyId')
+            condition: li => partyFeatureEnabled("enableSessionLog") && game.users.get(li.dataset.userId).isGM && game.user.id == li.dataset.userId && game.user.id != game.user.getFlag(MOD, 'partyId')
         });
 
         // ---- Rejoindre la party d'un GM ----
@@ -92,7 +92,7 @@ export function PlayerHooks() {
                     appPlayerList.render();
                 });
             },
-            condition: li => game.settings.get(MOD, "enableParty") && game.users.get(li.dataset.userId).isGM && game.users.get(li.dataset.userId).getFlag('westmarch', 'partyId') == li.dataset.userId && game.user.id != li.dataset.userId
+            condition: li => game.settings.get(MOD, "enableParty") && game.users.get(li.dataset.userId).isGM && game.users.get(li.dataset.userId).getFlag(MOD, 'partyId') == li.dataset.userId && game.user.id != li.dataset.userId
         });
 
         // ---- Quitter sa party (dissout la party si c'est le GM chef) ----
@@ -100,7 +100,7 @@ export function PlayerHooks() {
             name: "Leave Party",
             icon: '<i class="fa-solid fa-user-minus"></i>',
             callback: li => {
-                if(game.user.isGM && game.user.id == game.user.getFlag('westmarch', 'partyId')) {
+                if(game.user.isGM && game.user.id == game.user.getFlag(MOD, 'partyId')) {
                     game.users.forEach(user => {
                         if(user.getFlag(MOD, "partyId") == game.user.id) {
                             user.unsetFlag(MOD, "partyId");
@@ -112,7 +112,7 @@ export function PlayerHooks() {
                     appPlayerList.render();
                 });
             },
-            condition: li => game.settings.get(MOD, "enableParty") && game.user.id == li.dataset.userId && game.users.get(li.dataset.userId).getFlag('westmarch', 'partyId')
+            condition: li => game.settings.get(MOD, "enableParty") && game.user.id == li.dataset.userId && game.users.get(li.dataset.userId).getFlag(MOD, 'partyId')
         });
 
         // ---- Expulser un joueur de la party (GM uniquement) ----
@@ -125,7 +125,7 @@ export function PlayerHooks() {
                     appPlayerList.render();
                 });
             },
-            condition: li => game.settings.get(MOD, "enableParty") && game.user.isGM && game.users.get(li.dataset.userId).getFlag('westmarch', 'partyId') && game.user.id != li.dataset.userId
+            condition: li => game.settings.get(MOD, "enableParty") && game.user.isGM && game.users.get(li.dataset.userId).getFlag(MOD, 'partyId') && game.user.id != li.dataset.userId
         });
 
         // ---- Inviter un joueur dans sa party (GM uniquement) ----
@@ -133,12 +133,12 @@ export function PlayerHooks() {
             name: "Invite Party",
             icon: '<i class="fa-solid fa-user-tag"></i>',
             callback: li => {
-                game.users.get(li.dataset.userId).setFlag(MOD, "partyId", game.user.getFlag('westmarch', 'partyId')).then(() => {
+                game.users.get(li.dataset.userId).setFlag(MOD, "partyId", game.user.getFlag(MOD, 'partyId')).then(() => {
                     ReloadChat();
                     appPlayerList.render();
                 });
             },
-            condition: li => game.settings.get(MOD, "enableParty") && game.user.isGM && game.users.get(li.dataset.userId).getFlag('westmarch', 'partyId') != game.user.getFlag('westmarch', 'partyId') && game.user.id != li.dataset.userId
+            condition: li => game.settings.get(MOD, "enableParty") && game.user.isGM && game.users.get(li.dataset.userId).getFlag(MOD, 'partyId') != game.user.getFlag(MOD, 'partyId') && game.user.id != li.dataset.userId
         });
 
         // ---- Rejoindre la scène d'un membre de sa party ----
@@ -173,9 +173,9 @@ export function PlayerHooks() {
                 if (game.user.isGM && targetUser.isGM) return true;
                 // Sinon : même party, cible non-GM uniquement
                 if (targetUser.isGM) return false;
-                const myParty = game.user.getFlag('westmarch', 'partyId');
+                const myParty = game.user.getFlag(MOD, 'partyId');
                 if (!myParty) return false;
-                return targetUser.getFlag('westmarch', 'partyId') === myParty;
+                return targetUser.getFlag(MOD, 'partyId') === myParty;
             }
         });
     });

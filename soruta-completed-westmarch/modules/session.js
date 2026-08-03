@@ -313,7 +313,7 @@ async function closeSession(playerListApp) {
     await createSessionJournal(date, content);
 
     // Leave Party
-    if (game.user.isGM && game.user.id === game.user.getFlag('westmarch', 'partyId')) {
+    if (game.user.isGM && game.user.id === game.user.getFlag(MOD, 'partyId')) {
         game.users.forEach(user => {
             if (user.getFlag(MOD, "partyId") === game.user.id) {
                 user.unsetFlag(MOD, "partyId");

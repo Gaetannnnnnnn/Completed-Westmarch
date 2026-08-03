@@ -50,7 +50,7 @@ async function applyTransform(tokenDoc, beastActor) {
     // Ne mémorise l'état original que s'il ne l'est pas déjà (sécurité
     // en cas de double-clic ou de re-transformation depuis la bête).
     if (!alreadySaved) {
-        updateData["flags.toolkit.polymorphOriginal"] = {
+        updateData[`flags.${MOD}.polymorphOriginal`] = {
             actorId:    tokenDoc.actorId,
             actorLink:  tokenDoc.actorLink,
             name:       tokenDoc.name,

@@ -7,7 +7,7 @@ import { MOD } from "./const.js";
 // etc.) sans dépendance tierce.
 // ============================================================
 
-// Événements spéciaux du calendrier d'Ashara (équinoxes, solstices, festivals).
+// Événements spéciaux du calendrier du serveur (équinoxes, solstices, festivals).
 // La comparaison est normalisée (sans accents, insensible à la casse) pour
 // absorber les variations de saisie ou de localisation du calendrier.
 const CALENDAR_SPECIAL_EVENTS = [

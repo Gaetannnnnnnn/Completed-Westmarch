@@ -385,7 +385,7 @@ function wireControls(html, actor, idPrefix) {
 }
 
 // ============================================================
-// Tables de craft (règles Ashara — Fabriquer un objet)
+// Tables de craft (règles serveur — Fabriquer un objet)
 // ============================================================
 
 const TM_SCROLL_TABLE = [

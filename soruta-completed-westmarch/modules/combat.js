@@ -73,7 +73,7 @@ export function CombatHooks() {
 
         combat.updateSource({
             scene: null,
-            "flags.westmarch.partyId": partyId
+            [`flags.${MOD}.partyId`]: partyId
         });
     });
 

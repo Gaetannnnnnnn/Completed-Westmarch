@@ -163,7 +163,7 @@ async function syncGroupVisionOwnership(actor) {
     // les clés absentes du nouvel objet NE sont PAS supprimées de la base.
     // On doit utiliser la syntaxe "ownership.-=userId" pour supprimer explicitement
     // une entrée, et "ownership.userId" pour ajouter/modifier.
-    const updateData = { "flags.carte-expeditions.autoOwners": targetUserIds };
+    const updateData = { [`flags.${MOD}.autoOwners`]: targetUserIds };
     for (const userId of toGrant) {
         updateData[`ownership.${userId}`] = CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER;
     }

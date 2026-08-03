@@ -1,0 +1,108 @@
+.tabbedchatlog.tabs {
+    flex: 0;
+    margin: 0 0 5px;
+    border-bottom: 1px solid #ff6400;
+    box-shadow: 0 0 10px red;
+    line-height: 1.2;
+    width: 100%;
+}
+
+.tabbed-controls {
+    flex: 0;
+    margin: 0 0 5px;
+    line-height: 1.2;
+    width: 100%;
+}
+
+.tabbedchatlog .item.active {
+    color: #FFF;
+    border: 1px solid red;
+    border-bottom: none;
+    box-shadow: 0 0 6px inset #ff6400;
+    border-radius: 5px 5px 0 0;
+}
+
+.tabbed-controls .ui-control {
+    height: 18px;
+    flex: 1;
+}
+
+.hardHide {
+    display: none !important;
+}
+
+#ICNotification {
+    top: 0px;
+    right: 196px;
+}
+
+#OOCNotification {
+    top: 0px;
+    right: 8px;
+}
+
+#OTHERNotification {
+    top: 0px;
+    right: 115px;
+}
+
+#players .players-list {
+    gap: 4px;
+    max-height: 300px;
+}
+
+/* ============================================================
+   Boutons gestion party (GM) — 2e ligne dans .control-buttons
+   flex-wrap: wrap + séparateur invisible → 2 étages sans sortir du conteneur.
+   ============================================================ */
+
+/* Activer le wrapping dans le conteneur natif Foundry.
+   height: auto + overflow: visible nécessaires pour que la 2e ligne
+   ne soit pas clippée par une hauteur fixe Foundry. */
+#chat-controls .control-buttons,
+.control-buttons {
+    flex-wrap: wrap !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+}
+
+/* Le parent #chat-controls peut aussi clipper : même traitement. */
+#chat-controls {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+}
+
+/* Séparateur invisible qui force le retour à la ligne.
+   flex-basis: 100% prend toute la largeur → les boutons SUIVANTS dans le DOM
+   passent à la ligne 2.
+   Les boutons sont réordonnés physiquement dans le DOM en JS (appendChild),
+   donc pas besoin de CSS order ici. */
+.wm-party-break {
+    flex-basis: 100% !important;
+    width: 100% !important;
+    height: 0;
+}
+
+/* Boutons individuels — héritent du style ui-control Foundry v13 */
+.wm-party-btn[data-wm-action="clearParty"]:hover {
+    color: #e74c3c !important;
+}
+
+.wm-party-btn[data-wm-action="importParty"]:hover {
+    color: #3498db !important;
+}
+
+.westmarch-close-session-wrap {
+    flex: 0 0 auto;
+    padding: 4px 8px;
+    margin-top: 4px;
+}
+
+.westmarch-close-session-wrap .westmarch-close-session {
+    width: 100%;
+    font-size: 12px;
+    line-height: 24px;
+    height: auto;
+}

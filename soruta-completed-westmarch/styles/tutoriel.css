@@ -1,0 +1,460 @@
+/* ============================================================
+   tutoriel.css — Soruta — Tutoriel
+   Thème médiéval-fantastique : cuir vieilli, or, parchemin
+   ============================================================ */
+
+/* ============================================================
+   FENÊTRE DE BIENVENUE
+   ============================================================ */
+
+.tuto-welcome-dialog .dialog-buttons {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.tuto-welcome-dialog .dialog-button {
+    flex: 1;
+    min-width: 130px;
+}
+
+.tuto-welcome-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 20px 12px 12px;
+    gap: 14px;
+    background: linear-gradient(180deg, #1e1508 0%, #14100a 100%);
+    border-bottom: 1px solid rgba(139, 105, 20, 0.3);
+}
+
+.tuto-welcome-icon {
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(100, 70, 10, 0.45) 0%, rgba(18, 12, 4, 0.7) 100%);
+    border: 2px solid #8B6914;
+    box-shadow:
+        0 0 18px rgba(180, 140, 40, 0.3),
+        inset 0 0 10px rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    color: #D4A850;
+    flex-shrink: 0;
+}
+
+.tuto-welcome-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: #D4A850;
+    letter-spacing: 0.08em;
+    font-variant: small-caps;
+    text-shadow: 0 0 16px rgba(180, 140, 40, 0.4);
+}
+
+.tuto-welcome-text {
+    margin: 0;
+    font-size: 12.5px;
+    color: #8a7050;
+    line-height: 1.65;
+}
+
+/* ============================================================
+   DIALOG SÉLECTEUR DE SECTIONS
+   ============================================================ */
+
+.tuto-selector-body {
+    padding: 14px 4px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.tuto-selector-hint {
+    margin: 0;
+    font-size: 11.5px;
+    color: #6a5030;
+    padding: 0 6px;
+    font-style: italic;
+}
+
+.tuto-section-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.tuto-section-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s, border-color 0.12s;
+    font-size: 12.5px;
+    color: #8a7050;
+    user-select: none;
+    border: 1px solid transparent;
+}
+
+.tuto-section-row:hover {
+    background: rgba(100, 70, 10, 0.2);
+    color: #D4A850;
+    border-color: rgba(139, 105, 20, 0.2);
+}
+
+.tuto-section-row input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    accent-color: #C8A030;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin: 0;
+}
+
+.tuto-section-row i {
+    width: 16px;
+    text-align: center;
+    color: #8B6914;
+    font-size: 12px;
+    flex-shrink: 0;
+}
+
+.tuto-section-row span {
+    flex: 1;
+}
+
+/* ============================================================
+   ANNEAU DE SPOTLIGHT
+   ============================================================ */
+
+.tuto-ring {
+    border-color: #C8A030;
+    border-radius: 3px !important;
+    animation: tuto-pulse 2.2s ease-in-out infinite;
+}
+
+@keyframes tuto-pulse {
+    0%, 100% {
+        box-shadow:
+            0 0 0 3px rgba(180, 140, 40, 0.18),
+            0 0 14px rgba(180, 140, 40, 0.35),
+            inset 0 0 8px rgba(180, 140, 40, 0.05);
+    }
+    50% {
+        box-shadow:
+            0 0 0 5px rgba(180, 140, 40, 0.28),
+            0 0 28px rgba(180, 140, 40, 0.55),
+            inset 0 0 16px rgba(180, 140, 40, 0.1);
+    }
+}
+
+/* ============================================================
+   BULLE TUTORIEL
+   ============================================================ */
+
+#tuto-bubble {
+    width: 340px;
+    background:
+        repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 19px,
+            rgba(0, 0, 0, 0.06) 19px,
+            rgba(0, 0, 0, 0.06) 20px
+        ),
+        linear-gradient(180deg, #201508 0%, #160f06 100%);
+    border: 1px solid #8B6914;
+    border-radius: 3px;
+    box-shadow:
+        0 0 0 1px rgba(25, 18, 4, 0.95),
+        0 0 0 2px rgba(139, 105, 20, 0.22),
+        0 14px 42px rgba(0, 0, 0, 0.92),
+        inset 0 1px 0 rgba(220, 180, 80, 0.07);
+    animation: tuto-bubble-in 0.25s ease-out;
+    overflow: visible;
+    position: relative;
+}
+
+/* Animation : fade seul, sans transform (évite le conflit avec translate(-50%,-50%)) */
+@keyframes tuto-bubble-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* ---- Flèches ------------------------------------------------
+   ::before = triangle extérieur (couleur bordure or)
+   ::after  = triangle intérieur (couleur fond) pour l'effet bordé
+   ------------------------------------------------------------ */
+
+#tuto-bubble::before,
+#tuto-bubble::after {
+    content: "";
+    position: absolute;
+    width: 0;
+    height: 0;
+    display: none;
+}
+
+/* ---- Droite (bulle à droite de la cible) ---- */
+
+#tuto-bubble[data-arrow="right"]::before {
+    display: block;
+    right: calc(100% + 1px);
+    top: var(--tuto-arrow-v, 50%);
+    transform: translateY(-50%);
+    border-top:    11px solid transparent;
+    border-bottom: 11px solid transparent;
+    border-right:  15px solid #8B6914;
+    z-index: 1;
+}
+
+#tuto-bubble[data-arrow="right"]::after {
+    display: block;
+    right: 100%;
+    top: var(--tuto-arrow-v, 50%);
+    transform: translateY(-50%);
+    border-top:    9px solid transparent;
+    border-bottom: 9px solid transparent;
+    border-right:  12px solid #160f06;
+    z-index: 2;
+}
+
+/* ---- Gauche (bulle à gauche de la cible) ---- */
+
+#tuto-bubble[data-arrow="left"]::before {
+    display: block;
+    left: calc(100% + 1px);
+    top: var(--tuto-arrow-v, 50%);
+    transform: translateY(-50%);
+    border-top:    11px solid transparent;
+    border-bottom: 11px solid transparent;
+    border-left:   15px solid #8B6914;
+    z-index: 1;
+}
+
+#tuto-bubble[data-arrow="left"]::after {
+    display: block;
+    left: 100%;
+    top: var(--tuto-arrow-v, 50%);
+    transform: translateY(-50%);
+    border-top:    9px solid transparent;
+    border-bottom: 9px solid transparent;
+    border-left:   12px solid #160f06;
+    z-index: 2;
+}
+
+/* ---- Bas (bulle en dessous de la cible) ---- */
+
+#tuto-bubble[data-arrow="bottom"]::before {
+    display: block;
+    bottom: calc(100% + 1px);
+    left: var(--tuto-arrow-h, 50%);
+    transform: translateX(-50%);
+    border-left:   11px solid transparent;
+    border-right:  11px solid transparent;
+    border-bottom: 15px solid #8B6914;
+    z-index: 1;
+}
+
+#tuto-bubble[data-arrow="bottom"]::after {
+    display: block;
+    bottom: 100%;
+    left: var(--tuto-arrow-h, 50%);
+    transform: translateX(-50%);
+    border-left:   9px solid transparent;
+    border-right:  9px solid transparent;
+    border-bottom: 12px solid #160f06;
+    z-index: 2;
+}
+
+/* ---- Haut (bulle au-dessus de la cible) ---- */
+
+#tuto-bubble[data-arrow="top"]::before {
+    display: block;
+    top: calc(100% + 1px);
+    left: var(--tuto-arrow-h, 50%);
+    transform: translateX(-50%);
+    border-left:  11px solid transparent;
+    border-right: 11px solid transparent;
+    border-top:   15px solid #8B6914;
+    z-index: 1;
+}
+
+#tuto-bubble[data-arrow="top"]::after {
+    display: block;
+    top: 100%;
+    left: var(--tuto-arrow-h, 50%);
+    transform: translateX(-50%);
+    border-left:  9px solid transparent;
+    border-right: 9px solid transparent;
+    border-top:   12px solid #160f06;
+    z-index: 2;
+}
+
+/* ---- En-tête ---- */
+
+.tuto-bubble-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 12px 7px;
+    border-bottom: 1px solid;
+    border-image: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(139, 105, 20, 0.55) 20%,
+        rgba(200, 160, 48, 0.4) 50%,
+        rgba(139, 105, 20, 0.55) 80%,
+        transparent 100%
+    ) 1;
+}
+
+.tuto-step-counter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 9.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #5a4420;
+}
+
+/* ---- Points de progression ---- */
+
+.tuto-step-dots {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.tuto-dot {
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: rgba(80, 58, 16, 0.4);
+    border: 1px solid rgba(120, 88, 24, 0.4);
+    transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+
+.tuto-dot.active {
+    background: #C8A030;
+    border-color: #E0C050;
+    transform: scale(1.35);
+    box-shadow: 0 0 5px rgba(200, 160, 48, 0.55);
+}
+
+.tuto-dot.dim {
+    opacity: 0.3;
+    transform: scale(0.75);
+}
+
+/* ---- Bouton fermer ---- */
+
+.tuto-close-btn {
+    background: transparent;
+    border: none;
+    color: #40300e;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 2px 5px;
+    border-radius: 2px;
+    line-height: 1;
+    transition: color 0.15s;
+}
+
+.tuto-close-btn:hover { color: #7a1a1a; }
+
+/* ---- Corps ---- */
+
+.tuto-bubble-body {
+    padding: 12px 14px 10px;
+}
+
+.tuto-bubble-title {
+    margin: 0 0 7px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #D4A850;
+    letter-spacing: 0.07em;
+    font-variant: small-caps;
+    text-shadow: 0 0 12px rgba(180, 140, 40, 0.3);
+}
+
+.tuto-bubble-text {
+    margin: 0;
+    font-size: 12px;
+    color: #9a7e50;
+    line-height: 1.65;
+}
+
+.tuto-bubble-text strong { color: #D4A850; }
+.tuto-bubble-text i      { color: #C8A030; }
+
+/* ---- Pied ---- */
+
+.tuto-bubble-footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 12px 11px;
+    border-top: 1px solid;
+    border-image: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(139, 105, 20, 0.55) 20%,
+        rgba(200, 160, 48, 0.4) 50%,
+        rgba(139, 105, 20, 0.55) 80%,
+        transparent 100%
+    ) 1;
+}
+
+.tuto-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 13px;
+    border-radius: 2px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    border: 1px solid rgba(90, 65, 18, 0.5);
+    background: rgba(18, 12, 4, 0.85);
+    color: #6a5030;
+    font-variant: small-caps;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+
+.tuto-btn:hover:not(:disabled) {
+    background: rgba(38, 26, 8, 0.9);
+    border-color: #8B6914;
+    color: #C8A030;
+}
+
+.tuto-btn:disabled {
+    opacity: 0.22;
+    cursor: not-allowed;
+}
+
+.tuto-btn.primary {
+    background: linear-gradient(180deg, #9A6E10 0%, #705008 100%);
+    border-color: #C8A030;
+    color: #F5E4A0;
+    font-weight: 700;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 220, 80, 0.12);
+}
+
+.tuto-btn.primary:hover {
+    background: linear-gradient(180deg, #C8A030 0%, #9A6E10 100%);
+    color: #1a1000;
+    border-color: #E0C050;
+}

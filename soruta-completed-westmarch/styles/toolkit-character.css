@@ -1,0 +1,139 @@
+.checked {
+    color: #e74c3c;
+}
+
+/* ============================================================
+   DIALOG — Export d'acteur (choix de fiche)
+   ============================================================ */
+
+.tko-export-dialog .window-content {
+    background: #1a1008;
+    border-top: 1px solid #5a3a0a;
+}
+
+.tko-export-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 4px 0 8px;
+}
+
+.tko-export-intro {
+    margin: 0 0 12px;
+    font-size: 12px;
+    color: #c8b89a;
+    line-height: 1.6;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    padding: 8px 10px;
+    background: rgba(201, 168, 76, 0.08);
+    border-left: 3px solid #c9a84c;
+    border-radius: 0 4px 4px 0;
+}
+
+.tko-export-intro i {
+    color: #c9a84c;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.tko-export-opt {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 11px 14px;
+    border-radius: 4px;
+    border: 1px solid rgba(201, 168, 76, 0.2);
+    background: rgba(255, 255, 255, 0.03);
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.tko-export-opt:hover {
+    border-color: rgba(201, 168, 76, 0.45);
+    background: rgba(201, 168, 76, 0.05);
+}
+
+.tko-export-opt:has(input:checked) {
+    border-color: #c9a84c;
+    background: rgba(201, 168, 76, 0.1);
+    box-shadow: inset 0 0 0 1px rgba(201, 168, 76, 0.15);
+}
+
+.tko-export-opt input[type="radio"] {
+    margin-top: 3px;
+    flex-shrink: 0;
+    accent-color: #c9a84c;
+}
+
+.tko-export-opt-body {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.tko-export-opt-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #f0e6cc;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    letter-spacing: 0.02em;
+}
+
+.tko-export-opt-title i {
+    color: #c9a84c;
+    font-size: 12px;
+}
+
+.tko-export-opt-desc {
+    font-size: 11.5px;
+    color: #a89070;
+    line-height: 1.6;
+}
+
+/* Boutons */
+.tko-export-dialog .dialog-buttons {
+    display: flex;
+    gap: 8px;
+    padding: 10px 12px 12px;
+    background: #1a1008;
+    border-top: 1px solid rgba(201, 168, 76, 0.2);
+}
+
+.tko-export-dialog .dialog-button {
+    flex: 1;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: filter 0.15s, background 0.15s;
+    border: 1px solid;
+}
+
+.tko-export-dialog .dialog-button[data-button="export"] {
+    background: linear-gradient(180deg, #c9a84c 0%, #9e7c2a 100%);
+    border-color: #e0c060;
+    color: #1a1008;
+    text-shadow: none;
+}
+
+.tko-export-dialog .dialog-button[data-button="export"]:hover {
+    filter: brightness(1.15);
+}
+
+.tko-export-dialog .dialog-button[data-button="cancel"] {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(201, 168, 76, 0.25);
+    color: #a89070;
+}
+
+.tko-export-dialog .dialog-button[data-button="cancel"]:hover {
+    background: rgba(255, 255, 255, 0.09);
+    border-color: rgba(201, 168, 76, 0.5);
+    color: #c8b89a;
+}

@@ -36,7 +36,13 @@ export function ConnStatsHooks() {
         // "Paquets" chargés = modules actifs.
         const activeModules = game.modules.filter(m => m.active).length;
 
-        renderConnStats({ loadMs, avgMs, activeModules, samples: history.length });
+        // Nombre d'assets chargés = ressources récupérées par le navigateur
+        // (scripts, styles, images, polices, sons, requêtes…), via l'API
+        // Resource Timing.
+        let assetCount = 0;
+        try { assetCount = performance.getEntriesByType("resource").length; } catch (e) {}
+
+        renderConnStats({ loadMs, avgMs, activeModules, assetCount, samples: history.length });
     });
 }
 
@@ -45,7 +51,7 @@ function fmtDuration(ms) {
     return ms + " ms";
 }
 
-function renderConnStats({ loadMs, avgMs, activeModules, samples }) {
+function renderConnStats({ loadMs, avgMs, activeModules, assetCount, samples }) {
     document.getElementById("scwm-connstats")?.remove();
 
     const box = document.createElement("div");
@@ -55,6 +61,7 @@ function renderConnStats({ loadMs, avgMs, activeModules, samples }) {
         <div class="scwm-connstats-title"><i class="fas fa-plug"></i> Connexion</div>
         <div class="scwm-connstats-row"><span>Temps de chargement</span><b>${fmtDuration(loadMs)}</b></div>
         <div class="scwm-connstats-row"><span>Modules actifs</span><b>${activeModules}</b></div>
+        <div class="scwm-connstats-row"><span>Assets chargés</span><b>${assetCount}</b></div>
         <div class="scwm-connstats-row"><span>Moyenne (${samples} sess.)</span><b>${fmtDuration(avgMs)}</b></div>
     `;
     document.body.appendChild(box);

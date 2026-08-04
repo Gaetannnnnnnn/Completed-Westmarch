@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 1.2.9
+Version : 1.3.0
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -146,6 +146,10 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v1.3.0 | 2026-08-04
+   - Fenetre d infos de connexion : ajout du nombre d assets charges (ressources
+     recuperees par le navigateur, via Resource Timing) (connstats.js).
 
 v1.2.9 | 2026-08-04
    - Fenetre d infos de connexion : disparition auto reglee a 7 s (au lieu de

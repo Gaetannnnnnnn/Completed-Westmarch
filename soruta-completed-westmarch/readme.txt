@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 1.2.6
+Version : 1.2.7
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -146,6 +146,12 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v1.2.7 | 2026-08-04
+   - Onglet Relations restyle dans le meme theme fantasy dore que le Bestiaire :
+     barre de titre a filet dore + police Modesto, recherche Bookinsanity, noms
+     en serif, filets dores sur les lignes et en-tetes de section (relations.js,
+     relations.css).
 
 v1.2.6 | 2026-08-04
    - Nouvelle option "Masquer la barre de macros (GM)", independante de

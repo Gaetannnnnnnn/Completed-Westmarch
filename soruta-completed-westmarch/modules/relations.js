@@ -175,40 +175,19 @@ export function buildTabHtml(actor) {
     const pnjRels = rels.filter(r => { const a = game.actors.get(r.targetId); return a && isInPNJFolder(a); });
 
     // ---- Styles inline (contournement cache CSS Foundry) ----
+    // Thème "fantasy" doré, aligné sur l'onglet Bestiaire.
     const S = {
-        // Conteneur titre
-        titleBar: `display:flex;align-items:center;justify-content:space-between;` +
-                  `padding:8px 12px 6px;flex-shrink:0;` +
-                  `border-bottom:1px solid rgba(255,255,255,0.07);`,
-        // Texte "♥ Relations"
-        title:    `display:flex;align-items:center;gap:6px;` +
-                  `font-size:12px;font-weight:700;text-transform:uppercase;` +
-                  `letter-spacing:0.06em;color:#ccc;`,
-        // Bouton "+ Ajouter"
-        addBtn:   `display:flex;align-items:center;gap:5px;` +
-                  `padding:3px 9px;` +
-                  `background:rgba(255,255,255,0.04);` +
-                  `border:1px solid rgba(255,255,255,0.1);border-radius:4px;` +
-                  `color:#aaa;font-size:11px;cursor:pointer;white-space:nowrap;` +
-                  `transition:background 0.12s,color 0.12s;`,
-        // Barre de recherche
-        searchBar:`display:flex;align-items:center;gap:6px;` +
-                  `padding:5px 10px;flex-shrink:0;` +
-                  `border-bottom:1px solid rgba(255,255,255,0.06);`,
-        wrap:     `flex:1;display:flex;align-items:center;gap:6px;` +
-                  `background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);` +
-                  `border-radius:4px;padding:4px 8px;`,
-        srchIcon: `color:#555;font-size:11px;flex-shrink:0;`,
-        srchInput:`flex:1;background:transparent;border:none;box-shadow:none;outline:none;` +
-                  `color:#bbb;font-size:11px;padding:0;min-width:0;font-family:inherit;`,
-        clear:    `display:none;color:#444;font-size:10px;cursor:pointer;padding:2px 3px;`,
-        // En-tête de section
-        secHdr:   `display:flex;align-items:center;gap:6px;` +
-                  `padding:4px 12px;flex-shrink:0;` +
-                  `font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;` +
-                  `color:#666;background:rgba(0,0,0,0.3);` +
-                  `border-top:1px solid #1e1e1e;border-bottom:1px solid #1e1e1e;`,
-        secCount: `color:#444;font-weight:400;font-size:10px;`,
+        titleBar:  `display:flex;align-items:center;justify-content:space-between;padding:9px 12px 7px;flex-shrink:0;background:linear-gradient(180deg,rgba(201,162,39,0.06),transparent);border-bottom:2px solid transparent;border-image:linear-gradient(90deg,transparent,rgba(201,162,39,0.55) 15%,rgba(201,162,39,0.55) 85%,transparent) 1;`,
+        title:     `display:flex;align-items:center;gap:8px;font-size:17px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#c9a227;font-family:'Modesto Condensed','Enchanted Land','Signika',serif;text-shadow:0 1px 2px rgba(0,0,0,0.6);`,
+        addBtn:    `display:flex;align-items:center;gap:5px;padding:3px 9px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:4px;color:#aaa;font-size:11px;cursor:pointer;white-space:nowrap;transition:background 0.12s,color 0.12s;`,
+        searchBar: `display:flex;align-items:center;gap:6px;padding:6px 10px;flex-shrink:0;border-bottom:1px solid rgba(201,162,39,0.15);`,
+        wrap:      `flex:1;display:flex;align-items:center;gap:6px;background:rgba(0,0,0,0.28);border:1px solid rgba(201,162,39,0.28);border-radius:4px;padding:5px 9px;`,
+        srchIcon:  `color:#a8863a;font-size:12px;flex-shrink:0;`,
+        srchInput: `flex:1;background:transparent;border:none;box-shadow:none;outline:none;color:#cbb98f;font-size:12px;padding:0;min-width:0;font-family:'Bookinsanity',Georgia,serif;`,
+        clear:     `display:none;color:#444;font-size:10px;cursor:pointer;padding:2px 3px;`,
+        // En-tête de section (Joueurs / PNJ) — filet doré
+        secHdr:    `display:flex;align-items:center;gap:6px;padding:4px 12px;flex-shrink:0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:#b89a52;background:linear-gradient(180deg,rgba(201,162,39,0.06),transparent);border-top:1px solid rgba(201,162,39,0.15);border-bottom:1px solid rgba(201,162,39,0.15);`,
+        secCount:  `color:#8a7038;font-weight:400;font-size:10px;`,
     };
 
     function sectionHdr(label, count) {
@@ -229,7 +208,7 @@ export function buildTabHtml(actor) {
 
         <div style="${S.titleBar}">
             <span style="${S.title}">
-                <i class="fas fa-heart" style="color:#e91e8c;font-size:11px;"></i>
+                <i class="fas fa-heart" style="color:#e0a13a;font-size:15px;filter:drop-shadow(0 1px 1px rgba(0,0,0,0.5));"></i>
                 Relations
             </span>
             ${isGM ? `<a class="rel-add-btn">

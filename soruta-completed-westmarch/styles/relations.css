@@ -349,3 +349,52 @@
     color: #e8cc6a; border-color: rgba(201, 162, 39, 0.55);
     box-shadow: 0 2px 8px rgba(201, 162, 39, 0.1); text-decoration: none;
 }
+
+/* ============================================================
+   Habillage thématique (fantasy) — noms en serif D&D, filets dorés
+   Miroir de l'onglet Bestiaire (bestiary.css).
+   ============================================================ */
+.rel-name {
+    font-family: "Bookinsanity", Georgia, "Times New Roman", serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #dccba4;
+    letter-spacing: 0.01em;
+}
+.rel-row {
+    border-bottom: 1px solid transparent;
+    border-image: linear-gradient(90deg, transparent, rgba(201,162,39,0.30) 12%, rgba(201,162,39,0.30) 88%, transparent) 1;
+}
+.rel-row:hover {
+    background: rgba(201, 162, 39, 0.05);
+}
+.rel-level-label {
+    color: #b89a52;
+}
+.rel-level-btn:hover {
+    background: rgba(201, 162, 39, 0.14);
+    color: #e0a13a !important;
+}
+.rel-level-btn.active {
+    background: rgba(201, 162, 39, 0.12);
+}
+.rel-btns a:hover {
+    background: rgba(201, 162, 39, 0.12);
+    color: #e0a13a;
+}
+.rel-empty {
+    color: #6b5a34;
+    font-family: "Bookinsanity", Georgia, serif;
+    font-style: italic;
+}
+.rel-empty i { color: #5a4a28; }
+.rel-notes {
+    border-top: 1px solid rgba(201,162,39,0.15);
+}
+.rel-field-label { color: #8a7038; }
+
+/* Picker : sélection dorée (au lieu du rose), cohérent avec le bestiaire */
+.rel-picker-actor.selected {
+    background: rgba(224,123,57,0.18);
+    outline: 1px solid rgba(224,123,57,0.4);
+}

@@ -1,0 +1,66 @@
+/* ============================================================
+   connstats.css — Fenêtre d'infos de connexion (haut/centre)
+   ============================================================ */
+
+#scwm-connstats {
+    position: fixed;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10000;
+    min-width: 220px;
+    padding: 8px 12px 9px;
+    background: linear-gradient(180deg, rgba(20,18,14,0.96), rgba(12,11,9,0.96));
+    border: 1px solid rgba(201,162,39,0.45);
+    border-radius: 6px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.5);
+    color: #cbb98f;
+    font-family: "Signika", sans-serif;
+    font-size: 12px;
+    pointer-events: auto;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+#scwm-connstats.scwm-connstats-hide {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-8px);
+}
+
+.scwm-connstats-title {
+    font-family: "Modesto Condensed", "Signika", serif;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 13px;
+    font-weight: 700;
+    color: #c9a227;
+    margin-bottom: 5px;
+    padding: 0 14px 4px 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-bottom: 1px solid rgba(201,162,39,0.25);
+}
+
+.scwm-connstats-title i { color: #e0a13a; font-size: 12px; }
+
+.scwm-connstats-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 1px 0;
+}
+
+.scwm-connstats-row span { color: #9a8a66; }
+.scwm-connstats-row b { color: #e8dcc0; font-weight: 600; }
+
+.scwm-connstats-close {
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    color: #6b5a34;
+    font-size: 11px;
+    cursor: pointer;
+    line-height: 1;
+}
+.scwm-connstats-close:hover { color: #e0a13a; }

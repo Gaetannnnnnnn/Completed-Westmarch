@@ -31,6 +31,7 @@ import { MejRestockHooks }   from "./modules/mejrestock.js";
 import { ExportDialogHooks } from "./modules/export-dialog.js";
 import { TemplateHooks }     from "./modules/template.js";
 import { HotbarHooks }       from "./modules/hotbar.js";
+import { ConnStatsHooks }    from "./modules/connstats.js";
 
 // --- Phase 4 : Westmarch core ---
 import { ChatHooks }      from "./modules/chat.js";
@@ -92,6 +93,7 @@ Hooks.on("init", () => {
     ExportDialogHooks();
     TemplateHooks();
     HotbarHooks();
+    ConnStatsHooks();
 
     // --- Phase 4 : Westmarch core (ordre d'origine) ---
     ChatHooks();

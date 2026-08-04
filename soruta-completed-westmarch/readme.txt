@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 1.2.7
+Version : 1.2.9
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -146,6 +146,17 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v1.2.9 | 2026-08-04
+   - Fenetre d infos de connexion : disparition auto reglee a 7 s (au lieu de
+     12 s). Croix de fermeture en haut a droite inchangee (connstats.js).
+
+v1.2.8 | 2026-08-04
+   - Nouvelle fonctionnalite Toolkit "Fenetre d infos de connexion" : au
+     chargement, petite fenetre en haut au centre affichant le temps de
+     connexion, le nombre de modules actifs et la duree moyenne de connexion
+     (historique local, 20 dernieres sessions). Reglage enableConnStats,
+     disparition auto apres 12 s (connstats.js / connstats.css).
 
 v1.2.7 | 2026-08-04
    - Onglet Relations restyle dans le meme theme fantasy dore que le Bestiaire :

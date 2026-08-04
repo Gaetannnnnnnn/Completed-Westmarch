@@ -1,8 +1,10 @@
 // ============================================================
 // hotbar.js — Masquer la barre de macros (hotbar) pour les joueurs
 //
-// Réglage "enableHideHotbar" (Toolkit) : quand activé, la barre de macros
-// est masquée pour les utilisateurs non-GM. Le GM la conserve toujours.
+// Deux réglages (Toolkit), indépendants :
+//   - "enableHideHotbar"   : masque la hotbar pour les joueurs non-GM.
+//   - "enableHideHotbarGM" : masque la hotbar pour les GM.
+// Chaque utilisateur applique celui qui le concerne selon son rôle.
 // Masquage via une classe sur <body> (robuste aux re-renders) + fallback
 // direct sur l'élément. Live, sans rechargement.
 // © 2026 Soruta.
@@ -11,7 +13,9 @@
 import { MOD } from "./const.js";
 
 export function applyHotbarVisibility() {
-    const hide = !!game.settings.get(MOD, "enableHideHotbar") && !game.user.isGM;
+    const hide = game.user.isGM
+        ? !!game.settings.get(MOD, "enableHideHotbarGM")
+        : !!game.settings.get(MOD, "enableHideHotbar");
     document.body.classList.toggle("scwm-hide-hotbar", hide);
 
     // Fallback direct (au cas où l'id DOM différerait) — réappliqué au render.

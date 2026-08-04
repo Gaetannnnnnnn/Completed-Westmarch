@@ -117,8 +117,10 @@ Hooks.on("init", () => {
     // --- Phase 6 : Carte + Tutoriel (init) ---
     MapHooks();
     // Bouton tutoriel enregistré en "init" pour que getSceneControlButtons
-    // soit déjà écouté quand Foundry construit la barre.
-    if (game.settings.get(MOD, "tutoEnabled")) registerTutorielButton();
+    // soit déjà écouté quand Foundry construit la barre. Le hook vérifie
+    // lui-même le setting tutoEnabled (voir toolbar.js) : on l'enregistre
+    // donc toujours, sans le gater ici.
+    registerTutorielButton();
 });
 
 Hooks.on("ready", () => {

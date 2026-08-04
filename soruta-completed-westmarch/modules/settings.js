@@ -183,7 +183,13 @@ export function registerSettings() {
         "À la création d'un outil sans stat, corrige automatiquement vers la stat canonique dnd5e."));
     game.settings.register(MOD, "enableHideHotbar", {
         name: "Masquer la barre de macros (joueurs)",
-        hint: "Cache la barre de macros (hotbar) pour les joueurs non-GM. Le GM la conserve toujours. Modifiable sans rechargement.",
+        hint: "Cache la barre de macros (hotbar) pour les joueurs non-GM. Modifiable sans rechargement.",
+        scope: "world", config: false, type: Boolean, default: false, requiresReload: false,
+        onChange: () => applyHotbarVisibility()
+    });
+    game.settings.register(MOD, "enableHideHotbarGM", {
+        name: "Masquer la barre de macros (GM)",
+        hint: "Cache la barre de macros (hotbar) pour les GM. Indépendant de l'option joueurs. Modifiable sans rechargement.",
         scope: "world", config: false, type: Boolean, default: false, requiresReload: false,
         onChange: () => applyHotbarVisibility()
     });
@@ -378,7 +384,7 @@ const CATEGORIES = [
       keys: ["tmEnabled","tmSkillBase","tmAddAbilityMod","tmBonusMaitrise","tmBonusExpertise","tmBonusTools","tmRollMinDays","tmSkillFormula","tmCraftNonMagicCostDiv","tmCraftNonMagicDaysPerGp","tmCraftNonMagicCostFormula","tmCraftNonMagicDaysFormula","tmSingleUseFactor","tmScrollTable","tmMagicTable"] },
     { firstKey: "enableTokenAppearance", icon: "fa-toolbox",         title: "Toolkit",
       desc: "Apparences de tokens, transformations, tailles Large, TGCM, utilitaires GM, templates AoE, boutiques MEJ et réapprovisionnement.",
-      keys: ["enableTokenAppearance","enableTokenPortraitButton","enableRageSize","enableLargeForm","enablePolymorph","enableTgcm","enableFolderMove","enableToolAbilityFix","enableHideHotbar","enableTemplateSnap","enableMejShopFix","enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
+      keys: ["enableTokenAppearance","enableTokenPortraitButton","enableRageSize","enableLargeForm","enablePolymorph","enableTgcm","enableFolderMove","enableToolAbilityFix","enableHideHotbar","enableHideHotbarGM","enableTemplateSnap","enableMejShopFix","enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
     { firstKey: "relationsEnabled", master: "relationsEnabled",      icon: "fa-heart",           title: "Fiche PJ — Relations",
       desc: "Onglet Relations : liens entre personnages, détection automatique des rencontres, anonymisation.",
       keys: ["relationsEnabled","relationsAnonymization","relationsFolderPJ","relationsFolderPNJ","relationsFolderCreatures"] },

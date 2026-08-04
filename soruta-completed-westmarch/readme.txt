@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 1.2.3
+Version : 1.2.6
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -146,6 +146,24 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v1.2.6 | 2026-08-04
+   - Nouvelle option "Masquer la barre de macros (GM)", independante de
+     l option joueurs. Chaque utilisateur applique le reglage de son role
+     (hotbar.js / settings.js, categorie Toolkit).
+
+v1.2.5 | 2026-08-04
+   - Fenetre d attribution d XP : la liste des PJ se base desormais sur les
+     membres REELS de la party (flags persistants) et non sur sessionData, qui
+     se vide au rechargement de Foundry. La cloture fonctionne aussi apres un
+     rechargement (party retrouvee via le flag du GM). Le rapport retombe sur
+     les membres actuels si le snapshot de session est vide (session.js).
+
+v1.2.4 | 2026-08-04
+   - Bouton tutoriel : le hook getSceneControlButtons est desormais toujours
+     enregistre et verifie tutoEnabled en interne (toolbar.js / index.js), au
+     lieu d etre gate a l init. Corrige la disparition de l icone "?" du groupe
+     WestMarch apres un basculement de la case Active du Tutoriel.
 
 v1.2.3 | 2026-08-04
    - "Clore la session" ouvre desormais une fenetre d attribution d XP : un

@@ -235,22 +235,37 @@ export function startSessionLog(partyId) {
 // Renvoie : true (XP appliqué) / false (clore sans XP) / "cancel"
 // (fenêtre fermée → on n'clôt pas la session).
 // ============================================================
-function promptXpAward() {
+function promptXpAward(partyId) {
     const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c =>
         ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
     // Liste unique des PJ de la party (dédupliquée par acteur).
+    // Source PRINCIPALE : les membres réels de la party (les flags des
+    // utilisateurs persistent au rechargement, contrairement à sessionData).
+    // Repli : le snapshot de session, si présent.
     const seen = new Set();
     const pcs = [];
-    for (const p of sessionData.players) {
-        if (seen.has(p.actorId)) continue;
-        const actor = game.actors.get(p.actorId);
-        if (!actor) continue;
-        seen.add(p.actorId);
-        pcs.push({ actorId: p.actorId, name: p.name, currentXp: actor.system?.details?.xp?.value ?? 0 });
+    for (const user of game.users) {
+        if (user.getFlag(MOD, "partyId") !== partyId) continue;
+        const actor = user.character;
+        if (!actor || seen.has(actor.id)) continue;
+        seen.add(actor.id);
+        pcs.push({ actorId: actor.id, name: actor.name, currentXp: actor.system?.details?.xp?.value ?? 0 });
+    }
+    if (!pcs.length) {
+        for (const p of sessionData.players) {
+            if (seen.has(p.actorId)) continue;
+            const actor = game.actors.get(p.actorId);
+            if (!actor) continue;
+            seen.add(p.actorId);
+            pcs.push({ actorId: p.actorId, name: p.name, currentXp: actor.system?.details?.xp?.value ?? 0 });
+        }
     }
 
-    if (!pcs.length) return Promise.resolve(false);
+    if (!pcs.length) {
+        ui.notifications.warn("Aucun PJ trouvé dans la party pour l'attribution d'XP.");
+        return Promise.resolve(false);
+    }
 
     const rows = pcs.map(pc => `
         <div style="display:flex;align-items:center;gap:8px;margin:4px 0;">
@@ -324,18 +339,48 @@ function promptXpAward() {
 // SECTION : Clôture de la session et génération du journal
 // ============================================================
 async function closeSession(playerListApp) {
-    if (!sessionData.partyId) {
-        ui.notifications.warn("Aucune session en cours.");
+    // La party est déterminée même après un rechargement de Foundry : les
+    // flags des utilisateurs persistent, alors que sessionData (variable de
+    // module) est réinitialisé. On retombe donc sur la party du GM courant.
+    const partyId = sessionData.partyId ?? game.user.getFlag(MOD, "partyId");
+    if (!partyId) {
+        ui.notifications.warn("Aucune session en cours (aucune party active).");
         return;
+    }
+
+    // Capture de l'XP AVANT attribution, par acteur de la party — sert de
+    // repli pour calculer le gain dans le rapport quand sessionData est vide
+    // (rechargement de Foundry en cours de session).
+    const xpBeforeById = new Map();
+    for (const user of game.users) {
+        if (user.getFlag(MOD, "partyId") !== partyId) continue;
+        const actor = user.character;
+        if (actor) xpBeforeById.set(actor.id, actor.system?.details?.xp?.value ?? 0);
     }
 
     // Fenêtre d'attribution d'XP AVANT le rapport (l'XP attribué apparaît
     // ainsi comme gain dans le récap). Fermer la fenêtre annule la clôture.
-    const xpResult = await promptXpAward();
+    const xpResult = await promptXpAward(partyId);
     if (xpResult === "cancel") return;
 
+    // Liste des PJ pour le rapport : snapshot de session si présent, sinon
+    // membres actuels de la party (xpBefore = XP courant, donc le gain
+    // reflète l'XP tout juste attribué via la fenêtre ci-dessus).
+    let reportPlayers = sessionData.players;
+    if (!reportPlayers.length) {
+        const seen = new Set();
+        reportPlayers = [];
+        for (const user of game.users) {
+            if (user.getFlag(MOD, "partyId") !== partyId) continue;
+            const actor = user.character;
+            if (!actor || seen.has(actor.id)) continue;
+            seen.add(actor.id);
+            reportPlayers.push({ actorId: actor.id, name: actor.name, xpBefore: xpBeforeById.get(actor.id) ?? (actor.system?.details?.xp?.value ?? 0) });
+        }
+    }
+
     // Snapshot XP final + détection level up
-    const playersReport = sessionData.players.map(p => {
+    const playersReport = reportPlayers.map(p => {
         const actor = game.actors.get(p.actorId);
         const xpAfter = actor?.system?.details?.xp?.value ?? p.xpBefore;
         const levelBefore = getLevelFromXp(p.xpBefore);

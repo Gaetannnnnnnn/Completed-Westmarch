@@ -821,3 +821,15 @@
 
 /* Taille de plume plus grande dans le grimoire (l'inline 13px est écrasé) */
 .carnet-grimoire #carnet-note-editor { font-size: 20px !important; line-height: 1.9 !important; }
+
+/* Éditeur grimoire : la zone d'écriture remplit toute la hauteur du dialog
+   (évite le grand vide de parchemin sous les boutons). */
+.carnet-grimoire .window-content {
+    display: flex;
+    flex-direction: column;
+}
+.carnet-grimoire .window-content > div:first-child {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto !important;
+}

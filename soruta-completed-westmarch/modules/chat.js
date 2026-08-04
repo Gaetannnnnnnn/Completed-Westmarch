@@ -118,41 +118,8 @@ function _injectPartyChatButtons() {
     const $btnClear  = _makePartyBtn("clearParty",  "fa-users-slash", "Effacer les messages de ma party uniquement");
     const $btnImport = _makePartyBtn("importParty", "fa-file-import",  "Importer des messages (JSON / .txt)");
 
-    // Forcer flex-wrap via style inline : priorité absolue, résiste à
-    // !important dans les feuilles de style Foundry ou autres modules.
-    controlButtons.style.flexWrap  = 'wrap';
-    controlButtons.style.height    = 'auto';
-    controlButtons.style.maxHeight = 'none';
-    controlButtons.style.overflow  = 'visible';
-    if (controlButtons.parentElement) {
-        controlButtons.parentElement.style.height    = 'auto';
-        controlButtons.parentElement.style.maxHeight = 'none';
-        controlButtons.parentElement.style.overflow  = 'visible';
-    }
-
-    // Architecture 2 lignes via manipulation DOM directe.
-    // On déplace physiquement les 3 derniers boutons natifs (filter, export, flush)
-    // APRÈS le break dans le DOM. flex-wrap + flex-basis:100% sur le break
-    // suffisent à les pousser en ligne 2 — pas besoin de CSS `order`.
-    //
-    // Résultat DOM dans .control-buttons :
-    //   [autres boutons natifs...] [break] [filter] [floppy] [trash] [import] [clear]
-    // Résultat visuel :
-    //   ligne 1 : boutons avant le break (modes de jet ou conteneur frère)
-    //   ligne 2 : filter | floppy | trash | import | clear
-    const breakEl = document.createElement("div");
-    breakEl.className = "wm-party-break";
-    breakEl.setAttribute("data-wm-action", "break");
-
-    const nativeBtns = [...controlButtons.querySelectorAll('button:not([data-wm-action])')];
-    const actionBtns = nativeBtns.slice(-3); // filter, floppy, trash
-
-    // 1. Appendre le break après les boutons actuellement en place.
-    controlButtons.appendChild(breakEl);
-    // 2. Déplacer (pas copier) filter/floppy/trash après le break.
-    //    appendChild sur un élément déjà dans le DOM le déplace.
-    actionBtns.forEach(btn => controlButtons.appendChild(btn));
-    // 3. Nos boutons en fin de ligne 2.
+    // Ajout de nos deux boutons à la fin de la rangée native (une seule ligne,
+    // sans forcer de wrap ni de débordement — évite les boutons flottant sur la carte).
     controlButtons.appendChild($btnImport[0]);
     controlButtons.appendChild($btnClear[0]);
 

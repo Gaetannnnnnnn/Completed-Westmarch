@@ -1,49 +1,52 @@
-.tabbedchatlog.tabs {
-    flex: 0;
-    margin: 0 0 5px;
-    border-bottom: 1px solid #ff6400;
-    box-shadow: 0 0 10px red;
-    line-height: 1.2;
-    width: 100%;
-}
-
+/* Barre d'onglets du chat (IC / Autre / OOC) */
 .tabbed-controls {
-    flex: 0;
-    margin: 0 0 5px;
-    line-height: 1.2;
+    display: flex;
     width: 100%;
+    gap: 4px;
+    margin: 4px 0 6px;
+    padding: 0;
+    line-height: 1.2;
 }
-
-.tabbedchatlog .item.active {
-    color: #FFF;
-    border: 1px solid red;
-    border-bottom: none;
-    box-shadow: 0 0 6px inset #ff6400;
-    border-radius: 5px 5px 0 0;
-}
-
 .tabbed-controls .ui-control {
-    height: 18px;
+    position: relative;
     flex: 1;
+    height: auto;
+    min-height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 4px 6px;
+    font-size: 12px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid #4a4a4a;
+    border-radius: 4px;
+    color: #c0c0c0;
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s, color 0.12s, box-shadow 0.12s;
+}
+.tabbed-controls .ui-control:hover {
+    border-color: #ff6400;
+    color: #fff;
+}
+.tabbed-controls .ui-control[aria-pressed="true"] {
+    border-color: #ff6400;
+    color: #fff;
+    background: rgba(255, 100, 0, 0.12);
+    box-shadow: inset 0 0 6px rgba(255, 100, 0, 0.4);
+}
+.tabbed-controls .ui-control i:first-child { font-size: 13px; }
+.tabbed-controls .scwm-notif {
+    position: absolute;
+    top: 3px;
+    right: 5px;
+    font-size: 7px;
+    color: #ff6400;
+    display: none;
 }
 
 .hardHide {
     display: none !important;
-}
-
-#ICNotification {
-    top: 0px;
-    right: 196px;
-}
-
-#OOCNotification {
-    top: 0px;
-    right: 8px;
-}
-
-#OTHERNotification {
-    top: 0px;
-    right: 115px;
 }
 
 #players .players-list {
@@ -52,38 +55,8 @@
 }
 
 /* ============================================================
-   Boutons gestion party (GM) — 2e ligne dans .control-buttons
-   flex-wrap: wrap + séparateur invisible → 2 étages sans sortir du conteneur.
+   Boutons gestion party (GM) — ajoutés en fin de rangée .control-buttons
    ============================================================ */
-
-/* Activer le wrapping dans le conteneur natif Foundry.
-   height: auto + overflow: visible nécessaires pour que la 2e ligne
-   ne soit pas clippée par une hauteur fixe Foundry. */
-#chat-controls .control-buttons,
-.control-buttons {
-    flex-wrap: wrap !important;
-    height: auto !important;
-    max-height: none !important;
-    overflow: visible !important;
-}
-
-/* Le parent #chat-controls peut aussi clipper : même traitement. */
-#chat-controls {
-    height: auto !important;
-    max-height: none !important;
-    overflow: visible !important;
-}
-
-/* Séparateur invisible qui force le retour à la ligne.
-   flex-basis: 100% prend toute la largeur → les boutons SUIVANTS dans le DOM
-   passent à la ligne 2.
-   Les boutons sont réordonnés physiquement dans le DOM en JS (appendChild),
-   donc pas besoin de CSS order ici. */
-.wm-party-break {
-    flex-basis: 100% !important;
-    width: 100% !important;
-    height: 0;
-}
 
 /* Boutons individuels — héritent du style ui-control Foundry v13 */
 .wm-party-btn[data-wm-action="clearParty"]:hover {

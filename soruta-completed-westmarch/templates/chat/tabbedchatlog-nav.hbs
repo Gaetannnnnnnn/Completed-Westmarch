@@ -1,8 +1,14 @@
 <nav class="tabbed-controls">
-    <button type="button" class="ui-control IC"    data-tab="IC"    data-tooltip="In Character"     aria-pressed="false"><i class="fas fa-comment"></i></button>
-    <button type="button" class="ui-control OTHER" data-tab="OTHER" data-tooltip="Jets & autres"    aria-pressed="false"><i class="fas fa-dice-d20"></i></button>
-    <button type="button" class="ui-control OOC"   data-tab="OOC"   data-tooltip="Out Of Character" aria-pressed="false"><i class="fas fa-users"></i></button>
-    <i id="ICNotification"    class="fas fa-circle" style="position:absolute; color:#ff6400; font-size:8px; display:none;"></i>
-    <i id="OTHERNotification" class="fas fa-circle" style="position:absolute; color:#ff6400; font-size:8px; display:none;"></i>
-    <i id="OOCNotification"   class="fas fa-circle" style="position:absolute; color:#ff6400; font-size:8px; display:none;"></i>
+    <button type="button" class="ui-control IC" data-tab="IC" data-tooltip="In Character" aria-pressed="false">
+        <i class="fas fa-comment"></i><span>IC</span>
+        <i id="ICNotification" class="fas fa-circle scwm-notif"></i>
+    </button>
+    <button type="button" class="ui-control OTHER" data-tab="OTHER" data-tooltip="Jets &amp; autres" aria-pressed="false">
+        <i class="fas fa-dice-d20"></i><span>Autre</span>
+        <i id="OTHERNotification" class="fas fa-circle scwm-notif"></i>
+    </button>
+    <button type="button" class="ui-control OOC" data-tab="OOC" data-tooltip="Out Of Character" aria-pressed="false">
+        <i class="fas fa-users"></i><span>OOC</span>
+        <i id="OOCNotification" class="fas fa-circle scwm-notif"></i>
+    </button>
 </nav>

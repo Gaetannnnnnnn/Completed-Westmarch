@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 1.1.2
+Version : 1.1.5
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -144,6 +144,20 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v1.1.5 | 2026-08-04
+   - Boutons de gestion party du chat (effacer / importer) : remis sur une seule
+     ligne à la fin de la rangée native. Retrait du forçage flex-wrap + séparateur
+     qui créait une 2e ligne et faisait déborder les boutons sur la carte.
+
+v1.1.4 | 2026-08-04
+   - Onglets de chat (IC / Autre / OOC) refaits : vraie barre horizontale propre
+     (segments pleine largeur, onglet actif surligné, pastille de notif dans le
+     bouton) au lieu des icônes rondes flottantes. Template + CSS revus.
+
+v1.1.3 | 2026-08-04
+   - Fix éditeur grimoire : la zone d'écriture remplit désormais toute la hauteur
+     du dialog (plus de grand vide de parchemin sous les boutons).
 
 v1.1.2 | 2026-08-04
    - Éditeur de notes (Carnet) habillé en "grimoire" : page de parchemin vieilli

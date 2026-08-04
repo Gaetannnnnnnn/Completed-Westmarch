@@ -267,80 +267,66 @@ export function CombatHooks() {
     });
 
     // ============================================================
-    // SECTION : Blocage de mouvement causé par le module "Monk's
-    // TokenBar" (non lié à westmarch).
-    // - Quand un combat démarre, ce module bascule le mode de
-    //   mouvement global sur "Combat Turn" : seul le token du
-    //   combattant actif peut bouger — TOUS les autres joueurs sont
-    //   bloqués, sans aucune notion de party.
-    // - TokenBar permet justement de définir un mouvement "Libre" par
-    //   token (flag monks-tokenbar.movement = "free"), prioritaire sur
-    //   le réglage global. On s'en sert : si le combat actif n'est pas
-    //   celui de notre party, on passe nos propres tokens en mouvement
-    //   libre ; on annule ce forçage dès que ce n'est plus nécessaire
-    //   (combat terminé, ou combat qui devient celui de notre party).
-    // - On marque (flag westmarch.mtbMovementOverride) les tokens qu'on
-    //   a nous-mêmes forcés, pour ne jamais toucher à un réglage de
-    //   mouvement que le GM aurait défini manuellement sur un token.
+    // SECTION : Blocage de mouvement hors tour (natif, sans Monk's
+    // TokenBar).
+    // - Objectif : pendant le combat de SA party, un joueur ne peut
+    //   déplacer son token que quand c'est son tour. Le combat d'une
+    //   AUTRE party ne doit jamais bloquer nos joueurs.
+    // - Foundry, par défaut, ne verrouille pas du tout le mouvement des
+    //   joueurs en combat : c'est justement ce que TokenBar ajoutait.
+    //   On le réimplémente ici, en le scopant à la party.
+    // - Mise en œuvre : on veto la mise à jour de position (x/y) du token
+    //   dans "preUpdateToken", uniquement sur le client qui initie le
+    //   déplacement (game.userId === userId), donc AVANT tout envoi au
+    //   serveur. Couvre le glisser-déposer, la règle de mesure et les
+    //   déplacements au clavier (tous passent par ce hook).
+    // - Règle exacte :
+    //     * on ne regarde QUE les combats démarrés appartenant à notre
+    //       party (isMyCombat) — un combat étranger est ignoré ;
+    //     * si le token déplacé est un combattant de l'un d'eux, il ne
+    //       peut bouger que si c'est le combattant actif de ce combat ;
+    //       sinon on bloque ;
+    //     * un token qui n'est combattant d'aucun de nos combats démarrés
+    //       n'est jamais bloqué (il ne participe pas au combat).
+    // - Le GM n'est jamais bloqué.
     // ============================================================
-    // Ne prend plus un combat précis en paramètre : on recalcule à chaque
-    // fois en regardant TOUS les combats actifs de la table (game.combat
-    // ne suffit pas — c'est un pointeur global unique peu fiable dès que
-    // plusieurs combats tournent en parallèle sans scène, comme constaté
-    // pour le tracker plus haut). On est "libre" seulement s'il existe un
-    // combat étranger démarré ET qu'aucun combat de notre party n'est lui
-    // aussi démarré (sinon le blocage normal de notre propre tour reste
-    // pertinent).
-    async function applyMonksTokenBarMovementOverride() {
-        if (!partyFeatureEnabled("enableCombatParty")) return;
+    let lastTurnLockWarn = 0;
+    Hooks.on("preUpdateToken", (tokenDoc, changes, options, userId) => {
+        // On ne bloque que sur le client qui initie réellement le déplacement.
+        if (game.userId !== userId) return;
         if (game.user.isGM) return;
-        if (!game.modules.get("monks-tokenbar")?.active) return;
-        if (!canvas?.ready) return;
+        if (!partyFeatureEnabled("enableCombatParty")) return;
+        if (!game.settings.get(MOD, "enableCombatTurnLock")) return;
 
-        const combats = game.combats?.combats ?? [];
-        const hasForeignStarted = combats.some(c => c.started && !isMyCombat(c));
-        const hasOwnStarted = combats.some(c => c.started && isMyCombat(c));
-        const foreign = hasForeignStarted && !hasOwnStarted;
+        // Uniquement les vrais changements de position.
+        if (!("x" in changes) && !("y" in changes)) return;
 
-        const myTokens = canvas.tokens.placeables.filter(t => t.actor?.isOwner);
+        // Seulement les tokens que le joueur possède.
+        if (!tokenDoc.actor?.isOwner) return;
 
-        for (const token of myTokens) {
-            const overridden = token.document.getFlag(MOD, "mtbMovementOverride");
-            if (foreign && !overridden) {
-                await token.document.setFlag(MOD, "mtbMovementOverride", true);
-                await token.document.setFlag("monks-tokenbar", "movement", "free");
-            } else if (!foreign && overridden) {
-                await token.document.unsetFlag(MOD, "mtbMovementOverride");
-                await token.document.unsetFlag("monks-tokenbar", "movement");
-            }
+        // Combats démarrés appartenant à MA party (les autres sont ignorés).
+        const myStarted = (game.combats?.combats ?? []).filter(c => c.started && isMyCombat(c));
+        if (!myStarted.length) return;
+
+        let isCombatantHere = false;
+        for (const combat of myStarted) {
+            const combatant = combat.combatants.find(cb => cb.tokenId === tokenDoc.id);
+            if (!combatant) continue;
+            isCombatantHere = true;
+            // C'est le combattant actif de ce combat → déplacement autorisé.
+            if (combat.combatant?.tokenId === tokenDoc.id) return;
         }
-    }
 
-    // Monk's TokenBar a SA PROPRE logique de démarrage de combat (réglage
-    // "change-to-combat") qui, au moment précis où un combat démarre
-    // (round 1, turn 0), efface le flag "monks-tokenbar.movement" de TOUS
-    // les tokens visibles sur la scène (pas seulement les combattants) —
-    // exactement le flag qu'on vient de poser ci-dessus pour libérer un
-    // joueur hors-party. Les deux routines se déclenchent sur le MÊME
-    // hook "updateCombat" et sont toutes les deux asynchrones sans être
-    // attendues par Foundry : selon l'ordre d'enregistrement des modules,
-    // l'effacement de TokenBar peut donc s'exécuter APRÈS notre propre
-    // correctif et l'annuler (race condition, jamais fiable à 100%). On
-    // ne peut pas garantir d'arriver après coup, donc on réapplique notre
-    // correctif à quelques reprises après un court délai, pour "gagner"
-    // la course dans tous les cas plutôt qu'une seule fois au mauvais
-    // moment.
-    function scheduleMonksTokenBarMovementOverride() {
-        applyMonksTokenBarMovementOverride();
-        setTimeout(() => applyMonksTokenBarMovementOverride(), 300);
-        setTimeout(() => applyMonksTokenBarMovementOverride(), 1200);
-    }
+        // Le token ne participe à aucun de nos combats démarrés → on laisse.
+        if (!isCombatantHere) return;
 
-    Hooks.on("createCombat", () => scheduleMonksTokenBarMovementOverride());
-    Hooks.on("deleteCombat", () => scheduleMonksTokenBarMovementOverride());
-    Hooks.on("updateCombat", (combat, changes) => {
-        if (!("started" in changes) && !("round" in changes) && !("turn" in changes)) return;
-        scheduleMonksTokenBarMovementOverride();
+        // Sinon : c'est un combat de notre party, ce token y participe, mais
+        // ce n'est pas son tour → on bloque le déplacement.
+        const now = Date.now();
+        if (now - lastTurnLockWarn > 2000) {
+            lastTurnLockWarn = now;
+            ui.notifications?.warn("Ce n'est pas encore votre tour de jouer.");
+        }
+        return false;
     });
-    Hooks.on("canvasReady", () => scheduleMonksTokenBarMovementOverride());
 }

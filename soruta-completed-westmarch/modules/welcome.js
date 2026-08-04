@@ -12,6 +12,7 @@ const MODULE = MOD;
  * n'a pas choisi "Ne plus afficher".
  */
 export function showWelcomeIfNeeded() {
+    if (!game.settings.get(MODULE, "tutoEnabled")) return;
     if (!game.settings.get(MODULE, "showWelcome")) return;  // GM a désactivé pour tout le monde
     if (game.settings.get(MODULE, "hideWelcome"))  return;  // cet utilisateur a cliqué "Ne plus afficher"
     showWelcome();

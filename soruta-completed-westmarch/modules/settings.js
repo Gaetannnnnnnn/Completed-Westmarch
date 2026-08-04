@@ -18,7 +18,8 @@ export const PARTY_DEPENDENT_SETTINGS = [
     "enableGoWithPartyScenes",
     "enableGoWithPartyJournal",
     "enableSessionLog",
-    "enableCombatParty"
+    "enableCombatParty",
+    "enableCombatTurnLock"
 ];
 
 // Vérifie qu'un setting dépendant de la party est actif ET que la party l'est.
@@ -74,6 +75,9 @@ export function registerSettings() {
     game.settings.register(MOD, "enableCombatParty", B(
         "Combat lié à la party (plutôt qu'à la scène)",
         "Les combats créés par un GM sont détachés de la scène et associés à sa party. Chaque joueur ne voit que le combat de sa party."));
+    game.settings.register(MOD, "enableCombatTurnLock", B(
+        "Blocage de mouvement hors tour (combat)",
+        "Pendant le combat de votre party, un joueur ne peut déplacer son token que quand c'est son tour. Le combat d'une autre party n'affecte jamais vos joueurs. Ne nécessite pas Monk's TokenBar."));
     game.settings.register(MOD, "enableAntiCheat", B(
         "Anti-Cheat (combat)",
         "Pendant un combat actif, avertit les GM en privé si un joueur modifie ses sorts préparés, son attunement ou son équipement."));
@@ -101,6 +105,10 @@ export function registerSettings() {
     // ============================================================
     // TEMPS MORTS — règles configurables (valeurs + formules + tables)
     // ============================================================
+    game.settings.register(MOD, "tmEnabled", B(
+        "Temps morts — Activer",
+        "Active tout le système de temps morts : bouton sablier sur la fiche PJ (joueur) et bouton GM dans la barre WestMarch. Nécessite un rechargement.",
+        true, { requiresReload: true }));
     // -- Gain de compétence --
     game.settings.register(MOD, "tmSkillBase", N(
         "Gain — Base par jour",
@@ -271,6 +279,10 @@ export function registerSettings() {
     // ============================================================
     // TUTORIEL
     // ============================================================
+    game.settings.register(MOD, "tutoEnabled", B(
+        "Tutoriel — Activer",
+        "Active le bouton tutoriel ('?') dans la barre WestMarch et la fenêtre de bienvenue. Nécessite un rechargement.",
+        true, { requiresReload: true }));
     game.settings.register(MOD, "serverName", S(
         "Tutoriel — Nom affiché dans le message de bienvenue",
         "Titre de la fenêtre d'accueil des joueurs.",
@@ -298,6 +310,56 @@ export function registerSettings() {
     // MENUS PAR CATÉGORIE (boutons "Configurer" dans la config du module)
     // ============================================================
     registerCategoryMenus();
+    registerCategoryToggles();
+}
+
+// Cases à cocher "Activé" injectées à côté du nom de chaque catégorie qui
+// possède un interrupteur maître (Party, Relations, Bestiaire, Carnet, Carte,
+// Midi). Permet d'activer/désactiver la fonctionnalité sans ouvrir la fenêtre.
+const CAT_RELOAD = new Set(["relationsEnabled", "bestiaryEnabled", "carnetEnabled", "rangeFixEnabled", "tmEnabled", "tutoEnabled"]);
+
+function registerCategoryToggles() {
+    Hooks.on("renderSettingsConfig", (app, html) => {
+        const root = html instanceof HTMLElement ? html : html?.[0];
+        if (!root) return;
+
+        for (const cat of CATEGORIES) {
+            if (!cat.master) continue;
+
+            // Trouver la ligne du menu : par data-key, sinon par titre (robuste v13/v14).
+            let group = root.querySelector(`[data-key="${MOD}.menu-${cat.firstKey}"]`)?.closest(".form-group");
+            if (!group) {
+                for (const g of root.querySelectorAll(".form-group")) {
+                    const lbl = g.querySelector("label");
+                    if (lbl && lbl.textContent.trim() === cat.title) { group = g; break; }
+                }
+            }
+            if (!group || group.querySelector(".scwm-cat-toggle")) continue;
+
+            const on = !!game.settings.get(MOD, cat.master);
+            const wrap = document.createElement("label");
+            wrap.className = "scwm-cat-toggle";
+            wrap.style.cssText = "display:inline-flex;align-items:center;gap:5px;margin-left:10px;cursor:pointer;font-size:11px;font-weight:600;color:#8fd19e;vertical-align:middle;";
+            wrap.innerHTML = `<input type="checkbox" ${on ? "checked" : ""} style="width:15px;height:15px;margin:0;"> Activé`;
+
+            const cb = wrap.querySelector("input");
+            cb.addEventListener("change", async () => {
+                await game.settings.set(MOD, cat.master, cb.checked);
+                wrap.style.color = cb.checked ? "#8fd19e" : "#e58f8f";
+                if (CAT_RELOAD.has(cat.master)) {
+                    const ok = await foundry.applications.api.DialogV2.confirm({
+                        window:  { title: "Rechargement requis" },
+                        content: "<p>Ce changement nécessite un rechargement pour s'appliquer pleinement. Recharger maintenant ?</p>"
+                    });
+                    if (ok) window.location.reload();
+                }
+            });
+            if (!on) wrap.style.color = "#e58f8f";
+
+            const nameLabel = group.querySelector("label");
+            (nameLabel ?? group).appendChild(wrap);
+        }
+    });
 }
 
 // ============================================================
@@ -305,36 +367,36 @@ export function registerSettings() {
 // firstKey = clé devant laquelle insérer l'en-tête de catégorie.
 // ============================================================
 const CATEGORIES = [
-    { firstKey: "enableParty",           icon: "fa-users",           title: "Système de Party",
+    { firstKey: "enableParty", master: "enableParty",           icon: "fa-users",           title: "Système de Party",
       desc: "Groupes de joueurs : chat filtré, combat par party, téléportation de groupe, journal de session, anti-cheat.",
-      keys: ["enableParty","enableJoinScene","enableShowParty","enablePlayerGrouping","enableGoWithPartyScenes","enableGoWithPartyJournal","enableChatFilter","enableSessionLog","sessionLogWebhookUrl","enableCombatParty","enableAntiCheat"] },
+      keys: ["enableParty","enableJoinScene","enableShowParty","enablePlayerGrouping","enableGoWithPartyScenes","enableGoWithPartyJournal","enableChatFilter","enableSessionLog","sessionLogWebhookUrl","enableCombatParty","enableCombatTurnLock","enableAntiCheat"] },
     { firstKey: "enableXpBlock",         icon: "fa-server",          title: "Serveur",
       desc: "Personnalisations du serveur : blocage XP / Level Up, logs Discord, webhooks.",
       keys: ["enableXpBlock","enableDiscordLog","discordLogWebhookUrl","downtimeWebhookUrl","tmWebhookUrl"] },
-    { firstKey: "tmSkillBase",           icon: "fa-hourglass-half",  title: "Temps morts",
+    { firstKey: "tmSkillBase", master: "tmEnabled", icon: "fa-hourglass-half",  title: "Temps morts",
       desc: "Règles configurables des temps morts : valeurs, formules (gain de compétence, artisanat) et tables (parchemins, objets magiques). Chaque serveur peut avoir ses propres règles.",
-      keys: ["tmSkillBase","tmAddAbilityMod","tmBonusMaitrise","tmBonusExpertise","tmBonusTools","tmRollMinDays","tmSkillFormula","tmCraftNonMagicCostDiv","tmCraftNonMagicDaysPerGp","tmCraftNonMagicCostFormula","tmCraftNonMagicDaysFormula","tmSingleUseFactor","tmScrollTable","tmMagicTable"] },
+      keys: ["tmEnabled","tmSkillBase","tmAddAbilityMod","tmBonusMaitrise","tmBonusExpertise","tmBonusTools","tmRollMinDays","tmSkillFormula","tmCraftNonMagicCostDiv","tmCraftNonMagicDaysPerGp","tmCraftNonMagicCostFormula","tmCraftNonMagicDaysFormula","tmSingleUseFactor","tmScrollTable","tmMagicTable"] },
     { firstKey: "enableTokenAppearance", icon: "fa-toolbox",         title: "Toolkit",
       desc: "Apparences de tokens, transformations, tailles Large, TGCM, utilitaires GM, templates AoE, boutiques MEJ et réapprovisionnement.",
       keys: ["enableTokenAppearance","enableTokenPortraitButton","enableRageSize","enableLargeForm","enablePolymorph","enableTgcm","enableFolderMove","enableToolAbilityFix","enableHideHotbar","enableTemplateSnap","enableMejShopFix","enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
-    { firstKey: "relationsEnabled",      icon: "fa-heart",           title: "Fiche PJ — Relations",
+    { firstKey: "relationsEnabled", master: "relationsEnabled",      icon: "fa-heart",           title: "Fiche PJ — Relations",
       desc: "Onglet Relations : liens entre personnages, détection automatique des rencontres, anonymisation.",
       keys: ["relationsEnabled","relationsAnonymization","relationsFolderPJ","relationsFolderPNJ","relationsFolderCreatures"] },
-    { firstKey: "bestiaryEnabled",       icon: "fa-dragon",          title: "Fiche PJ — Bestiaire",
+    { firstKey: "bestiaryEnabled", master: "bestiaryEnabled",       icon: "fa-dragon",          title: "Fiche PJ — Bestiaire",
       desc: "Onglet Bestiaire : créatures rencontrées, répertoriées par personnage.",
       keys: ["bestiaryEnabled","bestiaryAnonymization","bestiaryFolderPJ","bestiaryPackCreatures"] },
-    { firstKey: "carnetEnabled",         icon: "fa-book-open",       title: "Fiche PJ — Carnet & Expéditions",
+    { firstKey: "carnetEnabled", master: "carnetEnabled",         icon: "fa-book-open",       title: "Fiche PJ — Carnet & Expéditions",
       desc: "Onglets Carnet (notes enrichies) et Expéditions (dates + durée).",
       keys: ["carnetEnabled"] },
-    { firstKey: "enableExpeditionMap",   icon: "fa-map",             title: "Carte des expéditions",
+    { firstKey: "enableExpeditionMap", master: "enableExpeditionMap",   icon: "fa-map",             title: "Carte des expéditions",
       desc: "Brouillard de guerre par party et par personnage sur une scène dédiée.",
       keys: ["enableExpeditionMap","expeditionMapSceneId"] },
-    { firstKey: "rangeFixEnabled",       icon: "fa-bullseye",        title: "Midi Range Fix",
+    { firstKey: "rangeFixEnabled", master: "rangeFixEnabled",       icon: "fa-bullseye",        title: "Midi Range Fix",
       desc: "Correction du calcul de portée midi-qol pour les tokens Large et plus.",
       keys: ["rangeFixEnabled","rangeAdjust"] },
-    { firstKey: "serverName",            icon: "fa-circle-question", title: "Tutoriel",
+    { firstKey: "serverName", master: "tutoEnabled", icon: "fa-circle-question", title: "Tutoriel",
       desc: "Fenêtre de bienvenue et guide interactif, configurable section par section.",
-      keys: ["serverName","tutoBarreWestmarch","tutoBestiary","tutoRelations","tutoCarnet","tutoBoutiques","tutoTempsMorts","tutoApparenceTokens","tutoOutilsGm","showWelcome"] },
+      keys: ["tutoEnabled","serverName","tutoBarreWestmarch","tutoBestiary","tutoRelations","tutoCarnet","tutoBoutiques","tutoTempsMorts","tutoApparenceTokens","tutoOutilsGm","showWelcome"] },
 ];
 
 const ACCENT = "#e67e22";

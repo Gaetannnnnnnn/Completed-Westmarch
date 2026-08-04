@@ -225,6 +225,102 @@ export function startSessionLog(partyId) {
 }
 
 // ============================================================
+// SECTION : Fenêtre d'attribution d'XP de fin de session
+// - Un champ "XP pour tous" en haut : le saisir remplit
+//   automatiquement tous les champs par PJ (modifiables ensuite
+//   individuellement).
+// - Un champ par PJ de la party pour ajuster au cas par cas.
+// - À la validation, l'XP saisi est AJOUTÉ à l'XP courant de chaque
+//   acteur, puis le rapport de session en tient compte comme gain.
+// Renvoie : true (XP appliqué) / false (clore sans XP) / "cancel"
+// (fenêtre fermée → on n'clôt pas la session).
+// ============================================================
+function promptXpAward() {
+    const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c =>
+        ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+    // Liste unique des PJ de la party (dédupliquée par acteur).
+    const seen = new Set();
+    const pcs = [];
+    for (const p of sessionData.players) {
+        if (seen.has(p.actorId)) continue;
+        const actor = game.actors.get(p.actorId);
+        if (!actor) continue;
+        seen.add(p.actorId);
+        pcs.push({ actorId: p.actorId, name: p.name, currentXp: actor.system?.details?.xp?.value ?? 0 });
+    }
+
+    if (!pcs.length) return Promise.resolve(false);
+
+    const rows = pcs.map(pc => `
+        <div style="display:flex;align-items:center;gap:8px;margin:4px 0;">
+            <label style="flex:1;">${esc(pc.name)}
+                <span style="opacity:0.6;font-size:0.85em;">(XP actuel : ${pc.currentXp})</span>
+            </label>
+            <input type="number" min="0" step="1" class="scwm-xp-pc"
+                   data-actor-id="${esc(pc.actorId)}" value="0" style="width:90px;">
+        </div>`).join("");
+
+    const content = `
+        <form class="scwm-xp-form">
+            <p style="margin:0 0 8px;">Attribution d'XP de fin de session.</p>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;
+                        padding-bottom:8px;border-bottom:1px solid var(--color-border-light-tertiary,#bbb);">
+                <label style="flex:1;font-weight:bold;">XP pour tous</label>
+                <input type="number" min="0" step="1" class="scwm-xp-all" value="0" style="width:90px;">
+            </div>
+            ${rows}
+        </form>`;
+
+    let resolveFn;
+    const done = new Promise(res => { resolveFn = res; });
+
+    const dlg = new foundry.applications.api.DialogV2({
+        window: { title: "Attribution d'XP — Fin de session", icon: "fas fa-star" },
+        content,
+        buttons: [
+            {
+                action: "apply", label: "Attribuer et clore", icon: "fas fa-check", default: true,
+                callback: async (event, button, dialog) => {
+                    const root = dialog.element;
+                    for (const input of root.querySelectorAll(".scwm-xp-pc")) {
+                        const gain = Math.max(0, Math.round(Number(input.value) || 0));
+                        if (!gain) continue;
+                        const actor = game.actors.get(input.dataset.actorId);
+                        if (!actor) continue;
+                        const cur = actor.system?.details?.xp?.value ?? 0;
+                        await actor.update({ "system.details.xp.value": cur + gain });
+                    }
+                    resolveFn(true);
+                }
+            },
+            {
+                action: "skip", label: "Clore sans XP", icon: "fas fa-xmark",
+                callback: () => resolveFn(false)
+            }
+        ],
+        rejectClose: false
+    });
+
+    // Fermeture manuelle (croix) → on annule la clôture de session.
+    const origClose = dlg.close.bind(dlg);
+    dlg.close = async (options) => { resolveFn("cancel"); return origClose(options); };
+
+    dlg.render({ force: true }).then(() => {
+        const root = dlg.element;
+        const allInput = root?.querySelector(".scwm-xp-all");
+        if (allInput) {
+            // Le champ "pour tous" recopie sa valeur dans chaque champ PJ.
+            allInput.addEventListener("input", () => {
+                root.querySelectorAll(".scwm-xp-pc").forEach(i => { i.value = allInput.value; });
+            });
+        }
+    });
+
+    return done;
+}
+
+// ============================================================
 // SECTION : Clôture de la session et génération du journal
 // ============================================================
 async function closeSession(playerListApp) {
@@ -232,6 +328,11 @@ async function closeSession(playerListApp) {
         ui.notifications.warn("Aucune session en cours.");
         return;
     }
+
+    // Fenêtre d'attribution d'XP AVANT le rapport (l'XP attribué apparaît
+    // ainsi comme gain dans le récap). Fermer la fenêtre annule la clôture.
+    const xpResult = await promptXpAward();
+    if (xpResult === "cancel") return;
 
     // Snapshot XP final + détection level up
     const playersReport = sessionData.players.map(p => {

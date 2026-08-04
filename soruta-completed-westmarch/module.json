@@ -1,7 +1,7 @@
 {
   "id": "soruta-completed-westmarch",
   "title": "Soruta — Completed Westmarch",
-  "version": "1.1.8",
+  "version": "1.2.3",
   "changelog": "2026-08-03",
   "authors": [
     {
@@ -38,6 +38,36 @@
         }
       ]
     }
+  },
+  "relationships": {
+    "requires": [
+      {
+        "id": "dnd5e",
+        "type": "system"
+      }
+    ],
+    "recommends": [
+      {
+        "id": "midi-qol",
+        "type": "module",
+        "reason": "Requis par la fonctionnalité Midi Range Fix (correction de portée pour les tokens Large+)."
+      },
+      {
+        "id": "monks-enhanced-journal",
+        "type": "module",
+        "reason": "Requis par les correctifs et le réapprovisionnement des boutiques MEJ."
+      },
+      {
+        "id": "foundryvtt-simple-calendar",
+        "type": "module",
+        "reason": "Formatage des dates (Carnet, temps morts). Fallback sur l'API Foundry si absent."
+      },
+      {
+        "id": "lib-wrapper",
+        "type": "module",
+        "reason": "Snap live des gabarits AoE et patch du clic droit sur les tokens."
+      }
+    ]
   },
   "url": "https://github.com/Gaetannnnnnnn/Completed-Westmarch",
   "manifest": "https://raw.githubusercontent.com/Gaetannnnnnnn/Completed-Westmarch/main/soruta-completed-westmarch/module.json",

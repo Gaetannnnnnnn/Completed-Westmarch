@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 1.1.8
+Version : 1.2.3
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -102,8 +102,10 @@ Optionnelles (une feature se désactive silencieusement si absente) :
   - midi-qol            — requis par Midi Range Fix
   - Monk's Enhanced Journal — requis par les correctifs et le restock des boutiques
   - Simple Calendar     — dates (fallback ; game.time.calendar utilisé en priorité)
-  - monks-tokenbar      — interaction avec le déplacement en combat
   - lib-wrapper         — snap live des templates AoE
+
+Le blocage de mouvement hors tour en combat est désormais natif (setting
+"Blocage de mouvement hors tour") : Monk's TokenBar n'est plus nécessaire.
 
 --------------------------------------------------------------------------------
 PARAMÈTRES CONFIGURABLES
@@ -144,6 +146,39 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v1.2.3 | 2026-08-04
+   - "Clore la session" ouvre desormais une fenetre d attribution d XP : un
+     champ "XP pour tous" qui remplit tous les PJ, plus un champ par PJ pour
+     ajuster individuellement. L XP est ajoute a chaque acteur puis compte comme
+     gain dans le rapport. Fermer la fenetre annule la cloture (session.js).
+
+v1.2.2 | 2026-08-04
+   - Blocage de mouvement hors tour désormais NATIF (combat.js, hook
+     preUpdateToken) : pendant le combat de sa party, un joueur ne peut
+     déplacer son token que quand c'est son tour ; le combat d'une autre
+     party n'affecte jamais ses joueurs. Nouveau setting "enableCombatTurnLock".
+   - Monk's TokenBar n'est plus utilisé ni recommandé (retiré de
+     relationships.recommends et des dépendances du readme). L'ancien
+     contournement via le flag monks-tokenbar.movement est supprimé.
+
+v1.2.1 | 2026-08-04
+   - module.json : ajout du champ "relationships". dnd5e en prérequis (requires),
+     et midi-qol, MEJ, Simple Calendar, lib-wrapper, monks-tokenbar en recommandés
+     (recommends). À l activation du module, Foundry propose d activer ces
+     dépendances (obligatoire pour dnd5e, optionnel pour les autres).
+
+v1.2.0 | 2026-08-04
+   - Cases « Activé » ajoutées aussi à Temps morts et Tutoriel : nouveaux
+     interrupteurs maîtres tmEnabled / tutoEnabled qui coupent toute la feature
+     (bouton sablier + bouton GM pour TM ; bouton ? + fenêtre de bienvenue pour
+     le tutoriel). Rechargement requis.
+
+v1.1.9 | 2026-08-04
+   - Config : case à cocher « Activé » ajoutée à côté du nom des catégories à
+     interrupteur maître (Party, Relations, Bestiaire, Carnet, Carte, Midi) pour
+     activer/désactiver la fonctionnalité sans ouvrir la fenêtre. Invite de
+     rechargement pour les réglages qui le nécessitent.
 
 v1.1.8 | 2026-08-04
    - Tutoriel : navigation par catégorie ajoutée dans les coins de la bulle 

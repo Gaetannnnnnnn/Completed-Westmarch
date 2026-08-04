@@ -48,6 +48,8 @@ function getMagicTable() {
 }
 
 export function TmHooks() {
+    if (!game.settings.get(MOD, "tmEnabled")) return;
+
 
     // ---- Bouton dans le groupe WestMarch (barre de gauche, GM uniquement) ----
     Hooks.on("getSceneControlButtons", (controls) => {

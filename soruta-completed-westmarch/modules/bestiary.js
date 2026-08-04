@@ -191,15 +191,15 @@ export function buildTabHtml(actor) {
 
     // Styles inline — contournement cache CSS Foundry
     const S = {
-        titleBar:  `display:flex;align-items:center;justify-content:space-between;padding:8px 12px 6px;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,0.07);`,
-        title:     `display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#ccc;`,
+        titleBar:  `display:flex;align-items:center;justify-content:space-between;padding:9px 12px 7px;flex-shrink:0;background:linear-gradient(180deg,rgba(201,162,39,0.06),transparent);border-bottom:2px solid transparent;border-image:linear-gradient(90deg,transparent,rgba(201,162,39,0.55) 15%,rgba(201,162,39,0.55) 85%,transparent) 1;`,
+        title:     `display:flex;align-items:center;gap:8px;font-size:17px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#c9a227;font-family:'Modesto Condensed','Enchanted Land','Signika',serif;text-shadow:0 1px 2px rgba(0,0,0,0.6);`,
         addBtn:    `display:flex;align-items:center;gap:5px;padding:3px 9px;` +
                    `background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:4px;` +
                    `color:#aaa;font-size:11px;cursor:pointer;white-space:nowrap;transition:background 0.12s,color 0.12s;`,
-        searchBar: `display:flex;align-items:center;gap:6px;padding:5px 10px;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,0.06);`,
-        wrap:      `flex:1;display:flex;align-items:center;gap:6px;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);border-radius:4px;padding:4px 8px;`,
-        srchIcon:  `color:#555;font-size:11px;flex-shrink:0;`,
-        srchInput: `flex:1;background:transparent;border:none;box-shadow:none;outline:none;color:#bbb;font-size:11px;padding:0;min-width:0;font-family:inherit;`,
+        searchBar: `display:flex;align-items:center;gap:6px;padding:6px 10px;flex-shrink:0;border-bottom:1px solid rgba(201,162,39,0.15);`,
+        wrap:      `flex:1;display:flex;align-items:center;gap:6px;background:rgba(0,0,0,0.28);border:1px solid rgba(201,162,39,0.28);border-radius:4px;padding:5px 9px;`,
+        srchIcon:  `color:#a8863a;font-size:12px;flex-shrink:0;`,
+        srchInput: `flex:1;background:transparent;border:none;box-shadow:none;outline:none;color:#cbb98f;font-size:12px;padding:0;min-width:0;font-family:'Bookinsanity',Georgia,serif;`,
         clear:     `display:none;color:#444;font-size:10px;cursor:pointer;padding:2px 3px;`,
     };
 
@@ -209,7 +209,7 @@ export function buildTabHtml(actor) {
     <div class="bst-tab" data-actor-id="${actor.id}">
         <div style="${S.titleBar}">
             <span style="${S.title}">
-                <i class="fas fa-dragon" style="color:#e07b39;font-size:11px;"></i>
+                <i class="fas fa-dragon" style="color:#e0a13a;font-size:15px;filter:drop-shadow(0 1px 1px rgba(0,0,0,0.5));"></i>
                 Bestiaire
             </span>
             ${isGM ? `<a class="bst-add-btn">

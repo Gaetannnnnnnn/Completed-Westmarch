@@ -458,3 +458,32 @@
     color: #1a1000;
     border-color: #E0C050;
 }
+
+/* ---- Boutons de navigation par catégorie (coins de l'en-tête) ---- */
+.tuto-bubble-header { justify-content: flex-start; gap: 6px; }
+.tuto-bubble-header .tuto-step-counter { flex: 1; justify-content: center; }
+
+.tuto-cat-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #6a4f18;
+    background: rgba(200, 160, 48, 0.12);
+    border: 1px solid rgba(139, 105, 20, 0.45);
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.tuto-cat-btn:hover:not([disabled]) {
+    background: rgba(200, 160, 48, 0.25);
+    color: #3f2e0e;
+    border-color: rgba(200, 160, 48, 0.7);
+}
+.tuto-cat-btn[disabled] {
+    opacity: 0.35;
+    cursor: default;
+}

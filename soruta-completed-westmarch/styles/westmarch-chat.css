@@ -79,3 +79,56 @@
     line-height: 24px;
     height: auto;
 }
+
+/* ============================================================
+   Barre de contrôle du chat — rendu uniforme de TOUS les boutons
+   (modes de jet, export/flush, boutons party…) : même taille,
+   bordure, fond, rayon et écart.
+   ============================================================ */
+#chat-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: nowrap;
+}
+#chat-controls > * { margin: 0; }
+#chat-controls .roll-privacy,
+#chat-controls .control-buttons {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    border: none;
+    background: none;
+    padding: 0;
+}
+#chat-controls button,
+#chat-controls .ui-control {
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+    flex: 0 0 auto;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #4a4a4a;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.25);
+    color: #c8c8c8;
+    box-shadow: none;
+    transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+#chat-controls button:hover,
+#chat-controls .ui-control:hover {
+    border-color: #ff6400;
+    color: #fff;
+    background: rgba(255, 100, 0, 0.10);
+}
+#chat-controls button.active,
+#chat-controls .ui-control.active,
+#chat-controls button[aria-pressed="true"],
+#chat-controls .ui-control[aria-pressed="true"] {
+    border-color: #ff6400;
+    color: #fff;
+    background: rgba(255, 100, 0, 0.16);
+}

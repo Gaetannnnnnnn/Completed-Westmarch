@@ -665,7 +665,7 @@ export function startTutorial(selectedSections = null) {
             if (s.playerOnly &&  game.user.isGM) return false;
             return true;
         });
-        _steps.push(...sectionSteps);
+        _steps.push(...sectionSteps.map(st => ({ ...st, _section: section })));
     }
 
     if (!_steps.length) {
@@ -706,6 +706,18 @@ function _buildWrap() {
 // ================================================================
 // AFFICHAGE D'UNE ÉTAPE (async pour supporter beforeShow)
 // ================================================================
+
+// Sections présentes dans _steps, dans l'ordre d'apparition.
+function _orderedSections() {
+    const seen = [];
+    for (const st of _steps) {
+        if (st._section != null && !seen.includes(st._section)) seen.push(st._section);
+    }
+    return seen;
+}
+function _sectionFirstIndex(section) {
+    return _steps.findIndex(st => st._section === section);
+}
 
 async function _showStep(idx) {
     if (!_wrapEl) return;
@@ -767,14 +779,37 @@ async function _showStep(idx) {
     const isFirst = idx === 0;
     const isLast  = idx === _steps.length - 1;
 
+    // ---- Navigation par CATÉGORIE (coins de la bulle) ----
+    const curSection   = step._section;
+    const ordered      = _orderedSections();
+    const secIdx       = ordered.indexOf(curSection);
+    const prevSection  = secIdx > 0 ? ordered[secIdx - 1] : null;
+    const nextSection  = (secIdx >= 0 && secIdx < ordered.length - 1) ? ordered[secIdx + 1] : null;
+    const firstOfCur   = _sectionFirstIndex(curSection);
+    const atSectionStart = idx <= firstOfCur;
+    const canGoPrevCat = !atSectionStart || !!prevSection;   // début de catégorie OU catégorie précédente
+    const catPrevDis   = canGoPrevCat ? "" : " disabled";
+    const catNextDis   = nextSection ? "" : " disabled";
+    const catPrevTip   = !atSectionStart ? "Revenir au début de la catégorie"
+                         : prevSection ? `Catégorie précédente : ${SECTION_LABELS[prevSection] ?? prevSection}`
+                         : "Aucune catégorie précédente";
+    const catNextTip   = nextSection ? `Catégorie suivante : ${SECTION_LABELS[nextSection] ?? nextSection}`
+                         : "Dernière catégorie";
+
     const bubble = document.createElement("div");
     bubble.id = "tuto-bubble";
     bubble.innerHTML = `
         <div class="tuto-bubble-header">
+            <button class="tuto-cat-btn tuto-cat-prev" title="${catPrevTip}"${catPrevDis}>
+                <i class="fas fa-angle-left"></i> Retour
+            </button>
             <span class="tuto-step-counter">
                 <span class="tuto-step-dots">${_renderDots(idx, _steps.length)}</span>
                 ${idx + 1} / ${_steps.length}
             </span>
+            <button class="tuto-cat-btn tuto-cat-next" title="${catNextTip}"${catNextDis}>
+                Suivant <i class="fas fa-angle-right"></i>
+            </button>
             <button class="tuto-close-btn" title="Fermer le tutoriel (Echap)">
                 <i class="fas fa-times"></i>
             </button>
@@ -803,6 +838,18 @@ async function _showStep(idx) {
     bubble.querySelector(".tuto-next").addEventListener("click", () => {
         if (_current < _steps.length - 1) _showStep(++_current);
         else closeTutorial();
+    });
+
+    bubble.querySelector(".tuto-cat-prev")?.addEventListener("click", () => {
+        if (!atSectionStart)      _current = firstOfCur;                       // début de la catégorie courante
+        else if (prevSection)     _current = _sectionFirstIndex(prevSection);  // catégorie précédente
+        else return;
+        _showStep(_current);
+    });
+    bubble.querySelector(".tuto-cat-next")?.addEventListener("click", () => {
+        if (!nextSection) return;
+        _current = _sectionFirstIndex(nextSection);
+        _showStep(_current);
     });
 
     _positionBubble(bubble, targetEl, step.position ?? "center");

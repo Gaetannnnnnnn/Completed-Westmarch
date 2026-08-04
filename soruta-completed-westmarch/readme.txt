@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 1.1.5
+Version : 1.1.8
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -144,6 +144,22 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v1.1.8 | 2026-08-04
+   - Tutoriel : navigation par catégorie ajoutée dans les coins de la bulle 
+     « Retour » (haut-gauche : début de la catégorie, puis catégorie précédente)
+     et « Suivant » (haut-droite : catégorie suivante). Les boutons Précédent/
+     Suivant du bas restent pour naviguer étape par étape.
+
+v1.1.7 | 2026-08-04
+   - Onglet Bestiaire stylisé (fantasy) : titre en Modesto Condensed doré, noms
+     de créatures en serif (Bookinsanity), filets dorés dégradés au lieu des traits
+     gris, accents chauds au survol.
+
+v1.1.6 | 2026-08-04
+   - Barre de contrôle du chat : tous les boutons (modes de jet, export/flush,
+     boutons party) uniformisés  même taille, bordure, fond, rayon et écart,
+     avec survol/actif orange cohérent.
 
 v1.1.5 | 2026-08-04
    - Boutons de gestion party du chat (effacer / importer) : remis sur une seule

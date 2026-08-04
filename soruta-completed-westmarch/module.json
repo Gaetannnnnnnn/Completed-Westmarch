@@ -1,7 +1,7 @@
 {
   "id": "soruta-completed-westmarch",
   "title": "Soruta — Completed Westmarch",
-  "version": "1.0.7",
+  "version": "1.1.2",
   "changelog": "2026-08-03",
   "authors": [
     {
@@ -27,6 +27,18 @@
     "./styles/tutoriel.css",
     "./styles/midi-range-fix.css"
   ],
+  "fonts": {
+    "Enchanted Land": {
+      "editor": true,
+      "fonts": [
+        {
+          "urls": [
+            "modules/soruta-completed-westmarch/fonts/EnchantedLand.otf"
+          ]
+        }
+      ]
+    }
+  },
   "url": "https://github.com/Gaetannnnnnnn/Completed-Westmarch",
   "manifest": "https://raw.githubusercontent.com/Gaetannnnnnnn/Completed-Westmarch/main/soruta-completed-westmarch/module.json",
   "download": "https://github.com/Gaetannnnnnnn/Completed-Westmarch/raw/main/soruta-completed-westmarch.zip"

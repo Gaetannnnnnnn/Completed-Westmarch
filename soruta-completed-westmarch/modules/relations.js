@@ -232,7 +232,7 @@ export function buildTabHtml(actor) {
                 <i class="fas fa-heart" style="color:#e91e8c;font-size:11px;"></i>
                 Relations
             </span>
-            ${isGM ? `<a class="rel-add-btn" style="${S.addBtn}">
+            ${isGM ? `<a class="rel-add-btn">
                 <i class="fas fa-plus" style="font-size:10px;"></i> Ajouter
             </a>` : ""}
         </div>

@@ -96,7 +96,26 @@ async function availableCreatures(actor) {
         .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-// Retourne true si le token est une créature (compendium ou dossier monde)
+// Index (noms) du compendium des créatures, mis en cache pour la détection.
+let _creatureIndex = null;
+let _creatureIndexPack = null;
+async function ensureCreatureIndex() {
+    const packId = game.settings.get(MOD, "bestiaryPackCreatures");
+    if (!packId) { _creatureIndex = null; _creatureIndexPack = null; return; }
+    if (_creatureIndex && _creatureIndexPack === packId) return;
+    const pack = game.packs.get(packId);
+    if (!pack) { _creatureIndex = null; return; }
+    try {
+        const idx = await pack.getIndex();
+        _creatureIndex = new Set(idx.map(e => e.name));
+        _creatureIndexPack = packId;
+    } catch (e) {
+        console.warn("[Bestiaire] Index du compendium illisible :", e);
+        _creatureIndex = null;
+    }
+}
+
+// Retourne true si le token est une créature du compendium configuré.
 function isCreatureToken(token) {
     const actor = token.actor;
     if (!actor?.id) return false;
@@ -104,11 +123,12 @@ function isCreatureToken(token) {
     if (!packId) return false;
     // (1) token directement lié à un acteur du compendium
     if (actor.pack === packId) return true;
-    // (2) acteur du monde importé depuis ce compendium (drag & drop) :
-    //     on retrouve la source via _stats.compendiumSource (v12+) ou
-    //     le flag core.sourceId (v10-11).
+    // (2) acteur du monde importé depuis ce compendium (compendiumSource / sourceId)
     const src = actor._stats?.compendiumSource ?? actor.getFlag?.("core", "sourceId") ?? "";
-    return typeof src === "string" && src.startsWith(`Compendium.${packId}.`);
+    if (typeof src === "string" && src.startsWith(`Compendium.${packId}.`)) return true;
+    // (3) repli : le nom de l'acteur correspond à une entrée du compendium
+    if (_creatureIndex && _creatureIndex.has(actor.name)) return true;
+    return false;
 }
 
 // ---- HTML onglet -------------------------------------------
@@ -192,7 +212,7 @@ export function buildTabHtml(actor) {
                 <i class="fas fa-dragon" style="color:#e07b39;font-size:11px;"></i>
                 Bestiaire
             </span>
-            ${isGM ? `<a class="bst-add-btn" style="${S.addBtn}">
+            ${isGM ? `<a class="bst-add-btn">
                 <i class="fas fa-plus" style="font-size:10px;"></i> Ajouter
             </a>` : ""}
         </div>
@@ -446,11 +466,14 @@ async function scanVisibleTokens() {
     _scanning = true;
 
     try {
+        await ensureCreatureIndex();
+
+        // Détection UNIQUEMENT sur la scène que le joueur visualise (canvas) :
+        // une créature n'est ajoutée que si le joueur ET son token PJ sont
+        // présents sur cette même scène affichée.
         const tokens    = canvas.tokens?.placeables ?? [];
         const sceneName = game.scenes.current?.name ?? "";
 
-        // Token du joueur présent sur la scène (cherche parmi ses acteurs PJ)
-        // Logique inversée : token d'abord → acteur ensuite, pour gérer les WM multi-persos
         const myToken = tokens.find(t =>
             t.actor?.type === "character" &&
             t.actor?.isOwner &&
@@ -460,10 +483,7 @@ async function scanVisibleTokens() {
         const myActor = myToken.actor;
 
         const existing = new Set(beastList(myActor).map(e => e.targetId));
-
-        // Créatures présentes sur la scène (compendium ou dossier monde)
-        // seenIds déduplique les tokens qui partagent le même acteur de base (ex: 5 Knights)
-        const seenIds = new Set();
+        const seenIds  = new Set();
         const toAdd = tokens.filter(t => {
             if (!t.actor?.id) return false;
             if (t.actor.id === myActor.id) return false;

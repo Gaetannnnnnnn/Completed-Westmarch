@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 1.0.7
+Version : 1.1.2
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -144,6 +144,34 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v1.1.2 | 2026-08-04
+   - Éditeur de notes (Carnet) habillé en "grimoire" : page de parchemin vieilli
+     (taches, dégradé, bords assombris), encre sépia, en-tête cuir, titres à
+     l'encre rouge/brune, plume plus grande. Classe .carnet-grimoire sur le
+     dialog + styles dans carnet.css.
+
+v1.1.1 | 2026-08-04
+   - Éditeur de notes (Carnet) : police par défaut "Enchanted Land" (fournie
+     dans fonts/EnchantedLand.otf, enregistrée via module.json + CSS), appliquée
+     à l'édition et à l'affichage des notes. Repli Signika si absente.
+
+v1.1.0 | 2026-08-04
+   - Boutons "Ajouter" de Relations et Bestiaire harmonisés avec le style doré
+     des boutons Carnet & Expéditions (retrait du style gris inline, style CSS).
+
+v1.0.9 | 2026-08-04
+   - Fix chat : le template des onglets IC/OOC/Autre n'avait pas été copié lors
+     de la fusion et le chemin pointait encore vers "modules/westmarch/...". Le
+     chat restait bloqué sur l'onglet IC et masquait les cartes de jets (type
+     OTHER). Template recréé, chemin corrigé, et les onglets sont désormais
+     conditionnés au réglage "Filtrage du chat par party" (désactivable).
+
+v1.0.8 | 2026-08-03
+   - Bestiaire : détection des créatures fiabilisée. En plus du lien compendium
+     et de compendiumSource, ajout d'un repli par nom (l'acteur du token
+     correspond à une entrée du compendium, via son index mis en cache) — la
+     détection marche quelle que soit la façon dont le token a été posé.
 
 v1.0.7 | 2026-08-03
    - Relations : retrait du bouton "Ajouter une relation" de l'état vide de

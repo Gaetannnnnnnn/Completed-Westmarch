@@ -289,3 +289,20 @@
     font-size: 12px;
     color: #ccc;
 }
+
+/* Bouton "Ajouter" — même style que les boutons Carnet/Expéditions (doré) */
+.bst-add-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 14px;
+    background: rgba(201, 162, 39, 0.1);
+    border: 1px solid rgba(201, 162, 39, 0.35);
+    border-radius: 4px;
+    color: #c9a227; font-size: 12px; font-weight: 600;
+    cursor: pointer; letter-spacing: 0.03em; text-decoration: none;
+    transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.bst-add-btn:hover {
+    background: rgba(201, 162, 39, 0.22);
+    color: #e8cc6a; border-color: rgba(201, 162, 39, 0.55);
+    box-shadow: 0 2px 8px rgba(201, 162, 39, 0.1); text-decoration: none;
+}

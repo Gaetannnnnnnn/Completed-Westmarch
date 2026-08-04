@@ -2,7 +2,7 @@ import { MOD } from "./const.js";
 import { partyFeatureEnabled } from './settings.js';
 import { registerSoundFilter } from './audio.js';
 
-var tabSelected = "IC";
+var tabSelected = "IC";
 
 export function ChatHooks() {
     Hooks.on("renderChatMessageHTML", (message, html, messageData) => renderChatMessageHTML(message, html, messageData));
@@ -73,9 +73,9 @@ function renderChatMessageHTML(message, html, messageData) {
 
 async function renderChatLog(log, html, data) {
     // Éviter la duplication des tabs si renderChatLog fire plusieurs fois
-    if (!document.querySelector('.tabbed-controls')) {
+    if (partyFeatureEnabled("enableChatFilter") && !document.querySelector('.tabbed-controls')) {
         const _rt = foundry.applications?.handlebars?.renderTemplate ?? renderTemplate;
-        const htmlContent = await _rt("modules/westmarch/templates/chat/tabbedchatlog-nav.hbs", {
+        const htmlContent = await _rt("modules/soruta-completed-westmarch/templates/chat/tabbedchatlog-nav.hbs", {
             activetab: tabSelected
         });
         $(html).prepend(htmlContent);

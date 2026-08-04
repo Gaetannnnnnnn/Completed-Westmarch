@@ -1531,6 +1531,7 @@ async function initNoteEditor(actor, _container, noteId) {
         const action = await DialogClass.wait({
             window:      { title: `✏ ${note.title ?? "Modifier la note"}` },
             position:    { width: 660, height: 560 },
+            classes:     ["carnet-grimoire"],
             content:     editorContent,
             rejectClose: false,
             render: () => {

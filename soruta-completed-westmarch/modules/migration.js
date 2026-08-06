@@ -54,7 +54,6 @@ function buildSettingsMap() {
     map["ashara-relations.anonymization"]   = "relationsAnonymization";
     map["ashara-relations.folderPJ"]        = "relationsFolderPJ";
     map["ashara-relations.folderPNJ"]       = "relationsFolderPNJ";
-    map["ashara-relations.folderCreatures"] = "relationsFolderCreatures";
 
     // Bestiaire (clés préfixées)
     map["ashara-bestiary.enabled"]          = "bestiaryEnabled";

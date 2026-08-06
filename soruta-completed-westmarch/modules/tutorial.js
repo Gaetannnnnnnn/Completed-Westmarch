@@ -12,7 +12,18 @@
 
 import { MOD } from "./const.js";
 import { getTutorialActor, grantTutorialAccess, revokeTutorialAccess } from "./demoactor.js";
+import { openCasier } from "./casier.js";
 const MODULE = MOD;
+
+// Ouvre le Casier et bascule sur l'onglet voulu (pour les étapes du tutoriel).
+async function _openCasier(tab) {
+    openCasier();
+    await new Promise(r => setTimeout(r, 400));
+    if (tab) {
+        document.querySelector(`.scwm-casier-tab[data-tab="${tab}"]`)?.click();
+        await new Promise(r => setTimeout(r, 250));
+    }
+}
 
 // Acteur utilisé par le tutoriel : en priorité la fiche démo dédiée (toujours
 // la même), sinon le personnage du joueur, sinon un PJ existant pour un GM.
@@ -28,9 +39,11 @@ function _tutorialActor() {
 
 export const SECTION_LABELS = {
     barreWestmarch:  "Barre WestMarch",
+    tourFiche:       "Tour de la fiche",
     bestiary:        "Bestiaire",
     relations:       "Relations",
     carnet:          "Carnet & Expéditions",
+    casier:          "Casier du MJ",
     boutiques:       "Boutiques (MEJ)",
     tempsMorts:      "Temps morts",
     apparenceTokens: "Apparence des tokens",
@@ -39,9 +52,11 @@ export const SECTION_LABELS = {
 
 export const SECTION_ICONS = {
     barreWestmarch:  "fa-compass",
+    tourFiche:       "fa-id-card",
     bestiary:        "fa-dragon",
     relations:       "fa-users",
     carnet:          "fa-book-open",
+    casier:          "fa-box-archive",
     boutiques:       "fa-store",
     tempsMorts:      "fa-hourglass-half",
     apparenceTokens: "fa-masks-theater",
@@ -50,9 +65,11 @@ export const SECTION_ICONS = {
 
 export const SETTING_KEYS = {
     barreWestmarch:  "tutoBarreWestmarch",
+    tourFiche:       "tutoTourFiche",
     bestiary:        "tutoBestiary",
     relations:       "tutoRelations",
     carnet:          "tutoCarnet",
+    casier:          "tutoCasier",
     boutiques:       "tutoBoutiques",
     tempsMorts:      "tutoTempsMorts",
     apparenceTokens: "tutoApparenceTokens",
@@ -68,9 +85,11 @@ export const SETTING_KEYS = {
 // section → clé de setting d'activation (null = toujours disponible).
 export const SECTION_FEATURE_SETTING = {
     barreWestmarch:  null,               // le tutoriel crée lui-même le groupe
+    tourFiche:       null,               // tour générique de la fiche dnd5e
     bestiary:        "bestiaryEnabled",
     relations:       "relationsEnabled",
     carnet:          "carnetEnabled",
+    casier:          null,               // outil MJ intégré (gmOnly)
     boutiques:       null,               // dépendance externe (MEJ) gérée à part
     tempsMorts:      null,               // fonctionnalité intégrée
     apparenceTokens: null,               // fonctionnalité intégrée
@@ -78,7 +97,7 @@ export const SECTION_FEATURE_SETTING = {
 };
 
 // Sections réservées au GM (toutes leurs étapes sont gmOnly)
-export const SECTION_GM_ONLY = new Set(["boutiques", "outilsGm"]);
+export const SECTION_GM_ONLY = new Set(["casier", "boutiques", "outilsGm"]);
 
 /**
  * Retourne true si la section est disponible pour l'utilisateur courant :
@@ -140,6 +159,14 @@ async function _openActorSheetTab(tabName) {
 
 // Raccourci : renvoie un beforeShow qui navigue vers l'onglet donné
 const _toSheet = tab => () => _openActorSheetTab(tab);
+
+// Ouvre la fiche démo sans changer d'onglet (pour pointer l'en-tête / la barre latérale).
+async function _openSheet() {
+    const actor = _tutorialActor();
+    if (!actor) return;
+    actor.sheet.render(true);
+    await new Promise(r => setTimeout(r, 500));
+}
 
 // ================================================================
 // NAVIGATION : ouvrir le prototype token → onglet Apparence
@@ -331,6 +358,94 @@ const STEPS_BY_FEATURE = {
         },
     ],
 
+    // ---- Tour de la fiche personnage ----
+    tourFiche: [
+        {
+            beforeShow: _openSheet,
+            target:     ".window-title, .document-name, input[name='name']",
+            title:      "Le nom du personnage",
+            text:       "En haut de la fiche : le <strong>nom</strong> du personnage, et à gauche son <strong>portrait</strong>. Un clic sur le portrait permet de le changer.",
+            position:   "bottom"
+        },
+        {
+            beforeShow: _openSheet,
+            target:     ".header-details, .xp, .exp",
+            title:      "Niveau, classe & expérience",
+            text:       "Sous le nom, la <strong>classe et le niveau</strong> (ici Rôdeur 12). Le badge rond indique le <strong>niveau global</strong> et la barre l'<strong>expérience</strong> vers le niveau suivant.",
+            position:   "bottom"
+        },
+        {
+            beforeShow: _openSheet,
+            target:     ".ac-display, .ac, [data-property='ac']",
+            title:      "Classe d'armure (CA)",
+            text:       "L'écusson affiche la <strong>Classe d'Armure</strong> : la difficulté pour vous toucher au combat.",
+            position:   "right"
+        },
+        {
+            beforeShow: _openSheet,
+            target:     ".stats, .pips, .attribution",
+            title:      "Initiative, Vitesse & Maîtrise",
+            text:       "Les trois valeurs clés : le bonus d'<strong>Initiative</strong>, la <strong>Vitesse</strong> de déplacement et le <strong>bonus de maîtrise</strong> (Proficiency).",
+            position:   "right"
+        },
+        {
+            beforeShow: _openSheet,
+            target:     ".meter.hit-points, .hit-points, .hp",
+            title:      "Points de vie",
+            text:       "La barre de <strong>points de vie</strong> (actuels / max). Le champ <strong>TMP</strong> à côté sert aux points de vie temporaires.",
+            position:   "right"
+        },
+        {
+            beforeShow: _openSheet,
+            target:     ".hit-dice, .hd",
+            title:      "Dés de vie",
+            text:       "Les <strong>dés de vie</strong> servent à récupérer des PV lors d'un repos court. Ici 12 dés (un par niveau).",
+            position:   "right"
+        },
+        {
+            beforeShow: _openSheet,
+            target:     ".ability-scores, [data-ability], .abilities",
+            title:      "Caractéristiques & compétences",
+            text:       "Les six <strong>caractéristiques</strong> (Force, Dextérité…) avec leur modificateur, et les <strong>compétences</strong> associées. Cliquez une valeur pour lancer le jet correspondant.",
+            position:   "left"
+        },
+        {
+            beforeShow: _openSheet,
+            target:     "nav.tabs",
+            title:      "Les onglets de la fiche",
+            text:       "La barre d'onglets donne accès au reste : <strong>Aptitudes</strong>, <strong>Inventaire</strong>, <strong>Sorts</strong>, <strong>Biographie</strong>… ainsi qu'aux onglets ajoutés par le serveur (Relations, Bestiaire, Carnet, Expéditions).",
+            position:   "bottom"
+        },
+        {
+            beforeShow: _toSheet("features"),
+            target:     "nav.tabs [data-tab='features'], .tabs [data-tab='features']",
+            title:      "Aptitudes (Features)",
+            text:       "L'onglet <strong>Aptitudes</strong> regroupe les capacités de classe, d'espèce et d'historique du personnage.",
+            position:   "bottom"
+        },
+        {
+            beforeShow: _toSheet("inventory"),
+            target:     "nav.tabs [data-tab='inventory'], .tabs [data-tab='inventory']",
+            title:      "Inventaire & argent",
+            text:       "L'onglet <strong>Inventaire</strong> liste l'équipement (armes, armures, objets) et la <strong>bourse</strong> (or, argent, cuivre…).",
+            position:   "bottom"
+        },
+        {
+            beforeShow: _toSheet("spells"),
+            target:     "nav.tabs [data-tab='spells'], .tabs [data-tab='spells']",
+            title:      "Sorts",
+            text:       "L'onglet <strong>Sorts</strong> présente les sorts connus/préparés et les emplacements de sorts par niveau.",
+            position:   "bottom"
+        },
+        {
+            beforeShow: _toSheet("biography"),
+            target:     "nav.tabs [data-tab='biography'], .tabs [data-tab='biography']",
+            title:      "Biographie",
+            text:       "L'onglet <strong>Biographie</strong> contient l'histoire, l'apparence et les notes personnelles du personnage.",
+            position:   "bottom"
+        },
+    ],
+
     // ---- Bestiaire ----
     bestiary: [
         {
@@ -391,7 +506,8 @@ const STEPS_BY_FEATURE = {
             title:      "Bloquer l'ajout automatique",
             text:       "Le bouton <i class='fas fa-ban'></i> dans l'en-tête de la fiche <strong>empêche ce personnage d'être ajouté automatiquement</strong> aux Relations et au Bestiaire. Il ne touche pas aux listes déjà existantes. Cliquez à nouveau pour réactiver.",
             textGM:     "Le bouton <i class='fas fa-ban'></i> dans l'en-tête <strong>bloque les ajouts automatiques futurs</strong> (Relations & Bestiaire) sans rien retirer des listes existantes. Devient rouge quand actif ; cliquez à nouveau pour réactiver. S'applique à n'importe quelle fiche PJ ou PNJ.",
-            position:   "bottom"
+            position:   "bottom",
+            gmOnly:     true
         },
         {
             beforeShow: _toSheet("relations"),
@@ -399,7 +515,24 @@ const STEPS_BY_FEATURE = {
             title:      "Retirer de chez tous les joueurs",
             text:       "Le bouton <i class='fas fa-users-slash'></i> <strong>retire ce personnage des Relations et du Bestiaire de tous les joueurs</strong>, d'un coup. Une confirmation est demandée. Sans blocage, il pourra revenir s'il est recroisé.",
             textGM:     "Le bouton <i class='fas fa-users-slash'></i> <strong>nettoie immédiatement</strong> ce personnage des listes de <strong>tous les joueurs</strong> (Relations & Bestiaire), avec confirmation. Indépendant du blocage <i class='fas fa-ban'></i> : combinez les deux pour retirer ET empêcher tout retour automatique.",
-            position:   "bottom"
+            position:   "bottom",
+            gmOnly:     true
+        },
+        {
+            beforeShow: _toSheet("relations"),
+            target:     ".scwm-anon-btn",
+            title:      "Rendre anonyme",
+            textGM:     "Le bouton <i class='fas fa-eye-slash'></i> rend ce personnage <strong>anonyme</strong> : dans les Relations et le Bestiaire des joueurs, il s'affiche « Inconnu » tant qu'il n'est pas révélé. Devient rouge quand actif ; recliquez pour lever l'anonymat.",
+            position:   "bottom",
+            gmOnly:     true
+        },
+        {
+            beforeShow: _toSheet("relations"),
+            target:     ".scwm-reveal-btn",
+            title:      "Révéler à la party",
+            textGM:     "Le bouton <i class='fas fa-eye'></i> <strong>révèle</strong> ce personnage à toute la party d'un coup : son vrai nom apparaît dans les Relations et le Bestiaire de chaque joueur, même s'il était anonyme.",
+            position:   "bottom",
+            gmOnly:     true
         },
     ],
 
@@ -483,6 +616,54 @@ const STEPS_BY_FEATURE = {
             text:       "Ce bouton enregistre la <strong>date de début d'une nouvelle expédition</strong> pour toute la party en un seul clic, en utilisant la date du calendrier du monde. Recliquez-le en fin de session pour enregistrer la <strong>date de fin</strong> et clôturer l'expédition.",
             position:   "right",
             gmOnly:     true
+        },
+        // ── Clore la session (GM) — transition vers le Casier ────
+        {
+            beforeShow: async () => { ui.players?.render?.(); await new Promise(r => setTimeout(r, 300)); },
+            target:     ".westmarch-close-session",
+            title:      "Clore la session",
+            textGM:     "Sous la liste des joueurs, le bouton <i class='fas fa-book'></i> <strong>Clore la session</strong> ouvre la fenêtre de clôture : attribution d'XP à la party (un champ « pour tous » qui remplit tous les PJ, puis un champ par PJ), un champ de <strong>notes</strong>, et deux issues — <strong>Clôturer &amp; envoyer</strong> le rapport sur Discord, ou <strong>Enregistrer pour plus tard</strong> pour le retrouver dans votre Casier. C'est justement ce Casier qu'on va voir maintenant.",
+            position:   "top",
+            gmOnly:     true
+        },
+    ],
+
+    // ---- Casier du MJ (GM) ----
+    casier: [
+        {
+            beforeShow: () => _openCasier("dashboard"),
+            target:     ".scwm-casier-dashboard",
+            title:      "Le Casier du MJ",
+            textGM:     "Le bouton <i class='fas fa-box-archive'></i> <strong>Casier</strong> dans la barre WestMarch ouvre votre tableau de bord de meneur. L'onglet <strong>Dashboard</strong> résume vos rapports à finaliser, l'état de votre party et le nombre d'expéditions en cours.",
+            position:   "left"
+        },
+        {
+            beforeShow: () => _openCasier("dashboard"),
+            target:     ".scwm-casier-presentation",
+            title:      "Votre présentation",
+            textGM:     "Ce champ libre vous laisse noter votre présentation, vos critères, vos horaires… Sauvegardé automatiquement et propre à chaque meneur.",
+            position:   "top"
+        },
+        {
+            beforeShow: () => _openCasier("reports"),
+            target:     ".scwm-casier-tab[data-tab='reports']",
+            title:      "Rapports à finaliser",
+            textGM:     "Les rapports <strong>enregistrés pour plus tard</strong> à la clôture arrivent ici. Sélectionnez-en un pour compléter ses notes, puis <strong>Clôturer &amp; envoyer sur Discord</strong>. Une pastille sur le bouton Casier et un message à la connexion vous rappellent les rapports en attente.",
+            position:   "right"
+        },
+        {
+            beforeShow: () => _openCasier("expeditions"),
+            target:     ".scwm-casier-tab[data-tab='expeditions']",
+            title:      "Expéditions en cours",
+            textGM:     "Vos expéditions en cours (issues de l'onglet Expédition), regroupées par expédition avec leurs participants. Un badge <strong>En session</strong> marque celle qui correspond à votre party active.",
+            position:   "right"
+        },
+        {
+            beforeShow: () => _openCasier("gms"),
+            target:     ".scwm-casier-tab[data-tab='gms']",
+            title:      "Suivi des GM",
+            textGM:     "Pour chaque meneur : le nombre d'expéditions en cours, leur nom et les joueurs qui y participent — pratique pour se coordonner à plusieurs MJ.",
+            position:   "right"
         },
     ],
 

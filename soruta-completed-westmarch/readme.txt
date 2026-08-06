@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 1.6.6
+Version : 1.7.6
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -146,6 +146,57 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v1.7.6 | 2026-08-04
+   - Tutoriel : nouvelle section "Tour de la fiche" (avant le Bestiaire) qui
+     ouvre la fiche demo et pointe nom, portrait, niveau/classe/XP, CA,
+     initiative/vitesse/maitrise, PV, des de vie, caracteristiques, la barre
+     d onglets, puis Aptitudes / Inventaire / Sorts / Biographie. Selecteurs de
+     champs avec repli (bulle centree si non trouve) ; onglets surs
+     (const.js, settings.js, tutorial.js).
+
+v1.7.5 | 2026-08-04
+   - Fiche demo tutoriel (v7) : ajout de monnaie (3 pp, 245 po, 60 pa, 40 pc).
+     Recreation auto (demoactor.js).
+
+v1.7.4 | 2026-08-04
+   - Fiche demo tutoriel (v6) : ajout d aptitudes (features, type feat) —
+     aptitudes de classe (Style de combat, Ennemi jure, Explorateur-ne, Attaque
+     supplementaire, Ombres du Feywild), traits d espece (Vision dans le noir,
+     Ascendance feerique) et historique. Recreation auto (demoactor.js).
+
+v1.7.3 | 2026-08-04
+   - Fiche demo tutoriel (v5) : l espece (Demi-elfe) et l historique (Ermite)
+     recoivent un identifiant + une description pour etre correctement rattaches
+     par dnd5e. Recreation auto de la fiche demo (demoactor.js).
+
+v1.7.2 | 2026-08-04
+   - Tutoriel (Relations, GM) : ajout de deux etapes apres "Bloquer/Retirer" :
+     "Rendre anonyme" (fa-eye-slash) et "Reveler a la party" (fa-eye) (tutorial.js).
+
+v1.7.1 | 2026-08-04
+   - Tutoriel : nouvelle section GM "Casier du MJ" (ouvre le Casier et pointe
+     Dashboard, presentation, Rapports, Expeditions, Suivi des GM). Une etape
+     "Clore la session" est ajoutee en fin de section Carnet/Expeditions, juste
+     avant la section Casier (const.js, settings.js, tutorial.js).
+
+v1.7.0 | 2026-08-04
+   - Relations : le selecteur d ajout propose desormais, en plus des dossiers
+     PJ/PNJ, les acteurs de DEUX compendiums choisis en reglages (menus
+     deroulants) : "Compendium des PNJ" (groupe PNJ) et "Compendium cimetiere
+     des joueurs" (groupe Joueurs). Ajout par simple reference (nom+image, aucun
+     acteur cree). Regroupement par source (relations.js, settings.js : nouveau
+     controle compendium + packOptionsHtml).
+
+v1.6.8 | 2026-08-04
+   - Relations : suppression du reglage inutilise "Dossier des creatures"
+     (vestige d ashara-relations, jamais utilise ; les creatures relevent du
+     Bestiaire). Retire de settings.js, relations.js et migration.js.
+
+v1.6.7 | 2026-08-04
+   - Tutoriel : les etapes "Bloquer l ajout automatique" et "Retirer de chez
+     tous les joueurs" sont desormais gmOnly (masquees pour les joueurs, ces
+     boutons etant reserves au GM) (tutorial.js).
 
 v1.6.6 | 2026-08-04
    - Fiche demo tutoriel (v4) : ownership par defaut "Aucun". Au lancement du

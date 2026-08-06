@@ -267,9 +267,12 @@ export function registerSettings() {
     game.settings.register(MOD, "relationsFolderPNJ", S(
         "Relations — Dossier des PNJ",
         "Dossier acteur des PNJ récurrents (alliés, marchands, figures importantes)."));
-    game.settings.register(MOD, "relationsFolderCreatures", S(
-        "Relations — Dossier des créatures",
-        "Dossier acteur des monstres/créatures pour la détection automatique de rencontres."));
+    game.settings.register(MOD, "relationsPackPNJ", S(
+        "Relations — Compendium des PNJ",
+        "Compendium d'acteurs PNJ. Ses personnages sont proposés dans le sélecteur de relations (groupe PNJ)."));
+    game.settings.register(MOD, "relationsPackCemetery", S(
+        "Relations — Compendium cimetière des joueurs",
+        "Compendium des PJ décédés. Ses personnages sont proposés dans le sélecteur de relations (groupe Joueurs)."));
 
     // ============================================================
     // BESTIAIRE (clés préfixées bestiary*)
@@ -428,7 +431,7 @@ const CATEGORIES = [
       keys: ["enableTokenAppearance","enableTokenPortraitButton","enableRageSize","enableLargeForm","enablePolymorph","enableTgcm","enableFolderMove","enableToolAbilityFix","enableHideHotbar","enableHideHotbarGM","enableConnStats","enablePlayerListCompact","enableTemplateSnap","enableMejShopFix","enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
     { firstKey: "relationsEnabled", master: "relationsEnabled",      icon: "fa-heart",           title: "Fiche PJ — Relations",
       desc: "Onglet Relations : liens entre personnages, détection automatique des rencontres, anonymisation.",
-      keys: ["relationsEnabled","relationsAnonymization","relationsFolderPJ","relationsFolderPNJ","relationsFolderCreatures"] },
+      keys: ["relationsEnabled","relationsAnonymization","relationsFolderPJ","relationsFolderPNJ","relationsPackPNJ","relationsPackCemetery"] },
     { firstKey: "bestiaryEnabled", master: "bestiaryEnabled",       icon: "fa-dragon",          title: "Fiche PJ — Bestiaire",
       desc: "Onglet Bestiaire : créatures rencontrées, répertoriées par personnage.",
       keys: ["bestiaryEnabled","bestiaryAnonymization","bestiaryFolderPJ","bestiaryPackCreatures"] },
@@ -443,7 +446,7 @@ const CATEGORIES = [
       keys: ["rangeFixEnabled","rangeAdjust"] },
     { firstKey: "serverName", master: "tutoEnabled", icon: "fa-circle-question", title: "Tutoriel",
       desc: "Fenêtre de bienvenue et guide interactif, configurable section par section.",
-      keys: ["tutoEnabled","serverName","tutoBarreWestmarch","tutoBestiary","tutoRelations","tutoCarnet","tutoBoutiques","tutoTempsMorts","tutoApparenceTokens","tutoOutilsGm","showWelcome"] },
+      keys: ["tutoEnabled","serverName","tutoBarreWestmarch","tutoTourFiche","tutoBestiary","tutoRelations","tutoCarnet","tutoCasier","tutoBoutiques","tutoTempsMorts","tutoApparenceTokens","tutoOutilsGm","showWelcome"] },
 ];
 
 const ACCENT = "#e67e22";
@@ -601,6 +604,8 @@ function settingControlHtml(key) {
         control = `<input type="number" name="${key}" value="${val ?? 0}" step="any" style="width:100%;">`;
     } else if (key.includes("Folder")) {
         control = `<select name="${key}" style="width:100%;">${folderOptionsHtml(val)}</select>`;
+    } else if (key.includes("Pack")) {
+        control = `<select name="${key}" style="width:100%;">${packOptionsHtml(val)}</select>`;
     } else if (key === "expeditionMapSceneId") {
         control = `<select name="${key}" style="width:100%;">${sceneOptionsHtml(val)}</select>`;
     } else {
@@ -696,5 +701,18 @@ function sceneOptionsHtml(currentVal) {
     return [
         `<option value="">— Aucune —</option>`,
         ...game.scenes.contents.map(s => `<option value="${s.id}" ${s.id === currentVal ? "selected" : ""}>${s.name}</option>`)
+    ].join("");
+}
+
+// Menu déroulant des compendiums d'acteurs (valeur = collection, ex. world.pnj).
+function packOptionsHtml(currentVal) {
+    const packs = game.packs.filter(p => p.documentName === "Actor")
+        .sort((a, b) => (a.title ?? a.metadata?.label ?? "").localeCompare(b.title ?? b.metadata?.label ?? ""));
+    return [
+        `<option value="">— aucun —</option>`,
+        ...packs.map(p => {
+            const label = p.title ?? p.metadata?.label ?? p.collection;
+            return `<option value="${p.collection}" ${p.collection === currentVal ? "selected" : ""}>${escapeAttr(label)}</option>`;
+        })
     ].join("");
 }

@@ -12,9 +12,11 @@ export const MOD = "soruta-completed-westmarch";
 // Partagé entre settings.js (enregistrement) et tutorial.js (filtrage).
 export const TUTO_TOGGLES = [
     { key: "tutoBarreWestmarch",  legacy: "barreWestmarch",  label: "Barre WestMarch (navigation & groupe)" },
+    { key: "tutoTourFiche",       legacy: "tourFiche",       label: "Tour de la fiche personnage" },
     { key: "tutoBestiary",        legacy: "bestiary",        label: "Bestiaire (onglet fiche)" },
     { key: "tutoRelations",       legacy: "relations",       label: "Relations (onglet fiche)" },
     { key: "tutoCarnet",          legacy: "carnet",          label: "Carnet & Expéditions (onglet fiche)" },
+    { key: "tutoCasier",          legacy: "casier",          label: "Casier du MJ (tableau de bord)" },
     { key: "tutoBoutiques",       legacy: "boutiques",       label: "Boutiques Monk's Enhanced Journal" },
     { key: "tutoTempsMorts",      legacy: "tempsMorts",      label: "Temps morts (déclaration & validation)" },
     { key: "tutoApparenceTokens", legacy: "apparenceTokens", label: "Apparence des tokens (portrait, polymorph, cycle)" },

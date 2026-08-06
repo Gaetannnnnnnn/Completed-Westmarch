@@ -18,7 +18,7 @@
 
 import { MOD } from "./const.js";
 
-const DEMO_VERSION = 4;
+const DEMO_VERSION = 7;
 const rid = () => foundry.utils.randomID();
 
 export function getTutorialActor() {
@@ -89,8 +89,27 @@ async function createDemoActor() {
           system: { levels: 12, identifier: "ranger", hitDice: "d10" } },
         { name: "Chasseur de l'ombre", type: "subclass", img: "icons/magic/perception/silhouette-stealth-shadow.webp",
           system: { classIdentifier: "ranger", identifier: "gloom-stalker" } },
-        { name: "Ermite", type: "background", img: "icons/environment/wilderness/tent-brown.webp" },
-        { name: "Demi-elfe", type: "race", img: "icons/environment/people/commoner.webp" },
+        { name: "Ermite", type: "background", img: "icons/environment/wilderness/tent-brown.webp",
+          system: { identifier: "ermite", description: { value: "<p>A vécu en ermite avant de rejoindre les Marches.</p>" } } },
+        { name: "Demi-elfe", type: "race", img: "icons/environment/people/commoner.webp",
+          system: { identifier: "demi-elfe", description: { value: "<p>Espèce : demi-elfe. Vision dans le noir, ascendance féerique.</p>" } } },
+        // Aptitudes (features)
+        { name: "Style de combat : Archerie", type: "feat", img: "icons/skills/ranged/arrow-flying-broadhead-metal.webp",
+          system: { type: { value: "class" }, description: { value: "<p>+2 aux jets d'attaque avec les armes à distance.</p>" } } },
+        { name: "Ennemi juré", type: "feat", img: "icons/creatures/abilities/paw-print-pair-purple.webp",
+          system: { type: { value: "class" }, description: { value: "<p>Avantage pour pister et se souvenir d'un type d'ennemi.</p>" } } },
+        { name: "Explorateur-né", type: "feat", img: "icons/environment/wilderness/terrain-forest-gray.webp",
+          system: { type: { value: "class" }, description: { value: "<p>Expert du terrain naturel choisi ; déplacement et discrétion facilités.</p>" } } },
+        { name: "Attaque supplémentaire", type: "feat", img: "icons/skills/melee/blade-tips-triple-bronze.webp",
+          system: { type: { value: "class" }, description: { value: "<p>Deux attaques au lieu d'une lors de l'action d'Attaque.</p>" } } },
+        { name: "Ombres du Feywild", type: "feat", img: "icons/magic/perception/shadow-stealth-eyes-purple.webp",
+          system: { type: { value: "class" }, description: { value: "<p>Chasseur de l'ombre : dissimulation dans l'obscurité, initiative renforcée.</p>" } } },
+        { name: "Vision dans le noir", type: "feat", img: "icons/magic/perception/eye-ringed-glow-angry-red.webp",
+          system: { type: { value: "race" }, description: { value: "<p>Vision dans le noir jusqu'à 18 mètres.</p>" } } },
+        { name: "Ascendance féerique", type: "feat", img: "icons/magic/nature/leaf-glow-teal.webp",
+          system: { type: { value: "race" }, description: { value: "<p>Avantage contre le charme ; immunité au sommeil magique.</p>" } } },
+        { name: "Découverte de l'ermite", type: "feat", img: "icons/sundries/scrolls/scroll-runed-brown.webp",
+          system: { type: { value: "background" }, description: { value: "<p>Un secret unique appris durant l'isolement.</p>" } } },
         { name: "Épée longue", type: "weapon", img: "icons/weapons/swords/sword-guard-purple.webp" },
         { name: "Arc long", type: "weapon", img: "icons/weapons/bows/bow-recurve-brown.webp" },
         { name: "Armure de cuir clouté", type: "equipment", img: "icons/equipment/chest/breastplate-leather-brown-belt.webp" },
@@ -161,6 +180,7 @@ async function createDemoActor() {
                 int: { value: 11 }, wis: { value: 16 }, cha: { value: 12 }
             },
             attributes: { hp: { value: 98, max: 98 } },
+            currency: { pp: 3, gp: 245, ep: 0, sp: 60, cp: 40 },
             details: {
                 biography: { value: bio },
                 alignment: "Neutre Bon",

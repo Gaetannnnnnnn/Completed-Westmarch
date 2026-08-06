@@ -105,7 +105,6 @@ function isInFolder(actor, folderId) {
 
 function isInPJFolder(actor)        { return isInFolder(actor, game.settings.get(MOD, "relationsFolderPJ")); }
 function isInPNJFolder(actor)       { return isInFolder(actor, game.settings.get(MOD, "relationsFolderPNJ")); }
-function isInCreaturesFolder(actor) { return isInFolder(actor, game.settings.get(MOD, "relationsFolderCreatures")); }
 
 // Acteurs disponibles pour une nouvelle relation
 // (dossiers "PJ" et "PNJ", excluant soi-même et les déjà-liés)
@@ -170,9 +169,14 @@ export function buildTabHtml(actor) {
     const canEdit = isGM || actor.isOwner;
     const rels    = relList(actor);
 
-    // Grouper : Joueurs (dossier "PJ"), PNJ (dossier "PNJ")
-    const pjRels  = rels.filter(r => { const a = game.actors.get(r.targetId); return a && isInPJFolder(a) && a.type === "character"; });
-    const pnjRels = rels.filter(r => { const a = game.actors.get(r.targetId); return a && isInPNJFolder(a); });
+    // Grouper : Joueurs (dossier "PJ" + cimetière/compendium tagué source:"pj"),
+    // PNJ (dossier "PNJ" + compendium tagué source:"pnj").
+    const isPjRel  = r => r.source === "pj"
+        || (() => { const a = game.actors.get(r.targetId); return !!(a && isInPJFolder(a) && a.type === "character"); })();
+    const isPnjRel = r => r.source === "pnj"
+        || (() => { const a = game.actors.get(r.targetId); return !!(a && isInPNJFolder(a)); })();
+    const pjRels  = rels.filter(isPjRel);
+    const pnjRels = rels.filter(r => !isPjRel(r) && isPnjRel(r));
 
     // ---- Styles inline (contournement cache CSS Foundry) ----
     // Thème "fantasy" doré, aligné sur l'onglet Bestiaire.
@@ -241,15 +245,46 @@ export function buildTabHtml(actor) {
 
 // ---- Picker acteur (dialog ajout) --------------------------
 
-function buildPickerHtml(pj, uid) {
-    const actors = availableActors(pj);
-    const joueurs = actors.filter(a => isInPJFolder(a) && a.type === "character");
-    const pnjs    = actors.filter(a => isInPNJFolder(a));
+function escA(s) {
+    return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
 
-    function actorRow(a) {
-        return `<div class="rel-picker-actor" data-actor-id="${a.id}" data-name="${a.name.toLowerCase()}">
-            <img src="${a.img ?? "icons/svg/mystery-man.svg"}" alt="${a.name}">
-            <span>${a.name}</span>
+// Entrées d'un compendium d'acteurs (référence simple : nom + image + uuid).
+function packEntries(collection, source, existing) {
+    const pack = game.packs.get(collection);
+    if (!pack || pack.documentName !== "Actor") return [];
+    const out = [];
+    for (const e of pack.index) {
+        const uuid = e.uuid ?? `${pack.collection}.${e._id}`;
+        if (existing.has(uuid)) continue;
+        out.push({ key: uuid, name: e.name, img: e.img || "icons/svg/mystery-man.svg", source, isPack: true });
+    }
+    return out;
+}
+
+function buildPickerHtml(pj, uid) {
+    const existing = new Set(relList(pj).map(r => r.targetId));
+
+    // Acteurs du monde (dossiers PJ / PNJ).
+    const joueurs = [], pnjs = [];
+    for (const a of game.actors) {
+        if (a.id === pj.id || existing.has(a.id)) continue;
+        if (isInPJFolder(a) && a.type === "character") joueurs.push({ key: a.id, name: a.name, img: a.img, source: "pj",  isPack: false });
+        else if (isInPNJFolder(a))                     pnjs.push(   { key: a.id, name: a.name, img: a.img, source: "pnj", isPack: false });
+    }
+    // Compendiums (référence simple) : cimetière → Joueurs, PNJ → PNJ.
+    joueurs.push(...packEntries(game.settings.get(MOD, "relationsPackCemetery"), "pj",  existing));
+    pnjs.push(   ...packEntries(game.settings.get(MOD, "relationsPackPNJ"),      "pnj", existing));
+
+    const byName = (a, b) => a.name.localeCompare(b.name);
+    joueurs.sort(byName); pnjs.sort(byName);
+
+    function actorRow(e) {
+        return `<div class="rel-picker-actor" data-actor-id="${escA(e.key)}" data-name="${escA(e.name.toLowerCase())}"
+                     data-source="${e.source}" data-pack="${e.isPack ? "1" : "0"}"
+                     data-img="${escA(e.img)}" data-actor-name="${escA(e.name)}">
+            <img src="${escA(e.img)}" alt="${escA(e.name)}">
+            <span>${escA(e.name)}</span>
         </div>`;
     }
 
@@ -297,6 +332,12 @@ async function openAddDialog(actor) {
     const uid = `rel-add-${Date.now()}`;
     let selectedActorId = null;
     let result = null;
+
+    // Précharge l'index des compendiums configurés (accès synchrone ensuite).
+    for (const col of [game.settings.get(MOD, "relationsPackCemetery"), game.settings.get(MOD, "relationsPackPNJ")]) {
+        const p = col ? game.packs.get(col) : null;
+        if (p) { try { await p.getIndex(); } catch (e) {} }
+    }
 
     await foundry.applications.api.DialogV2.wait({
         window: { title: "Nouvelle relation" },
@@ -359,14 +400,16 @@ async function openAddDialog(actor) {
                 action: "confirm", default: true,
                 label: "Ajouter", icon: '<i class="fas fa-check"></i>',
                 callback: () => {
-                    if (!selectedActorId) return;
-                    const d = document.getElementById(uid);
-                    if (!d) return;
-                    const target = game.actors.get(selectedActorId);
+                    const d  = document.getElementById(uid);
+                    const el = d?.querySelector(".rel-picker-actor.selected");
+                    if (!el) return;
+                    const isPack     = el.dataset.pack === "1";
+                    const worldActor = isPack ? null : game.actors.get(el.dataset.actorId);
                     result = {
-                        targetId:   selectedActorId,
-                        targetName: target?.name ?? "Inconnu",
-                        targetImg:  target?.img  ?? "",
+                        targetId:   el.dataset.actorId,
+                        targetName: worldActor?.name ?? el.dataset.actorName ?? "Inconnu",
+                        targetImg:  worldActor?.img  ?? el.dataset.img ?? "",
+                        source:     el.dataset.source || undefined,
                         level:  parseInt(d.querySelector(`#${uid}-level`).value) || 0,
                         lastPosition: game.scenes.current?.name ?? "",
                     };

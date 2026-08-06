@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 1.8.0
+Version : 1.8.3
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -146,6 +146,22 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v1.8.3 | 2026-08-04
+   - Tutoriel (Tour de la fiche) : les caracteristiques/competences pointent la
+     colonne gauche (.left) ; nouvelle etape "Jets de sauvegarde & defense" sur
+     tout le bloc .saves (filigree-box), texte precisant defense = jet de
+     sauvegarde OU CA (tutorial.js).
+
+v1.8.2 | 2026-08-04
+   - Tutoriel (Tour de la fiche) : etape en-tete scindee en deux — "Niveau &
+     experience" (badge + barre XP) et "Repos & inspiration heroique" (boutons
+     repos court/long, inspiration) (tutorial.js).
+
+v1.8.1 | 2026-08-04
+   - Tutoriel (Tour de la fiche) : selecteurs cales sur le DOM reel du sheet
+     dnd5e2 : CA = .ac-badge, init/vitesse/maitrise = .lozenges, PV/des de vie =
+     les deux .meter-group de .stats, en-tete = .sheet-header (tutorial.js).
 
 v1.8.0 | 2026-08-04
    - Tutoriel (Tour de la fiche) : l etape "Les onglets de la fiche" ciblait par

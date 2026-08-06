@@ -369,44 +369,58 @@ const STEPS_BY_FEATURE = {
         },
         {
             beforeShow: _openSheet,
-            target:     ".meter.exp, .meter.experience, .xp-bar",
-            title:      "Niveau, classe & expérience",
-            text:       "Sous le nom, la <strong>classe et le niveau</strong> (ici Rôdeur 12). Le badge rond indique le <strong>niveau global</strong> et la barre l'<strong>expérience</strong> vers le niveau suivant.",
+            target:     ".sheet-header",
+            title:      "Niveau & expérience",
+            text:       "Le badge rond affiche le <strong>niveau global</strong> (ici 12), et la barre juste en dessous l'<strong>expérience</strong> accumulée vers le niveau suivant.",
             position:   "bottom"
         },
         {
             beforeShow: _openSheet,
-            target:     ".ac, .ac-display, .card .ac",
+            target:     "[aria-label='Long Rest'], [aria-label='Short Rest'], [data-action='longRest'], [data-action='shortRest'], .sheet-header button",
+            title:      "Repos & inspiration héroïque",
+            text:       "Dans l'en-tête : les boutons de <strong>Repos court</strong> et <strong>Repos long</strong> (récupération de PV, sorts, capacités), et l'<strong>Inspiration héroïque</strong> — un bonus ponctuel que le MJ peut accorder.",
+            position:   "bottom"
+        },
+        {
+            beforeShow: _openSheet,
+            target:     ".ac-badge",
             title:      "Classe d'armure (CA)",
             text:       "L'écusson affiche la <strong>Classe d'Armure</strong> : la difficulté pour vous toucher au combat.",
             position:   "right"
         },
         {
             beforeShow: _openSheet,
-            target:     ".stats, .pills, .sidebar .stats",
+            target:     ".stats .lozenges",
             title:      "Initiative, Vitesse & Maîtrise",
-            text:       "Les trois valeurs clés : le bonus d'<strong>Initiative</strong>, la <strong>Vitesse</strong> de déplacement et le <strong>bonus de maîtrise</strong> (Proficiency).",
+            text:       "Les valeurs clés : le bonus d'<strong>Initiative</strong>, la <strong>Vitesse</strong> de déplacement et le <strong>bonus de maîtrise</strong> (Proficiency).",
             position:   "right"
         },
         {
             beforeShow: _openSheet,
-            target:     ".meter.hit-points, .meter-group .hit-points, .hit-points",
+            target:     ".stats .meter-group",
             title:      "Points de vie",
-            text:       "La barre de <strong>points de vie</strong> (actuels / max). Le champ <strong>TMP</strong> à côté sert aux points de vie temporaires.",
+            text:       "La barre de <strong>points de vie</strong> (actuels / max), avec les points de vie <strong>temporaires</strong>.",
             position:   "right"
         },
         {
             beforeShow: _openSheet,
-            target:     ".meter.hit-dice, .hit-dice, .hd",
+            target:     ".stats .meter-group + .meter-group",
             title:      "Dés de vie",
             text:       "Les <strong>dés de vie</strong> servent à récupérer des PV lors d'un repos court. Ici 12 dés (un par niveau).",
             position:   "right"
         },
         {
             beforeShow: _openSheet,
-            target:     "[data-ability='str'], [data-ability], .ability-scores",
+            target:     ".tab[data-tab='details'] .left, .sheet-body .left",
             title:      "Caractéristiques & compétences",
-            text:       "Les six <strong>caractéristiques</strong> (Force, Dextérité…) avec leur modificateur, et les <strong>compétences</strong> associées. Cliquez une valeur pour lancer le jet correspondant.",
+            text:       "La colonne de gauche regroupe les six <strong>caractéristiques</strong> (Force, Dextérité…) avec leur modificateur, et la liste des <strong>compétences</strong>. Cliquez une valeur pour lancer le jet correspondant.",
+            position:   "right"
+        },
+        {
+            beforeShow: _openSheet,
+            target:     ".saves, filigree-box.saves",
+            title:      "Jets de sauvegarde & défense",
+            text:       "Le bloc <strong>Saving Throws</strong> liste vos <strong>jets de sauvegarde</strong>. Selon la menace, votre défense passe soit par un <strong>jet de sauvegarde</strong> (ce bloc), soit par la <strong>Classe d'Armure</strong> (vue plus haut) face aux attaques.",
             position:   "left"
         },
         {

@@ -42,6 +42,7 @@ import { ScenesHooks }    from "./modules/scenes.js";
 import { DocumentHooks }  from "./modules/document.js";
 import { JournalHooks }   from "./modules/journal.js";
 import { SessionHooks }   from "./modules/session.js";
+import { CasierHooks }    from "./modules/casier.js";
 import { AntiCheatHooks } from "./modules/anticheat.js";
 import { SocketHooks }    from "./modules/socket.js";
 import { CombatHooks }    from "./modules/combat.js";
@@ -61,6 +62,7 @@ import { MapHooks }              from "./modules/map.js";
 import { RangeFixHooks }         from "./modules/range-fix.js";
 import { registerTutorielButton } from "./modules/toolbar.js";
 import { showWelcomeIfNeeded }    from "./modules/welcome.js";
+import { ensureTutorialActor }    from "./modules/demoactor.js";
 
 Hooks.on("init", () => {
     // Helpers Handlebars hérités de westmarch (utilisés par les templates de chat).
@@ -106,6 +108,7 @@ Hooks.on("init", () => {
     DocumentHooks();
     JournalHooks();
     SessionHooks();
+    CasierHooks();
     AntiCheatHooks();
     SocketHooks();
     CombatHooks();
@@ -133,6 +136,9 @@ Hooks.on("ready", () => {
     // Midi Range Fix : enregistré en "ready" (pas "init") pour passer APRÈS
     // le listener canvasReady de midi-qol (qui s'inscrit lui-même en "ready").
     RangeFixHooks();
+
+    // Fiche démo du tutoriel : créée une fois au premier chargement GM.
+    ensureTutorialActor();
 
     // Fenêtre de bienvenue — légère temporisation pour laisser l'UI se stabiliser.
     setTimeout(() => showWelcomeIfNeeded(), 1000);

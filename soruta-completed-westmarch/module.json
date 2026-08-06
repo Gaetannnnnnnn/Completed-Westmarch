@@ -1,7 +1,7 @@
 {
   "id": "soruta-completed-westmarch",
   "title": "Soruta — Completed Westmarch",
-  "version": "1.3.8",
+  "version": "1.5.2",
   "changelog": "2026-08-03",
   "authors": [
     {
@@ -28,7 +28,8 @@
     "./styles/midi-range-fix.css",
     "./styles/connstats.css",
     "./styles/partypause.css",
-    "./styles/playerlist.css"
+    "./styles/playerlist.css",
+    "./styles/casier.css"
   ],
   "fonts": {
     "Enchanted Land": {

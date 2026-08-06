@@ -74,6 +74,14 @@ export function registerSettings() {
     game.settings.register(MOD, "sessionLogWebhookUrl", S(
         "URL du Webhook Discord (rapport de session)",
         "Le bouton 'Clore la session' envoie le rapport (même contenu que les anciens journaux) sur ce webhook. Laisser vide pour désactiver l'envoi."));
+    // Brouillons de rapports de session (Casier du GM). Non affiché.
+    game.settings.register(MOD, "sessionDrafts", {
+        scope: "world", config: false, type: Array, default: []
+    });
+    // Profils de Casier par GM (présentation du dashboard, etc.). Non affiché.
+    game.settings.register(MOD, "casierProfiles", {
+        scope: "world", config: false, type: Object, default: {}
+    });
     game.settings.register(MOD, "enableCombatParty", B(
         "Combat lié à la party (plutôt qu'à la scène)",
         "Les combats créés par un GM sont détachés de la scène et associés à sa party. Chaque joueur ne voit que le combat de sa party."));
@@ -321,6 +329,11 @@ export function registerSettings() {
         "Tutoriel — Nom affiché dans le message de bienvenue",
         "Titre de la fenêtre d'accueil des joueurs.",
         "Bienvenue sur le serveur !"));
+    // Suivi interne : la fiche démo du tutoriel a-t-elle déjà été créée ?
+    // (évite de la recréer si le GM la supprime volontairement).
+    game.settings.register(MOD, "tutorialActorCreated", {
+        scope: "world", config: false, type: Boolean, default: false, requiresReload: false
+    });
     for (const { key, label } of TUTO_TOGGLES) {
         game.settings.register(MOD, key, B(
             `Tutoriel — ${label}`,

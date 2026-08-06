@@ -4,23 +4,28 @@
 
 /* Hauteur limitée (~4 lignes) + défilement. !important pour battre les
    règles natives de Foundry (sélecteurs à id, plus prioritaires). */
-/* La liste (zone défilante) commence SOUS la barre : ~4 lignes puis scroll. */
+/* La liste devient la zone défilante (barre épinglée + ~4 lignes). */
 .players-list.scwm-players-compact {
-    max-height: 96px !important;
+    max-height: 128px !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
+    padding: 0 !important;
 }
 
-/* Barre de recherche AU-DESSUS de la liste (hors du scroll). */
+/* Barre de recherche épinglée EN HAUT de la liste, pleine largeur, fond
+   solide opaque et sans coins arrondis : rien ne transparaît derrière. */
 .scwm-player-search {
+    position: sticky;
+    top: 0;
+    z-index: 10;
     display: flex;
     align-items: center;
     gap: 6px;
-    margin: 0 0 4px;
+    margin: 0;
     padding: 6px 8px;
     background: #14120e;
-    border: 1px solid rgba(201, 162, 39, 0.35);
-    border-radius: 4px;
+    border-bottom: 1px solid rgba(201, 162, 39, 0.4);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.55);
 }
 
 .scwm-player-search i {

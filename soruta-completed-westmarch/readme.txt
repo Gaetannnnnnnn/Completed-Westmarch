@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 1.3.8
+Version : 1.5.2
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -146,6 +146,49 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v1.5.2 | 2026-08-04
+   - Rapports de session en attente : pastille de notif sur le bouton Casier
+     (par GM, aucun suivi inter-GM des rapports) + message chuchote a soi-meme
+     (self-roll) a la connexion avec un bouton Ouvrir le Casier. Le badge se
+     rafraichit a l enregistrement/envoi/suppression d un brouillon (casier.js,
+     casier.css, session.js).
+
+v1.5.1 | 2026-08-04
+   - Casier : deux onglets ajoutes. "Dashboard" (par defaut) avec le nom du GM,
+     un recap (rapports en attente, party active, sessions ouvertes) et une
+     presentation editable persistante (reglage casierProfiles). "Suivi des GM"
+     listant, pour chaque GM, sa session/party en cours et ses membres.
+     Onglets passes en vertical (casier.js / casier.css).
+
+v1.5.0 | 2026-08-04
+   - Cloture de session enrichie : la fenetre ajoute un champ NOTES et un bouton
+     "Enregistrer pour plus tard" (brouillon range dans le Casier) en plus de
+     "Cloturer et envoyer". XP applique dans les deux cas.
+   - Nouveau "Casier de [GM]" (icone dans la barre WestMarch, GM) : tableau de
+     bord style livret. Onglet "Rapports a finaliser" (brouillons editables ->
+     bouton Cloturer qui envoie le rapport sur Discord) et "Sessions en cours".
+     casier.js / casier.css ; brouillons stockes dans le reglage sessionDrafts.
+   - session.js refactore : buildSessionEmbed / sendSessionReport / CRUD des
+     brouillons exportes et reutilises par le Casier.
+
+v1.4.1 | 2026-08-04
+   - Fiche demo du tutoriel : le module cree automatiquement au 1er chargement GM
+     une fiche PJ dediee "Aventurier d exemple (Tutoriel)" (dossier Tutoriel,
+     lecture pour tous). Le tutoriel l ouvre en priorite, donc il utilise
+     toujours la meme fiche. Creation idempotente via tutorialActorCreated.
+     Nouveau demoactor.js ; tutorial.js pointe dessus.
+
+v1.4.0 | 2026-08-04
+   - Tutoriel : l etape unique du bouton de retrait est scindee en DEUX etapes,
+     une par bouton (fa-ban "Bloquer l ajout automatique" et fa-users-slash
+     "Retirer de chez tous les joueurs") (tutorial.js).
+
+v1.3.9 | 2026-08-04
+   - Liste des joueurs compacte : la barre de recherche est de nouveau DANS le
+     cadre du panneau (epinglee sticky en tete de .players-list), pleine largeur,
+     fond solide opaque sans coins arrondis : elle ne sort plus du cadre et les
+     noms ne transparaissent plus derriere (playerlist.js/.css).
 
 v1.3.8 | 2026-08-04
    - Fiche PJ/PNJ : le bouton unique de retrait est scinde en DEUX boutons dans

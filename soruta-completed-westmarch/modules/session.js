@@ -225,24 +225,19 @@ export function startSessionLog(partyId) {
 }
 
 // ============================================================
-// SECTION : Fenêtre d'attribution d'XP de fin de session
-// - Un champ "XP pour tous" en haut : le saisir remplit
-//   automatiquement tous les champs par PJ (modifiables ensuite
-//   individuellement).
-// - Un champ par PJ de la party pour ajuster au cas par cas.
-// - À la validation, l'XP saisi est AJOUTÉ à l'XP courant de chaque
-//   acteur, puis le rapport de session en tient compte comme gain.
-// Renvoie : true (XP appliqué) / false (clore sans XP) / "cancel"
-// (fenêtre fermée → on n'clôt pas la session).
+// SECTION : Fenêtre de clôture de session
+// - Attribution d'XP (champ "XP pour tous" + champ par PJ).
+// - Champ de NOTES de session (résumé libre).
+// - Deux issues : "Clôturer et envoyer" (rapport Discord immédiat) ou
+//   "Enregistrer pour plus tard" (brouillon rangé dans le Casier du GM).
+// Renvoie : { action: "send"|"draft"|"cancel", notes }.
+// L'XP saisi est appliqué dans les deux cas (send et draft).
 // ============================================================
-function promptXpAward(partyId) {
+function promptSessionClose(partyId) {
     const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c =>
         ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-    // Liste unique des PJ de la party (dédupliquée par acteur).
-    // Source PRINCIPALE : les membres réels de la party (les flags des
-    // utilisateurs persistent au rechargement, contrairement à sessionData).
-    // Repli : le snapshot de session, si présent.
+    // PJ de la party (membres réels ; repli sur le snapshot de session).
     const seen = new Set();
     const pcs = [];
     for (const user of game.users) {
@@ -262,11 +257,6 @@ function promptXpAward(partyId) {
         }
     }
 
-    if (!pcs.length) {
-        ui.notifications.warn("Aucun PJ trouvé dans la party pour l'attribution d'XP.");
-        return Promise.resolve(false);
-    }
-
     const rows = pcs.map(pc => `
         <div style="display:flex;align-items:center;gap:8px;margin:4px 0;">
             <label style="flex:1;">${esc(pc.name)}
@@ -276,42 +266,61 @@ function promptXpAward(partyId) {
                    data-actor-id="${esc(pc.actorId)}" value="0" style="width:90px;">
         </div>`).join("");
 
-    const content = `
-        <form class="scwm-xp-form">
-            <p style="margin:0 0 8px;">Attribution d'XP de fin de session.</p>
+    const xpBlock = pcs.length ? `
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;
                         padding-bottom:8px;border-bottom:1px solid var(--color-border-light-tertiary,#bbb);">
                 <label style="flex:1;font-weight:bold;">XP pour tous</label>
                 <input type="number" min="0" step="1" class="scwm-xp-all" value="0" style="width:90px;">
             </div>
-            ${rows}
+            ${rows}`
+        : `<p style="opacity:0.7;">Aucun PJ dans la party — attribution d'XP indisponible.</p>`;
+
+    const content = `
+        <form class="scwm-close-form">
+            <p style="margin:0 0 8px;">Attribution d'XP de fin de session.</p>
+            ${xpBlock}
+            <div style="margin-top:10px;">
+                <label style="display:block;font-weight:bold;margin-bottom:4px;">Notes de session</label>
+                <textarea class="scwm-close-notes" rows="4" style="width:100%;box-sizing:border-box;"
+                    placeholder="Résumé, événements marquants… (peut être complété plus tard dans le Casier)"></textarea>
+            </div>
         </form>`;
 
     let resolveFn;
     const done = new Promise(res => { resolveFn = res; });
 
+    const applyXp = async (root) => {
+        for (const input of root.querySelectorAll(".scwm-xp-pc")) {
+            const gain = Math.max(0, Math.round(Number(input.value) || 0));
+            if (!gain) continue;
+            const actor = game.actors.get(input.dataset.actorId);
+            if (!actor) continue;
+            const cur = actor.system?.details?.xp?.value ?? 0;
+            await actor.update({ "system.details.xp.value": cur + gain });
+        }
+    };
+
     const dlg = new foundry.applications.api.DialogV2({
-        window: { title: "Attribution d'XP — Fin de session", icon: "fas fa-star" },
+        window: { title: "Clôture de session", icon: "fas fa-flag-checkered" },
         content,
         buttons: [
             {
-                action: "apply", label: "Attribuer et clore", icon: "fas fa-check", default: true,
+                action: "send", label: "Clôturer et envoyer", icon: "fas fa-paper-plane", default: true,
                 callback: async (event, button, dialog) => {
                     const root = dialog.element;
-                    for (const input of root.querySelectorAll(".scwm-xp-pc")) {
-                        const gain = Math.max(0, Math.round(Number(input.value) || 0));
-                        if (!gain) continue;
-                        const actor = game.actors.get(input.dataset.actorId);
-                        if (!actor) continue;
-                        const cur = actor.system?.details?.xp?.value ?? 0;
-                        await actor.update({ "system.details.xp.value": cur + gain });
-                    }
-                    resolveFn(true);
+                    const notes = root.querySelector(".scwm-close-notes")?.value ?? "";
+                    await applyXp(root);
+                    resolveFn({ action: "send", notes });
                 }
             },
             {
-                action: "skip", label: "Clore sans XP", icon: "fas fa-xmark",
-                callback: () => resolveFn(false)
+                action: "draft", label: "Enregistrer pour plus tard", icon: "fas fa-box-archive",
+                callback: async (event, button, dialog) => {
+                    const root = dialog.element;
+                    const notes = root.querySelector(".scwm-close-notes")?.value ?? "";
+                    await applyXp(root);
+                    resolveFn({ action: "draft", notes });
+                }
             }
         ],
         rejectClose: false
@@ -319,13 +328,12 @@ function promptXpAward(partyId) {
 
     // Fermeture manuelle (croix) → on annule la clôture de session.
     const origClose = dlg.close.bind(dlg);
-    dlg.close = async (options) => { resolveFn("cancel"); return origClose(options); };
+    dlg.close = async (options) => { resolveFn({ action: "cancel" }); return origClose(options); };
 
     dlg.render({ force: true }).then(() => {
         const root = dlg.element;
         const allInput = root?.querySelector(".scwm-xp-all");
         if (allInput) {
-            // Le champ "pour tous" recopie sa valeur dans chaque champ PJ.
             allInput.addEventListener("input", () => {
                 root.querySelectorAll(".scwm-xp-pc").forEach(i => { i.value = allInput.value; });
             });
@@ -336,36 +344,11 @@ function promptXpAward(partyId) {
 }
 
 // ============================================================
-// SECTION : Clôture de la session et génération du journal
+// SECTION : Construction des données de rapport de session
+// (réutilisable par la clôture immédiate ET par le Casier).
 // ============================================================
-async function closeSession(playerListApp) {
-    // La party est déterminée même après un rechargement de Foundry : les
-    // flags des utilisateurs persistent, alors que sessionData (variable de
-    // module) est réinitialisé. On retombe donc sur la party du GM courant.
-    const partyId = sessionData.partyId ?? game.user.getFlag(MOD, "partyId");
-    if (!partyId) {
-        ui.notifications.warn("Aucune session en cours (aucune party active).");
-        return;
-    }
-
-    // Capture de l'XP AVANT attribution, par acteur de la party — sert de
-    // repli pour calculer le gain dans le rapport quand sessionData est vide
-    // (rechargement de Foundry en cours de session).
-    const xpBeforeById = new Map();
-    for (const user of game.users) {
-        if (user.getFlag(MOD, "partyId") !== partyId) continue;
-        const actor = user.character;
-        if (actor) xpBeforeById.set(actor.id, actor.system?.details?.xp?.value ?? 0);
-    }
-
-    // Fenêtre d'attribution d'XP AVANT le rapport (l'XP attribué apparaît
-    // ainsi comme gain dans le récap). Fermer la fenêtre annule la clôture.
-    const xpResult = await promptXpAward(partyId);
-    if (xpResult === "cancel") return;
-
-    // Liste des PJ pour le rapport : snapshot de session si présent, sinon
-    // membres actuels de la party (xpBefore = XP courant, donc le gain
-    // reflète l'XP tout juste attribué via la fenêtre ci-dessus).
+function buildReportData(partyId, xpBeforeById, notes) {
+    // Liste des PJ : snapshot de session si présent, sinon membres actuels.
     let reportPlayers = sessionData.players;
     if (!reportPlayers.length) {
         const seen = new Set();
@@ -379,42 +362,50 @@ async function closeSession(playerListApp) {
         }
     }
 
-    // Snapshot XP final + détection level up
-    const playersReport = reportPlayers.map(p => {
+    const players = reportPlayers.map(p => {
         const actor = game.actors.get(p.actorId);
         const xpAfter = actor?.system?.details?.xp?.value ?? p.xpBefore;
         const levelBefore = getLevelFromXp(p.xpBefore);
         const levelAfter = getLevelFromXp(xpAfter);
         return {
-            name: p.name,
-            xpBefore: p.xpBefore,
-            xpAfter: xpAfter,
+            name: p.name, xpBefore: p.xpBefore, xpAfter,
             xpGained: xpAfter - p.xpBefore,
-            levelUp: levelAfter > levelBefore,
-            levelAfter: levelAfter
+            levelUp: levelAfter > levelBefore, levelAfter
         };
     });
 
-    // Récupérer les PNJ présents sur la scène
+    // PNJ présents sur la scène capturée
     const scene = game.scenes.get(sessionData.sceneId);
     const npcs = [];
     if (scene) {
         scene.tokens.forEach(token => {
             const actor = token.actor;
-            if (!actor) return;
-            if (actor.type !== "character") return;
-            if (actor.hasPlayerOwner) return;
+            if (!actor || actor.type !== "character" || actor.hasPlayerOwner) return;
             if (npcs.find(n => n.name === actor.name)) return;
             npcs.push({ name: actor.name });
         });
     }
 
-    // Construire le récap (même contenu que les anciens journaux) et l'envoyer
-    // sur le webhook Discord "rapport de session".
-    const date  = new Date().toLocaleDateString("fr-FR");
+    return {
+        id:          foundry.utils.randomID(),
+        gmId:        game.user.id,
+        gmName:      sessionData.gmName ?? game.user.name,
+        partyId,
+        dateISO:     new Date().toISOString(),
+        dateDisplay: new Date().toLocaleDateString("fr-FR"),
+        players,
+        combatants:  [...(sessionData.combatants ?? [])],
+        npcs,
+        items:       [...(sessionData.items ?? [])],
+        notes:       notes ?? ""
+    };
+}
+
+// Construit l'embed Discord à partir des données de rapport.
+export function buildSessionEmbed(data) {
     const trunc = (str) => str.length > 1024 ? str.slice(0, 1021) + "…" : str;
 
-    const playersLines = playersReport.map(p => {
+    const playersLines = (data.players ?? []).map(p => {
         let l = `**${p.name}** — XP : ${p.xpBefore} → ${p.xpAfter}`;
         if (p.xpGained > 0) l += ` (+${p.xpGained})`;
         if (p.levelUp)      l += ` ⬆ **Level Up ! (Niveau ${p.levelAfter})**`;
@@ -422,46 +413,106 @@ async function closeSession(playerListApp) {
     });
     const fields = [{ name: "Joueurs", value: trunc(playersLines.join("\n") || "—") }];
 
-    if (sessionData.combatants.length > 0) {
-        const lines = sessionData.combatants.map(e => {
+    if ((data.combatants ?? []).length > 0) {
+        const lines = data.combatants.map(e => {
             let l = `**${e.name}**`;
-            if (e.cr !== null) l += ` — CR ${e.cr}`;
-            if (e.hp !== null) l += ` — HP ${e.hp}`;
-            if (e.ac !== null) l += ` — CA ${e.ac}`;
+            if (e.cr !== null && e.cr !== undefined) l += ` — CR ${e.cr}`;
+            if (e.hp !== null && e.hp !== undefined) l += ` — HP ${e.hp}`;
+            if (e.ac !== null && e.ac !== undefined) l += ` — CA ${e.ac}`;
             if (e.legendaryActions)     l += ` — Actions lég. : ${e.legendaryActions}`;
             if (e.legendaryResistances) l += ` — Résist. lég. : ${e.legendaryResistances}`;
             return l;
         });
         fields.push({ name: "Ennemis rencontrés", value: trunc(lines.join("\n")) });
     }
-    if (npcs.length > 0) {
-        fields.push({ name: "PNJ rencontrés", value: trunc(npcs.map(n => n.name).join("\n")) });
+    if ((data.npcs ?? []).length > 0) {
+        fields.push({ name: "PNJ rencontrés", value: trunc(data.npcs.map(n => n.name).join("\n")) });
     }
-    if (sessionData.items.length > 0) {
-        fields.push({ name: "Objets récupérés", value: trunc(sessionData.items.map(i => `**${i.playerName}** — ${i.itemName}`).join("\n")) });
+    if ((data.items ?? []).length > 0) {
+        fields.push({ name: "Objets récupérés", value: trunc(data.items.map(i => `**${i.playerName}** — ${i.itemName}`).join("\n")) });
+    }
+    if (data.notes?.trim()) {
+        fields.push({ name: "Notes", value: trunc(data.notes.trim()) });
     }
 
-    const embed = {
-        title:       `Rapport de session — ${date}`,
-        description: `**Meneur :** ${sessionData.gmName}`,
+    return {
+        title:       `Rapport de session — ${data.dateDisplay}`,
+        description: `**Meneur :** ${data.gmName}`,
         color:       0xe67e22,
         fields
     };
+}
 
+// Envoie le rapport sur le webhook Discord. Renvoie true si envoyé.
+export async function sendSessionReport(data) {
     const webhookUrl = game.settings.get(MOD, "sessionLogWebhookUrl");
-    if (webhookUrl) {
-        try {
-            await fetch(webhookUrl, {
-                method:  "POST",
-                headers: { "Content-Type": "application/json" },
-                body:    JSON.stringify({ embeds: [embed] })
-            });
-        } catch (err) {
-            console.error("[WestMarch] Webhook rapport de session :", err);
-            ui.notifications.warn("Échec de l'envoi du rapport sur Discord (voir console).");
-        }
-    } else {
+    if (!webhookUrl) {
         ui.notifications.warn("Aucun webhook Discord configuré (Paramètres → Système de Party → URL webhook rapport de session).");
+        return false;
+    }
+    try {
+        await fetch(webhookUrl, {
+            method:  "POST",
+            headers: { "Content-Type": "application/json" },
+            body:    JSON.stringify({ embeds: [buildSessionEmbed(data)] })
+        });
+        return true;
+    } catch (err) {
+        console.error("[WestMarch] Webhook rapport de session :", err);
+        ui.notifications.warn("Échec de l'envoi du rapport sur Discord (voir console).");
+        return false;
+    }
+}
+
+// ---- Brouillons de rapport (Casier du GM) ------------------
+export function getSessionDrafts() {
+    const d = game.settings.get(MOD, "sessionDrafts");
+    return Array.isArray(d) ? d : [];
+}
+export async function saveSessionDraft(data) {
+    const drafts = getSessionDrafts();
+    const i = drafts.findIndex(x => x.id === data.id);
+    if (i >= 0) drafts[i] = data; else drafts.push(data);
+    await game.settings.set(MOD, "sessionDrafts", drafts);
+}
+export async function deleteSessionDraft(id) {
+    await game.settings.set(MOD, "sessionDrafts", getSessionDrafts().filter(x => x.id !== id));
+}
+
+// ============================================================
+// SECTION : Clôture de la session
+// - "Clôturer et envoyer" → rapport Discord immédiat.
+// - "Enregistrer pour plus tard" → brouillon rangé dans le Casier.
+// Dans les deux cas : XP appliqué (dans la fenêtre), party quittée.
+// ============================================================
+async function closeSession(playerListApp) {
+    const partyId = sessionData.partyId ?? game.user.getFlag(MOD, "partyId");
+    if (!partyId) {
+        ui.notifications.warn("Aucune session en cours (aucune party active).");
+        return;
+    }
+
+    // XP avant attribution (repli pour le calcul du gain).
+    const xpBeforeById = new Map();
+    for (const user of game.users) {
+        if (user.getFlag(MOD, "partyId") !== partyId) continue;
+        const actor = user.character;
+        if (actor) xpBeforeById.set(actor.id, actor.system?.details?.xp?.value ?? 0);
+    }
+
+    const res = await promptSessionClose(partyId);
+    if (res.action === "cancel") return;
+
+    // Données du rapport construites AVANT le reset de sessionData.
+    const reportData = buildReportData(partyId, xpBeforeById, res.notes);
+
+    if (res.action === "send") {
+        const ok = await sendSessionReport(reportData);
+        ui.notifications.info(ok ? "Session close — rapport envoyé sur Discord." : "Session close — rapport NON envoyé (voir avertissement).");
+    } else if (res.action === "draft") {
+        await saveSessionDraft(reportData);
+        try { ui.controls?.render?.(); } catch (e) {}   // rafraîchit la pastille du Casier
+        ui.notifications.info("Session close — rapport enregistré dans votre Casier (à finaliser plus tard).");
     }
 
     // Leave Party
@@ -478,8 +529,6 @@ async function closeSession(playerListApp) {
 
     // Reset session
     sessionData = { gmName: null, partyId: null, players: [], enemies: [], combatants: [], items: [], sceneId: null };
-
-    ui.notifications.info("Session close — rapport envoyé sur Discord.");
 }
 
 // ============================================================

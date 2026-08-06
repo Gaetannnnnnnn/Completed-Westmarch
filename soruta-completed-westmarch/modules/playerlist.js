@@ -33,9 +33,10 @@ export function PlayerListHooks() {
         bar.className = "scwm-player-search";
         bar.innerHTML = `<i class="fas fa-search"></i>` +
             `<input type="text" placeholder="Rechercher un joueur…">`;
-        // Au-dessus de la liste (hors de la zone défilante) : les noms
-        // défilent uniquement en dessous, jamais derrière la barre.
-        list.parentElement.insertBefore(bar, list);
+        // DANS la liste (le cadre du panneau est porté par .players-list),
+        // en tête, épinglée (sticky) et pleine largeur opaque : les noms
+        // défilent en dessous sans transparaître derrière.
+        list.insertBefore(bar, list.firstChild);
 
         const input = bar.querySelector("input");
         input.addEventListener("input", () => {

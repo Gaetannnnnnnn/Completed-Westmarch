@@ -1,0 +1,239 @@
+/* ============================================================
+   casier.css — Tableau de bord « Casier de [GM] » (style livret)
+   ============================================================ */
+
+.scwm-casier .window-content { padding: 0; }
+
+/* Pastille de notification sur le bouton Casier (rapports en attente). */
+[data-tool="casier"] { position: relative; }
+[data-tool="casier"].scwm-has-drafts::after {
+    content: "";
+    position: absolute;
+    top: 1px;
+    right: 1px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #e0a13a;
+    border: 1px solid #1a1712;
+    box-shadow: 0 0 5px rgba(224,161,58,0.9);
+}
+
+/* Message d'alerte (chuchoté) rappelant les rapports en attente. */
+.scwm-casier-alert p { margin: 0 0 6px; }
+.scwm-casier-alert i { color: #e0a13a; }
+.scwm-casier-alert button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    background: rgba(201,162,39,0.14);
+    border: 1px solid rgba(201,162,39,0.5);
+    border-radius: 4px;
+    color: #e8cc6a;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.scwm-casier-alert button:hover { background: rgba(201,162,39,0.26); }
+
+.scwm-casier-body {
+    display: flex;
+    height: 100%;
+    min-height: 0;
+    font-family: "Bookinsanity", Georgia, "Times New Roman", serif;
+    color: #e8dcc0;
+    background:
+        linear-gradient(180deg, rgba(20,18,14,0.4), rgba(12,11,9,0.4)),
+        #1a1712;
+}
+
+/* ---- Colonne gauche : livret ---- */
+.scwm-casier-side {
+    width: 240px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(180deg, rgba(201,162,39,0.08), transparent), #14120e;
+    border-right: 2px solid transparent;
+    border-image: linear-gradient(180deg, transparent, rgba(201,162,39,0.5) 15%, rgba(201,162,39,0.5) 85%, transparent) 1;
+}
+
+.scwm-casier-tabs { display: flex; flex-direction: column; gap: 3px; padding: 8px 6px; }
+
+.scwm-casier-tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: rgba(0,0,0,0.25);
+    border: 1px solid rgba(201,162,39,0.22);
+    border-left: 3px solid transparent;
+    border-radius: 4px;
+    color: #b89a52;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+}
+.scwm-casier-tab i { width: 16px; text-align: center; color: #a8863a; }
+.scwm-casier-tab.active { background: rgba(201,162,39,0.16); color: #e8cc6a; border-left-color: #e0a13a; }
+.scwm-casier-tab:hover { color: #e0a13a; }
+
+/* ---- Dashboard ---- */
+.scwm-casier-stats { display: flex; gap: 10px; margin: 10px 0 4px; flex-wrap: wrap; }
+.scwm-casier-stat {
+    flex: 1;
+    min-width: 120px;
+    text-align: center;
+    padding: 10px 8px;
+    background: rgba(0,0,0,0.25);
+    border: 1px solid rgba(201,162,39,0.22);
+    border-radius: 5px;
+}
+.scwm-casier-stat b { display: block; font-size: 22px; color: #e8cc6a; font-family: "Modesto Condensed","Signika",serif; }
+.scwm-casier-stat span { font-size: 11px; color: #9a8a66; }
+.scwm-casier-presentation {
+    width: 100%;
+    box-sizing: border-box;
+    background: rgba(0,0,0,0.28);
+    border: 1px solid rgba(201,162,39,0.3);
+    border-radius: 4px;
+    color: #e8dcc0;
+    font-family: "Bookinsanity", Georgia, serif;
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 8px 10px;
+    resize: vertical;
+}
+.scwm-casier-presentation:focus { outline: none; border-color: rgba(201,162,39,0.6); }
+
+/* ---- Suivi des GM ---- */
+.scwm-casier-gm-card {
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    background: rgba(0,0,0,0.22);
+    border: 1px solid rgba(201,162,39,0.18);
+    border-left: 3px solid rgba(120,120,120,0.5);
+    border-radius: 4px;
+}
+.scwm-casier-gm-card.active { border-left-color: #2ecc71; }
+.scwm-casier-gm-head { display: flex; align-items: center; gap: 8px; }
+.scwm-casier-gm-head i { color: #a8863a; }
+.scwm-casier-gm-name { font-weight: 700; color: #dccba4; font-size: 14px; }
+.scwm-casier-gm-badge {
+    margin-left: auto;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: rgba(120,120,120,0.2);
+    color: #bbb;
+}
+.scwm-casier-gm-card.active .scwm-casier-gm-badge { background: rgba(46,204,113,0.18); color: #67e29a; }
+.scwm-casier-gm-line { font-size: 12px; color: #b0a074; margin-top: 5px; }
+.scwm-casier-gm-line span { color: #8a7038; font-weight: 600; }
+.scwm-casier-gm-exps { margin: 5px 0 0; padding-left: 18px; }
+.scwm-casier-gm-exps li { font-size: 12px; margin: 2px 0; }
+
+.scwm-casier-pages { flex: 1; overflow-y: auto; padding: 6px; }
+
+.scwm-casier-page {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    margin-bottom: 5px;
+    background: rgba(0,0,0,0.22);
+    border: 1px solid rgba(201,162,39,0.18);
+    border-left: 3px solid rgba(201,162,39,0.4);
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s;
+}
+.scwm-casier-page:hover { background: rgba(201,162,39,0.1); }
+.scwm-casier-page.active { background: rgba(201,162,39,0.16); border-left-color: #e0a13a; }
+.scwm-casier-page i { color: #a8863a; font-size: 12px; flex-shrink: 0; }
+.scwm-casier-page-title { font-size: 13px; color: #dccba4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.scwm-casier-empty {
+    padding: 18px 12px;
+    text-align: center;
+    color: #6b5a34;
+    font-style: italic;
+    font-size: 12px;
+}
+
+/* ---- Colonne droite : contenu ---- */
+.scwm-casier-content { flex: 1; overflow-y: auto; padding: 16px 20px; min-width: 0; }
+
+.scwm-casier-placeholder {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: #6b5a34;
+    font-style: italic;
+}
+.scwm-casier-placeholder i { font-size: 34px; color: #4a3e22; }
+
+.scwm-casier-detail h2 {
+    font-family: "Modesto Condensed", "Signika", serif;
+    color: #c9a227;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border-bottom: 1px solid rgba(201,162,39,0.3);
+    padding-bottom: 6px;
+    margin: 0 0 4px;
+}
+.scwm-casier-detail h3 {
+    color: #b89a52;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 14px 0 4px;
+}
+.scwm-casier-meta { color: #9a8a66; font-size: 12px; margin: 0 0 6px; }
+.scwm-casier-detail ul { margin: 0; padding-left: 18px; }
+.scwm-casier-detail li { font-size: 13px; margin: 2px 0; }
+.scwm-casier-date { color: #8a7038; font-size: 11px; }
+
+.scwm-casier-notes {
+    width: 100%;
+    box-sizing: border-box;
+    background: rgba(0,0,0,0.28);
+    border: 1px solid rgba(201,162,39,0.3);
+    border-radius: 4px;
+    color: #e8dcc0;
+    font-family: "Bookinsanity", Georgia, serif;
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 8px 10px;
+    resize: vertical;
+}
+.scwm-casier-notes:focus { outline: none; border-color: rgba(201,162,39,0.6); }
+
+.scwm-casier-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+.scwm-casier-actions button {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.scwm-casier-send {
+    background: rgba(201,162,39,0.14);
+    border: 1px solid rgba(201,162,39,0.5);
+    color: #e8cc6a;
+}
+.scwm-casier-send:hover { background: rgba(201,162,39,0.26); }
+.scwm-casier-delete {
+    background: rgba(192,57,43,0.12);
+    border: 1px solid rgba(192,57,43,0.4);
+    color: #e08070;
+}
+.scwm-casier-delete:hover { background: rgba(192,57,43,0.24); }

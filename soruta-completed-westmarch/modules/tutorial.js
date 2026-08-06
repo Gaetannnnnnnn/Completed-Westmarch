@@ -11,7 +11,16 @@
 // ============================================================
 
 import { MOD } from "./const.js";
+import { getTutorialActor } from "./demoactor.js";
 const MODULE = MOD;
+
+// Acteur utilisé par le tutoriel : en priorité la fiche démo dédiée (toujours
+// la même), sinon le personnage du joueur, sinon un PJ existant pour un GM.
+function _tutorialActor() {
+    return getTutorialActor()
+        ?? game.user.character
+        ?? (game.user.isGM ? game.actors.find(a => a.type === "character" && a.hasPlayerOwner) : null);
+}
 
 // ================================================================
 // SECTIONS : labels, icônes et clés de settings (par fonctionnalité)
@@ -100,9 +109,8 @@ let _escHandler = null;
 // ================================================================
 
 async function _openActorSheetTab(tabName) {
-    // Acteur du joueur connecté, ou premier PJ disponible pour un GM sans personnage
-    const actor = game.user.character
-        ?? (game.user.isGM ? game.actors.find(a => a.type === "character" && a.hasPlayerOwner) : null);
+    // Fiche démo dédiée en priorité (toujours la même pour le tutoriel).
+    const actor = _tutorialActor();
     if (!actor) return;
 
     actor.sheet.render(true);
@@ -138,8 +146,7 @@ const _toSheet = tab => () => _openActorSheetTab(tab);
 // ================================================================
 
 async function _openProtoTokenAppearance() {
-    const actor = game.user.character
-        ?? (game.user.isGM ? game.actors.find(a => a.type === "character" && a.hasPlayerOwner) : null);
+    const actor = _tutorialActor();
     if (!actor) return;
 
     // Idempotent : fenêtre déjà marquée → juste naviguer vers Apparence
@@ -380,9 +387,17 @@ const STEPS_BY_FEATURE = {
         {
             beforeShow: _toSheet("relations"),
             target:     ".scwm-exclude-btn",
-            title:      "Bloquer & retirer des listes",
-            text:       "Deux boutons dans l'en-tête de la fiche : <i class='fas fa-ban'></i> <strong>bloque l'ajout automatique</strong> (Relations & Bestiaire) sans toucher aux listes existantes, et <i class='fas fa-users-slash'></i> <strong>retire ce personnage de chez tous les joueurs</strong>. Pratique pour les figurants ou les doublons.",
-            textGM:     "Deux boutons dans l'en-tête : <i class='fas fa-ban'></i> <strong>bloque les ajouts automatiques</strong> futurs (cliquer à nouveau pour réactiver), et <i class='fas fa-users-slash'></i> <strong>retire immédiatement</strong> ce personnage des Relations et du Bestiaire de <strong>tous les joueurs</strong> (avec confirmation). Les deux sont indépendants et s'appliquent à n'importe quelle fiche PJ ou PNJ.",
+            title:      "Bloquer l'ajout automatique",
+            text:       "Le bouton <i class='fas fa-ban'></i> dans l'en-tête de la fiche <strong>empêche ce personnage d'être ajouté automatiquement</strong> aux Relations et au Bestiaire. Il ne touche pas aux listes déjà existantes. Cliquez à nouveau pour réactiver.",
+            textGM:     "Le bouton <i class='fas fa-ban'></i> dans l'en-tête <strong>bloque les ajouts automatiques futurs</strong> (Relations & Bestiaire) sans rien retirer des listes existantes. Devient rouge quand actif ; cliquez à nouveau pour réactiver. S'applique à n'importe quelle fiche PJ ou PNJ.",
+            position:   "bottom"
+        },
+        {
+            beforeShow: _toSheet("relations"),
+            target:     ".scwm-removeall-btn",
+            title:      "Retirer de chez tous les joueurs",
+            text:       "Le bouton <i class='fas fa-users-slash'></i> <strong>retire ce personnage des Relations et du Bestiaire de tous les joueurs</strong>, d'un coup. Une confirmation est demandée. Sans blocage, il pourra revenir s'il est recroisé.",
+            textGM:     "Le bouton <i class='fas fa-users-slash'></i> <strong>nettoie immédiatement</strong> ce personnage des listes de <strong>tous les joueurs</strong> (Relations & Bestiaire), avec confirmation. Indépendant du blocage <i class='fas fa-ban'></i> : combinez les deux pour retirer ET empêcher tout retour automatique.",
             position:   "bottom"
         },
     ],
@@ -555,8 +570,7 @@ const STEPS_BY_FEATURE = {
         // ── Accéder au Prototype Token ────────────────────────────
         {
             beforeShow: async () => {
-                const actor = game.user.character
-                    ?? (game.user.isGM ? game.actors.find(a => a.type === "character" && a.hasPlayerOwner) : null);
+                const actor = _tutorialActor();
                 if (!actor) return;
                 actor.sheet.render(true);
                 await new Promise(r => setTimeout(r, 600));

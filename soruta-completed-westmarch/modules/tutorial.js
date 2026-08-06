@@ -362,56 +362,56 @@ const STEPS_BY_FEATURE = {
     tourFiche: [
         {
             beforeShow: _openSheet,
-            target:     ".window-title, .document-name, input[name='name']",
+            target:     ".document-name, .sheet-header .name, [name='name']",
             title:      "Le nom du personnage",
             text:       "En haut de la fiche : le <strong>nom</strong> du personnage, et à gauche son <strong>portrait</strong>. Un clic sur le portrait permet de le changer.",
             position:   "bottom"
         },
         {
             beforeShow: _openSheet,
-            target:     ".header-details, .xp, .exp",
+            target:     ".meter.exp, .meter.experience, .xp-bar",
             title:      "Niveau, classe & expérience",
             text:       "Sous le nom, la <strong>classe et le niveau</strong> (ici Rôdeur 12). Le badge rond indique le <strong>niveau global</strong> et la barre l'<strong>expérience</strong> vers le niveau suivant.",
             position:   "bottom"
         },
         {
             beforeShow: _openSheet,
-            target:     ".ac-display, .ac, [data-property='ac']",
+            target:     ".ac, .ac-display, .card .ac",
             title:      "Classe d'armure (CA)",
             text:       "L'écusson affiche la <strong>Classe d'Armure</strong> : la difficulté pour vous toucher au combat.",
             position:   "right"
         },
         {
             beforeShow: _openSheet,
-            target:     ".stats, .pips, .attribution",
+            target:     ".stats, .pills, .sidebar .stats",
             title:      "Initiative, Vitesse & Maîtrise",
             text:       "Les trois valeurs clés : le bonus d'<strong>Initiative</strong>, la <strong>Vitesse</strong> de déplacement et le <strong>bonus de maîtrise</strong> (Proficiency).",
             position:   "right"
         },
         {
             beforeShow: _openSheet,
-            target:     ".meter.hit-points, .hit-points, .hp",
+            target:     ".meter.hit-points, .meter-group .hit-points, .hit-points",
             title:      "Points de vie",
             text:       "La barre de <strong>points de vie</strong> (actuels / max). Le champ <strong>TMP</strong> à côté sert aux points de vie temporaires.",
             position:   "right"
         },
         {
             beforeShow: _openSheet,
-            target:     ".hit-dice, .hd",
+            target:     ".meter.hit-dice, .hit-dice, .hd",
             title:      "Dés de vie",
             text:       "Les <strong>dés de vie</strong> servent à récupérer des PV lors d'un repos court. Ici 12 dés (un par niveau).",
             position:   "right"
         },
         {
             beforeShow: _openSheet,
-            target:     ".ability-scores, [data-ability], .abilities",
+            target:     "[data-ability='str'], [data-ability], .ability-scores",
             title:      "Caractéristiques & compétences",
             text:       "Les six <strong>caractéristiques</strong> (Force, Dextérité…) avec leur modificateur, et les <strong>compétences</strong> associées. Cliquez une valeur pour lancer le jet correspondant.",
             position:   "left"
         },
         {
             beforeShow: _openSheet,
-            target:     "nav.tabs",
+            target:     "nav.tabs:has([data-tab='features']), .sheet.actor nav.tabs, .dnd5e2 nav.tabs",
             title:      "Les onglets de la fiche",
             text:       "La barre d'onglets donne accès au reste : <strong>Aptitudes</strong>, <strong>Inventaire</strong>, <strong>Sorts</strong>, <strong>Biographie</strong>… ainsi qu'aux onglets ajoutés par le serveur (Relations, Bestiaire, Carnet, Expéditions).",
             position:   "bottom"
@@ -760,7 +760,8 @@ const STEPS_BY_FEATURE = {
             target:   '[data-action="openTokenConfig"]',
             title:    "Ouvrir le Prototype Token",
             text:     "Ce bouton dans l'en-tête de la fiche ouvre la configuration du <strong>Prototype Token</strong> — le token tel qu'il apparaît par défaut sur la carte. L'onglet <strong>Apparence</strong> donne accès à deux fonctions avancées : le <em>Cycle d'apparences</em> et le <em>Wild Shape / Polymorph</em>. Cliquez <strong>Suivant</strong> pour l'ouvrir automatiquement.",
-            position: "bottom"
+            position: "bottom",
+            gmOnly:   true
         },
         // ── Cycle d'apparences (prototype token → Apparence) ─────
         {
@@ -768,7 +769,8 @@ const STEPS_BY_FEATURE = {
             target:     ".tuto-proto-token",
             title:      "Cycle d'apparences",
             text:       "La fenêtre ouverte est le <strong>Prototype Token</strong>, onglet <strong>Apparence</strong>. La section <strong>Cycle d'apparences</strong> permet d'ajouter plusieurs images alternatives pour le token. En jeu, le bouton <i class='fas fa-images'></i> dans le HUD (clic droit sur le token) bascule entre ces images — utile pour les tenues, les états visuels ou les formes mineures.",
-            position:   "left"
+            position:   "left",
+            gmOnly:     true
         },
         // ── Wild Shape / Polymorph (même onglet Apparence) ───────
         {
@@ -776,7 +778,8 @@ const STEPS_BY_FEATURE = {
             target:     ".tuto-proto-token",
             title:      "Wild Shape / Polymorph",
             text:       "La section <strong>Wild Shape / Polymorph</strong> du même onglet configure des formes de transformation complètes. Le bouton <i class='fas fa-dragon'></i> dans le HUD (clic droit sur le token) applique la transformation en un clic — et la rétablit en re-cliquant. Accessible au GM et aux propriétaires du token.",
-            position:   "left"
+            position:   "left",
+            gmOnly:     true
         },
     ],
 

@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 1.7.6
+Version : 1.8.0
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -146,6 +146,27 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v1.8.0 | 2026-08-04
+   - Tutoriel (Tour de la fiche) : l etape "Les onglets de la fiche" ciblait par
+     erreur la barre laterale (repertoire Acteurs). Elle vise desormais la barre
+     d onglets du sheet via nav.tabs:has([data-tab=features]) (tutorial.js).
+
+v1.7.9 | 2026-08-04
+   - Tutoriel (Tour de la fiche) : selecteurs des champs affines pour le sheet
+     dnd5e2 (.ac, .meter.hit-points, .meter.hit-dice, .meter.exp, data-ability).
+     Certains restent a confirmer selon la version (tutorial.js).
+
+v1.7.8 | 2026-08-04
+   - Tutoriel (Tour de la fiche) : l etape "Le nom du personnage" ne pointe plus
+     toute la barre de titre (.window-title) mais l element du nom du sheet
+     (.document-name) (tutorial.js).
+
+v1.7.7 | 2026-08-04
+   - Tutoriel (Apparence des tokens) : les etapes ouvrant le Prototype Token
+     (Ouvrir le Prototype Token, Cycle d apparences, Wild Shape/Polymorph) sont
+     desormais gmOnly (les joueurs n ont pas les permissions). L etape "Voir le
+     portrait" reste visible pour tous (tutorial.js).
 
 v1.7.6 | 2026-08-04
    - Tutoriel : nouvelle section "Tour de la fiche" (avant le Bestiaire) qui

@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 1.5.3
+Version : 1.6.2
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -146,6 +146,48 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v1.6.2 | 2026-08-04
+   - Temps morts (validation GM) : ne trouvait les PJ que dans un dossier nomme
+     "PJ". Desormais repli sur TOUS les personnages possedes par un joueur si
+     aucun dossier "PJ" n est utilise (corrige "Aucun personnage joueur
+     trouve") (tm.js).
+
+v1.6.1 | 2026-08-04
+   - Bouton barre WestMarch : "Temps morts — Gains" renomme en "Temps morts" (tm.js).
+
+v1.6.0 | 2026-08-04
+   - Fiche demo du tutoriel enrichie (v2) : aventurier niveau 12 complet
+     (classe Rodeur/sous-classe/historique/race, equipement, bio,
+     caracteristiques) + relations, bestiaire, notes et expeditions improvises
+     et AUTO-SUFFISANTS (aucun acteur externe, aucun impact serveur ; les
+     expeditions demo n ont pas de gmId donc n apparaissent pas dans le Casier).
+     Montee de version auto : l ancienne fiche demo est remplacee (demoactor.js).
+   - Relations : ajout d un groupe "Autres" pour les relations dont la cible
+     n est pas dans un dossier PJ/PNJ (corrige aussi les relations orphelines)
+     (relations.js).
+
+v1.5.7 | 2026-08-04
+   - Casier (Dashboard) : placeholder de la presentation, "vos regles maison"
+     remplace par "vos criteres" (casier.js).
+
+v1.5.6 | 2026-08-04
+   - formatDate (carnet) : gere le retour objet {date,time} de Simple Calendar
+     (formatDateTime) et renvoie toujours une chaine (corrige "[object Object]"
+     sur les dates quand Simple Calendar est actif).
+   - Casier / Expeditions en cours : n affiche que les expeditions dont le GM
+     courant est le MJ (tag gmId), les anciennes non taguees ne sont plus
+     listees (casier.js).
+
+v1.5.5 | 2026-08-04
+   - Suivi des GM : affiche desormais, par GM, le nombre d expeditions EN COURS
+     (taguees a ce GM), avec le nom de chacune et la liste des joueurs qui y
+     participent (casier.js / casier.css).
+
+v1.5.4 | 2026-08-04
+   - Casier : correction "[object Object]" dans Expeditions et Suivi des GM. Les
+     dates d expedition (objet {day,month,year}) sont desormais formatees via
+     carnet.formatDate ; cle de regroupement basee sur la date serialisee.
 
 v1.5.3 | 2026-08-04
    - Casier : l onglet "Sessions" devient "Expeditions" et liste les expeditions

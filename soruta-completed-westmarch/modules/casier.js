@@ -11,7 +11,7 @@
 // ============================================================
 
 import { MOD } from "./const.js";
-import { getExpeditions } from "./carnet.js";
+import { getExpeditions, formatDate } from "./carnet.js";
 import {
     getSessionDrafts, saveSessionDraft, deleteSessionDraft, sendSessionReport
 } from "./session.js";
@@ -42,10 +42,9 @@ function gmExpeditions() {
         if (actor.type !== "character") continue;
         for (const e of getExpeditions(actor)) {
             if (!e.startDate || e.endDate) continue;
-            // Filtré sur le GM courant (les anciennes expéditions sans gmId
-            // restent visibles pour ne pas perdre l'historique existant).
-            if (e.gmId && e.gmId !== game.user.id) continue;
-            const key = `${e.name || "Expédition"}|${e.startDate}`;
+            // Uniquement les expéditions dont CE GM est le MJ (tag gmId).
+            if (e.gmId !== game.user.id) continue;
+            const key = `${e.name || "Expédition"}|${JSON.stringify(e.startDate)}`;
             if (!groups.has(key)) groups.set(key, { name: e.name || "Expédition sans nom", startDate: e.startDate, participants: [] });
             groups.get(key).participants.push({ id: actor.id, name: actor.name });
         }
@@ -72,18 +71,26 @@ async function setPresentation(gmId, text) {
     await game.settings.set(MOD, "casierProfiles", p);
 }
 
-// Suivi de tous les GM : leur session/party en cours et ses membres.
+// Suivi de tous les GM : leurs expéditions EN COURS (taguées gmId), le nom de
+// chacune et les joueurs qui y participent.
 function gmTracking() {
-    return (game.users ?? []).filter(u => u.isGM).map(gm => {
-        const members = game.users.filter(u => u.getFlag(MOD, "partyId") === gm.id && u.character);
-        const active  = gm.getFlag(MOD, "partyId") === gm.id || members.length > 0;
-        const exps = [];
-        for (const m of members) {
-            for (const e of getExpeditions(m.character)) {
-                if (e.startDate && !e.endDate) exps.push({ actor: m.character.name, name: e.name || "Session", startDate: e.startDate });
-            }
+    // Regroupe les expéditions ouvertes par GM puis par expédition (nom+date).
+    const byGm = new Map();
+    for (const actor of game.actors ?? []) {
+        if (actor.type !== "character") continue;
+        for (const e of getExpeditions(actor)) {
+            if (!e.startDate || e.endDate || !e.gmId) continue;
+            if (!byGm.has(e.gmId)) byGm.set(e.gmId, new Map());
+            const groups = byGm.get(e.gmId);
+            const key = `${e.name || "Expédition"}|${JSON.stringify(e.startDate)}`;
+            if (!groups.has(key)) groups.set(key, { name: e.name || "Expédition sans nom", startDate: e.startDate, participants: [] });
+            groups.get(key).participants.push(actor.name);
         }
-        return { name: gm.name, active, members: members.map(m => m.character?.name).filter(Boolean), exps };
+    }
+
+    return (game.users ?? []).filter(u => u.isGM).map(gm => {
+        const exps = byGm.has(gm.id) ? [...byGm.get(gm.id).values()] : [];
+        return { name: gm.name, count: exps.length, exps };
     });
 }
 
@@ -166,7 +173,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
 
                 <h3>Présentation</h3>
                 <textarea class="scwm-casier-presentation" rows="8"
-                    placeholder="Présentez-vous, vos règles maison, vos horaires… (visible ici, sauvegardé automatiquement)">${esc(getPresentation(game.user.id))}</textarea>
+                    placeholder="Présentez-vous, vos critères, vos horaires… (visible ici, sauvegardé automatiquement)">${esc(getPresentation(game.user.id))}</textarea>
             </div>`;
     }
 
@@ -183,7 +190,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                             <i class="fas fa-route"></i>
                             <span class="scwm-casier-exp-name">${esc(x.name)}</span>
                             ${x.current ? `<span class="scwm-casier-exp-badge">En session</span>` : ""}
-                            <span class="scwm-casier-date">${esc(x.startDate)}</span>
+                            <span class="scwm-casier-date">${esc(formatDate(x.startDate))}</span>
                         </div>
                         ${x.participants.length ? `<div class="scwm-casier-exp-parts">${x.participants.map(p => esc(p.name)).join(", ")}</div>` : ""}
                     </div>`).join("")}
@@ -198,15 +205,20 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             <div class="scwm-casier-detail">
                 <h2>Suivi des GM</h2>
                 ${gms.map(gm => `
-                    <div class="scwm-casier-gm-card ${gm.active ? "active" : ""}">
+                    <div class="scwm-casier-gm-card ${gm.count ? "active" : ""}">
                         <div class="scwm-casier-gm-head">
                             <i class="fas fa-user-shield"></i>
                             <span class="scwm-casier-gm-name">${esc(gm.name)}</span>
-                            <span class="scwm-casier-gm-badge">${gm.active ? "En session" : "Libre"}</span>
+                            <span class="scwm-casier-gm-badge">${gm.count} expédition${gm.count > 1 ? "s" : ""}</span>
                         </div>
-                        ${gm.members.length ? `<div class="scwm-casier-gm-line"><span>Party :</span> ${gm.members.map(esc).join(", ")}</div>` : ""}
-                        ${gm.exps.length ? `<ul class="scwm-casier-gm-exps">${gm.exps.map(e => `<li>${esc(e.actor)} — ${esc(e.name)} <span class="scwm-casier-date">(${esc(e.startDate)})</span></li>`).join("")}</ul>` : ""}
-                        ${(!gm.members.length && !gm.exps.length) ? `<div class="scwm-casier-gm-line" style="opacity:.6;">Aucune session en cours.</div>` : ""}
+                        ${gm.exps.length
+                            ? `<ul class="scwm-casier-gm-exps">${gm.exps.map(e => `
+                                <li>
+                                    <strong>${esc(e.name)}</strong>
+                                    <span class="scwm-casier-date">(${esc(formatDate(e.startDate))})</span>
+                                    <div class="scwm-casier-gm-parts">${e.participants.length ? e.participants.map(esc).join(", ") : "Aucun joueur"}</div>
+                                </li>`).join("")}</ul>`
+                            : `<div class="scwm-casier-gm-line" style="opacity:.6;">Aucune expédition en cours.</div>`}
                     </div>`).join("")}
             </div>`;
     }

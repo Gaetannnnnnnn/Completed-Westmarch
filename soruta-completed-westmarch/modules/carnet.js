@@ -124,8 +124,15 @@ function _monthOptionsHtml(selectedMonth = 0) {
 export function formatDate(dateObj) {
     if (!dateObj) return "—";
     try {
-        if (typeof SimpleCalendar !== "undefined" && SimpleCalendar?.api?.formatDateTime)
-            return SimpleCalendar.api.formatDateTime(dateObj);
+        if (typeof SimpleCalendar !== "undefined" && SimpleCalendar?.api?.formatDateTime) {
+            const r = SimpleCalendar.api.formatDateTime(dateObj);
+            // formatDateTime renvoie soit une chaîne, soit { date, time }.
+            if (typeof r === "string") return r;
+            if (r && typeof r === "object") {
+                const s = [r.date, r.time].filter(Boolean).join(" ").trim();
+                if (s) return s;
+            }
+        }
     } catch {}
     return `${dateObj.day} ${_getMonthName(dateObj.month)} ${dateObj.year}`;
 }

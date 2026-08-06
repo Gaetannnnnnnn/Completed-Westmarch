@@ -134,8 +134,10 @@
 .scwm-casier-gm-card.active .scwm-casier-gm-badge { background: rgba(46,204,113,0.18); color: #67e29a; }
 .scwm-casier-gm-line { font-size: 12px; color: #b0a074; margin-top: 5px; }
 .scwm-casier-gm-line span { color: #8a7038; font-weight: 600; }
-.scwm-casier-gm-exps { margin: 5px 0 0; padding-left: 18px; }
-.scwm-casier-gm-exps li { font-size: 12px; margin: 2px 0; }
+.scwm-casier-gm-exps { margin: 6px 0 0; padding-left: 18px; }
+.scwm-casier-gm-exps li { font-size: 13px; margin: 4px 0; }
+.scwm-casier-gm-exps li strong { color: #dccba4; }
+.scwm-casier-gm-parts { font-size: 11px; color: #9a8a66; margin-top: 1px; }
 
 /* ---- Expéditions en cours (du GM) ---- */
 .scwm-casier-exp-card {

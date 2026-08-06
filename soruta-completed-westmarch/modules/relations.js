@@ -194,13 +194,19 @@ export function buildTabHtml(actor) {
         return `<div style="${S.secHdr}">${label}<span style="${S.secCount}">${count}</span></div>`;
     }
 
+    // Relations non rattachées à un dossier PJ/PNJ (cible non catégorisée,
+    // supprimée, ou entrée auto-suffisante) → groupe "Autres".
+    const grouped   = new Set([...pjRels, ...pnjRels].map(r => r.id));
+    const otherRels = rels.filter(r => !grouped.has(r.id));
+
     let listContent;
     if (!rels.length) {
         listContent = emptyStateHtml(isGM);
     } else {
         listContent =
-            (pjRels.length  ? sectionHdr("Joueurs", pjRels.length)  + pjRels.map( r => buildRowHtml(r, actor, canEdit)).join("") : "") +
-            (pnjRels.length ? sectionHdr("PNJ",     pnjRels.length) + pnjRels.map(r => buildRowHtml(r, actor, canEdit)).join("") : "");
+            (pjRels.length    ? sectionHdr("Joueurs", pjRels.length)  + pjRels.map( r => buildRowHtml(r, actor, canEdit)).join("") : "") +
+            (pnjRels.length   ? sectionHdr("PNJ",     pnjRels.length) + pnjRels.map(r => buildRowHtml(r, actor, canEdit)).join("") : "") +
+            (otherRels.length ? sectionHdr("Autres",  otherRels.length) + otherRels.map(r => buildRowHtml(r, actor, canEdit)).join("") : "");
     }
 
     return `

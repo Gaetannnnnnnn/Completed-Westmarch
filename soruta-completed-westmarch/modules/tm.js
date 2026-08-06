@@ -67,7 +67,7 @@ export function TmHooks() {
         }
         controls.westmarch.tools.downtime = {
             name:     "downtime",
-            title:    "Temps morts — Gains",
+            title:    "Temps morts",
             icon:     "fa-solid fa-hourglass-half",
             button:   true,
             onChange: () => openDowntimeDialog(),
@@ -178,9 +178,11 @@ function getPlayerActors() {
         }
         return false;
     }
-    return game.actors
-        .filter(a => a.type === "character" && a.hasPlayerOwner && isInPjFolder(a))
-        .sort((a, b) => a.name.localeCompare(b.name));
+    const owned = game.actors.filter(a => a.type === "character" && a.hasPlayerOwner);
+    // Priorité aux PJ rangés dans un dossier "PJ" ; à défaut (aucun dossier
+    // "PJ" configuré), on prend tous les personnages possédés par un joueur.
+    const inPj = owned.filter(isInPjFolder);
+    return (inPj.length ? inPj : owned).sort((a, b) => a.name.localeCompare(b.name));
 }
 
 function getActorOwners(actor) {

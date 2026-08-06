@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 1.3.2
+Version : 1.3.4
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -146,6 +146,17 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v1.3.4 | 2026-08-04
+   - Nouvelle option Toolkit "Liste des joueurs compacte + recherche" : limite
+     la liste des joueurs a ~4 lignes (defilement) et ajoute une barre de
+     recherche pour filtrer par nom (playerlist.js / playerlist.css).
+
+v1.3.3 | 2026-08-04
+   - Fenetre d infos de connexion : le compteur "Documents charges" exclut
+     desormais le bruit (messages du chat, reglages, dossiers, utilisateurs,
+     combats) et ne compte que le contenu (acteurs, objets, journaux, scenes,
+     macros, tables, cartes, playlists) (connstats.js).
 
 v1.3.2 | 2026-08-04
    - Fenetre d infos de connexion : ajout du nombre de documents charges (somme

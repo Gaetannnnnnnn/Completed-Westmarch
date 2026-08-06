@@ -42,11 +42,18 @@ export function ConnStatsHooks() {
         let assetCount = 0;
         try { assetCount = performance.getEntriesByType("resource").length; } catch (e) {}
 
-        // Nombre de documents chargés = somme des collections de monde
-        // (acteurs, objets, journaux, scènes, macros, tables, cartes,
-        // dossiers, messages, utilisateurs, combats…).
+        // Nombre de documents chargés = documents de CONTENU (acteurs, objets,
+        // journaux, scènes, macros, tables, cartes, playlists). On exclut le
+        // "bruit" qui gonflerait le total : messages du chat, réglages,
+        // dossiers, utilisateurs et combats.
+        const DOC_EXCLUDE = new Set(["ChatMessage", "Setting", "User", "Folder", "Combat"]);
         let docCount = 0;
-        try { for (const c of game.collections) docCount += c.size; } catch (e) {}
+        try {
+            for (const c of game.collections) {
+                if (DOC_EXCLUDE.has(c.documentName)) continue;
+                docCount += c.size;
+            }
+        } catch (e) {}
 
         renderConnStats({ loadMs, avgMs, activeModules, assetCount, docCount, samples: history.length });
     });

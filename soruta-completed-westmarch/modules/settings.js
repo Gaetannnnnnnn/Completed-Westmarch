@@ -210,6 +210,12 @@ export function registerSettings() {
         hint: "Affiche au chargement, en haut au centre de l'écran, le temps de connexion, le nombre de modules actifs et la durée moyenne de connexion. Prend effet au prochain chargement.",
         scope: "world", config: false, type: Boolean, default: true, requiresReload: false
     });
+    game.settings.register(MOD, "enablePlayerListCompact", {
+        name: "Liste des joueurs compacte + recherche",
+        hint: "Limite la liste des joueurs à environ 4 lignes (avec défilement) et ajoute une barre de recherche pour filtrer les joueurs par nom.",
+        scope: "world", config: false, type: Boolean, default: true, requiresReload: false,
+        onChange: () => ui.players?.render()
+    });
     // Historique local des temps de connexion (par client) — sert au calcul
     // de la moyenne. Non affiché dans la configuration.
     game.settings.register(MOD, "connStatsHistory", {
@@ -406,7 +412,7 @@ const CATEGORIES = [
       keys: ["tmEnabled","tmSkillBase","tmAddAbilityMod","tmBonusMaitrise","tmBonusExpertise","tmBonusTools","tmRollMinDays","tmSkillFormula","tmCraftNonMagicCostDiv","tmCraftNonMagicDaysPerGp","tmCraftNonMagicCostFormula","tmCraftNonMagicDaysFormula","tmSingleUseFactor","tmScrollTable","tmMagicTable"] },
     { firstKey: "enableTokenAppearance", icon: "fa-toolbox",         title: "Toolkit",
       desc: "Apparences de tokens, transformations, tailles Large, TGCM, utilitaires GM, templates AoE, boutiques MEJ et réapprovisionnement.",
-      keys: ["enableTokenAppearance","enableTokenPortraitButton","enableRageSize","enableLargeForm","enablePolymorph","enableTgcm","enableFolderMove","enableToolAbilityFix","enableHideHotbar","enableHideHotbarGM","enableConnStats","enableTemplateSnap","enableMejShopFix","enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
+      keys: ["enableTokenAppearance","enableTokenPortraitButton","enableRageSize","enableLargeForm","enablePolymorph","enableTgcm","enableFolderMove","enableToolAbilityFix","enableHideHotbar","enableHideHotbarGM","enableConnStats","enablePlayerListCompact","enableTemplateSnap","enableMejShopFix","enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
     { firstKey: "relationsEnabled", master: "relationsEnabled",      icon: "fa-heart",           title: "Fiche PJ — Relations",
       desc: "Onglet Relations : liens entre personnages, détection automatique des rencontres, anonymisation.",
       keys: ["relationsEnabled","relationsAnonymization","relationsFolderPJ","relationsFolderPNJ","relationsFolderCreatures"] },

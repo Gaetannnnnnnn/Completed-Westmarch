@@ -1,0 +1,40 @@
+/* ============================================================
+   playerlist.css — Liste des joueurs compacte + barre de recherche
+   ============================================================ */
+
+/* Barre de recherche au-dessus de la liste. */
+.scwm-player-search {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 2px 2px 4px;
+    padding: 3px 7px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(201, 162, 39, 0.3);
+    border-radius: 4px;
+}
+
+.scwm-player-search i {
+    color: #a8863a;
+    font-size: 11px;
+    flex-shrink: 0;
+}
+
+.scwm-player-search input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    outline: none;
+    color: #cbb98f;
+    font-size: 12px;
+    padding: 0;
+    min-width: 0;
+}
+
+/* Hauteur limitée à ~4 lignes de joueurs, défilement au-delà. */
+.players-list.scwm-players-compact {
+    max-height: 96px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}

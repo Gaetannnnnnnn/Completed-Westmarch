@@ -37,6 +37,7 @@ import { ConnStatsHooks }    from "./modules/connstats.js";
 import { ChatHooks }      from "./modules/chat.js";
 import { ImageHooks }     from "./modules/image.js";
 import { PlayerHooks }    from "./modules/player.js";
+import { PlayerListHooks } from "./modules/playerlist.js";
 import { ScenesHooks }    from "./modules/scenes.js";
 import { DocumentHooks }  from "./modules/document.js";
 import { JournalHooks }   from "./modules/journal.js";
@@ -100,6 +101,7 @@ Hooks.on("init", () => {
     ChatHooks();
     ImageHooks();
     PlayerHooks();
+    PlayerListHooks();
     ScenesHooks();
     DocumentHooks();
     JournalHooks();

@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 1.3.0
+Version : 1.3.2
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -146,6 +146,19 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v1.3.2 | 2026-08-04
+   - Fenetre d infos de connexion : ajout du nombre de documents charges (somme
+     des collections de monde) en plus des assets (connstats.js).
+
+v1.3.1 | 2026-08-04
+   - Nouvelle fonctionnalite "Pause de party" (categorie Systeme de Party) :
+     remplace le pause global natif. Le GM met SA party en pause (bandeau +
+     blocage du deplacement de ses joueurs non-GM), sans affecter les autres
+     partys. Detourne game.togglePause (bouton + raccourci) et masque
+     l indicateur PAUSED natif. Etat partage via le reglage de monde
+     partyPauseState (partypause.js / partypause.css). Reglage enablePartyPause,
+     necessite un rechargement.
 
 v1.3.0 | 2026-08-04
    - Fenetre d infos de connexion : ajout du nombre d assets charges (ressources

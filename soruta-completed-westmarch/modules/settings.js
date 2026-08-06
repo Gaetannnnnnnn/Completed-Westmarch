@@ -8,6 +8,7 @@
 
 import { MOD, TUTO_TOGGLES, TM_DEFAULT_SCROLL, TM_DEFAULT_MAGIC } from "./const.js";
 import { applyHotbarVisibility } from "./hotbar.js";
+import { applyPartyPause } from "./partypause.js";
 
 // Settings dont l'utilité dépend entièrement du système de party.
 export const PARTY_DEPENDENT_SETTINGS = [
@@ -19,7 +20,8 @@ export const PARTY_DEPENDENT_SETTINGS = [
     "enableGoWithPartyJournal",
     "enableSessionLog",
     "enableCombatParty",
-    "enableCombatTurnLock"
+    "enableCombatTurnLock",
+    "enablePartyPause"
 ];
 
 // Vérifie qu'un setting dépendant de la party est actif ET que la party l'est.
@@ -78,6 +80,16 @@ export function registerSettings() {
     game.settings.register(MOD, "enableCombatTurnLock", B(
         "Blocage de mouvement hors tour (combat)",
         "Pendant le combat de votre party, un joueur ne peut déplacer son token que quand c'est son tour. Le combat d'une autre party n'affecte jamais vos joueurs. Ne nécessite pas Monk's TokenBar."));
+    game.settings.register(MOD, "enablePartyPause", B(
+        "Pause de party (remplace le pause global)",
+        "Remplace le pause natif de Foundry par un pause propre à chaque party : le GM met SA party en pause (bandeau + blocage du déplacement de ses joueurs), sans affecter les autres. Masque l'indicateur de pause natif. Nécessite un rechargement.",
+        false, { requiresReload: true }));
+    // État de pause par party (mapping partyId -> true), synchronisé sur tous
+    // les clients. Non affiché dans la configuration.
+    game.settings.register(MOD, "partyPauseState", {
+        scope: "world", config: false, type: Object, default: {},
+        onChange: () => applyPartyPause()
+    });
     game.settings.register(MOD, "enableAntiCheat", B(
         "Anti-Cheat (combat)",
         "Pendant un combat actif, avertit les GM en privé si un joueur modifie ses sorts préparés, son attunement ou son équipement."));
@@ -385,7 +397,7 @@ function registerCategoryToggles() {
 const CATEGORIES = [
     { firstKey: "enableParty", master: "enableParty",           icon: "fa-users",           title: "Système de Party",
       desc: "Groupes de joueurs : chat filtré, combat par party, téléportation de groupe, journal de session, anti-cheat.",
-      keys: ["enableParty","enableJoinScene","enableShowParty","enablePlayerGrouping","enableGoWithPartyScenes","enableGoWithPartyJournal","enableChatFilter","enableSessionLog","sessionLogWebhookUrl","enableCombatParty","enableCombatTurnLock","enableAntiCheat"] },
+      keys: ["enableParty","enableJoinScene","enableShowParty","enablePlayerGrouping","enableGoWithPartyScenes","enableGoWithPartyJournal","enableChatFilter","enableSessionLog","sessionLogWebhookUrl","enableCombatParty","enableCombatTurnLock","enablePartyPause","enableAntiCheat"] },
     { firstKey: "enableXpBlock",         icon: "fa-server",          title: "Serveur",
       desc: "Personnalisations du serveur : blocage XP / Level Up, logs Discord, webhooks.",
       keys: ["enableXpBlock","enableDiscordLog","discordLogWebhookUrl","downtimeWebhookUrl","tmWebhookUrl"] },

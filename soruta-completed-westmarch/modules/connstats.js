@@ -42,7 +42,13 @@ export function ConnStatsHooks() {
         let assetCount = 0;
         try { assetCount = performance.getEntriesByType("resource").length; } catch (e) {}
 
-        renderConnStats({ loadMs, avgMs, activeModules, assetCount, samples: history.length });
+        // Nombre de documents chargés = somme des collections de monde
+        // (acteurs, objets, journaux, scènes, macros, tables, cartes,
+        // dossiers, messages, utilisateurs, combats…).
+        let docCount = 0;
+        try { for (const c of game.collections) docCount += c.size; } catch (e) {}
+
+        renderConnStats({ loadMs, avgMs, activeModules, assetCount, docCount, samples: history.length });
     });
 }
 
@@ -51,7 +57,7 @@ function fmtDuration(ms) {
     return ms + " ms";
 }
 
-function renderConnStats({ loadMs, avgMs, activeModules, assetCount, samples }) {
+function renderConnStats({ loadMs, avgMs, activeModules, assetCount, docCount, samples }) {
     document.getElementById("scwm-connstats")?.remove();
 
     const box = document.createElement("div");
@@ -62,6 +68,7 @@ function renderConnStats({ loadMs, avgMs, activeModules, assetCount, samples }) 
         <div class="scwm-connstats-row"><span>Temps de chargement</span><b>${fmtDuration(loadMs)}</b></div>
         <div class="scwm-connstats-row"><span>Modules actifs</span><b>${activeModules}</b></div>
         <div class="scwm-connstats-row"><span>Assets chargés</span><b>${assetCount}</b></div>
+        <div class="scwm-connstats-row"><span>Documents chargés</span><b>${docCount}</b></div>
         <div class="scwm-connstats-row"><span>Moyenne (${samples} sess.)</span><b>${fmtDuration(avgMs)}</b></div>
     `;
     document.body.appendChild(box);

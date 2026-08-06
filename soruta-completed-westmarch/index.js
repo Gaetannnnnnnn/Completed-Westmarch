@@ -45,6 +45,7 @@ import { AntiCheatHooks } from "./modules/anticheat.js";
 import { SocketHooks }    from "./modules/socket.js";
 import { CombatHooks }    from "./modules/combat.js";
 import { AudioHooks }     from "./modules/audio.js";
+import { PartyPauseHooks } from "./modules/partypause.js";
 
 // --- Phase 5 : Serveur ---
 import { SocketHooks as ServeurSocketHooks } from "./modules/serveur-socket.js";
@@ -107,6 +108,7 @@ Hooks.on("init", () => {
     SocketHooks();
     CombatHooks();
     AudioHooks();
+    PartyPauseHooks();
 
     // --- Phase 5 : Serveur (ordre d'origine) ---
     ServeurSocketHooks();

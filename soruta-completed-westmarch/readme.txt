@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 1.5.2
+Version : 1.5.3
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -146,6 +146,12 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v1.5.3 | 2026-08-04
+   - Casier : l onglet "Sessions" devient "Expeditions" et liste les expeditions
+     EN COURS du GM (issues de l onglet Expedition), regroupees par expedition ;
+     badge "En session" sur celle dont des participants sont dans la party
+     actuelle du GM. Les expeditions sont taggees au GM createur (carnet.js).
 
 v1.5.2 | 2026-08-04
    - Rapports de session en attente : pastille de notif sur le bouton Casier

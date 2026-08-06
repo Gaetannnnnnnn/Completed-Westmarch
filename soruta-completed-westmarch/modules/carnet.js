@@ -28,7 +28,10 @@ export async function addExpedition(actor, startDate = null, name = "Nouvelle ex
         id:        foundry.utils.randomID(),
         name:      name || "Nouvelle expédition",
         startDate: startDate ?? null,
-        endDate:   null
+        endDate:   null,
+        // GM qui a lancé l'expédition (pour le Casier). game.user est le GM
+        // qui déclenche le bouton "Date Expédition".
+        gmId:      game.user?.id ?? null
     };
     await actor.setFlag(MODULE, "expeditions", [...exps, newExp]);
     return newExp;

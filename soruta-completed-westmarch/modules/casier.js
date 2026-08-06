@@ -25,17 +25,39 @@ function myDrafts() {
         .sort((a, b) => (b.dateISO ?? "").localeCompare(a.dateISO ?? ""));
 }
 
-// Expéditions/sessions ouvertes de tous les PJ (début sans fin).
-function openSessions() {
-    const out = [];
+// Expéditions EN COURS du GM (issues de l'onglet Expédition des fiches),
+// regroupées par expédition (nom + date de début). La party actuelle du GM
+// sert à marquer "En session" l'expédition qu'il MJ en ce moment.
+function gmExpeditions() {
+    // Personnages de la party actuellement menée par ce GM.
+    const partyCharIds = new Set(
+        (game.users ?? [])
+            .filter(u => u.getFlag(MOD, "partyId") === game.user.id)
+            .map(u => u.character?.id)
+            .filter(Boolean)
+    );
+
+    const groups = new Map();
     for (const actor of game.actors ?? []) {
         if (actor.type !== "character") continue;
         for (const e of getExpeditions(actor)) {
-            if (e.startDate && !e.endDate) {
-                out.push({ actor: actor.name, name: e.name || "Session sans nom", startDate: e.startDate });
-            }
+            if (!e.startDate || e.endDate) continue;
+            // Filtré sur le GM courant (les anciennes expéditions sans gmId
+            // restent visibles pour ne pas perdre l'historique existant).
+            if (e.gmId && e.gmId !== game.user.id) continue;
+            const key = `${e.name || "Expédition"}|${e.startDate}`;
+            if (!groups.has(key)) groups.set(key, { name: e.name || "Expédition sans nom", startDate: e.startDate, participants: [] });
+            groups.get(key).participants.push({ id: actor.id, name: actor.name });
         }
     }
+
+    const out = [...groups.values()].map(g => ({
+        ...g,
+        // "En session" = l'expédition dont des participants sont dans la party
+        // actuelle du GM (la session qu'il mène en ce moment).
+        current: partyCharIds.size > 0 && g.participants.some(p => partyCharIds.has(p.id))
+    }));
+    out.sort((a, b) => (Number(b.current) - Number(a.current)) || a.name.localeCompare(b.name));
     return out;
 }
 
@@ -86,10 +108,10 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
         const drafts = myDrafts();
 
         const TABS = [
-            { key: "dashboard", icon: "fa-gauge-high",     label: "Dashboard" },
-            { key: "reports",   icon: "fa-scroll",         label: `Rapports${drafts.length ? ` (${drafts.length})` : ""}` },
-            { key: "sessions",  icon: "fa-hourglass-half", label: "Sessions" },
-            { key: "gms",       icon: "fa-users-gear",     label: "Suivi des GM" }
+            { key: "dashboard",   icon: "fa-gauge-high", label: "Dashboard" },
+            { key: "reports",     icon: "fa-scroll",     label: `Rapports${drafts.length ? ` (${drafts.length})` : ""}` },
+            { key: "expeditions", icon: "fa-route",      label: "Expéditions" },
+            { key: "gms",         icon: "fa-users-gear", label: "Suivi des GM" }
         ];
         const tabsHtml = TABS.map(t => `
             <button type="button" class="scwm-casier-tab ${this.#tab === t.key ? "active" : ""}" data-tab="${t.key}">
@@ -114,8 +136,8 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             const draft = drafts.find(d => d.id === this.#selectedId);
             detail = draft ? this.#draftDetail(draft) : `<div class="scwm-casier-placeholder"><i class="fas fa-book-open"></i><p>Sélectionnez un rapport à finaliser dans le livret.</p></div>`;
         }
-        else if (this.#tab === "sessions")  detail = this.#sessionsDetail();
-        else                                detail = this.#gmsDetail();
+        else if (this.#tab === "expeditions") detail = this.#expeditionsDetail();
+        else                                  detail = this.#gmsDetail();
 
         return `
             <div class="scwm-casier-body">
@@ -129,7 +151,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
 
     // ---- Onglet Dashboard ----
     #dashboardDetail(drafts) {
-        const sessions = openSessions();
+        const exps = gmExpeditions();
         const hasParty = game.user.getFlag(MOD, "partyId") === game.user.id;
         return `
             <div class="scwm-casier-detail scwm-casier-dashboard">
@@ -139,7 +161,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                 <div class="scwm-casier-stats">
                     <div class="scwm-casier-stat"><b>${drafts.length}</b><span>Rapport(s) à finaliser</span></div>
                     <div class="scwm-casier-stat"><b>${hasParty ? "Oui" : "Non"}</b><span>Party active</span></div>
-                    <div class="scwm-casier-stat"><b>${sessions.length}</b><span>Session(s) ouverte(s)</span></div>
+                    <div class="scwm-casier-stat"><b>${exps.length}</b><span>Expédition(s) en cours</span></div>
                 </div>
 
                 <h3>Présentation</h3>
@@ -148,14 +170,24 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             </div>`;
     }
 
-    // ---- Onglet Sessions (PJ) ----
-    #sessionsDetail() {
-        const sessions = openSessions();
-        return sessions.length
-            ? `<div class="scwm-casier-detail"><h2>Sessions en cours</h2><ul class="scwm-casier-sessions">${
-                sessions.map(s => `<li><strong>${esc(s.actor)}</strong> — ${esc(s.name)} <span class="scwm-casier-date">(début : ${esc(s.startDate)})</span></li>`).join("")
-              }</ul></div>`
-            : `<div class="scwm-casier-placeholder"><i class="fas fa-hourglass-half"></i><p>Aucune session ouverte.</p></div>`;
+    // ---- Onglet Expéditions (du GM) ----
+    #expeditionsDetail() {
+        const exps = gmExpeditions();
+        if (!exps.length) return `<div class="scwm-casier-placeholder"><i class="fas fa-route"></i><p>Aucune expédition en cours.</p></div>`;
+        return `
+            <div class="scwm-casier-detail">
+                <h2>Expéditions en cours</h2>
+                ${exps.map(x => `
+                    <div class="scwm-casier-exp-card ${x.current ? "current" : ""}">
+                        <div class="scwm-casier-exp-head">
+                            <i class="fas fa-route"></i>
+                            <span class="scwm-casier-exp-name">${esc(x.name)}</span>
+                            ${x.current ? `<span class="scwm-casier-exp-badge">En session</span>` : ""}
+                            <span class="scwm-casier-date">${esc(x.startDate)}</span>
+                        </div>
+                        ${x.participants.length ? `<div class="scwm-casier-exp-parts">${x.participants.map(p => esc(p.name)).join(", ")}</div>` : ""}
+                    </div>`).join("")}
+            </div>`;
     }
 
     // ---- Onglet Suivi des GM ----

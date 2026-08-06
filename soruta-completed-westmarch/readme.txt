@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 1.3.4
+Version : 1.3.5
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -146,6 +146,11 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v1.3.5 | 2026-08-04
+   - Liste des joueurs compacte : correctifs. Barre de recherche epinglee A
+     L INTERIEUR de la liste (sticky), hauteur forcee en !important (~4 lignes),
+     filtrage base sur data-user-id (fonctionne en v13) (playerlist.js/.css).
 
 v1.3.4 | 2026-08-04
    - Nouvelle option Toolkit "Liste des joueurs compacte + recherche" : limite

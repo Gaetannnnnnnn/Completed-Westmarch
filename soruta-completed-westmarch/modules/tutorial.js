@@ -380,9 +380,9 @@ const STEPS_BY_FEATURE = {
         {
             beforeShow: _toSheet("relations"),
             target:     ".scwm-exclude-btn",
-            title:      "Retirer des listes",
-            text:       "Le bouton <i class='fas fa-ban'></i> dans l'en-tête de la fiche <strong>retire ce personnage de toutes les Relations et du Bestiaire</strong> et bloque les ajouts automatiques futurs. Pratique pour les figurants ou les doublons.",
-            textGM:     "Le bouton <i class='fas fa-ban'></i> dans l'en-tête d'une fiche retire ce personnage des Relations et du Bestiaire de <strong>tous les joueurs</strong> et empêche tout ajout automatique futur. Cliquez à nouveau pour réactiver. S'applique à n'importe quelle fiche PJ ou PNJ.",
+            title:      "Bloquer & retirer des listes",
+            text:       "Deux boutons dans l'en-tête de la fiche : <i class='fas fa-ban'></i> <strong>bloque l'ajout automatique</strong> (Relations & Bestiaire) sans toucher aux listes existantes, et <i class='fas fa-users-slash'></i> <strong>retire ce personnage de chez tous les joueurs</strong>. Pratique pour les figurants ou les doublons.",
+            textGM:     "Deux boutons dans l'en-tête : <i class='fas fa-ban'></i> <strong>bloque les ajouts automatiques</strong> futurs (cliquer à nouveau pour réactiver), et <i class='fas fa-users-slash'></i> <strong>retire immédiatement</strong> ce personnage des Relations et du Bestiaire de <strong>tous les joueurs</strong> (avec confirmation). Les deux sont indépendants et s'appliquent à n'importe quelle fiche PJ ou PNJ.",
             position:   "bottom"
         },
     ],

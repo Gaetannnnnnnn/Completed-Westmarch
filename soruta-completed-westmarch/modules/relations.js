@@ -738,43 +738,62 @@ export function RelationsHooks() {
         btnReveal.dataset.tooltip = "Révéler à la party";
         btnReveal.addEventListener("click", () => Hooks.callAll("scwm:revealToParty", id));
 
-        // ── Toggle "Retirer des Relations ET du Bestiaire" ────────
-        // Un seul bouton gère les deux flags + les deux suppressions
+        // ── Toggle "Bloquer l'ajout automatique" (Relations + Bestiaire) ──
+        // N'agit que sur les flags : empêche les futurs ajouts auto, sans
+        // toucher aux listes existantes. (Garde la classe scwm-exclude-btn
+        // pour le garde-fou anti-doublon d'injection.)
         const isExcluded = () =>
             !!(actor.getFlag(MOD, "excludedFromRelations") ?? false) ||
             !!(actor.getFlag(MOD,  "excludedFromBestiary")  ?? false);
-        const btnExclude = document.createElement("button");
-        btnExclude.type = "button";
-        btnExclude.classList.add("header-control", "icon", "fa-solid", "fa-ban", "scwm-exclude-btn");
-        const refreshExclude = () => {
-            btnExclude.style.color     = isExcluded() ? "#e74c3c" : "";
-            btnExclude.dataset.tooltip = isExcluded()
-                ? "Exclu Relations & Bestiaire — cliquer pour réactiver"
-                : "Retirer des Relations & du Bestiaire";
+        const btnBlock = document.createElement("button");
+        btnBlock.type = "button";
+        btnBlock.classList.add("header-control", "icon", "fa-solid", "fa-ban", "scwm-exclude-btn");
+        const refreshBlock = () => {
+            btnBlock.style.color     = isExcluded() ? "#e74c3c" : "";
+            btnBlock.dataset.tooltip = isExcluded()
+                ? "Ajout automatique bloqué — cliquer pour réactiver"
+                : "Bloquer l'ajout automatique (Relations & Bestiaire)";
         };
-        refreshExclude();
-        btnExclude.addEventListener("click", async () => {
+        refreshBlock();
+        btnBlock.addEventListener("click", async () => {
             const nowExcluded = !isExcluded();
             await actor.setFlag(MOD, "excludedFromRelations", nowExcluded);
             await actor.setFlag(MOD,  "excludedFromBestiary",  nowExcluded);
-            if (nowExcluded) {
-                Hooks.callAll("scwm:removeFromRelations", id);
-                Hooks.callAll("scwm:removeFromBestiary",  id);
-            }
-            refreshExclude();
+            refreshBlock();
         });
 
-        // Position : ordre visuel Exclu | Révéler | Anonyme
+        // ── Bouton "Retirer de chez tous les joueurs" ─────────────
+        // Action ponctuelle : retire ce personnage des listes existantes de
+        // TOUS les joueurs (Relations + Bestiaire), sans modifier le blocage.
+        const btnRemove = document.createElement("button");
+        btnRemove.type = "button";
+        btnRemove.classList.add("header-control", "icon", "fa-solid", "fa-users-slash", "scwm-removeall-btn");
+        btnRemove.dataset.tooltip = "Retirer de chez tous les joueurs (Relations & Bestiaire)";
+        btnRemove.addEventListener("click", async () => {
+            const ok = await foundry.applications.api.DialogV2.confirm({
+                window:  { title: "Retirer de chez tous les joueurs" },
+                content: `<p>Retirer <strong>${actor.name}</strong> des Relations et du Bestiaire de <strong>tous les joueurs</strong> ?</p>
+                          <p style="opacity:0.7;font-size:0.9em;">Les listes existantes sont nettoyées. Sans blocage, ce personnage pourra être ré-ajouté automatiquement s'il est recroisé.</p>`
+            });
+            if (!ok) return;
+            Hooks.callAll("scwm:removeFromRelations", id);
+            Hooks.callAll("scwm:removeFromBestiary",  id);
+            ui.notifications.info(`${actor.name} retiré des listes de tous les joueurs.`);
+        });
+
+        // Position : ordre visuel Bloquer | Retirer | Révéler | Anonyme
         const title = header.querySelector(".window-title");
         if (title) {
             title.insertAdjacentElement("afterend", btnAnon);
             title.insertAdjacentElement("afterend", btnReveal);
-            title.insertAdjacentElement("afterend", btnExclude);
+            title.insertAdjacentElement("afterend", btnRemove);
+            title.insertAdjacentElement("afterend", btnBlock);
         } else {
             const close = header.querySelector(".close");
-            header.insertBefore(btnAnon,    close);
-            header.insertBefore(btnReveal,  btnAnon);
-            header.insertBefore(btnExclude, btnReveal);
+            header.insertBefore(btnAnon,   close);
+            header.insertBefore(btnReveal, btnAnon);
+            header.insertBefore(btnRemove, btnReveal);
+            header.insertBefore(btnBlock,  btnRemove);
         }
     });
 

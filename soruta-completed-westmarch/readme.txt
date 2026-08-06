@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 1.3.5
+Version : 1.3.8
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -146,6 +146,22 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v1.3.8 | 2026-08-04
+   - Fiche PJ/PNJ : le bouton unique de retrait est scinde en DEUX boutons dans
+     l en-tete : fa-ban "Bloquer l ajout automatique" (toggle des flags, ne
+     retire rien) et fa-users-slash "Retirer de chez tous les joueurs" (action
+     ponctuelle avec confirmation). relations.js, bestiary.js, tutorial.js.
+
+v1.3.7 | 2026-08-04
+   - Liste des joueurs compacte : la barre de recherche est desormais AU-DESSUS
+     de la liste (hors de la zone defilante) ; les noms defilent uniquement en
+     dessous et ne passent plus derriere la barre (playerlist.js/.css).
+
+v1.3.6 | 2026-08-04
+   - Liste des joueurs compacte : la barre de recherche a un fond 100 pourcent
+     opaque (les lignes ne transparaissent plus au defilement), z-index releve,
+     ombrage, et padding-haut de la liste supprime (playerlist.css).
 
 v1.3.5 | 2026-08-04
    - Liste des joueurs compacte : correctifs. Barre de recherche epinglee A

@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 1.6.2
+Version : 1.6.6
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -146,6 +146,28 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v1.6.6 | 2026-08-04
+   - Fiche demo tutoriel (v4) : ownership par defaut "Aucun". Au lancement du
+     tutoriel, le participant devient Proprietaire de la fiche demo (les joueurs
+     passent par une requete au GM) ; a la fermeture (croix / Echap / derniere
+     etape) il repasse en "Aucun". Query completed-westmarch.setDemoOwnership
+     (demoactor.js, serveur-socket.js, tutorial.js).
+
+v1.6.5 | 2026-08-04
+   - Fiche demo tutoriel (v3) : ownership par defaut passe a Proprietaire (au
+     lieu d Observateur) pour que les onglets Relations/Bestiaire/Carnet se
+     presentent en mode editable comme une fiche de joueur normale. Recreation
+     auto (demoactor.js).
+
+v1.6.4 | 2026-08-04
+   - Tutoriel : cliquer en dehors de la bulle (zone assombrie / fond) ne met
+     plus fin au tutoriel. Fermeture uniquement via le bouton croix ou Echap
+     (tutorial.js).
+
+v1.6.3 | 2026-08-04
+   - Tutoriel bestiaire : l etape "Consulter une entree" pointe desormais le
+     chevron (.bst-toggle) au lieu d une bulle centree sans cible (tutorial.js).
 
 v1.6.2 | 2026-08-04
    - Temps morts (validation GM) : ne trouvait les PJ que dans un dossier nomme

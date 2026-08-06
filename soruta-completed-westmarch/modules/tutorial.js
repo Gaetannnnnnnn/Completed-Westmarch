@@ -11,7 +11,7 @@
 // ============================================================
 
 import { MOD } from "./const.js";
-import { getTutorialActor } from "./demoactor.js";
+import { getTutorialActor, grantTutorialAccess, revokeTutorialAccess } from "./demoactor.js";
 const MODULE = MOD;
 
 // Acteur utilisé par le tutoriel : en priorité la fiche démo dédiée (toujours
@@ -342,11 +342,12 @@ const STEPS_BY_FEATURE = {
             position:   "bottom"
         },
         {
-            target:   null,
+            beforeShow: _toSheet("bestiary"),
+            target:   ".bst-toggle",
             title:    "Consulter une entrée",
             text:     "Cliquez sur la flèche d'une entrée pour déplier les notes du GM sur cette créature.",
             textGM:   "Cliquez sur la flèche d'une entrée pour la déplier. Vous pouvez y renseigner la scène de première rencontre et ajouter des notes visibles par le joueur.",
-            position: "center"
+            position: "left"
         },
         {
             beforeShow: _toSheet("bestiary"),
@@ -663,7 +664,7 @@ const STEPS_BY_FEATURE = {
  * Lance le tutoriel.
  * @param {string[]|null} selectedSections  Sections à inclure, ou null pour les settings.
  */
-export function startTutorial(selectedSections = null) {
+export async function startTutorial(selectedSections = null) {
     _steps = [];
     for (const [section, settingKey] of Object.entries(SETTING_KEYS)) {
         // Filtrer les sections dont le module requis n'est pas actif
@@ -687,11 +688,16 @@ export function startTutorial(selectedSections = null) {
         return;
     }
 
+    // Accès temporaire à la fiche démo (Propriétaire) le temps du tutoriel,
+    // pour que les onglets se présentent comme une fiche de joueur normale.
+    await grantTutorialAccess();
+
     _current = 0;
     _buildWrap();
     _showStep(0);
 }
 
+// Nettoyage DOM seul (aussi utilisé avant de (re)construire le wrapper).
 export function closeTutorial() {
     if (_escHandler) {
         document.removeEventListener("keydown", _escHandler);
@@ -699,6 +705,13 @@ export function closeTutorial() {
     }
     _wrapEl?.remove();
     _wrapEl = null;
+}
+
+// Fin réelle du tutoriel (croix / Échap / dernière étape) : on retire l'accès
+// temporaire à la fiche démo, puis on nettoie le DOM.
+function _endTutorial() {
+    revokeTutorialAccess();
+    closeTutorial();
 }
 
 // ================================================================
@@ -713,7 +726,7 @@ function _buildWrap() {
     document.body.appendChild(_wrapEl);
 
     // Fermeture via Echap
-    _escHandler = e => { if (e.key === "Escape") closeTutorial(); };
+    _escHandler = e => { if (e.key === "Escape") _endTutorial(); };
     document.addEventListener("keydown", _escHandler);
 }
 
@@ -769,7 +782,8 @@ async function _showStep(idx) {
         ];
         for (const s of panelStyles) {
             const p = _mkPanel(s);
-            p.addEventListener("click", closeTutorial);
+            // Clic sur la zone assombrie : ne ferme PAS le tuto (on ferme via
+            // le bouton ✕ ou Échap uniquement).
             _wrapEl.appendChild(p);
         }
 
@@ -785,7 +799,7 @@ async function _showStep(idx) {
     } else {
         const p = _mkPanel("inset:0");
         p.style.background = "rgba(0,0,0,0.6)";
-        p.addEventListener("click", (e) => { if (e.target === p) closeTutorial(); });
+        // Clic sur le fond : ne ferme PAS le tuto (fermeture via ✕ ou Échap).
         _wrapEl.appendChild(p);
     }
 
@@ -845,13 +859,13 @@ async function _showStep(idx) {
 
     _wrapEl.appendChild(bubble);
 
-    bubble.querySelector(".tuto-close-btn").addEventListener("click", closeTutorial);
+    bubble.querySelector(".tuto-close-btn").addEventListener("click", _endTutorial);
     bubble.querySelector(".tuto-prev").addEventListener("click", () => {
         if (_current > 0) _showStep(--_current);
     });
     bubble.querySelector(".tuto-next").addEventListener("click", () => {
         if (_current < _steps.length - 1) _showStep(++_current);
-        else closeTutorial();
+        else _endTutorial();
     });
 
     bubble.querySelector(".tuto-cat-prev")?.addEventListener("click", () => {

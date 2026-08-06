@@ -5,10 +5,22 @@
 // sans nécessiter "socket: true" dans le manifeste.
 // ============================================================
 
+import { getTutorialActor } from "./demoactor.js";
+
 export function SocketHooks() {
     CONFIG.queries["completed-westmarch.fakeWarning"] = async (queryData) => {
         ui.notifications.warn(queryData.message);
         return true;
+    };
+
+    // Un joueur ne peut pas modifier l'ownership d'un acteur : il demande au GM
+    // de le faire (accès temporaire à la fiche démo pendant le tutoriel).
+    CONFIG.queries["completed-westmarch.setDemoOwnership"] = async ({ userId, level }) => {
+        if (!game.user.isGM) return false;
+        const actor = getTutorialActor();
+        if (!actor) return false;
+        try { await actor.update({ [`ownership.${userId}`]: level }); return true; }
+        catch (e) { console.error("[completed-westmarch] setDemoOwnership :", e); return false; }
     };
 }
 

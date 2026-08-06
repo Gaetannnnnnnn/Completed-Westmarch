@@ -18,11 +18,37 @@
 
 import { MOD } from "./const.js";
 
-const DEMO_VERSION = 2;
+const DEMO_VERSION = 4;
 const rid = () => foundry.utils.randomID();
 
 export function getTutorialActor() {
     return game.actors?.find(a => a.getFlag(MOD, "tutorialDemo") === true) ?? null;
+}
+
+// ---- Accès temporaire pendant le tutoriel -------------------
+// La fiche démo est en "Aucun" par défaut. Pendant le tutoriel, l'utilisateur
+// devient Propriétaire (pour voir/éditer les onglets comme une fiche normale),
+// puis repasse en "Aucun" à la fermeture. Un joueur ne pouvant pas modifier
+// l'ownership, il passe par une requête au GM.
+async function setDemoOwnership(userId, level) {
+    const actor = getTutorialActor();
+    if (!actor) return;
+    if (game.user.isGM) {
+        try { await actor.update({ [`ownership.${userId}`]: level }); } catch (e) {}
+        return;
+    }
+    const gm = game.users.find(u => u.isGM && u.active);
+    if (!gm) return;   // pas de GM en ligne → on ne peut pas accorder l'accès
+    try { await gm.query("completed-westmarch.setDemoOwnership", { userId, level }); } catch (e) {}
+}
+
+export async function grantTutorialAccess() {
+    if (game.user.isGM) return;   // le GM possède déjà tout
+    await setDemoOwnership(game.user.id, CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER);
+}
+export function revokeTutorialAccess() {
+    if (game.user.isGM) return;
+    setDemoOwnership(game.user.id, CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE);
 }
 
 export async function ensureTutorialActor() {
@@ -52,7 +78,10 @@ async function createDemoActor() {
     let folder = game.folders?.find(f => f.type === "Actor" && f.name === "Tutoriel");
     if (!folder) folder = await Folder.create({ name: "Tutoriel", type: "Actor" });
 
-    const OBSERVER = CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER;
+    // "Aucun" par défaut : personne ne conserve d'accès à la fiche démo. Le
+    // tutoriel accorde temporairement l'accès Propriétaire au participant
+    // (voir grantTutorialAccess / revokeTutorialAccess).
+    const NONE = CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE;
 
     // ---- Items (classe / sous-classe / historique / race / équipement) ----
     const items = [
@@ -119,7 +148,7 @@ async function createDemoActor() {
         type:   "character",
         img:    "icons/environment/people/commoner.webp",
         folder: folder?.id ?? null,
-        ownership: { default: OBSERVER },
+        ownership: { default: NONE },
         prototypeToken: { name: "Aeryn (Tutoriel)", actorLink: true },
         flags: { [MOD]: {
             tutorialDemo: true,

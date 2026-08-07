@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 1.9.3
+Version : 1.9.6
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -146,6 +146,20 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v1.9.6 | 2026-08-04
+   - Tutoriel (Tour de la fiche) : fusion des etapes "Niveau & experience" et
+     "Repos & inspiration" en une seule etape "Niveau, experience & repos"
+     (zone .right de l en-tete + barre d exp) (tutorial.js).
+
+v1.9.5 | 2026-08-04
+   - Tutoriel : correction du spotlight multi-zones. Le masque CSS ne decoupait
+     pas les trous (alpha) ; remplace par un SVG en regle evenodd (vrais trous,
+     clics traversants dans les zones eclairees) (tutorial.js).
+
+v1.9.4 | 2026-08-04
+   - Tutoriel (Tour de la fiche) : etape "Caracteristiques" calee sur
+     section.ability-scores (confirme via inspection) (tutorial.js).
 
 v1.9.3 | 2026-08-04
    - Tutoriel (Relations) : ordre des etapes inverse — "Reveler a la party"

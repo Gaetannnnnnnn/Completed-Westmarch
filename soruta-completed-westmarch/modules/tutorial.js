@@ -369,16 +369,9 @@ const STEPS_BY_FEATURE = {
         },
         {
             beforeShow: _openSheet,
-            targets:    [".meter.exp", ".sheet-header .level, .level"],
-            title:      "Niveau & expérience",
-            text:       "Le badge rond affiche le <strong>niveau global</strong> (ici 12), et la barre juste en dessous l'<strong>expérience</strong> accumulée vers le niveau suivant.",
-            position:   "bottom"
-        },
-        {
-            beforeShow: _openSheet,
-            target:     "[aria-label='Long Rest'], [aria-label='Short Rest'], [data-action='longRest'], [data-action='shortRest'], .sheet-header button",
-            title:      "Repos & inspiration héroïque",
-            text:       "Dans l'en-tête : les boutons de <strong>Repos court</strong> et <strong>Repos long</strong> (récupération de PV, sorts, capacités), et l'<strong>Inspiration héroïque</strong> — un bonus ponctuel que le MJ peut accorder.",
+            targets:    [".sheet-header .right", ".meter.exp"],
+            title:      "Niveau, expérience & repos",
+            text:       "Cette zone de l'en-tête regroupe : le <strong>niveau global</strong> (badge rond, ici 12) et la <strong>barre d'expérience</strong> vers le niveau suivant, l'<strong>Inspiration héroïque</strong> (bonus ponctuel accordé par le MJ), et les boutons de <strong>Repos court</strong> et <strong>Repos long</strong> (récupération de PV, sorts et capacités).",
             position:   "bottom"
         },
         {
@@ -411,7 +404,7 @@ const STEPS_BY_FEATURE = {
         },
         {
             beforeShow: _openSheet,
-            target:     ".ability-scores, .ability-score, .abilities",
+            target:     "section.ability-scores, .ability-scores",
             title:      "Caractéristiques",
             text:       "La rangée du haut affiche les six <strong>caractéristiques</strong> (Force, Dextérité, Constitution, Intelligence, Sagesse, Charisme) avec leur score et leur modificateur. Cliquez-en une pour lancer un test de caractéristique.",
             position:   "bottom"
@@ -989,20 +982,28 @@ async function _showStep(idx) {
             };
         });
 
-        // Assombrissement plein écran percé d'un trou par cible (masque SVG :
-        // blanc = assombri, noir = trou transparent).
+        // Assombrissement plein écran percé d'un trou par cible : un SVG avec
+        // un tracé "rectangle plein écran + rectangles internes" en règle
+        // evenodd → les rectangles internes deviennent des trous. Les clics
+        // dans les trous passent à travers (zones non peintes du tracé).
+        const NS = "http://www.w3.org/2000/svg";
         const W = window.innerWidth, H = window.innerHeight;
-        const holes = rects.map(r =>
-            `<rect x='${r.L}' y='${r.T}' width='${Math.max(0, r.R - r.L)}' height='${Math.max(0, r.B - r.T)}' rx='6' fill='black'/>`
-        ).join("");
-        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${W}' height='${H}'>` +
-            `<rect width='100%' height='100%' fill='white'/>${holes}</svg>`;
-        const uri = `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
-
-        const dim = _mkPanel("inset:0");
-        dim.style.webkitMaskImage = uri;
-        dim.style.maskImage       = uri;
-        _wrapEl.appendChild(dim);
+        const svg = document.createElementNS(NS, "svg");
+        svg.setAttribute("width", W);
+        svg.setAttribute("height", H);
+        svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+        svg.style.cssText = "position:fixed;inset:0;z-index:9901;pointer-events:none;";
+        const path = document.createElementNS(NS, "path");
+        let d = `M0 0 H${W} V${H} H0 Z`;
+        for (const r of rects) {
+            d += ` M${r.L} ${r.T} H${r.R} V${r.B} H${r.L} Z`;
+        }
+        path.setAttribute("d", d);
+        path.setAttribute("fill", "rgba(0,0,0,0.62)");
+        path.setAttribute("fill-rule", "evenodd");
+        path.style.pointerEvents = "auto";   // bloque les clics sur la zone assombrie
+        svg.appendChild(path);
+        _wrapEl.appendChild(svg);
 
         for (const r of rects) {
             const ring = document.createElement("div");

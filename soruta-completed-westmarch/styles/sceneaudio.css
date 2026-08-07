@@ -1,0 +1,30 @@
+/* ============================================================
+   sceneaudio.css — Mise en scène : cues audio
+   ============================================================ */
+
+/* Bouton HUD du token (état configuré). */
+.control-icon.scwm-cue-btn.active {
+    color: #ffe3a3;
+    box-shadow: 0 0 8px rgba(201, 148, 40, 0.7);
+}
+
+/* Fenêtre de configuration du cue. */
+.scwm-cue-form .form-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 4px 0;
+}
+.scwm-cue-form .form-group > label {
+    flex: 0 0 130px;
+    font-weight: 600;
+}
+.scwm-cue-form .notes {
+    font-size: 12px;
+    opacity: 0.85;
+    margin-bottom: 8px;
+}
+.scwm-cue-form .scwm-cue-actions button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}

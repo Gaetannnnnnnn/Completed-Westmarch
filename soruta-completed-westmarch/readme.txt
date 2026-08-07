@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 2.0.0
+Version : 2.2.0
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -150,6 +150,27 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v2.2.0 | 2026-08-04
+   - Nouveau : Mise en scene — Cues audio. Attache a un token un cue audio
+     (fichier, seconde de depart, volume, fondu, boucle) via un bouton dans son
+     HUD. Le son part pour tous les joueurs quand le token perd son invisibilite
+     GM (hidden true->false), ou manuellement ("Jouer pour tous"). Lecture locale
+     sur chaque client via queries v13 (faible latence), prechargement au
+     chargement de la scene. Categorie de reglages dediee, sans lien avec un
+     autre module (sceneaudio.js, sceneaudio.css, settings.js, index.js).
+
+v2.1.1 | 2026-08-04
+   - Tutoriel (Expeditions) : ajout d une etape sur le Statut de disponibilite
+     des PJ. Ouvre le repertoire des Acteurs et pointe le badge du perso demo
+     (tutorial.js, pcstatus.css).
+
+v2.1.0 | 2026-08-04
+   - Nouveau : Statut de disponibilite des PJ. Un badge "Disponible" /
+     "En expedition" s affiche a droite de chaque personnage dans le repertoire
+     des Acteurs. Statut deduit automatiquement des expeditions (une expedition
+     ouverte = En expedition). Activable dans Fiche PJ > Carnet & Expeditions
+     (pcstatus.js, pcstatus.css).
 
 v2.0.0 | 2026-08-04
    - Manifeste : suppression de la cle "fonts" (non reconnue par le schema

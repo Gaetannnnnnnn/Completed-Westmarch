@@ -17,6 +17,8 @@ import { setupCharacterSheet } from "./modules/character-sheet.js";
 import { RelationsHooks }      from "./modules/relations.js";
 import { BestiaryHooks }       from "./modules/bestiary.js";
 import { CarnetToolbarHooks }  from "./modules/carnet.js";
+import { PcStatusHooks }       from "./modules/pcstatus.js";
+import { SceneAudioHooks }     from "./modules/sceneaudio.js";
 
 // --- Phase 3 : Toolkit ---
 import { RageHooks }         from "./modules/rage.js";
@@ -94,6 +96,8 @@ Hooks.on("init", () => {
     RelationsHooks();
     BestiaryHooks();
     CarnetToolbarHooks();
+    PcStatusHooks();
+    SceneAudioHooks();
     setupCharacterSheet();   // enregistre la fiche au hook "setup"
 
     // --- Phase 3 : Toolkit ---

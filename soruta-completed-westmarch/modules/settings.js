@@ -298,6 +298,10 @@ export function registerSettings() {
         "Carnet & Expéditions — Activer",
         "Ajoute les onglets Carnet et Expéditions sur les fiches PJ. Nécessite un rechargement.",
         true, { requiresReload: true }));
+    game.settings.register(MOD, "enablePcStatus", B(
+        "Statut de disponibilité des PJ",
+        "Affiche à droite de chaque personnage, dans le répertoire des Acteurs, un badge « Disponible » ou « En expédition ». Le statut est déduit automatiquement des expéditions : un PJ avec une expédition ouverte (date de début sans date de fin) est « En expédition ». Modifiable sans rechargement.",
+        true, { onChange: () => ui.actors?.render() }));
 
     // ============================================================
     // CARTE DES EXPÉDITIONS (clés inchangées)
@@ -308,6 +312,17 @@ export function registerSettings() {
     game.settings.register(MOD, "expeditionMapSceneId", S(
         "Carte des expéditions — Scène",
         "Scène sur laquelle le brouillard de guerre est suivi par personnage plutôt que par compte joueur."));
+
+    // ============================================================
+    // MISE EN SCÈNE — CUES AUDIO (clés sceneCues*)
+    // ============================================================
+    game.settings.register(MOD, "enableSceneCues", B(
+        "Mise en scène — Cues audio",
+        "Attache à un token un « cue » audio (fichier, seconde de départ, volume, fondu, boucle) via un bouton dans son HUD. Le son se déclenche pour tous les joueurs quand le token perd son invisibilité GM, ou manuellement. Diffusion en local sur chaque client (faible latence), avec préchargement au chargement de la scène. Outil réservé au MJ."));
+    game.settings.register(MOD, "sceneCuesDefaultVolume", N(
+        "Cues audio — Volume par défaut",
+        "Volume initial (0 à 1) proposé pour un nouveau cue.",
+        0.8));
 
     // ============================================================
     // MIDI RANGE FIX (clés préfixées rangeFix*)
@@ -444,10 +459,13 @@ const CATEGORIES = [
       keys: ["bestiaryEnabled","bestiaryAnonymization","bestiaryFolderPJ","bestiaryPackCreatures"] },
     { firstKey: "carnetEnabled", master: "carnetEnabled",         icon: "fa-book-open",       title: "Fiche PJ — Carnet & Expéditions",
       desc: "Onglets Carnet (notes enrichies) et Expéditions (dates + durée).",
-      keys: ["carnetEnabled"] },
+      keys: ["carnetEnabled","enablePcStatus"] },
     { firstKey: "enableExpeditionMap", master: "enableExpeditionMap",   icon: "fa-map",             title: "Carte des expéditions",
       desc: "Brouillard de guerre par party et par personnage sur une scène dédiée.",
       keys: ["enableExpeditionMap","expeditionMapSceneId"] },
+    { firstKey: "enableSceneCues", master: "enableSceneCues",       icon: "fa-clapperboard",    title: "Mise en scène — Cues audio",
+      desc: "Cues audio attachés aux tokens : déclenchement auto quand le token perd son invisibilité GM, ou manuel. Réglage de la seconde de départ, du volume et du fondu.",
+      keys: ["enableSceneCues","sceneCuesDefaultVolume"] },
     { firstKey: "rangeFixEnabled", master: "rangeFixEnabled",       icon: "fa-bullseye",        title: "Midi Range Fix",
       desc: "Correction du calcul de portée midi-qol pour les tokens Large et plus.",
       keys: ["rangeFixEnabled","rangeAdjust"] },

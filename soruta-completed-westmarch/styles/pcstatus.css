@@ -1,0 +1,52 @@
+/* ============================================================
+   pcstatus.css — Badge de statut de disponibilité des PJ
+   (répertoire des Acteurs)
+   ============================================================ */
+
+.scwm-pc-status {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex: 0 0 auto;
+    padding: 1px 7px;
+    border-radius: 9px;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: .2px;
+    white-space: nowrap;
+    border: 1px solid transparent;
+    pointer-events: none;
+}
+
+.scwm-pc-status i {
+    font-size: 9px;
+}
+
+/* Disponible — vert */
+.scwm-pc-status-available {
+    color: #b9f6c8;
+    background: rgba(46, 160, 67, 0.22);
+    border-color: rgba(46, 160, 67, 0.55);
+}
+
+/* En expédition — ambre */
+.scwm-pc-status-expedition {
+    color: #ffe3a3;
+    background: rgba(201, 148, 40, 0.22);
+    border-color: rgba(201, 148, 40, 0.6);
+}
+
+/* Marqueur temporaire posé par le tutoriel pour cibler le badge du perso démo. */
+.scwm-pc-status.tuto-status-highlight {
+    box-shadow: 0 0 0 2px rgba(255, 227, 163, 0.9);
+}
+
+/* Sur les lignes étroites du répertoire, ne garder que l'icône. */
+#actors .directory-item.actor .scwm-pc-status-label {
+    display: inline;
+}
+@media (max-width: 300px) {
+    .scwm-pc-status-label { display: none; }
+}

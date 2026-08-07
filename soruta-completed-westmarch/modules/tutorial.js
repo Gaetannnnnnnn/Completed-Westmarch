@@ -327,6 +327,37 @@ async function _expandWestmarch() {
     await new Promise(r => setTimeout(r, 350));
 }
 
+// Ouvre l'onglet Acteurs de la sidebar, déplie le dossier du perso démo et
+// marque son badge de statut pour que le spotlight le pointe précisément.
+async function _showPcStatus() {
+    try { ui.sidebar?.activateTab?.("actors"); } catch {}
+    try { ui.sidebar?.changeTab?.("actors", "primary"); } catch {}
+    const actor = _tutorialActor();
+    // Déplier le dossier contenant le perso démo (le <li> n'existe pas si replié).
+    try {
+        const fid = actor?.folder?.id ?? actor?.folder;
+        if (fid) {
+            const folderLi = document.querySelector(`#actors li.folder[data-folder-id="${fid}"]`);
+            if (folderLi && folderLi.classList.contains("collapsed")) {
+                folderLi.querySelector(":scope > header, :scope > .folder-header")?.click();
+                await new Promise(r => setTimeout(r, 200));
+            }
+        }
+    } catch {}
+    try { ui.actors?.render(false); } catch {}
+    await new Promise(r => setTimeout(r, 450));
+    // Marqueur temporaire sur le badge du perso démo (cible du spotlight).
+    document.querySelectorAll(".scwm-pc-status.tuto-status-highlight")
+        .forEach(e => e.classList.remove("tuto-status-highlight"));
+    if (actor) {
+        const li = document.querySelector(
+            `#actors li.directory-item[data-entry-id="${actor.id}"], ` +
+            `#actors li.directory-item[data-document-id="${actor.id}"]`);
+        li?.querySelector(".scwm-pc-status")?.classList.add("tuto-status-highlight");
+        try { li?.scrollIntoView({ block: "center", behavior: "instant" }); } catch {}
+    }
+}
+
 // ================================================================
 // DÉFINITION DES ÉTAPES PAR FONCTIONNALITÉ
 // ================================================================
@@ -637,6 +668,14 @@ const STEPS_BY_FEATURE = {
             text:       "Ce bouton enregistre la <strong>date de début d'une nouvelle expédition</strong> pour toute la party en un seul clic, en utilisant la date du calendrier du monde. Recliquez-le en fin de session pour enregistrer la <strong>date de fin</strong> et clôturer l'expédition.",
             position:   "right",
             gmOnly:     true
+        },
+        // ── Statut de disponibilité des PJ (répertoire des Acteurs) ──
+        {
+            beforeShow: _showPcStatus,
+            target:     ".scwm-pc-status.tuto-status-highlight, #actors .scwm-pc-status",
+            title:      "Statut de disponibilité",
+            text:       "Dans le répertoire des <strong>Acteurs</strong>, un badge à droite de chaque personnage indique s'il est <strong>Disponible</strong> ou <strong>En expédition</strong>. Le statut est automatique : dès qu'une expédition est ouverte (date de début sans date de fin), le PJ passe « En expédition » ; sa clôture le repasse « Disponible ». Pratique pour voir d'un coup d'œil qui est déjà parti.",
+            position:   "right"
         },
         // ── Clore la session (GM) — transition vers le Casier ────
         {

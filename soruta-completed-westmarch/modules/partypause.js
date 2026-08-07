@@ -38,6 +38,15 @@ function _onPauseKey(ev) {
 
     ev.preventDefault();
     ev.stopImmediatePropagation();
+
+    // Échappatoire : si une pause GLOBALE traîne (le pause de party la remplace),
+    // on la lève d'abord plutôt que de basculer la party — sinon elle resterait
+    // coincée puisqu'on intercepte l'espace.
+    if (game.paused) {
+        const toggle = _origTogglePause ?? game.togglePause?._scwmOrig;
+        try { toggle?.(false, { broadcast: true }); } catch {}
+        return;
+    }
     togglePartyPause();
 }
 
@@ -86,6 +95,15 @@ export function PartyPauseHooks() {
         //     le pause global n'est jamais déclenché. L'anti-double-bascule de
         //     togglePartyPause évite tout conflit si les deux voies se cumulent.
         window.addEventListener("keydown", _onPauseKey, true);
+
+        // Nettoyage d'une pause GLOBALE résiduelle (démarrage sur un monde laissé
+        // en pause) : le pause de party la remplace, elle ne doit pas subsister.
+        if (game.user.isGM && game.paused) {
+            const activeGM = game.users.activeGM;
+            if (!activeGM || activeGM.id === game.user.id) {
+                try { _origTogglePause?.(false, { broadcast: true }); } catch (e) { console.warn("westmarch | partypause : nettoyage pause globale", e); }
+            }
+        }
 
         applyPartyPause();
     });

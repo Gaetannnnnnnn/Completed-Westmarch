@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 2.4.0
+Version : 2.4.1
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -150,6 +150,12 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v2.4.1 | 2026-08-04
+   - Pause de party : correction "jeu coince en pause". Une pause GLOBALE
+     residuelle est levee au chargement, et la barre espace leve d abord une
+     eventuelle pause globale avant de basculer la party (l interception ne peut
+     plus laisser une pause globale coincee) (partypause.js).
 
 v2.4.0 | 2026-08-04
    - Cues audio : navigateur de playlists. Un bouton note de musique a cote du

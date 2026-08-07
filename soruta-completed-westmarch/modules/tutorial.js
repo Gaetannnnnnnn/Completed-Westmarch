@@ -431,13 +431,6 @@ const STEPS_BY_FEATURE = {
             position:   "bottom"
         },
         {
-            beforeShow: _toSheet("features"),
-            target:     "nav.tabs [data-tab='features'], .tabs [data-tab='features']",
-            title:      "Aptitudes (Features)",
-            text:       "L'onglet <strong>Aptitudes</strong> regroupe les capacités de classe, d'espèce et d'historique du personnage.",
-            position:   "bottom"
-        },
-        {
             beforeShow: _toSheet("inventory"),
             target:     "nav.tabs [data-tab='inventory'], .tabs [data-tab='inventory']",
             title:      "Inventaire & argent",
@@ -445,10 +438,24 @@ const STEPS_BY_FEATURE = {
             position:   "bottom"
         },
         {
+            beforeShow: _toSheet("features"),
+            target:     "nav.tabs [data-tab='features'], .tabs [data-tab='features']",
+            title:      "Aptitudes (Features)",
+            text:       "L'onglet <strong>Aptitudes</strong> regroupe les capacités de classe, d'espèce et d'historique du personnage.",
+            position:   "bottom"
+        },
+        {
             beforeShow: _toSheet("spells"),
             target:     "nav.tabs [data-tab='spells'], .tabs [data-tab='spells']",
             title:      "Sorts",
             text:       "L'onglet <strong>Sorts</strong> présente les sorts connus/préparés et les emplacements de sorts par niveau.",
+            position:   "bottom"
+        },
+        {
+            beforeShow: _toSheet("effects"),
+            target:     "nav.tabs [data-tab='effects'], .tabs [data-tab='effects']",
+            title:      "Effets",
+            text:       "L'onglet <strong>Effets</strong> liste les effets actifs sur le personnage : bonus/malus temporaires, conditions (empoisonné, à terre…) et effets de sorts ou d'objets en cours.",
             position:   "bottom"
         },
         {

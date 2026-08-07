@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 1.9.8
+Version : 1.9.9
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -150,6 +150,10 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v1.9.9 | 2026-08-04
+   - Tutoriel (Tour de la fiche) : ordre Inventaire avant Aptitudes, et ajout
+     d une etape "Effets" apres les Sorts (tutorial.js).
 
 v1.9.8 | 2026-08-04
    - Fiche demo tutoriel : correction du bug qui empechait sa (re)creation. Un

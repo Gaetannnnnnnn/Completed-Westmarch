@@ -65,6 +65,18 @@ import { showWelcomeIfNeeded }    from "./modules/welcome.js";
 import { ensureTutorialActor }    from "./modules/demoactor.js";
 
 Hooks.on("init", () => {
+    // Police personnalisée "Enchanted Land" — enregistrée par code (la clé
+    // "fonts" du manifeste n'est pas reconnue par le schéma Foundry v13/v14 et
+    // déclenche un avertissement). CONFIG.fontDefinitions est la voie officielle.
+    try {
+        CONFIG.fontDefinitions["Enchanted Land"] = {
+            editor: true,
+            fonts: [
+                { urls: ["modules/soruta-completed-westmarch/fonts/EnchantedLand.otf"], weight: "400", style: "normal" }
+            ]
+        };
+    } catch (e) { console.warn("westmarch | Enregistrement de la police Enchanted Land :", e); }
+
     // Helpers Handlebars hérités de westmarch (utilisés par les templates de chat).
     Handlebars.registerHelper("for", function (from, to, incr, block) {
         let accum = "";

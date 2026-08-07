@@ -221,7 +221,8 @@ class SceneCuesApp extends foundry.applications.api.ApplicationV2 {
                 <label>Fichier audio</label>
                 <div class="scwm-cue-file">
                     <input type="text" name="path" value="${esc(c.path)}" placeholder="ex. music/reveal.ogg"/>
-                    <button type="button" class="scwm-cue-browse" title="Parcourir"><i class="fas fa-folder-open"></i></button>
+                    <button type="button" class="scwm-cue-playlists" title="Choisir depuis les playlists (monde &amp; compendiums)"><i class="fas fa-music"></i></button>
+                    <button type="button" class="scwm-cue-browse" title="Parcourir les fichiers"><i class="fas fa-folder-open"></i></button>
                 </div>
             </div>
             <div class="scwm-cue-grid">
@@ -282,6 +283,17 @@ class SceneCuesApp extends foundry.applications.api.ApplicationV2 {
                 } }).render(true);
             });
 
+            card.querySelector(".scwm-cue-playlists")?.addEventListener("click", () => {
+                _openPlaylistBrowser(async (path, name) => {
+                    const input = card.querySelector("[name=path]");
+                    input.value = path;
+                    // Si le cue porte encore un nom générique, le nommer d'après le son.
+                    const nameEl = card.querySelector("[name=name]");
+                    if (nameEl && (!nameEl.value.trim() || nameEl.value.trim() === "Nouveau cue")) nameEl.value = name;
+                    await upsertCue(this.#readCard(card));
+                });
+            });
+
             card.querySelector(".scwm-cue-play")?.addEventListener("click", async () => {
                 await upsertCue(this.#readCard(card));
                 playCueForAll(getCue(id));
@@ -318,6 +330,88 @@ export function openSceneCues() {
     if (!game.user.isGM) return;
     _cuesApp ??= new SceneCuesApp();
     _cuesApp.render(true);
+}
+
+// ============================================================
+// NAVIGATEUR DE PLAYLISTS — écouter & choisir un son
+// ============================================================
+// Rassemble les sons des playlists du MONDE et des COMPENDIUMS. Chaque son
+// expose un chemin de fichier (PlaylistSound#path) directement réutilisable
+// comme source d'un cue, sans devoir l'importer ni ranger le fichier.
+async function _collectPlaylistSounds() {
+    const groups = [];
+    const grab = (pl) => [...pl.sounds]
+        .map(s => ({ name: s.name || "Son", path: s.path }))
+        .filter(s => s.path);
+
+    for (const pl of game.playlists ?? []) {
+        const sounds = grab(pl);
+        if (sounds.length) groups.push({ label: pl.name, source: "Monde", sounds });
+    }
+    for (const pack of game.packs.filter(p => p.documentName === "Playlist")) {
+        let docs = [];
+        try { docs = await pack.getDocuments(); } catch (e) { console.warn(`[${MOD}] compendium ${pack.collection} :`, e); }
+        for (const pl of docs) {
+            const sounds = grab(pl);
+            if (sounds.length) groups.push({ label: pl.name, source: pack.metadata?.label ?? "Compendium", sounds });
+        }
+    }
+    return groups;
+}
+
+async function _openPlaylistBrowser(onPick) {
+    const groups = await _collectPlaylistSounds();
+    if (!groups.length) {
+        ui.notifications?.warn("Aucun son trouvé dans les playlists (monde ou compendiums).");
+        return;
+    }
+    const flat = [];
+    const groupsHtml = groups.map(g => {
+        const rows = g.sounds.map(s => {
+            const idx = flat.push(s) - 1;
+            return `<div class="scwm-pl-row">
+                <span class="scwm-pl-name">${esc(s.name)}</span>
+                <span class="scwm-pl-row-actions">
+                    <button type="button" class="scwm-pl-play" data-idx="${idx}" title="Écouter (moi uniquement)"><i class="fas fa-play"></i></button>
+                    <button type="button" class="scwm-pl-pick" data-idx="${idx}" title="Choisir ce son"><i class="fas fa-check"></i></button>
+                </span>
+            </div>`;
+        }).join("");
+        return `<div class="scwm-pl-group">
+            <h3>${esc(g.label)} <span class="scwm-pl-src">${esc(g.source)}</span></h3>
+            ${rows}
+        </div>`;
+    }).join("");
+
+    const content = `
+        <div class="scwm-pl-browser">
+            <div class="scwm-pl-toolbar">
+                <span class="notes">Écoute locale (les joueurs n'entendent rien). « Choisir » remplit le fichier du cue.</span>
+                <button type="button" class="scwm-pl-stop"><i class="fas fa-stop"></i> Stop</button>
+            </div>
+            ${groupsHtml}
+        </div>`;
+
+    new Dialog({
+        title: "Playlists — écouter & choisir",
+        content,
+        buttons: {
+            close: { icon: '<i class="fas fa-times"></i>', label: "Fermer", callback: () => stopAllCuesLocal(150) }
+        },
+        default: "close",
+        render: (html) => {
+            const root = html[0] ?? html;
+            root.querySelector(".scwm-pl-stop")?.addEventListener("click", () => stopAllCuesLocal(150));
+            root.querySelectorAll(".scwm-pl-play").forEach(b => b.addEventListener("click", () => {
+                const s = flat[Number(b.dataset.idx)];
+                if (s) playCueLocal({ path: s.path, volume: 0.7 });
+            }));
+            root.querySelectorAll(".scwm-pl-pick").forEach(b => b.addEventListener("click", () => {
+                const s = flat[Number(b.dataset.idx)];
+                if (s) { onPick(s.path, s.name); ui.notifications?.info(`Son choisi : ${s.name}`); }
+            }));
+        }
+    }, { width: 520, height: 560, resizable: true }).render(true);
 }
 
 // ============================================================

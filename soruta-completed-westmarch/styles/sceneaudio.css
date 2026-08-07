@@ -117,6 +117,43 @@
 }
 .scwm-cue-tokenrow button { flex: 0 0 auto; white-space: nowrap; }
 
+/* ---- Navigateur de playlists ---- */
+.scwm-pl-browser .scwm-pl-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+.scwm-pl-browser .scwm-pl-toolbar .notes { font-size: 11px; opacity: 0.8; }
+.scwm-pl-browser .scwm-pl-stop { flex: 0 0 auto; white-space: nowrap; }
+
+.scwm-pl-group { margin-bottom: 10px; }
+.scwm-pl-group h3 {
+    margin: 6px 0 4px;
+    border-bottom: 1px solid rgba(201, 148, 40, 0.4);
+    padding-bottom: 2px;
+    font-size: 14px;
+}
+.scwm-pl-group h3 .scwm-pl-src {
+    font-size: 10px;
+    font-weight: 400;
+    opacity: 0.6;
+    margin-left: 6px;
+}
+.scwm-pl-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 2px 4px;
+    border-radius: 4px;
+}
+.scwm-pl-row:hover { background: rgba(255, 255, 255, 0.06); }
+.scwm-pl-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scwm-pl-row-actions { flex: 0 0 auto; display: flex; gap: 4px; }
+.scwm-pl-row-actions button { width: 30px; line-height: 1; }
+
 /* ---- Sélecteur de cues (HUD token) ---- */
 .scwm-cue-picker { display: flex; flex-direction: column; gap: 4px; }
 .scwm-cue-pick {

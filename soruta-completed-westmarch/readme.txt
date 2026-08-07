@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 2.3.3
+Version : 2.4.0
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -150,6 +150,21 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v2.4.0 | 2026-08-04
+   - Cues audio : navigateur de playlists. Un bouton note de musique a cote du
+     champ fichier ouvre la liste des sons des playlists du MONDE et des
+     COMPENDIUMS, avec ecoute locale (le MJ essaie sans que les joueurs
+     entendent) et bouton Choisir qui remplit le fichier du cue (le chemin du
+     son est reutilise directement, sans import) (sceneaudio.js, sceneaudio.css).
+
+v2.3.4 | 2026-08-04
+   - Pause de party : correction de la pause bloquee sur "activee". Interception
+     fiable de la barre espace en phase de capture (avant le KeyboardManager de
+     Foundry) pour que le pause global ne parte jamais, + anti-double-bascule
+     (evite que capture clavier et game.togglePause s annulent). Le filet de
+     securite se contente desormais d annuler une pause globale parasite sans
+     toucher a l etat de party (partypause.js).
 
 v2.3.3 | 2026-08-04
    - Pause de party : affichage via le banner NATIF #pause ("Game Paused") au

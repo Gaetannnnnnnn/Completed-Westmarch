@@ -20,6 +20,27 @@ import { MOD } from "./const.js";
 // une éventuelle pause globale dans le filet de sécurité.
 let _origTogglePause = null;
 
+// Anti-double-bascule : la barre espace peut atteindre à la fois notre écouteur
+// de capture ET game.togglePause détourné. On ignore une 2e bascule rapprochée.
+let _lastToggle = 0;
+
+// Écouteur clavier (capture) : intercepte la barre espace de pause.
+function _onPauseKey(ev) {
+    if (!partyPauseEnabled()) return;
+    if (!game.user.isGM) return;                 // seuls les GM mettent en pause
+    if (ev.code !== "Space" && ev.key !== " ") return;
+    if (ev.repeat) return;
+    if (ev.ctrlKey || ev.metaKey || ev.altKey || ev.shiftKey) return;
+    // Ne pas voler l'espace pendant une saisie de texte.
+    const t = ev.target;
+    const tag = t?.tagName;
+    if (t?.isContentEditable || tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+
+    ev.preventDefault();
+    ev.stopImmediatePropagation();
+    togglePartyPause();
+}
+
 function partyPauseEnabled() {
     return game.settings.get(MOD, "enableParty") && game.settings.get(MOD, "enablePartyPause");
 }
@@ -45,9 +66,9 @@ export function PartyPauseHooks() {
     Hooks.once("ready", () => {
         if (!partyPauseEnabled()) return;
 
-        // Détourne le pause natif : bouton + raccourci clavier passent tous
-        // par game.togglePause. On le remplace pour ne jamais déclencher le
-        // pause global, mais basculer la pause de la party du GM.
+        // (1) Détourne game.togglePause : couvre le bouton de pause, les macros
+        //     et tout appel programmatique. On bascule la pause de party au lieu
+        //     du pause global.
         if (game.togglePause && !game.togglePause._scwmPatched) {
             _origTogglePause = game.togglePause.bind(game);
             const patched = function () {
@@ -55,29 +76,31 @@ export function PartyPauseHooks() {
                 return game.paused;
             };
             patched._scwmPatched = true;
-            patched._scwmOrig = _origTogglePause;   // conservé au cas où
+            patched._scwmOrig = _origTogglePause;
             game.togglePause = patched;
         }
+
+        // (2) Intercepte la BARRE ESPACE en phase de capture, AVANT le
+        //     KeyboardManager de Foundry. Selon la version, la touche de pause
+        //     ne passe pas toujours par game.togglePause : on garantit ainsi que
+        //     le pause global n'est jamais déclenché. L'anti-double-bascule de
+        //     togglePartyPause évite tout conflit si les deux voies se cumulent.
+        window.addEventListener("keydown", _onPauseKey, true);
 
         applyPartyPause();
     });
 
     // Filet de sécurité : si une pause GLOBALE s'active malgré tout (voie d'accès
-    // autre que game.togglePause : macro, socket, module tiers…), on l'annule et
-    // on bascule à la place la pause de la party du GM. Un seul GM (le GM actif)
-    // agit, pour éviter des annulations multiples.
+    // non couverte : socket serveur, module tiers…), le GM actif l'annule. On ne
+    // touche PAS à l'état de party ici (éviter les doubles-bascules).
     Hooks.on("pauseGame", (paused) => {
         if (!partyPauseEnabled()) return;
         if (!paused) return;                 // seule l'ACTIVATION globale nous intéresse
         if (!game.user.isGM) return;
         const activeGM = game.users.activeGM;
         if (activeGM && activeGM.id !== game.user.id) return;
-
-        // Annule la pause globale (elle ne doit jamais rester active avec la
-        // pause de party) puis bascule la pause de MA party.
         const toggle = _origTogglePause ?? ((v, o) => game.togglePause?._scwmOrig?.(v, o));
         try { toggle?.(false, { broadcast: true }); } catch (e) { console.warn("westmarch | partypause : annulation pause globale", e); }
-        togglePartyPause();
     });
 
     // Ré-applique si l'utilisateur change de party (il rejoint/quitte).
@@ -107,6 +130,10 @@ export function PartyPauseHooks() {
 // onChange → applyPartyPause() sur tous les clients).
 async function togglePartyPause() {
     if (!game.user.isGM) return;   // seuls les GM peuvent mettre en pause
+    // Anti-double-bascule (capture clavier + game.togglePause peuvent coïncider).
+    const now = Date.now();
+    if (now - _lastToggle < 150) return;
+    _lastToggle = now;
     const pid = myPartyId();
     if (!pid) return;
     const s = foundry.utils.deepClone(pauseState());

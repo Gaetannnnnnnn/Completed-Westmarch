@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 1.9.6
+Version : 1.9.8
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -72,7 +72,8 @@ WESTMARCH CORE
 SERVEUR
    tm.js         — Temps morts (gain de compétence + artisanat, panier, validation GM).
    xp.js         — Blocage XP / Level Up côté joueur.
-   caldate.js    — Notification Discord au changement de date (Simple Calendar).
+   caldate.js    — Notification Discord au changement de date (API calendrier
+                   native game.time.calendar — Mini Calendar, etc.).
    discordlog.js — Logs Discord des modifications (objets, monnaie, XP, persos).
    fake-warning.js + serveur-socket.js — Faux message d'avertissement GM (queries v13).
 
@@ -101,7 +102,10 @@ Obligatoire :
 Optionnelles (une feature se désactive silencieusement si absente) :
   - midi-qol            — requis par Midi Range Fix
   - Monk's Enhanced Journal — requis par les correctifs et le restock des boutiques
-  - Simple Calendar     — dates (fallback ; game.time.calendar utilisé en priorité)
+  - Mini Calendar       — calendrier du monde (dates du Carnet, notif Discord de
+                          changement de jour). Le module lit l'API native
+                          game.time.calendar : tout module de calendrier v13
+                          (Mini Calendar, etc.) convient, aucune dépendance figée.
   - lib-wrapper         — snap live des templates AoE
 
 Le blocage de mouvement hors tour en combat est désormais natif (setting
@@ -146,6 +150,20 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v1.9.8 | 2026-08-04
+   - Fiche demo tutoriel : correction du bug qui empechait sa (re)creation. Un
+     echec de fetch marquait faussement la fiche comme creee ; desormais le
+     succes n est enregistre qu apres un Actor.create confirme, l ancienne
+     fiche n est supprimee qu apres creation de la nouvelle, et un suivi de
+     version (tutorialActorVersion) permet de retenter tant que la creation a
+     echoue (demoactor.js, settings.js).
+
+v1.9.7 | 2026-08-04
+   - Calendrier : passage a Mini Calendar. Le module lisait deja l API native
+     game.time.calendar (aucune dependance Simple Calendar reelle) ; nettoyage
+     des references residuelles a SimpleCalendar dans carnet.js et mise a jour
+     de la dependance recommandee (module.json, readme).
 
 v1.9.6 | 2026-08-04
    - Tutoriel (Tour de la fiche) : fusion des etapes "Niveau & experience" et

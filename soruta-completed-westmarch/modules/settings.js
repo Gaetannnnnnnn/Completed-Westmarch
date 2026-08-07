@@ -337,6 +337,13 @@ export function registerSettings() {
     game.settings.register(MOD, "tutorialActorCreated", {
         scope: "world", config: false, type: Boolean, default: false, requiresReload: false
     });
+    // Version de la fiche démo réellement créée avec succès. Ne vaut DEMO_VERSION
+    // qu'après une création confirmée : si la création échoue, ce compteur reste
+    // en arrière et la création est retentée au prochain chargement. Un bump de
+    // DEMO_VERSION force aussi la recréation (nouveau contenu).
+    game.settings.register(MOD, "tutorialActorVersion", {
+        scope: "world", config: false, type: Number, default: 0, requiresReload: false
+    });
     for (const { key, label } of TUTO_TOGGLES) {
         game.settings.register(MOD, key, B(
             `Tutoriel — ${label}`,

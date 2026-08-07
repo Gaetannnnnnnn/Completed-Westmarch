@@ -1,7 +1,7 @@
 {
   "id": "soruta-completed-westmarch",
   "title": "Soruta — Completed Westmarch",
-  "version": "1.9.6",
+  "version": "1.9.8",
   "changelog": "2026-08-03",
   "authors": [
     {
@@ -62,9 +62,9 @@
         "reason": "Requis par les correctifs et le réapprovisionnement des boutiques MEJ."
       },
       {
-        "id": "foundryvtt-simple-calendar",
+        "id": "wgtgm-mini-calendar",
         "type": "module",
-        "reason": "Formatage des dates (Carnet, temps morts). Fallback sur l'API Foundry si absent."
+        "reason": "Calendrier du monde (dates du Carnet, notif Discord de changement de jour). Pilote l'API native game.time.calendar ; tout module de calendrier v13 convient."
       },
       {
         "id": "lib-wrapper",

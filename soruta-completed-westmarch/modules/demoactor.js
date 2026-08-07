@@ -56,20 +56,37 @@ export async function ensureTutorialActor() {
     if (!game.settings.get(MOD, "tutoEnabled")) return;
 
     const existing = getTutorialActor();
+    const createdVersion = Number(game.settings.get(MOD, "tutorialActorVersion") ?? 0);
+
     if (existing) {
         if ((existing.getFlag(MOD, "tutorialDemoVersion") ?? 1) >= DEMO_VERSION) return;
-        // Ancienne fiche démo → on la remplace par la version enrichie.
-        try { await existing.delete(); } catch (e) { console.warn(`[${MOD}] Suppression ancienne fiche démo :`, e); }
-    } else if (game.settings.get(MOD, "tutorialActorCreated")) {
-        return;   // supprimée volontairement par le GM
+        // Ancienne fiche démo → on tente de créer la nouvelle AVANT de supprimer
+        // l'ancienne, pour ne jamais rester sans fiche si la création échoue.
+        try {
+            await createDemoActor();
+            await game.settings.set(MOD, "tutorialActorVersion", DEMO_VERSION);
+            await game.settings.set(MOD, "tutorialActorCreated", true);
+            try { await existing.delete(); } catch (e) { console.warn(`[${MOD}] Suppression ancienne fiche démo :`, e); }
+            console.log(`[${MOD}] Fiche démo du tutoriel mise à jour (v${DEMO_VERSION}).`);
+        } catch (err) {
+            console.error(`[${MOD}] Échec de la mise à jour de la fiche démo (ancienne conservée) :`, err);
+        }
+        return;
     }
+
+    // Pas de fiche existante. On ne recrée pas si la version courante a déjà été
+    // créée puis supprimée volontairement par le GM. Un bump de DEMO_VERSION
+    // (createdVersion < DEMO_VERSION) autorise la recréation.
+    if (createdVersion >= DEMO_VERSION) return;
 
     try {
         await createDemoActor();
+        await game.settings.set(MOD, "tutorialActorVersion", DEMO_VERSION);
         await game.settings.set(MOD, "tutorialActorCreated", true);
         console.log(`[${MOD}] Fiche démo du tutoriel créée (v${DEMO_VERSION}).`);
     } catch (err) {
         console.error(`[${MOD}] Échec de la création de la fiche démo du tutoriel :`, err);
+        ui.notifications?.warn("Completed Westmarch : échec de la création de la fiche démo du tutoriel (voir la console F12). Nouvelle tentative au prochain rechargement.");
     }
 }
 
@@ -122,18 +139,22 @@ async function createDemoActor() {
     // ---- Fiche de base : chargée depuis le JSON livré dans le module ----
     // (personnage complet exporté depuis Foundry : classe, sorts, aptitudes,
     // équipement, caractéristiques…). On applique nos overrides par-dessus.
-    let data;
-    try {
-        const resp = await fetch(`modules/${MOD}/data/tutorial-actor.json`);
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        data = await resp.json();
-    } catch (e) {
-        console.error(`[${MOD}] Impossible de charger data/tutorial-actor.json :`, e);
-        return;
-    }
+    const resp = await fetch(`modules/${MOD}/data/tutorial-actor.json`);
+    if (!resp.ok) throw new Error(`Chargement de data/tutorial-actor.json échoué : HTTP ${resp.status}`);
+    const data = await resp.json();
 
-    // Nettoyage des champs propres au monde source.
+    // Nettoyage des champs propres au monde source (acteur + objets embarqués).
+    // On retire _id/_stats et les flags de modules tiers (midi-qol, plutonium,
+    // tidy5e…) qui ne servent pas à la démo et pourraient poser souci.
     delete data._id; delete data._stats; delete data.folder; delete data.ownership;
+    if (Array.isArray(data.items)) {
+        for (const it of data.items) {
+            delete it._stats;
+            if (it.flags) for (const ns of Object.keys(it.flags)) {
+                if (ns !== "dnd5e") delete it.flags[ns];
+            }
+        }
+    }
 
     // Image forcée sur celle de l'ancienne fiche démo (icône du cœur → marche
     // partout, aucun fichier à livrer).
@@ -156,5 +177,7 @@ async function createDemoActor() {
         relationsList, bestiaryList, carnetNotes, expeditions
     };
 
-    await Actor.create(data);
+    const created = await Actor.create(data);
+    if (!created) throw new Error("Actor.create n'a renvoyé aucun acteur.");
+    return created;
 }

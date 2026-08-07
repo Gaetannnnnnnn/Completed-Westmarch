@@ -88,10 +88,6 @@ export function getCurrentDate() {
             return { day: c.dayOfMonth + 1, month: c.month, year: c.year };
         }
     } catch {}
-    try {
-        const sc = SimpleCalendar?.api?.currentDateTime?.();
-        if (sc) return { day: sc.day, month: sc.month, year: sc.year };
-    } catch {}
     return null;
 }
 
@@ -123,17 +119,8 @@ function _monthOptionsHtml(selectedMonth = 0) {
 
 export function formatDate(dateObj) {
     if (!dateObj) return "—";
-    try {
-        if (typeof SimpleCalendar !== "undefined" && SimpleCalendar?.api?.formatDateTime) {
-            const r = SimpleCalendar.api.formatDateTime(dateObj);
-            // formatDateTime renvoie soit une chaîne, soit { date, time }.
-            if (typeof r === "string") return r;
-            if (r && typeof r === "object") {
-                const s = [r.date, r.time].filter(Boolean).join(" ").trim();
-                if (s) return s;
-            }
-        }
-    } catch {}
+    // Format natif : jour mois année, le nom du mois venant du calendrier actif
+    // (Mini Calendar ou tout module pilotant game.time.calendar).
     return `${dateObj.day} ${_getMonthName(dateObj.month)} ${dateObj.year}`;
 }
 

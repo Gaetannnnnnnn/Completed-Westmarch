@@ -159,7 +159,6 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
     // ---- Onglet Dashboard ----
     #dashboardDetail(drafts) {
         const exps = gmExpeditions();
-        const hasParty = game.user.getFlag(MOD, "partyId") === game.user.id;
         return `
             <div class="scwm-casier-detail scwm-casier-dashboard">
                 <h2><i class="fas fa-box-archive"></i> Casier de ${esc(game.user.name)}</h2>
@@ -167,7 +166,6 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
 
                 <div class="scwm-casier-stats">
                     <div class="scwm-casier-stat"><b>${drafts.length}</b><span>Rapport(s) à finaliser</span></div>
-                    <div class="scwm-casier-stat"><b>${hasParty ? "Oui" : "Non"}</b><span>Party active</span></div>
                     <div class="scwm-casier-stat"><b>${exps.length}</b><span>Expédition(s) en cours</span></div>
                 </div>
 

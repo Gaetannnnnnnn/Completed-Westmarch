@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 1.8.3
+Version : 1.9.3
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -146,6 +146,30 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v1.9.3 | 2026-08-04
+   - Tutoriel (Relations) : ordre des etapes inverse — "Reveler a la party"
+     passe avant "Rendre anonyme" (tutorial.js).
+
+v1.9.2 | 2026-08-04
+   - Tutoriel (Tour de la fiche) : etape caracteristiques/competences scindee en
+     deux — "Caracteristiques" (rangee du haut .ability-scores) et "Competences"
+     (colonne .left) (tutorial.js).
+
+v1.9.1 | 2026-08-04
+   - Casier (Dashboard) : retrait de la case "Party active" (casier.js).
+
+v1.9.0 | 2026-08-04
+   - Fiche demo tutoriel (v8) : construite a partir d un personnage complet livre
+     dans le module (data/tutorial-actor.json — Clerc 12, ~150 objets dont sorts).
+     Overrides a la creation : image forcee (icone du coeur), ownership Aucun,
+     dossier Tutoriel, flags demo (relations/bestiaire/notes/expeditions).
+     demoactor.js charge le JSON via fetch.
+
+v1.8.4 | 2026-08-04
+   - Tutoriel : le spotlight supporte plusieurs cibles (step.targets = liste) via
+     un masque SVG (un trou par zone). L etape "Niveau & experience" eclaire en
+     forme de L la barre d XP (.meter.exp) ET le rond du niveau (tutorial.js).
 
 v1.8.3 | 2026-08-04
    - Tutoriel (Tour de la fiche) : les caracteristiques/competences pointent la

@@ -18,7 +18,7 @@
 
 import { MOD } from "./const.js";
 
-const DEMO_VERSION = 7;
+const DEMO_VERSION = 8;
 const rid = () => foundry.utils.randomID();
 
 export function getTutorialActor() {
@@ -83,49 +83,6 @@ async function createDemoActor() {
     // (voir grantTutorialAccess / revokeTutorialAccess).
     const NONE = CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE;
 
-    // ---- Items (classe / sous-classe / historique / race / équipement) ----
-    const items = [
-        { name: "Rôdeur", type: "class", img: "icons/skills/ranged/arrow-strike-glowing-teal.webp",
-          system: { levels: 12, identifier: "ranger", hitDice: "d10" } },
-        { name: "Chasseur de l'ombre", type: "subclass", img: "icons/magic/perception/silhouette-stealth-shadow.webp",
-          system: { classIdentifier: "ranger", identifier: "gloom-stalker" } },
-        { name: "Ermite", type: "background", img: "icons/environment/wilderness/tent-brown.webp",
-          system: { identifier: "ermite", description: { value: "<p>A vécu en ermite avant de rejoindre les Marches.</p>" } } },
-        { name: "Demi-elfe", type: "race", img: "icons/environment/people/commoner.webp",
-          system: { identifier: "demi-elfe", description: { value: "<p>Espèce : demi-elfe. Vision dans le noir, ascendance féerique.</p>" } } },
-        // Aptitudes (features)
-        { name: "Style de combat : Archerie", type: "feat", img: "icons/skills/ranged/arrow-flying-broadhead-metal.webp",
-          system: { type: { value: "class" }, description: { value: "<p>+2 aux jets d'attaque avec les armes à distance.</p>" } } },
-        { name: "Ennemi juré", type: "feat", img: "icons/creatures/abilities/paw-print-pair-purple.webp",
-          system: { type: { value: "class" }, description: { value: "<p>Avantage pour pister et se souvenir d'un type d'ennemi.</p>" } } },
-        { name: "Explorateur-né", type: "feat", img: "icons/environment/wilderness/terrain-forest-gray.webp",
-          system: { type: { value: "class" }, description: { value: "<p>Expert du terrain naturel choisi ; déplacement et discrétion facilités.</p>" } } },
-        { name: "Attaque supplémentaire", type: "feat", img: "icons/skills/melee/blade-tips-triple-bronze.webp",
-          system: { type: { value: "class" }, description: { value: "<p>Deux attaques au lieu d'une lors de l'action d'Attaque.</p>" } } },
-        { name: "Ombres du Feywild", type: "feat", img: "icons/magic/perception/shadow-stealth-eyes-purple.webp",
-          system: { type: { value: "class" }, description: { value: "<p>Chasseur de l'ombre : dissimulation dans l'obscurité, initiative renforcée.</p>" } } },
-        { name: "Vision dans le noir", type: "feat", img: "icons/magic/perception/eye-ringed-glow-angry-red.webp",
-          system: { type: { value: "race" }, description: { value: "<p>Vision dans le noir jusqu'à 18 mètres.</p>" } } },
-        { name: "Ascendance féerique", type: "feat", img: "icons/magic/nature/leaf-glow-teal.webp",
-          system: { type: { value: "race" }, description: { value: "<p>Avantage contre le charme ; immunité au sommeil magique.</p>" } } },
-        { name: "Découverte de l'ermite", type: "feat", img: "icons/sundries/scrolls/scroll-runed-brown.webp",
-          system: { type: { value: "background" }, description: { value: "<p>Un secret unique appris durant l'isolement.</p>" } } },
-        { name: "Épée longue", type: "weapon", img: "icons/weapons/swords/sword-guard-purple.webp" },
-        { name: "Arc long", type: "weapon", img: "icons/weapons/bows/bow-recurve-brown.webp" },
-        { name: "Armure de cuir clouté", type: "equipment", img: "icons/equipment/chest/breastplate-leather-brown-belt.webp" },
-        { name: "Cape d'elfe", type: "equipment", img: "icons/equipment/back/cloak-hooded-green.webp" },
-        { name: "Potion de soins", type: "consumable", img: "icons/consumables/potions/potion-tube-corked-red.webp",
-          system: { quantity: 3 } },
-        { name: "Sac d'aventurier", type: "equipment", img: "icons/containers/bags/pack-leather-brown-tan.webp" }
-    ];
-
-    const bio =
-        "<p><strong>Aeryn Nightleaf</strong>, demi-elfe rôdeuse au service des Marches de l'Ouest, " +
-        "arpente les frontières sauvages depuis plus de dix ans. Élevée par un ermite après la " +
-        "disparition de sa famille, elle a appris à survivre dans l'ombre et à parler aux bêtes.</p>" +
-        "<p><em>Personnage de démonstration du module Soruta — Completed Westmarch. Purement fictif, " +
-        "sans lien avec votre monde. Vous pouvez le modifier librement.</em></p>";
-
     // ---- Relations (auto-suffisantes : cibles fictives, aucun acteur réel) ----
     const relationsList = [
         { id: rid(), targetId: "demo-rel-sylwen", targetName: "Dame Sylwen d'Argentcombe", targetImg: "icons/svg/mystery-man.svg",
@@ -162,31 +119,42 @@ async function createDemoActor() {
         { id: rid(), name: "La clairière du Vieux Chêne",        startDate: { day: 3,  month: 4, year: 1487 }, endDate: null }
     ];
 
-    await Actor.create({
-        name:   "Aeryn Nightleaf (Tutoriel)",
-        type:   "character",
-        img:    "icons/environment/people/commoner.webp",
-        folder: folder?.id ?? null,
-        ownership: { default: NONE },
-        prototypeToken: { name: "Aeryn (Tutoriel)", actorLink: true },
-        flags: { [MOD]: {
-            tutorialDemo: true,
-            tutorialDemoVersion: DEMO_VERSION,
-            relationsList, bestiaryList, carnetNotes, expeditions
-        } },
-        system: {
-            abilities: {
-                str: { value: 10 }, dex: { value: 18 }, con: { value: 14 },
-                int: { value: 11 }, wis: { value: 16 }, cha: { value: 12 }
-            },
-            attributes: { hp: { value: 98, max: 98 } },
-            currency: { pp: 3, gp: 245, ep: 0, sp: 60, cp: 40 },
-            details: {
-                biography: { value: bio },
-                alignment: "Neutre Bon",
-                xp: { value: 100000 }
-            }
-        },
-        items
-    });
+    // ---- Fiche de base : chargée depuis le JSON livré dans le module ----
+    // (personnage complet exporté depuis Foundry : classe, sorts, aptitudes,
+    // équipement, caractéristiques…). On applique nos overrides par-dessus.
+    let data;
+    try {
+        const resp = await fetch(`modules/${MOD}/data/tutorial-actor.json`);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        data = await resp.json();
+    } catch (e) {
+        console.error(`[${MOD}] Impossible de charger data/tutorial-actor.json :`, e);
+        return;
+    }
+
+    // Nettoyage des champs propres au monde source.
+    delete data._id; delete data._stats; delete data.folder; delete data.ownership;
+
+    // Image forcée sur celle de l'ancienne fiche démo (icône du cœur → marche
+    // partout, aucun fichier à livrer).
+    const IMG = "icons/environment/people/commoner.webp";
+    data.name = data.name || "Tutoriel";
+    data.type = "character";
+    data.img  = IMG;
+    data.folder = folder?.id ?? null;
+    data.ownership = { default: NONE };
+    data.prototypeToken = data.prototypeToken ?? {};
+    data.prototypeToken.name = data.name;
+    data.prototypeToken.actorLink = true;
+    data.prototypeToken.texture = { ...(data.prototypeToken.texture ?? {}), src: IMG };
+
+    // Flags : marqueur de fiche démo + contenus de démonstration des onglets.
+    data.flags = data.flags ?? {};
+    data.flags[MOD] = {
+        tutorialDemo: true,
+        tutorialDemoVersion: DEMO_VERSION,
+        relationsList, bestiaryList, carnetNotes, expeditions
+    };
+
+    await Actor.create(data);
 }

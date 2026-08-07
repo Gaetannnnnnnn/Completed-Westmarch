@@ -369,7 +369,7 @@ const STEPS_BY_FEATURE = {
         },
         {
             beforeShow: _openSheet,
-            target:     ".sheet-header",
+            targets:    [".meter.exp", ".sheet-header .level, .level"],
             title:      "Niveau & expérience",
             text:       "Le badge rond affiche le <strong>niveau global</strong> (ici 12), et la barre juste en dessous l'<strong>expérience</strong> accumulée vers le niveau suivant.",
             position:   "bottom"
@@ -411,9 +411,16 @@ const STEPS_BY_FEATURE = {
         },
         {
             beforeShow: _openSheet,
+            target:     ".ability-scores, .ability-score, .abilities",
+            title:      "Caractéristiques",
+            text:       "La rangée du haut affiche les six <strong>caractéristiques</strong> (Force, Dextérité, Constitution, Intelligence, Sagesse, Charisme) avec leur score et leur modificateur. Cliquez-en une pour lancer un test de caractéristique.",
+            position:   "bottom"
+        },
+        {
+            beforeShow: _openSheet,
             target:     ".tab[data-tab='details'] .left, .sheet-body .left",
-            title:      "Caractéristiques & compétences",
-            text:       "La colonne de gauche regroupe les six <strong>caractéristiques</strong> (Force, Dextérité…) avec leur modificateur, et la liste des <strong>compétences</strong>. Cliquez une valeur pour lancer le jet correspondant.",
+            title:      "Compétences",
+            text:       "La colonne <strong>Skills</strong> liste les <strong>compétences</strong> (Acrobaties, Arcanes, Perception…) avec la caractéristique associée et le bonus. Cliquez une compétence pour lancer son jet.",
             position:   "right"
         },
         {
@@ -534,17 +541,17 @@ const STEPS_BY_FEATURE = {
         },
         {
             beforeShow: _toSheet("relations"),
-            target:     ".scwm-anon-btn",
-            title:      "Rendre anonyme",
-            textGM:     "Le bouton <i class='fas fa-eye-slash'></i> rend ce personnage <strong>anonyme</strong> : dans les Relations et le Bestiaire des joueurs, il s'affiche « Inconnu » tant qu'il n'est pas révélé. Devient rouge quand actif ; recliquez pour lever l'anonymat.",
+            target:     ".scwm-reveal-btn",
+            title:      "Révéler à la party",
+            textGM:     "Le bouton <i class='fas fa-eye'></i> <strong>révèle</strong> ce personnage à toute la party d'un coup : son vrai nom apparaît dans les Relations et le Bestiaire de chaque joueur, même s'il était anonyme.",
             position:   "bottom",
             gmOnly:     true
         },
         {
             beforeShow: _toSheet("relations"),
-            target:     ".scwm-reveal-btn",
-            title:      "Révéler à la party",
-            textGM:     "Le bouton <i class='fas fa-eye'></i> <strong>révèle</strong> ce personnage à toute la party d'un coup : son vrai nom apparaît dans les Relations et le Bestiaire de chaque joueur, même s'il était anonyme.",
+            target:     ".scwm-anon-btn",
+            title:      "Rendre anonyme",
+            textGM:     "Le bouton <i class='fas fa-eye-slash'></i> rend ce personnage <strong>anonyme</strong> : dans les Relations et le Bestiaire des joueurs, il s'affiche « Inconnu » tant qu'il n'est pas révélé. Devient rouge quand actif ; recliquez pour lever l'anonymat.",
             position:   "bottom",
             gmOnly:     true
         },
@@ -961,39 +968,50 @@ async function _showStep(idx) {
     // Texte spécifique GM si défini
     const text = (step.textGM && game.user.isGM) ? step.textGM : step.text;
 
-    const targetEl = step.target ? document.querySelector(step.target) : null;
+    // Cibles : une seule (step.target) ou plusieurs (step.targets = [sel, …]),
+    // pour éclairer plusieurs zones à la fois (ex. barre d'XP + badge de niveau
+    // → forme en « L »).
+    const _selectors = Array.isArray(step.targets) ? step.targets
+                     : step.target ? [step.target] : [];
+    const targetEls = _selectors.map(s => document.querySelector(s)).filter(Boolean);
+    const targetEl  = targetEls[0] ?? null;   // ancre pour le positionnement de la bulle
 
-    // ---- SPOTLIGHT : 4 panneaux autour de la cible, ou plein écran ----
-    if (targetEl) {
-        const r   = targetEl.getBoundingClientRect();
+    // ---- SPOTLIGHT : un "trou" par cible via masque SVG, ou plein écran ----
+    if (targetEls.length) {
         const pad = 7;
-        const T   = Math.max(0, r.top    - pad);
-        const B   = Math.min(window.innerHeight, r.bottom + pad);
-        const L   = Math.max(0, r.left   - pad);
-        const R   = Math.min(window.innerWidth,  r.right  + pad);
+        const rects = targetEls.map(el => {
+            const r = el.getBoundingClientRect();
+            return {
+                T: Math.max(0, r.top    - pad),
+                B: Math.min(window.innerHeight, r.bottom + pad),
+                L: Math.max(0, r.left   - pad),
+                R: Math.min(window.innerWidth,  r.right  + pad),
+            };
+        });
 
-        const panelStyles = [
-            `top:0;left:0;right:0;height:${T}px`,
-            `top:${B}px;left:0;right:0;bottom:0`,
-            `top:${T}px;left:0;width:${L}px;height:${B - T}px`,
-            `top:${T}px;left:${R}px;right:0;height:${B - T}px`,
-        ];
-        for (const s of panelStyles) {
-            const p = _mkPanel(s);
-            // Clic sur la zone assombrie : ne ferme PAS le tuto (on ferme via
-            // le bouton ✕ ou Échap uniquement).
-            _wrapEl.appendChild(p);
+        // Assombrissement plein écran percé d'un trou par cible (masque SVG :
+        // blanc = assombri, noir = trou transparent).
+        const W = window.innerWidth, H = window.innerHeight;
+        const holes = rects.map(r =>
+            `<rect x='${r.L}' y='${r.T}' width='${Math.max(0, r.R - r.L)}' height='${Math.max(0, r.B - r.T)}' rx='6' fill='black'/>`
+        ).join("");
+        const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${W}' height='${H}'>` +
+            `<rect width='100%' height='100%' fill='white'/>${holes}</svg>`;
+        const uri = `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+
+        const dim = _mkPanel("inset:0");
+        dim.style.webkitMaskImage = uri;
+        dim.style.maskImage       = uri;
+        _wrapEl.appendChild(dim);
+
+        for (const r of rects) {
+            const ring = document.createElement("div");
+            ring.className = "tuto-ring";
+            ring.style.cssText = `position:fixed;pointer-events:none;z-index:9902;
+                top:${r.T}px;left:${r.L}px;width:${r.R - r.L}px;height:${r.B - r.T}px;
+                border-width:2px;border-style:solid;`;
+            _wrapEl.appendChild(ring);
         }
-
-        const ring = document.createElement("div");
-        ring.className = "tuto-ring";
-        ring.style.cssText = `
-            position:fixed;pointer-events:none;z-index:9902;
-            top:${T}px;left:${L}px;
-            width:${R - L}px;height:${B - T}px;
-            border-width:2px;border-style:solid;
-        `;
-        _wrapEl.appendChild(ring);
     } else {
         const p = _mkPanel("inset:0");
         p.style.background = "rgba(0,0,0,0.6)";

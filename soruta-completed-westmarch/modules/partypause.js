@@ -16,6 +16,10 @@
 
 import { MOD } from "./const.js";
 
+// Référence vers le vrai game.togglePause (avant patch), pour pouvoir annuler
+// une éventuelle pause globale dans le filet de sécurité.
+let _origTogglePause = null;
+
 function partyPauseEnabled() {
     return game.settings.get(MOD, "enableParty") && game.settings.get(MOD, "enablePartyPause");
 }
@@ -41,24 +45,39 @@ export function PartyPauseHooks() {
     Hooks.once("ready", () => {
         if (!partyPauseEnabled()) return;
 
-        // Masque l'indicateur natif "PAUSED".
-        document.body.classList.add("scwm-hide-native-pause");
-
         // Détourne le pause natif : bouton + raccourci clavier passent tous
         // par game.togglePause. On le remplace pour ne jamais déclencher le
         // pause global, mais basculer la pause de la party du GM.
         if (game.togglePause && !game.togglePause._scwmPatched) {
-            const orig = game.togglePause.bind(game);
+            _origTogglePause = game.togglePause.bind(game);
             const patched = function () {
                 togglePartyPause();
-                return false;
+                return game.paused;
             };
             patched._scwmPatched = true;
-            patched._scwmOrig = orig;   // conservé au cas où
+            patched._scwmOrig = _origTogglePause;   // conservé au cas où
             game.togglePause = patched;
         }
 
         applyPartyPause();
+    });
+
+    // Filet de sécurité : si une pause GLOBALE s'active malgré tout (voie d'accès
+    // autre que game.togglePause : macro, socket, module tiers…), on l'annule et
+    // on bascule à la place la pause de la party du GM. Un seul GM (le GM actif)
+    // agit, pour éviter des annulations multiples.
+    Hooks.on("pauseGame", (paused) => {
+        if (!partyPauseEnabled()) return;
+        if (!paused) return;                 // seule l'ACTIVATION globale nous intéresse
+        if (!game.user.isGM) return;
+        const activeGM = game.users.activeGM;
+        if (activeGM && activeGM.id !== game.user.id) return;
+
+        // Annule la pause globale (elle ne doit jamais rester active avec la
+        // pause de party) puis bascule la pause de MA party.
+        const toggle = _origTogglePause ?? ((v, o) => game.togglePause?._scwmOrig?.(v, o));
+        try { toggle?.(false, { broadcast: true }); } catch (e) { console.warn("westmarch | partypause : annulation pause globale", e); }
+        togglePartyPause();
     });
 
     // Ré-applique si l'utilisateur change de party (il rejoint/quitte).
@@ -66,6 +85,10 @@ export function PartyPauseHooks() {
         if (user.id !== game.user.id) return;
         if (foundry.utils.hasProperty(changes, `flags.${MOD}.partyId`)) applyPartyPause();
     });
+
+    // Le banner natif #pause est re-rendu par le cœur (cssClass basé sur
+    // game.paused, donc masqué). On ré-affirme notre état de party juste après.
+    Hooks.on("renderGamePause", () => applyPartyPause());
 
     // Blocage du déplacement pendant la pause de party (non-GM uniquement).
     Hooks.on("preUpdateToken", (tokenDoc, changes, options, userId) => {
@@ -92,18 +115,14 @@ async function togglePartyPause() {
     await game.settings.set(MOD, "partyPauseState", s);
 }
 
-// Applique l'affichage sur CE client selon l'état de sa party.
+// Applique l'affichage sur CE client selon l'état de sa party. On réutilise le
+// banner natif #pause (« Game Paused ») : mêmes styles que Foundry, et les
+// modules qui l'habillent (glow bleu de Monk, etc.) s'appliquent tels quels.
 export function applyPartyPause() {
     const on = partyPauseEnabled() && isMyPartyPaused();
-    let el = document.getElementById("scwm-party-pause");
-    if (on) {
-        if (!el) {
-            el = document.createElement("div");
-            el.id = "scwm-party-pause";
-            el.innerHTML = `<i class="fas fa-pause"></i><span>Pause</span>`;
-            document.body.appendChild(el);
-        }
-    } else {
-        el?.remove();
-    }
+    // Le banner natif est visible via la classe "paused" sur #pause.
+    const el = document.getElementById("pause");
+    if (el) el.classList.toggle("paused", on);
+    // Marqueur pour d'éventuels styles maison / compat modules.
+    document.body.classList.toggle("scwm-party-paused", on);
 }

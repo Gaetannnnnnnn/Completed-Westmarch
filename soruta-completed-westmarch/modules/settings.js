@@ -323,6 +323,11 @@ export function registerSettings() {
         "Cues audio — Volume par défaut",
         "Volume initial (0 à 1) proposé pour un nouveau cue.",
         0.8));
+    // Stockage central des cues (au niveau du monde) : survivent à la
+    // suppression des tokens auxquels ils sont liés. Édités via le gestionnaire.
+    game.settings.register(MOD, "sceneCuesList", {
+        scope: "world", config: false, type: Array, default: []
+    });
 
     // ============================================================
     // MIDI RANGE FIX (clés préfixées rangeFix*)

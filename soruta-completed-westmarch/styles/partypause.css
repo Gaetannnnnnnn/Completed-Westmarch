@@ -1,39 +1,8 @@
 /* ============================================================
-   partypause.css — Pause de party (bandeau + masquage pause natif)
+   partypause.css — Pause de party
+   ------------------------------------------------------------
+   On réutilise le banner natif #pause (« Game Paused ») : aucun
+   style maison n'est imposé, afin de conserver l'apparence de
+   Foundry et de laisser les modules d'habillage de la pause
+   (ex. le glow bleu de Monk) s'appliquer normalement.
    ============================================================ */
-
-/* Masque l'indicateur "PAUSED" natif de Foundry quand la feature est active. */
-body.scwm-hide-native-pause #pause { display: none !important; }
-
-/* Bandeau de pause de party. */
-#scwm-party-pause {
-    position: fixed;
-    left: 50%;
-    bottom: 62px;
-    transform: translateX(-50%);
-    z-index: 9998;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 8px 24px;
-    background: linear-gradient(180deg, rgba(20,18,14,0.92), rgba(12,11,9,0.92));
-    border: 1px solid rgba(201,162,39,0.5);
-    border-radius: 8px;
-    box-shadow: 0 4px 18px rgba(0,0,0,0.55);
-    color: #c9a227;
-    font-family: "Modesto Condensed", "Signika", serif;
-    font-size: 26px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.2em;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.7);
-    pointer-events: none;
-    animation: scwm-pause-pulse 2s ease-in-out infinite;
-}
-
-#scwm-party-pause i { font-size: 22px; }
-
-@keyframes scwm-pause-pulse {
-    0%, 100% { opacity: 0.6; }
-    50%      { opacity: 1; }
-}

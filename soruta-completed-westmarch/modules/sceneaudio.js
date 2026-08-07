@@ -1,32 +1,47 @@
 // ============================================================
-// sceneaudio.js — Mise en scène : cues audio attachés aux tokens
+// sceneaudio.js — Mise en scène : gestionnaire de cues audio
 //
-// Permet au MJ d'attacher à un token un « cue » audio :
-//   { path, offset (seconde de départ), volume, fade, loop }
-// Le cue se déclenche :
-//   • AUTOMATIQUEMENT pour tous les joueurs quand le token perd son
-//     invisibilité GM (propriété hidden : true → false) ;
-//   • MANUELLEMENT depuis le bouton du HUD du token (« Jouer pour tous »).
+// Un GESTIONNAIRE central (bouton dans la barre WestMarch, GM) où le MJ
+// prépare des « cues » audio. Chaque cue = un son + ses réglages + un
+// DÉCLENCHEUR :
+//   • Manuel          — joué à la main (bouton du gestionnaire ou du token) ;
+//   • Révélation      — quand le token lié perd son invisibilité GM ;
+//   • Début de combat — au démarrage d'un combat.
 //
-// Diffusion à tous les clients via le système de queries de Foundry v13
-// (CONFIG.queries) — pas besoin de déclarer "socket" dans le manifeste.
-// Chaque client lit le fichier EN LOCAL, à la seconde demandée : latence
-// réseau minimale, aucun flux partagé (contrairement à watch2gether).
-// Préchargement au chargement de la scène → départ quasi instantané.
+// Les cues sont stockés au NIVEAU DU MONDE (réglage sceneCuesList), pas sur
+// le token : supprimer le token ne perd pas la préparation, elle reste dans
+// le gestionnaire (le token n'est qu'un lien réactivable).
 //
-// Feature 100 % autonome (réglages sous sa propre catégorie), sans lien
-// avec les autres modules. © 2026 Soruta.
+// Depuis le HUD d'un token, on peut déclencher les cues qui lui sont liés
+// (« activer ce qui a été préparé »).
+//
+// Diffusion à tous les clients via les queries de Foundry v13 (pas de
+// "socket" dans le manifeste). Lecture LOCALE sur chaque client, à la
+// seconde demandée → faible latence. Préchargement au chargement de la scène.
+// Feature 100 % autonome. © 2026 Soruta.
 // ============================================================
 
 import { MOD } from "./const.js";
 
-const FLAG = "sceneCue";
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+const rid = () => foundry.utils.randomID();
+
+export const CUE_TRIGGERS = {
+    manual:      "Manuel (bouton)",
+    reveal:      "Révélation du token lié (invisibilité GM retirée)",
+    combatStart: "Début de combat"
+};
+
+// ============================================================
+// AUDIO — lecture locale (chaque client) + diffusion (queries)
+// ============================================================
 const _cache  = new Map();   // path -> Sound (préchargé)
-const _active = new Set();   // Sounds en cours (pour « stop »)
+const _active = new Set();   // Sounds en cours
 
 function _audio() { return foundry.audio ?? {}; }
 
-// Récupère (et met en cache) un Sound chargé pour un chemin donné.
 async function _getSound(path) {
     if (_cache.has(path)) return _cache.get(path);
     const { Sound } = _audio();
@@ -41,7 +56,6 @@ async function _getSound(path) {
     return sound;
 }
 
-// Lecture LOCALE d'un cue (sur le client courant), à l'offset demandé.
 export async function playCueLocal({ path, offset = 0, volume = 0.8, fade = 0, loop = false } = {}) {
     if (!path) return;
     try {
@@ -67,7 +81,6 @@ export async function playCueLocal({ path, offset = 0, volume = 0.8, fade = 0, l
     }
 }
 
-// Arrêt LOCAL de tous les cues en cours.
 export async function stopAllCuesLocal(fade = 300) {
     for (const s of _active) {
         try { await s.stop({ fade }); } catch { try { s.stop(); } catch {} }
@@ -75,34 +88,240 @@ export async function stopAllCuesLocal(fade = 300) {
     _active.clear();
 }
 
-// Diffuse une action (play / stop) à TOUS les clients (émetteur inclus).
+// Destinataires d'un cue : les membres de la PARTY du GM (comme le reste du
+// module, via le flag partyId). L'émetteur (le GM) est toujours inclus.
+// Retourne null si le système de Party est désactivé → diffusion à tous.
+function _partyUserIds() {
+    if (!game.settings.get(MOD, "enableParty")) return null;   // pas de party → tous
+    const myParty = game.user.getFlag(MOD, "partyId");
+    const ids = new Set([game.user.id]);                       // toujours l'émetteur
+    if (myParty) {
+        for (const u of game.users) {
+            if (u.active && u.getFlag(MOD, "partyId") === myParty) ids.add(u.id);
+        }
+    }
+    return ids;
+}
+
+// Diffuse une action aux clients de la party (émetteur inclus). Chaque client
+// lit le son en local, donc restreindre les destinataires = son par party.
 function _broadcast(action, data = {}) {
     if (action === "play") playCueLocal(data);
     else if (action === "stop") stopAllCuesLocal(data.fade);
 
-    const others = game.users.filter(u => u.active && u.id !== game.user.id);
-    for (const u of others) {
+    const recips = _partyUserIds();   // null = tous
+    for (const u of game.users) {
+        if (u.id === game.user.id || !u.active) continue;
+        if (recips && !recips.has(u.id)) continue;
         u.query(`westmarch.sceneCue.${action}`, data).catch(e =>
             console.warn(`[${MOD}] cue → ${u.name} :`, e));
     }
 }
 
-// Lit un cue depuis le flag du token, en complétant par les valeurs par défaut.
-function _cueOf(tokenDoc) {
-    const c = tokenDoc?.getFlag(MOD, FLAG);
-    if (!c) return null;
-    return {
-        enabled: !!c.enabled,
-        path:    c.path ?? "",
-        offset:  Number(c.offset) || 0,
-        volume:  Number.isFinite(+c.volume) ? +c.volume : 0.8,
-        fade:    Number(c.fade) || 0,
-        loop:    !!c.loop
-    };
+// Joue un cue (objet complet) pour tout le monde.
+function playCueForAll(cue) {
+    if (!cue?.path) { ui.notifications?.warn("Ce cue n'a pas de fichier audio."); return; }
+    _broadcast("play", { path: cue.path, offset: cue.offset, volume: cue.volume, fade: cue.fade, loop: cue.loop });
 }
 
 // ============================================================
-// UI : bouton HUD (MJ) → fenêtre de configuration du cue
+// DONNÉES — liste centrale des cues (réglage monde)
+// ============================================================
+function getCues() {
+    const l = game.settings.get(MOD, "sceneCuesList");
+    return Array.isArray(l) ? l : [];
+}
+async function saveCues(list) {
+    await game.settings.set(MOD, "sceneCuesList", list);
+}
+function getCue(id) { return getCues().find(c => c.id === id) ?? null; }
+
+function newCue() {
+    return {
+        id: rid(),
+        name: "Nouveau cue",
+        path: "", offset: 0,
+        volume: Number(game.settings.get(MOD, "sceneCuesDefaultVolume")) || 0.8,
+        fade: 0, loop: false,
+        trigger: "manual",
+        tokenId: "", tokenName: "", sceneId: ""
+    };
+}
+
+async function upsertCue(cue) {
+    const list = getCues();
+    const i = list.findIndex(c => c.id === cue.id);
+    if (i >= 0) list[i] = cue; else list.push(cue);
+    await saveCues(list);
+}
+async function deleteCue(id) {
+    await saveCues(getCues().filter(c => c.id !== id));
+}
+
+// Cues liés à un token précis (par id de token sur la scène).
+function cuesForToken(tokenId) {
+    return getCues().filter(c => c.tokenId && c.tokenId === tokenId);
+}
+
+// ============================================================
+// GESTIONNAIRE (ApplicationV2)
+// ============================================================
+class SceneCuesApp extends foundry.applications.api.ApplicationV2 {
+    static DEFAULT_OPTIONS = {
+        id:       "scwm-scenecues",
+        classes:  ["scwm-scenecues"],
+        window:   { title: "Cues audio — Mise en scène", icon: "fa-solid fa-clapperboard", resizable: true },
+        position: { width: 640, height: 620 }
+    };
+
+    async _renderHTML() { return this.#buildHTML(); }
+    _replaceHTML(result, content) { content.innerHTML = result; this.#wire(content); }
+
+    #buildHTML() {
+        const cues = getCues();
+        const cards = cues.map(c => this.#card(c)).join("") ||
+            `<p class="scwm-cue-empty">Aucun cue préparé. Cliquez sur « Nouveau cue » pour commencer.</p>`;
+
+        return `
+        <div class="scwm-cue-manager">
+            <div class="scwm-cue-toolbar">
+                <button type="button" class="scwm-cue-add"><i class="fas fa-plus"></i> Nouveau cue</button>
+                <button type="button" class="scwm-cue-stopall"><i class="fas fa-stop"></i> Tout arrêter</button>
+            </div>
+            <div class="scwm-cue-list">${cards}</div>
+        </div>`;
+    }
+
+    #card(c) {
+        const trigOpts = Object.entries(CUE_TRIGGERS).map(([k, label]) =>
+            `<option value="${k}" ${c.trigger === k ? "selected" : ""}>${esc(label)}</option>`).join("");
+
+        const needsToken = c.trigger === "reveal";
+        const tokenRow = `
+            <div class="form-group scwm-cue-tokenrow" ${needsToken ? "" : 'style="opacity:.7"'}>
+                <label>Token lié</label>
+                <span class="scwm-cue-tokenname">${c.tokenName ? esc(c.tokenName) : "<em>aucun</em>"}</span>
+                <button type="button" class="scwm-cue-link" title="Lier au token sélectionné sur la scène">
+                    <i class="fas fa-link"></i> Lier au token sélectionné
+                </button>
+                ${c.tokenId ? `<button type="button" class="scwm-cue-unlink" title="Délier"><i class="fas fa-unlink"></i></button>` : ""}
+            </div>`;
+
+        return `
+        <div class="scwm-cue-card" data-cue-id="${c.id}">
+            <div class="scwm-cue-head">
+                <input type="text" class="scwm-cue-title" name="name" value="${esc(c.name)}" placeholder="Nom du cue"/>
+                <div class="scwm-cue-head-actions">
+                    <button type="button" class="scwm-cue-play" title="Jouer pour tous"><i class="fas fa-play"></i></button>
+                    <button type="button" class="scwm-cue-stop" title="Stop"><i class="fas fa-stop"></i></button>
+                    <button type="button" class="scwm-cue-del" title="Supprimer"><i class="fas fa-trash"></i></button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Fichier audio</label>
+                <div class="scwm-cue-file">
+                    <input type="text" name="path" value="${esc(c.path)}" placeholder="ex. music/reveal.ogg"/>
+                    <button type="button" class="scwm-cue-browse" title="Parcourir"><i class="fas fa-folder-open"></i></button>
+                </div>
+            </div>
+            <div class="scwm-cue-grid">
+                <div class="form-group"><label>Départ (s)</label><input type="number" name="offset" value="${c.offset}" min="0" step="0.1"/></div>
+                <div class="form-group"><label>Volume</label><input type="number" name="volume" value="${c.volume}" min="0" max="1" step="0.05"/></div>
+                <div class="form-group"><label>Fondu (ms)</label><input type="number" name="fade" value="${c.fade}" min="0" step="50"/></div>
+                <div class="form-group"><label>Boucle</label><input type="checkbox" name="loop" ${c.loop ? "checked" : ""}/></div>
+            </div>
+            <div class="form-group">
+                <label>Déclencheur</label>
+                <select name="trigger" class="scwm-cue-trigger">${trigOpts}</select>
+            </div>
+            ${tokenRow}
+        </div>`;
+    }
+
+    // Lit les valeurs d'une carte vers un objet cue (en repartant de l'existant
+    // pour préserver id / lien token).
+    #readCard(cardEl) {
+        const base = getCue(cardEl.dataset.cueId) ?? { id: cardEl.dataset.cueId };
+        const q = (sel) => cardEl.querySelector(sel);
+        return {
+            ...base,
+            name:    q("[name=name]").value.trim() || "Cue",
+            path:    q("[name=path]").value.trim(),
+            offset:  Number(q("[name=offset]").value) || 0,
+            volume:  Number(q("[name=volume]").value),
+            fade:    Number(q("[name=fade]").value) || 0,
+            loop:    q("[name=loop]").checked,
+            trigger: q("[name=trigger]").value
+        };
+    }
+
+    #wire(root) {
+        root.querySelector(".scwm-cue-add")?.addEventListener("click", async () => {
+            await upsertCue(newCue());
+            this.render();
+        });
+        root.querySelector(".scwm-cue-stopall")?.addEventListener("click", () => _broadcast("stop", { fade: 300 }));
+
+        root.querySelectorAll(".scwm-cue-card").forEach(card => {
+            const id = card.dataset.cueId;
+
+            // Sauvegarde silencieuse à chaque modification de champ (sans re-render).
+            card.querySelectorAll("input[name], select[name]").forEach(el => {
+                el.addEventListener("change", async () => {
+                    await upsertCue(this.#readCard(card));
+                    // Le changement de déclencheur modifie l'affichage → re-render.
+                    if (el.name === "trigger") this.render();
+                });
+            });
+
+            card.querySelector(".scwm-cue-browse")?.addEventListener("click", () => {
+                const FP = foundry.applications?.apps?.FilePicker?.implementation ?? globalThis.FilePicker;
+                const input = card.querySelector("[name=path]");
+                new FP({ type: "audio", current: input.value || "", callback: async (p) => {
+                    input.value = p; await upsertCue(this.#readCard(card));
+                } }).render(true);
+            });
+
+            card.querySelector(".scwm-cue-play")?.addEventListener("click", async () => {
+                await upsertCue(this.#readCard(card));
+                playCueForAll(getCue(id));
+            });
+            card.querySelector(".scwm-cue-stop")?.addEventListener("click", () => _broadcast("stop", { fade: 200 }));
+
+            card.querySelector(".scwm-cue-del")?.addEventListener("click", async () => {
+                await deleteCue(id);
+                this.render();
+            });
+
+            card.querySelector(".scwm-cue-link")?.addEventListener("click", async () => {
+                const tok = canvas.tokens?.controlled?.[0];
+                if (!tok) { ui.notifications?.warn("Sélectionnez d'abord un token sur la scène."); return; }
+                const cue = this.#readCard(card);
+                cue.tokenId = tok.id;
+                cue.tokenName = tok.name;
+                cue.sceneId = canvas.scene?.id ?? "";
+                await upsertCue(cue);
+                this.render();
+            });
+            card.querySelector(".scwm-cue-unlink")?.addEventListener("click", async () => {
+                const cue = this.#readCard(card);
+                cue.tokenId = ""; cue.tokenName = ""; cue.sceneId = "";
+                await upsertCue(cue);
+                this.render();
+            });
+        });
+    }
+}
+
+let _cuesApp = null;
+export function openSceneCues() {
+    if (!game.user.isGM) return;
+    _cuesApp ??= new SceneCuesApp();
+    _cuesApp.render(true);
+}
+
+// ============================================================
+// BOUTON HUD DU TOKEN — activer un cue préparé pour ce token
 // ============================================================
 function _injectHudButton(hud, html) {
     if (!game.user.isGM) return;
@@ -113,103 +332,45 @@ function _injectHudButton(hud, html) {
     const root = html instanceof HTMLElement ? html : html?.[0];
     if (!root) return;
 
-    const cue = _cueOf(token.document);
-    const active = cue?.enabled && cue?.path;
-
+    const linked = cuesForToken(token.id);
     const btn = document.createElement("div");
-    btn.className = `control-icon scwm-cue-btn${active ? " active" : ""}`;
-    btn.title = active ? "Cue audio (configuré) — clic pour régler" : "Cue audio — attacher un son";
+    btn.className = `control-icon scwm-cue-btn${linked.length ? " active" : ""}`;
+    btn.title = linked.length ? `Cues liés (${linked.length}) — clic pour jouer` : "Cues audio — aucun lié (ouvrir le gestionnaire)";
     btn.innerHTML = `<i class="fas fa-clapperboard"></i>`;
-    btn.addEventListener("click", () => _openCueConfig(token));
+    btn.addEventListener("click", () => _openTokenCuePicker(token));
 
     const col = root.querySelector(".col.left") ?? root.querySelector(".left") ?? root;
     col.appendChild(btn);
 }
 
-function _openCueConfig(token) {
-    const doc = token.document;
-    const cur = _cueOf(doc) ?? {
-        enabled: true, path: "", offset: 0,
-        volume: Number(game.settings.get(MOD, "sceneCuesDefaultVolume")) || 0.8,
-        fade: 0, loop: false
-    };
+function _openTokenCuePicker(token) {
+    const linked = cuesForToken(token.id);
+    const rows = linked.map(c => `
+        <div class="scwm-cue-pick" data-cue-id="${c.id}">
+            <span><i class="fas ${c.trigger === "reveal" ? "fa-eye" : "fa-play"}"></i> ${esc(c.name)}</span>
+            <span class="scwm-cue-pick-actions">
+                <button type="button" class="scwm-cue-pick-play" data-cue-id="${c.id}"><i class="fas fa-play"></i> Jouer</button>
+            </span>
+        </div>`).join("") ||
+        `<p>Aucun cue lié à ce token pour l'instant.</p>`;
 
-    const content = `
-    <div class="scwm-cue-form">
-      <p class="notes">Le son se déclenche pour <strong>tous les joueurs</strong> quand ce token
-      perd son invisibilité GM. Vous pouvez aussi le jouer manuellement ci-dessous.</p>
-      <div class="form-group">
-        <label>Activé</label>
-        <input type="checkbox" name="enabled" ${cur.enabled ? "checked" : ""}/>
-      </div>
-      <div class="form-group">
-        <label>Fichier audio</label>
-        <div style="display:flex; gap:4px; flex:1;">
-          <input type="text" name="path" value="${cur.path}" placeholder="ex. music/reveal.ogg" style="flex:1;"/>
-          <button type="button" class="scwm-cue-browse" title="Parcourir"><i class="fas fa-folder-open"></i></button>
-        </div>
-      </div>
-      <div class="form-group">
-        <label>Départ (secondes)</label>
-        <input type="number" name="offset" value="${cur.offset}" min="0" step="0.1"/>
-      </div>
-      <div class="form-group">
-        <label>Volume (0–1)</label>
-        <input type="number" name="volume" value="${cur.volume}" min="0" max="1" step="0.05"/>
-      </div>
-      <div class="form-group">
-        <label>Fondu d'entrée (ms)</label>
-        <input type="number" name="fade" value="${cur.fade}" min="0" step="50"/>
-      </div>
-      <div class="form-group">
-        <label>Boucle</label>
-        <input type="checkbox" name="loop" ${cur.loop ? "checked" : ""}/>
-      </div>
-      <div class="form-group scwm-cue-actions" style="justify-content:flex-end; gap:6px;">
-        <button type="button" class="scwm-cue-test"><i class="fas fa-headphones"></i> Tester (moi)</button>
-        <button type="button" class="scwm-cue-playall"><i class="fas fa-play"></i> Jouer pour tous</button>
-        <button type="button" class="scwm-cue-stop"><i class="fas fa-stop"></i> Stop</button>
-      </div>
-    </div>`;
-
-    const read = (root) => ({
-        enabled: root.querySelector("[name=enabled]").checked,
-        path:    root.querySelector("[name=path]").value.trim(),
-        offset:  Number(root.querySelector("[name=offset]").value) || 0,
-        volume:  Number(root.querySelector("[name=volume]").value),
-        fade:    Number(root.querySelector("[name=fade]").value) || 0,
-        loop:    root.querySelector("[name=loop]").checked
-    });
+    const content = `<div class="scwm-cue-picker">${rows}</div>`;
 
     new Dialog({
-        title: `Cue audio — ${token.name}`,
+        title: `Cues — ${token.name}`,
         content,
         buttons: {
-            save: {
-                icon: '<i class="fas fa-save"></i>', label: "Enregistrer",
-                callback: async (html) => {
-                    const root = html[0] ?? html;
-                    await doc.setFlag(MOD, FLAG, read(root));
-                    ui.notifications?.info("Cue audio enregistré.");
-                }
-            },
-            remove: {
-                icon: '<i class="fas fa-trash"></i>', label: "Retirer",
-                callback: async () => { await doc.unsetFlag(MOD, FLAG); ui.notifications?.info("Cue audio retiré."); }
-            },
-            close: { icon: '<i class="fas fa-times"></i>', label: "Fermer" }
+            manage: { icon: '<i class="fas fa-sliders"></i>', label: "Gérer les cues", callback: () => openSceneCues() },
+            close:  { icon: '<i class="fas fa-times"></i>', label: "Fermer" }
         },
-        default: "save",
+        default: "close",
         render: (html) => {
             const root = html[0] ?? html;
-            root.querySelector(".scwm-cue-browse")?.addEventListener("click", () => {
-                const FP = foundry.applications?.apps?.FilePicker?.implementation ?? globalThis.FilePicker;
-                const input = root.querySelector("[name=path]");
-                new FP({ type: "audio", current: input.value || "", callback: (p) => { input.value = p; } }).render(true);
-            });
-            root.querySelector(".scwm-cue-test")?.addEventListener("click", () => playCueLocal(read(root)));
-            root.querySelector(".scwm-cue-playall")?.addEventListener("click", () => _broadcast("play", read(root)));
-            root.querySelector(".scwm-cue-stop")?.addEventListener("click", () => _broadcast("stop", { fade: 300 }));
+            root.querySelectorAll(".scwm-cue-pick-play").forEach(b =>
+                b.addEventListener("click", () => {
+                    const cue = getCue(b.dataset.cueId);
+                    if (cue) playCueForAll(cue);
+                }));
         }
     }).render(true);
 }
@@ -218,33 +379,59 @@ function _openCueConfig(token) {
 // HOOKS
 // ============================================================
 export function SceneAudioHooks() {
-    // Handlers de diffusion (tous les clients doivent les enregistrer).
+    // Handlers de diffusion (tous les clients).
     CONFIG.queries["westmarch.sceneCue.play"] = async (d) => { await playCueLocal(d); return true; };
     CONFIG.queries["westmarch.sceneCue.stop"] = async (d) => { await stopAllCuesLocal(d?.fade); return true; };
 
-    // Bouton de configuration dans le HUD du token (MJ).
+    // Bouton dans la barre WestMarch (GM) → ouvre le gestionnaire.
+    Hooks.on("getSceneControlButtons", (controls) => {
+        if (!game.settings.get(MOD, "enableSceneCues")) return;
+        if (!game.user.isGM) return;
+        if (!controls.westmarch) {
+            controls.westmarch = { name: "westmarch", title: "WestMarch", icon: "fa-solid fa-hammer", layer: "tokens", tools: {} };
+        }
+        controls.westmarch.tools.sceneCues = {
+            name: "sceneCues",
+            title: "Cues audio — Mise en scène",
+            icon: "fa-solid fa-clapperboard",
+            button: true,
+            onChange: () => openSceneCues(),
+            visible: true
+        };
+    });
+
+    // Bouton HUD du token.
     Hooks.on("renderTokenHUD", (hud, html) => _injectHudButton(hud, html));
 
-    // Déclenchement AUTO : le token perd son invisibilité GM (hidden true → false).
+    // Déclencheur « Révélation » : token perd son invisibilité GM (hidden → false).
     Hooks.on("updateToken", (tokenDoc, changes) => {
         if (!game.settings.get(MOD, "enableSceneCues")) return;
-        if (!("hidden" in changes) || changes.hidden !== false) return;   // uniquement la révélation
+        if (!("hidden" in changes) || changes.hidden !== false) return;
         if (!game.user.isGM) return;
-        // Déduplication multi-GM : seul le GM actif diffuse.
         const activeGM = game.users.activeGM;
         if (activeGM && activeGM.id !== game.user.id) return;
 
-        const cue = _cueOf(tokenDoc);
-        if (!cue || !cue.enabled || !cue.path) return;
-        _broadcast("play", cue);
+        for (const cue of getCues()) {
+            if (cue.trigger === "reveal" && cue.tokenId === tokenDoc.id && cue.path) {
+                playCueForAll(cue);
+            }
+        }
     });
 
-    // Préchargement des cues de la scène → départ instantané au déclenchement.
+    // Déclencheur « Début de combat ».
+    Hooks.on("combatStart", () => {
+        if (!game.settings.get(MOD, "enableSceneCues")) return;
+        if (!game.user.isGM) return;
+        const activeGM = game.users.activeGM;
+        if (activeGM && activeGM.id !== game.user.id) return;
+        for (const cue of getCues()) {
+            if (cue.trigger === "combatStart" && cue.path) playCueForAll(cue);
+        }
+    });
+
+    // Préchargement des sons de la scène (départ instantané).
     Hooks.on("canvasReady", () => {
         if (!game.settings.get(MOD, "enableSceneCues")) return;
-        for (const t of canvas.tokens?.placeables ?? []) {
-            const cue = _cueOf(t.document);
-            if (cue?.enabled && cue.path) _getSound(cue.path);
-        }
+        for (const cue of getCues()) if (cue.path) _getSound(cue.path);
     });
 }

@@ -1,30 +1,130 @@
 /* ============================================================
-   sceneaudio.css — Mise en scène : cues audio
+   sceneaudio.css — Mise en scène : gestionnaire de cues audio
    ============================================================ */
 
-/* Bouton HUD du token (état configuré). */
+/* Bouton HUD du token (des cues sont liés). */
 .control-icon.scwm-cue-btn.active {
     color: #ffe3a3;
     box-shadow: 0 0 8px rgba(201, 148, 40, 0.7);
 }
 
-/* Fenêtre de configuration du cue. */
-.scwm-cue-form .form-group {
+/* ---- Gestionnaire ---- */
+.scwm-cue-manager {
     display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: 8px;
-    margin: 4px 0;
+    height: 100%;
 }
-.scwm-cue-form .form-group > label {
-    flex: 0 0 130px;
-    font-weight: 600;
+.scwm-cue-toolbar {
+    display: flex;
+    gap: 6px;
+    flex: 0 0 auto;
 }
-.scwm-cue-form .notes {
-    font-size: 12px;
-    opacity: 0.85;
-    margin-bottom: 8px;
-}
-.scwm-cue-form .scwm-cue-actions button {
+.scwm-cue-toolbar button {
     flex: 0 0 auto;
     white-space: nowrap;
 }
+.scwm-cue-list {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-right: 4px;
+}
+.scwm-cue-empty {
+    opacity: 0.7;
+    text-align: center;
+    padding: 20px;
+}
+
+.scwm-cue-card {
+    border: 1px solid rgba(201, 148, 40, 0.5);
+    border-radius: 6px;
+    padding: 8px 10px;
+    background: rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.scwm-cue-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.scwm-cue-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-weight: 600;
+}
+.scwm-cue-head-actions {
+    flex: 0 0 auto;
+    display: flex;
+    gap: 4px;
+}
+.scwm-cue-head-actions button {
+    flex: 0 0 auto;
+    width: 30px;
+    line-height: 1;
+}
+
+.scwm-cue-card .form-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+}
+.scwm-cue-card .form-group > label {
+    flex: 0 0 90px;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+.scwm-cue-file {
+    display: flex;
+    gap: 4px;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.scwm-cue-file input[type="text"] { flex: 1 1 auto; min-width: 0; }
+.scwm-cue-file .scwm-cue-browse { flex: 0 0 auto; width: 34px; line-height: 1; }
+
+.scwm-cue-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+}
+.scwm-cue-grid .form-group {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+}
+.scwm-cue-grid .form-group > label {
+    flex: none;
+    font-size: 11px;
+    opacity: 0.85;
+}
+.scwm-cue-grid input { width: 100%; }
+
+.scwm-cue-tokenrow {
+    flex-wrap: wrap;
+}
+.scwm-cue-tokenname {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-style: italic;
+    opacity: 0.9;
+}
+.scwm-cue-tokenrow button { flex: 0 0 auto; white-space: nowrap; }
+
+/* ---- Sélecteur de cues (HUD token) ---- */
+.scwm-cue-picker { display: flex; flex-direction: column; gap: 4px; }
+.scwm-cue-pick {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 4px 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.scwm-cue-pick-actions button { white-space: nowrap; }

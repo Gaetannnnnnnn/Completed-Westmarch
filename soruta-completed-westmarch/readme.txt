@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 2.2.0
+Version : 2.3.3
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -150,6 +150,38 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v2.3.3 | 2026-08-04
+   - Pause de party : affichage via le banner NATIF #pause ("Game Paused") au
+     lieu d un bandeau maison. Meme apparence que Foundry et compatibilite avec
+     les modules d habillage de la pause (glow bleu de Monk, etc.). Le banner
+     natif n est plus masque ; il est revele localement pour les membres de la
+     party en pause (partypause.js, partypause.css).
+
+v2.3.2 | 2026-08-04
+   - Pause de party : filet de securite. Si une pause GLOBALE s active malgre le
+     detournement de game.togglePause (macro, socket, module tiers), le GM actif
+     l annule aussitot et bascule a la place la pause de sa party — plus de
+     "pause qui stoppe toute la table" (partypause.js).
+
+v2.3.1 | 2026-08-04
+   - Cues audio : diffusion limitee a la PARTY du GM (flag partyId) au lieu de
+     toute la table. Chaque client lisant le son en local, on ne notifie que les
+     membres de la party (emetteur inclus). Si le systeme de Party est desactive,
+     diffusion a tous comme avant (sceneaudio.js).
+
+v2.3.0 | 2026-08-04
+   - Cues audio : refonte en gestionnaire central. Nouveau bouton "Cues audio"
+     dans la barre WestMarch (GM) ouvrant une fenetre de gestion. Les cues sont
+     stockes au niveau du monde (survivent a la suppression du token). Chaque
+     cue a un declencheur : Manuel, Revelation du token lie, ou Debut de combat.
+     On lie un cue au token selectionne ; depuis le HUD du token on rejoue les
+     cues lies. Prechargement + diffusion locale via queries v13. Remplace la
+     config par-token (sceneaudio.js, sceneaudio.css, settings.js).
+
+v2.2.1 | 2026-08-04
+   - Cues audio : correction de la mise en page de la ligne "Fichier audio"
+     (input ecrase par le bouton parcourir) (sceneaudio.css, sceneaudio.js).
 
 v2.2.0 | 2026-08-04
    - Nouveau : Mise en scene — Cues audio. Attache a un token un cue audio

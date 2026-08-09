@@ -77,7 +77,13 @@ Hooks.on("init", () => {
                 { urls: ["modules/soruta-completed-westmarch/fonts/EnchantedLand.otf"], weight: "400", style: "normal" }
             ]
         };
-    } catch (e) { console.warn("westmarch | Enregistrement de la police Enchanted Land :", e); }
+        CONFIG.fontDefinitions["Perry Gothic"] = {
+            editor: true,
+            fonts: [
+                { urls: ["modules/soruta-completed-westmarch/fonts/PerryGothic.ttf"], weight: "400", style: "normal" }
+            ]
+        };
+    } catch (e) { console.warn("westmarch | Enregistrement des polices :", e); }
 
     // Helpers Handlebars hérités de westmarch (utilisés par les templates de chat).
     Handlebars.registerHelper("for", function (from, to, incr, block) {

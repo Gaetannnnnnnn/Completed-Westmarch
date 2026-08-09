@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 2.4.1
+Version : 2.5.0
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -150,6 +150,11 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v2.5.0 | 2026-08-04
+   - Carnet : police de l editeur de notes remplacee par Perry Gothic
+     (fonts/PerryGothic.ttf). Declaree via CONFIG.fontDefinitions (dispo aussi
+     dans le menu de police de l editeur) (index.js, styles/carnet.css).
 
 v2.4.1 | 2026-08-04
    - Pause de party : correction "jeu coince en pause". Une pause GLOBALE

@@ -708,17 +708,17 @@
     color: #b94a5a;
 }
 
-/* ── Police par défaut de l'éditeur de notes : Enchanted Land ──── */
-/* Le fichier doit être déposé dans modules/soruta-completed-westmarch/fonts/EnchantedLand.otf */
+/* ── Police par défaut de l'éditeur de notes : Perry Gothic ──── */
+/* Le fichier est déposé dans modules/soruta-completed-westmarch/fonts/PerryGothic.ttf */
 @font-face {
-    font-family: "Enchanted Land";
-    src: url("../fonts/EnchantedLand.otf") format("opentype");
+    font-family: "Perry Gothic";
+    src: url("../fonts/PerryGothic.ttf") format("truetype");
     font-display: swap;
 }
 #carnet-note-editor,
 #carnet-note-editor .ProseMirror,
 .carnet-note-content {
-    font-family: "Enchanted Land", "Signika", sans-serif;
+    font-family: "Perry Gothic", "Signika", sans-serif;
     font-size: 18px;
 }
 
@@ -740,7 +740,7 @@
 }
 .carnet-grimoire .window-header .window-title {
     color: #e8d9b5 !important;
-    font-family: "Enchanted Land", "Signika", serif;
+    font-family: "Perry Gothic", "Signika", serif;
     letter-spacing: 0.03em;
 }
 
@@ -788,11 +788,11 @@
 .carnet-grimoire #carnet-note-editor h2 {
     color: #6e2617 !important;                 /* titre à l'encre rouge */
     border-bottom: 1px solid rgba(110,38,23,0.35) !important;
-    font-family: "Enchanted Land", "Signika", serif;
+    font-family: "Perry Gothic", "Signika", serif;
 }
 .carnet-grimoire #carnet-note-editor h3 {
     color: #7a4a1c !important;                 /* sous-titre encre brune */
-    font-family: "Enchanted Land", "Signika", serif;
+    font-family: "Perry Gothic", "Signika", serif;
 }
 .carnet-grimoire #carnet-note-editor a { color: #7a3410 !important; }
 .carnet-grimoire #carnet-note-editor hr {

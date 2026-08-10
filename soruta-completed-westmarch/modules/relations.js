@@ -10,6 +10,7 @@
 // ============================================================
 
 import { MOD } from "./const.js";
+import { commonFolderPJ, commonFolderPNJ, commonPackPNJ, commonPackCemetery } from "./settings.js";
 export const MODULE = MOD;
 
 // ---- État de session ---------------------------------------
@@ -103,8 +104,8 @@ function isInFolder(actor, folderId) {
     return false;
 }
 
-function isInPJFolder(actor)        { return isInFolder(actor, game.settings.get(MOD, "relationsFolderPJ")); }
-function isInPNJFolder(actor)       { return isInFolder(actor, game.settings.get(MOD, "relationsFolderPNJ")); }
+function isInPJFolder(actor)        { return isInFolder(actor, commonFolderPJ()); }
+function isInPNJFolder(actor)       { return isInFolder(actor, commonFolderPNJ()); }
 
 // Acteurs disponibles pour une nouvelle relation
 // (dossiers "PJ" et "PNJ", excluant soi-même et les déjà-liés)
@@ -273,8 +274,8 @@ function buildPickerHtml(pj, uid) {
         else if (isInPNJFolder(a))                     pnjs.push(   { key: a.id, name: a.name, img: a.img, source: "pnj", isPack: false });
     }
     // Compendiums (référence simple) : cimetière → Joueurs, PNJ → PNJ.
-    joueurs.push(...packEntries(game.settings.get(MOD, "relationsPackCemetery"), "pj",  existing));
-    pnjs.push(   ...packEntries(game.settings.get(MOD, "relationsPackPNJ"),      "pnj", existing));
+    joueurs.push(...packEntries(commonPackCemetery(), "pj",  existing));
+    pnjs.push(   ...packEntries(commonPackPNJ(),      "pnj", existing));
 
     const byName = (a, b) => a.name.localeCompare(b.name);
     joueurs.sort(byName); pnjs.sort(byName);
@@ -334,7 +335,7 @@ async function openAddDialog(actor) {
     let result = null;
 
     // Précharge l'index des compendiums configurés (accès synchrone ensuite).
-    for (const col of [game.settings.get(MOD, "relationsPackCemetery"), game.settings.get(MOD, "relationsPackPNJ")]) {
+    for (const col of [commonPackCemetery(), commonPackPNJ()]) {
         const p = col ? game.packs.get(col) : null;
         if (p) { try { await p.getIndex(); } catch (e) {} }
     }

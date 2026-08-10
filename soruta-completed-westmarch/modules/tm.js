@@ -1,4 +1,5 @@
 import { MOD, TM_DEFAULT_SCROLL, TM_DEFAULT_MAGIC } from "./const.js";
+import { commonPackCraft } from "./settings.js";
 // ============================================================
 // tm.js — Temps morts : déclaration joueur + validation GM
 //
@@ -495,7 +496,7 @@ async function grantCraftedItem(actor, craftName, craftUuid) {
         }
 
         // 2) Repli : recherche par nom dans le compendium configuré.
-        const coll = game.settings.get(MOD, "tmCraftPack");
+        const coll = commonPackCraft();
         if (!coll) return null;
         const pack = game.packs.get(coll);
         if (!pack || pack.documentName !== "Item") return null;
@@ -523,7 +524,7 @@ async function grantCraftedItem(actor, craftName, craftUuid) {
 // Sélecteur d'objets (barre de recherche) lié au compendium craftable configuré.
 // Retourne { uuid, name, priceGp } ou null.
 async function pickCraftItem() {
-    const coll = game.settings.get(MOD, "tmCraftPack");
+    const coll = commonPackCraft();
     if (!coll) { ui.notifications?.warn("Aucun compendium d'objets craftables configuré (réglages → Temps morts)."); return null; }
     const pack = game.packs.get(coll);
     if (!pack || pack.documentName !== "Item") { ui.notifications?.warn("Le compendium configuré n'est pas un compendium d'objets."); return null; }

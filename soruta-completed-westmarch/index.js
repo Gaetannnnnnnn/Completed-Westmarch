@@ -9,7 +9,7 @@
 // © 2026 Soruta.
 // ============================================================
 
-import { registerSettings } from "./modules/settings.js";
+import { registerSettings, migrateCommonResources } from "./modules/settings.js";
 import { MigrationHooks }    from "./modules/migration.js";
 
 // --- Phase 2 : Fiche PJ (Relations / Bestiaire / Carnet & Expéditions) ---
@@ -160,6 +160,10 @@ Hooks.on("ready", () => {
     // Midi Range Fix : enregistré en "ready" (pas "init") pour passer APRÈS
     // le listener canvasReady de midi-qol (qui s'inscrit lui-même en "ready").
     RangeFixHooks();
+
+    // Recopie une fois les anciens dossiers/compendiums par feature vers la
+    // nouvelle section commune « Dossiers & Compendiums ».
+    migrateCommonResources();
 
     // Fiche démo du tutoriel : créée une fois au premier chargement GM.
     ensureTutorialActor();

@@ -10,6 +10,42 @@ import { MOD, TUTO_TOGGLES, TM_DEFAULT_SCROLL, TM_DEFAULT_MAGIC } from "./const.
 import { applyHotbarVisibility } from "./hotbar.js";
 import { applyPartyPause } from "./partypause.js";
 
+// ============================================================
+// Ressources communes — accès centralisé (avec repli sur les anciennes clés
+// par feature, pour ne rien casser tant que la migration n'a pas tourné).
+// ============================================================
+export const commonFolderPJ       = () => game.settings.get(MOD, "commonFolderPJ")       || game.settings.get(MOD, "relationsFolderPJ")    || game.settings.get(MOD, "bestiaryFolderPJ") || "";
+export const commonFolderPNJ      = () => game.settings.get(MOD, "commonFolderPNJ")      || game.settings.get(MOD, "relationsFolderPNJ")   || "";
+export const commonFolderNewChars = () => game.settings.get(MOD, "commonFolderNewChars") || game.settings.get(MOD, "charValidationFolder") || "";
+export const commonPackPNJ        = () => game.settings.get(MOD, "commonPackPNJ")        || game.settings.get(MOD, "relationsPackPNJ")     || "";
+export const commonPackCemetery   = () => game.settings.get(MOD, "commonPackCemetery")   || game.settings.get(MOD, "relationsPackCemetery")|| "";
+export const commonPackCreatures  = () => game.settings.get(MOD, "commonPackCreatures")  || game.settings.get(MOD, "bestiaryPackCreatures")|| "";
+export const commonPackCraft      = () => game.settings.get(MOD, "commonPackCraft")      || game.settings.get(MOD, "tmCraftPack")          || "";
+
+// Recopie une seule fois les anciennes valeurs par feature vers les clés
+// communes, pour qu'elles s'affichent dans la nouvelle section centrale.
+export async function migrateCommonResources() {
+    if (!game.user.isGM) return;
+    if (game.settings.get(MOD, "commonResourcesMigrated")) return;
+    const map = {
+        commonFolderPJ:       ["relationsFolderPJ", "bestiaryFolderPJ"],
+        commonFolderPNJ:      ["relationsFolderPNJ"],
+        commonFolderNewChars: ["charValidationFolder"],
+        commonPackPNJ:        ["relationsPackPNJ"],
+        commonPackCemetery:   ["relationsPackCemetery"],
+        commonPackCreatures:  ["bestiaryPackCreatures"],
+        commonPackCraft:      ["tmCraftPack"]
+    };
+    for (const [dest, srcs] of Object.entries(map)) {
+        if (game.settings.get(MOD, dest)) continue;
+        for (const s of srcs) {
+            const v = game.settings.get(MOD, s);
+            if (v) { await game.settings.set(MOD, dest, v); break; }
+        }
+    }
+    await game.settings.set(MOD, "commonResourcesMigrated", true);
+}
+
 // Settings dont l'utilité dépend entièrement du système de party.
 export const PARTY_DEPENDENT_SETTINGS = [
     "enableJoinScene",
@@ -43,6 +79,36 @@ const S = (name, hint, def = "") => ({
 });
 
 export function registerSettings() {
+
+    // ============================================================
+    // DOSSIERS & COMPENDIUMS COMMUNS
+    // Renseignés une seule fois ici ; lus par toutes les fonctions
+    // (Relations, Bestiaire, Création de perso, Temps morts).
+    // ============================================================
+    game.settings.register(MOD, "commonFolderPJ", S(
+        "Dossier des PJ",
+        "Dossier d'acteurs contenant les personnages joueurs. Utilisé par Relations et Bestiaire pour reconnaître les PJ."));
+    game.settings.register(MOD, "commonFolderPNJ", S(
+        "Dossier des PNJ",
+        "Dossier d'acteurs des PNJ récurrents (alliés, marchands, figures importantes). Utilisé par Relations."));
+    game.settings.register(MOD, "commonFolderNewChars", S(
+        "Dossier des nouveaux personnages",
+        "Dossier où sont créés les personnages validés (Création de personnages)."));
+    game.settings.register(MOD, "commonPackPNJ", S(
+        "Compendium des PNJ",
+        "Compendium d'acteurs PNJ. Ses personnages sont proposés dans le sélecteur de relations (groupe PNJ)."));
+    game.settings.register(MOD, "commonPackCemetery", S(
+        "Compendium du cimetière",
+        "Compendium d'acteurs (anciens PJ / cimetière). Proposé dans le sélecteur de relations (groupe Joueurs)."));
+    game.settings.register(MOD, "commonPackCreatures", S(
+        "Compendium des créatures",
+        "Compendium d'acteurs créatures. Utilisé par le Bestiaire (ajout et reconnaissance des créatures)."));
+    game.settings.register(MOD, "commonPackCraft", S(
+        "Compendium des objets craftables",
+        "Compendium d'OBJETS (ex. importé via Plutonium). Utilisé par l'artisanat des temps morts pour attribuer l'objet fabriqué."));
+    game.settings.register(MOD, "commonResourcesMigrated", {
+        scope: "world", config: false, type: Boolean, default: false, requiresReload: false
+    });
 
     // ============================================================
     // WESTMARCH — Système de party (core)
@@ -454,27 +520,30 @@ function registerCategoryToggles() {
 // firstKey = clé devant laquelle insérer l'en-tête de catégorie.
 // ============================================================
 const CATEGORIES = [
+    { firstKey: "commonFolderPJ", icon: "fa-folder-tree", title: "Dossiers & Compendiums",
+      desc: "Dossiers et compendiums communs, renseignés une seule fois ici et utilisés par toutes les fonctions (Relations, Bestiaire, Création de personnages, Temps morts).",
+      keys: ["commonFolderPJ","commonFolderPNJ","commonFolderNewChars","commonPackPNJ","commonPackCemetery","commonPackCreatures","commonPackCraft"] },
     { firstKey: "enableParty", master: "enableParty",           icon: "fa-users",           title: "Système de Party",
       desc: "Groupes de joueurs : chat filtré, combat par party, téléportation de groupe, journal de session, anti-cheat.",
       keys: ["enableParty","enableJoinScene","enableShowParty","enablePlayerGrouping","enableGoWithPartyScenes","enableGoWithPartyJournal","enableChatFilter","enableSessionLog","sessionLogWebhookUrl","enableCombatParty","enableCombatTurnLock","enablePartyPause","enableAntiCheat"] },
     { firstKey: "enableCharValidation", master: "enableCharValidation", icon: "fa-id-card", title: "Création de personnages",
-      desc: "Les joueurs demandent la création d'un personnage ; un GM valide depuis le Casier (acteur créé dans le dossier choisi, joueur propriétaire), puis le joueur construit et soumet sa fiche ; à la validation elle est verrouillée (construction non modifiable côté joueur, jeu libre).",
-      keys: ["enableCharValidation","charValidationFolder"] },
+      desc: "Les joueurs demandent la création d'un personnage ; un GM valide depuis le Casier, puis le joueur construit et soumet sa fiche ; à la validation elle est verrouillée. Le dossier de destination se règle dans « Dossiers & Compendiums ».",
+      keys: ["enableCharValidation"] },
     { firstKey: "enableXpBlock",         icon: "fa-server",          title: "Serveur",
       desc: "Personnalisations du serveur : blocage XP / Level Up, logs Discord, webhooks.",
       keys: ["enableXpBlock","enableDiscordLog","discordLogWebhookUrl","downtimeWebhookUrl","tmWebhookUrl"] },
     { firstKey: "tmSkillBase", master: "tmEnabled", icon: "fa-hourglass-half",  title: "Temps morts",
       desc: "Règles configurables des temps morts : valeurs, formules (gain de compétence, artisanat) et tables (parchemins, objets magiques). Chaque serveur peut avoir ses propres règles.",
-      keys: ["tmEnabled","tmSkillBase","tmAddAbilityMod","tmBonusMaitrise","tmBonusExpertise","tmBonusTools","tmRollMinDays","tmSkillFormula","tmCraftNonMagicCostDiv","tmCraftNonMagicDaysPerGp","tmCraftNonMagicCostFormula","tmCraftNonMagicDaysFormula","tmSingleUseFactor","tmScrollTable","tmMagicTable","tmCraftPack"] },
+      keys: ["tmEnabled","tmSkillBase","tmAddAbilityMod","tmBonusMaitrise","tmBonusExpertise","tmBonusTools","tmRollMinDays","tmSkillFormula","tmCraftNonMagicCostDiv","tmCraftNonMagicDaysPerGp","tmCraftNonMagicCostFormula","tmCraftNonMagicDaysFormula","tmSingleUseFactor","tmScrollTable","tmMagicTable"] },
     { firstKey: "enableTokenAppearance", icon: "fa-toolbox",         title: "Toolkit",
       desc: "Apparences de tokens, transformations, tailles Large, TGCM, utilitaires GM, templates AoE, boutiques MEJ et réapprovisionnement.",
       keys: ["enableTokenAppearance","enableTokenPortraitButton","enableRageSize","enableLargeForm","enablePolymorph","enableTgcm","enableFolderMove","enableToolAbilityFix","enableHideHotbar","enableHideHotbarGM","enableConnStats","enablePlayerListCompact","enableTemplateSnap","enableMejShopFix","enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
     { firstKey: "relationsEnabled", master: "relationsEnabled",      icon: "fa-heart",           title: "Fiche PJ — Relations",
       desc: "Onglet Relations : liens entre personnages, détection automatique des rencontres, anonymisation.",
-      keys: ["relationsEnabled","relationsAnonymization","relationsFolderPJ","relationsFolderPNJ","relationsPackPNJ","relationsPackCemetery"] },
+      keys: ["relationsEnabled","relationsAnonymization"] },
     { firstKey: "bestiaryEnabled", master: "bestiaryEnabled",       icon: "fa-dragon",          title: "Fiche PJ — Bestiaire",
       desc: "Onglet Bestiaire : créatures rencontrées, répertoriées par personnage.",
-      keys: ["bestiaryEnabled","bestiaryAnonymization","bestiaryFolderPJ","bestiaryPackCreatures"] },
+      keys: ["bestiaryEnabled","bestiaryAnonymization"] },
     { firstKey: "carnetEnabled", master: "carnetEnabled",         icon: "fa-book-open",       title: "Fiche PJ — Carnet & Expéditions",
       desc: "Onglets Carnet (notes enrichies) et Expéditions (dates + durée).",
       keys: ["carnetEnabled","enablePcStatus"] },
@@ -648,8 +717,8 @@ function settingControlHtml(key) {
     } else if (key.includes("Folder")) {
         control = `<select name="${key}" style="width:100%;">${folderOptionsHtml(val)}</select>`;
     } else if (key.includes("Pack")) {
-        // tmCraftPack = compendium d'OBJETS ; les autres = compendiums d'acteurs.
-        const docType = key === "tmCraftPack" ? "Item" : "Actor";
+        // Les compendiums d'OBJETS (craft) vs d'ACTEURS.
+        const docType = (key === "tmCraftPack" || key === "commonPackCraft") ? "Item" : "Actor";
         control = `<select name="${key}" style="width:100%;">${packOptionsHtml(val, docType)}</select>`;
     } else if (key === "expeditionMapSceneId") {
         control = `<select name="${key}" style="width:100%;">${sceneOptionsHtml(val)}</select>`;

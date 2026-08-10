@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 2.10.1
+Version : 2.11.0
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -150,6 +150,15 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v2.11.0 | 2026-08-04
+   - Reglages : nouvelle section "Dossiers & Compendiums" en tete, qui regroupe
+     en un seul endroit les dossiers/compendiums communs (PJ, PNJ, cimetiere,
+     creatures, objets craftables, nouveaux persos). Les champs dupliques ont
+     ete retires des sections Relations/Bestiaire/Temps morts/Creation de perso ;
+     toutes les fonctions lisent ces valeurs centrales. Les valeurs deja saisies
+     sont recopiees automatiquement (migration unique). (settings.js, relations.js,
+     bestiary.js, tm.js, charvalidation.js, index.js).
 
 v2.10.1 | 2026-08-04
    - Tutoriel (Caracteristiques) : le halo cible desormais directement les six

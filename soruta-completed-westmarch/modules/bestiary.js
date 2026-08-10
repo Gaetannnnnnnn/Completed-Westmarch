@@ -11,6 +11,7 @@
 // ============================================================
 
 import { MOD } from "./const.js";
+import { commonFolderPJ, commonPackCreatures } from "./settings.js";
 export const MODULE = MOD;
 
 // ---- État de session ---------------------------------------
@@ -82,12 +83,12 @@ function isInFolder(actor, folderId) {
     }
     return false;
 }
-function isInPJFolder(actor) { return isInFolder(actor, game.settings.get(MOD, "bestiaryFolderPJ")); }
+function isInPJFolder(actor) { return isInFolder(actor, commonFolderPJ()); }
 
 // Créatures disponibles pour ajout manuel (compendium en priorité, sinon dossier monde)
 async function availableCreatures(actor) {
     const existing = new Set(beastList(actor).map(e => e.targetId));
-    const packId   = game.settings.get(MOD, "bestiaryPackCreatures");
+    const packId   = commonPackCreatures();
     const pack     = packId ? game.packs.get(packId) : null;
     if (!pack) return [];
     const docs = await pack.getDocuments();
@@ -100,7 +101,7 @@ async function availableCreatures(actor) {
 let _creatureIndex = null;
 let _creatureIndexPack = null;
 async function ensureCreatureIndex() {
-    const packId = game.settings.get(MOD, "bestiaryPackCreatures");
+    const packId = commonPackCreatures();
     if (!packId) { _creatureIndex = null; _creatureIndexPack = null; return; }
     if (_creatureIndex && _creatureIndexPack === packId) return;
     const pack = game.packs.get(packId);
@@ -119,7 +120,7 @@ async function ensureCreatureIndex() {
 function isCreatureToken(token) {
     const actor = token.actor;
     if (!actor?.id) return false;
-    const packId = game.settings.get(MOD, "bestiaryPackCreatures");
+    const packId = commonPackCreatures();
     if (!packId) return false;
     // (1) token directement lié à un acteur du compendium
     if (actor.pack === packId) return true;

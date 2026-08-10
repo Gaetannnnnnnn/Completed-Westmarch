@@ -21,6 +21,7 @@
 // ============================================================
 
 import { MOD } from "./const.js";
+import { commonFolderNewChars } from "./settings.js";
 
 // ---- Frontière construction / jeu -------------------------------------------
 // Chemins d'acteur relevant de la CONSTRUCTION (verrouillés).
@@ -53,7 +54,7 @@ export function myCharActor() {
 }
 
 async function ensureFolder() {
-    const val = game.settings.get(MOD, "charValidationFolder");
+    const val = commonFolderNewChars();
     const looksLikeId = (s) => /^[A-Za-z0-9]{16}$/.test(s ?? "");
     if (val) {
         // Le sélecteur de dossier stocke un id ; on l'accepte en priorité.

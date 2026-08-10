@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 2.5.0
+Version : 2.9.0
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -150,6 +150,50 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v2.9.0 | 2026-08-04
+   - Artisanat : selecteur d objet lie au compendium. Dans le formulaire de craft,
+     un bouton (livre) ouvre la liste des objets du compendium configure avec
+     barre de recherche ; le choix remplit le nom, le prix et memorise l objet
+     exact (uuid). A la fin du craft, CET objet est ajoute a la fiche (repli sur
+     recherche par nom si aucun objet n a ete choisi) (tm.js).
+
+v2.8.0 | 2026-08-04
+   - Temps morts : la fenetre GM s ouvre desormais depuis le Casier (bouton
+     "Temps morts" du dashboard) ; l icone dediee est retiree de la barre
+     WestMarch (tm.js, casier.js).
+   - Artisanat : a la fin d un craft, l objet est ajoute AUTOMATIQUEMENT a la
+     fiche du joueur, cherche par nom dans un compendium d objets configure
+     (reglage "Artisanat — Compendium des objets craftables"). Introuvable =
+     rappel manuel comme avant (tm.js, settings.js).
+
+v2.7.0 | 2026-08-04
+   - Nouveau : Validation des personnages (tickets). Le joueur demande la
+     creation d un perso (bouton "Mon personnage" dans la barre WestMarch) ;
+     n importe quel GM valide depuis le Casier (onglet Validation) -> un acteur
+     est cree dans un dossier dedie, le joueur en devient proprietaire. Il le
+     construit (imports Plutonium compris) puis le soumet ; a la validation la
+     fiche est VERROUILLEE : construction non modifiable cote joueur (caracs,
+     maitrises, classe/espece/historique/aptitudes/sorts appris), jeu libre
+     (tout ce que surveille anticheat + PV, monnaie, conditions...). Un badge
+     "A valider" / "Level up" s affiche sur la ligne de l acteur, entre le nom
+     et le statut d expedition. Respec/level-up prevus pour plus tard
+     (charvalidation.js, charvalidation.css, casier.js, settings.js, index.js).
+
+v2.6.0 | 2026-08-04
+   - Cues audio : le gestionnaire gagne des SECTIONS (en-tetes repliables qui
+     regroupent les cues) et le repli/depli de chaque cue, plus des fleches
+     monter/descendre pour organiser. Etat de repli et ordre memorises
+     (sceneaudio.js, sceneaudio.css).
+
+v2.5.2 | 2026-08-04
+   - Tutoriel (Caracteristiques) : le halo ne prend plus que la rangee des six
+     boucliers (.ability-scores .bottom) au lieu de tout le conteneur qui
+     debordait sur les Skills/Saving Throws (tutorial.js).
+
+v2.5.1 | 2026-08-04
+   - Tutoriel : l etape sur l Inspiration heroique precise qu elle ne vient pas
+     que du MJ (aussi aptitudes, especes, autres sources) (tutorial.js).
 
 v2.5.0 | 2026-08-04
    - Carnet : police de l editeur de notes remplacee par Perry Gothic

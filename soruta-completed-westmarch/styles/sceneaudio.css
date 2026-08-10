@@ -24,6 +24,37 @@
     flex: 0 0 auto;
     white-space: nowrap;
 }
+.scwm-cue-toolbar-sep { flex: 1 1 auto; }
+
+/* ---- Section (en-tête repliable) ---- */
+.scwm-cue-section {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    margin-top: 4px;
+    border-radius: 6px;
+    background: linear-gradient(90deg, rgba(201,148,40,0.22), rgba(201,148,40,0.06));
+    border: 1px solid rgba(201, 148, 40, 0.5);
+}
+.scwm-cue-section .scwm-cue-sec-icon { flex: 0 0 auto; color: #ffe3a3; }
+.scwm-cue-sec-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-weight: 700;
+    background: transparent;
+    border: none;
+}
+.scwm-cue-sec-collapse,
+.scwm-cue-collapse {
+    flex: 0 0 auto;
+    width: 26px;
+    line-height: 1;
+    background: none;
+    border: none;
+}
+.scwm-cue-move { flex: 0 0 auto; display: flex; gap: 4px; }
+.scwm-cue-move button { width: 28px; line-height: 1; }
 .scwm-cue-list {
     flex: 1 1 auto;
     overflow-y: auto;

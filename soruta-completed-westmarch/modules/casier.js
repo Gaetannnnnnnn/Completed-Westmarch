@@ -15,6 +15,11 @@ import { getExpeditions, formatDate } from "./carnet.js";
 import {
     getSessionDrafts, saveSessionDraft, deleteSessionDraft, sendSessionReport
 } from "./session.js";
+import {
+    getCreationRequests, approveCreation, rejectCreation,
+    getPendingActors, validateActor, returnActor
+} from "./charvalidation.js";
+import { openDowntimeDialog } from "./tm.js";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -114,11 +119,15 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
     #buildHTML() {
         const drafts = myDrafts();
 
+        const cvEnabled = game.settings.get(MOD, "enableCharValidation");
+        const cvCount = cvEnabled ? (getCreationRequests().length + getPendingActors().length) : 0;
+
         const TABS = [
             { key: "dashboard",   icon: "fa-gauge-high", label: "Dashboard" },
             { key: "reports",     icon: "fa-scroll",     label: `Rapports${drafts.length ? ` (${drafts.length})` : ""}` },
             { key: "expeditions", icon: "fa-route",      label: "Expéditions" },
-            { key: "gms",         icon: "fa-users-gear", label: "Suivi des GM" }
+            { key: "gms",         icon: "fa-users-gear", label: "Suivi des GM" },
+            ...(cvEnabled ? [{ key: "validation", icon: "fa-id-card", label: `Validation${cvCount ? ` (${cvCount})` : ""}` }] : [])
         ];
         const tabsHtml = TABS.map(t => `
             <button type="button" class="scwm-casier-tab ${this.#tab === t.key ? "active" : ""}" data-tab="${t.key}">
@@ -144,6 +153,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             detail = draft ? this.#draftDetail(draft) : `<div class="scwm-casier-placeholder"><i class="fas fa-book-open"></i><p>Sélectionnez un rapport à finaliser dans le livret.</p></div>`;
         }
         else if (this.#tab === "expeditions") detail = this.#expeditionsDetail();
+        else if (this.#tab === "validation")  detail = this.#validationDetail();
         else                                  detail = this.#gmsDetail();
 
         return `
@@ -169,6 +179,11 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                     <div class="scwm-casier-stat"><b>${exps.length}</b><span>Expédition(s) en cours</span></div>
                 </div>
 
+                ${game.settings.get(MOD, "tmEnabled") ? `
+                <div class="scwm-casier-quickactions">
+                    <button type="button" class="scwm-casier-open-tm"><i class="fas fa-hourglass-half"></i> Temps morts</button>
+                </div>` : ""}
+
                 <h3>Présentation</h3>
                 <textarea class="scwm-casier-presentation" rows="8"
                     placeholder="Présentez-vous, vos critères, vos horaires… (visible ici, sauvegardé automatiquement)">${esc(getPresentation(game.user.id))}</textarea>
@@ -192,6 +207,49 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                         </div>
                         ${x.participants.length ? `<div class="scwm-casier-exp-parts">${x.participants.map(p => esc(p.name)).join(", ")}</div>` : ""}
                     </div>`).join("")}
+            </div>`;
+    }
+
+    // ---- Onglet Validation des personnages ----
+    #validationDetail() {
+        const reqs = getCreationRequests();
+        const pend = getPendingActors();
+
+        const reqRows = reqs.length ? reqs.map(r => `
+            <div class="scwm-casier-cv-row" data-cv-user="${esc(r.userId)}">
+                <div class="scwm-cv-info">
+                    <strong>${esc(r.name || "Sans nom")}</strong> — <em>${esc(r.userName)}</em>
+                    ${r.concept ? `<br><small>${esc(r.concept)}</small>` : ""}
+                </div>
+                <div class="scwm-cv-row-actions">
+                    <button type="button" class="scwm-cv-approve" data-user="${esc(r.userId)}"><i class="fas fa-check"></i> Créer &amp; assigner</button>
+                    <button type="button" class="scwm-cv-reject" data-user="${esc(r.userId)}"><i class="fas fa-times"></i> Refuser</button>
+                </div>
+            </div>`).join("") : `<div class="scwm-casier-empty">Aucune demande de création.</div>`;
+
+        const pendRows = pend.length ? pend.map(a => `
+            <div class="scwm-casier-cv-row" data-cv-actor="${esc(a.id)}">
+                <div class="scwm-cv-info">
+                    <strong>${esc(a.name)}</strong> — <em>${esc(a.ownerName)}</em>
+                </div>
+                <div class="scwm-cv-row-actions">
+                    <button type="button" class="scwm-cv-openactor" data-actor="${esc(a.id)}" title="Ouvrir la fiche"><i class="fas fa-user"></i></button>
+                    <button type="button" class="scwm-cv-validate" data-actor="${esc(a.id)}"><i class="fas fa-lock"></i> Valider &amp; verrouiller</button>
+                    <button type="button" class="scwm-cv-return" data-actor="${esc(a.id)}"><i class="fas fa-rotate-left"></i> Renvoyer</button>
+                </div>
+            </div>`).join("") : `<div class="scwm-casier-empty">Aucune fiche à valider.</div>`;
+
+        return `
+            <div class="scwm-casier-detail scwm-casier-validation">
+                <h2><i class="fas fa-id-card"></i> Validation des personnages</h2>
+                <div class="scwm-casier-cv-section">
+                    <h3>Demandes de création</h3>
+                    ${reqRows}
+                </div>
+                <div class="scwm-casier-cv-section">
+                    <h3>Fiches à valider</h3>
+                    ${pendRows}
+                </div>
             </div>`;
     }
 
@@ -268,6 +326,16 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                 this.#selectedId = pg.dataset.draftId;
                 this.render();
             }));
+
+        // ---- Onglet Validation ----
+        root.querySelectorAll(".scwm-cv-approve").forEach(b => b.addEventListener("click", async () => { await approveCreation(b.dataset.user); this.render(); refreshCasierBadge(); }));
+        root.querySelectorAll(".scwm-cv-reject").forEach(b => b.addEventListener("click", async () => { await rejectCreation(b.dataset.user); this.render(); refreshCasierBadge(); }));
+        root.querySelectorAll(".scwm-cv-validate").forEach(b => b.addEventListener("click", async () => { await validateActor(b.dataset.actor); this.render(); refreshCasierBadge(); }));
+        root.querySelectorAll(".scwm-cv-return").forEach(b => b.addEventListener("click", async () => { await returnActor(b.dataset.actor); this.render(); refreshCasierBadge(); }));
+        root.querySelectorAll(".scwm-cv-openactor").forEach(b => b.addEventListener("click", () => game.actors.get(b.dataset.actor)?.sheet.render(true)));
+
+        // Accès rapide aux temps morts depuis le dashboard.
+        root.querySelector(".scwm-casier-open-tm")?.addEventListener("click", () => openDowntimeDialog());
 
         // Présentation du dashboard : sauvegarde à la perte de focus.
         const pres = root.querySelector(".scwm-casier-presentation");

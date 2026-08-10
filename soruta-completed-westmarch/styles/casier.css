@@ -264,3 +264,7 @@
     color: #e08070;
 }
 .scwm-casier-delete:hover { background: rgba(192,57,43,0.24); }
+
+/* Actions rapides du dashboard (ex. ouvrir les temps morts). */
+.scwm-casier-quickactions { margin: 8px 0; display: flex; gap: 6px; flex-wrap: wrap; }
+.scwm-casier-quickactions button { flex: 0 0 auto; white-space: nowrap; }

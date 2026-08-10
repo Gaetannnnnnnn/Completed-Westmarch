@@ -1,0 +1,56 @@
+/* ============================================================
+   charvalidation.css — Validation des personnages
+   ============================================================ */
+
+/* Badge d'état dans le répertoire des Acteurs (entre le nom et l'expédition). */
+.scwm-cv-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex: 0 0 auto;
+    margin-left: 8px;
+    padding: 1px 7px;
+    border-radius: 9px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .2px;
+    white-space: nowrap;
+    border: 1px solid transparent;
+    pointer-events: none;
+}
+.scwm-cv-badge i { font-size: 9px; }
+
+.scwm-cv-badge-pending {
+    color: #ffe3a3;
+    background: rgba(201, 148, 40, 0.22);
+    border-color: rgba(201, 148, 40, 0.6);
+}
+.scwm-cv-badge-levelup {
+    color: #b9d9ff;
+    background: rgba(52, 120, 201, 0.22);
+    border-color: rgba(52, 120, 201, 0.6);
+}
+
+/* Hub joueur « Mon personnage ». */
+.scwm-cv-hub .form-group { display: flex; flex-direction: column; gap: 2px; margin: 6px 0; }
+.scwm-cv-hub .form-group > label { font-weight: 600; font-size: 12px; }
+.scwm-cv-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.scwm-cv-actions button { flex: 0 0 auto; white-space: nowrap; }
+
+/* Onglet Validation du Casier. */
+.scwm-casier-cv-section { margin-bottom: 14px; }
+.scwm-casier-cv-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 8px;
+    border: 1px solid rgba(201, 148, 40, 0.35);
+    border-radius: 6px;
+    margin-bottom: 6px;
+    background: rgba(0, 0, 0, 0.15);
+}
+.scwm-casier-cv-row .scwm-cv-info { flex: 1 1 auto; min-width: 0; }
+.scwm-casier-cv-row .scwm-cv-info small { opacity: 0.75; }
+.scwm-casier-cv-row .scwm-cv-row-actions { flex: 0 0 auto; display: flex; gap: 4px; }
+.scwm-casier-cv-row .scwm-cv-row-actions button { white-space: nowrap; }

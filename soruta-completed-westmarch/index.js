@@ -45,6 +45,7 @@ import { DocumentHooks }  from "./modules/document.js";
 import { JournalHooks }   from "./modules/journal.js";
 import { SessionHooks }   from "./modules/session.js";
 import { CasierHooks }    from "./modules/casier.js";
+import { CharValidationHooks } from "./modules/charvalidation.js";
 import { AntiCheatHooks } from "./modules/anticheat.js";
 import { SocketHooks }    from "./modules/socket.js";
 import { CombatHooks }    from "./modules/combat.js";
@@ -131,6 +132,7 @@ Hooks.on("init", () => {
     JournalHooks();
     SessionHooks();
     CasierHooks();
+    CharValidationHooks();
     AntiCheatHooks();
     SocketHooks();
     CombatHooks();

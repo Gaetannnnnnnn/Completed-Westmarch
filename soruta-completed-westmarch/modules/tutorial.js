@@ -402,7 +402,7 @@ const STEPS_BY_FEATURE = {
             beforeShow: _openSheet,
             targets:    [".sheet-header .right", ".meter.exp"],
             title:      "Niveau, expérience & repos",
-            text:       "Cette zone de l'en-tête regroupe : le <strong>niveau global</strong> (badge rond, ici 12) et la <strong>barre d'expérience</strong> vers le niveau suivant, l'<strong>Inspiration héroïque</strong> (bonus ponctuel accordé par le MJ), et les boutons de <strong>Repos court</strong> et <strong>Repos long</strong> (récupération de PV, sorts et capacités).",
+            text:       "Cette zone de l'en-tête regroupe : le <strong>niveau global</strong> (badge rond, ici 12) et la <strong>barre d'expérience</strong> vers le niveau suivant, l'<strong>Inspiration héroïque</strong> (un bonus ponctuel qui peut venir du MJ, mais aussi d'une aptitude, d'une espèce ou d'autres sources), et les boutons de <strong>Repos court</strong> et <strong>Repos long</strong> (récupération de PV, sorts et capacités).",
             position:   "bottom"
         },
         {
@@ -435,7 +435,7 @@ const STEPS_BY_FEATURE = {
         },
         {
             beforeShow: _openSheet,
-            target:     "section.ability-scores, .ability-scores",
+            target:     ".ability-scores .rows .bottom, .ability-scores .bottom, section.ability-scores",
             title:      "Caractéristiques",
             text:       "La rangée du haut affiche les six <strong>caractéristiques</strong> (Force, Dextérité, Constitution, Intelligence, Sagesse, Charisme) avec leur score et leur modificateur. Cliquez-en une pour lancer un test de caractéristique.",
             position:   "bottom"

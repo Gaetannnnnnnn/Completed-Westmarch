@@ -92,6 +92,13 @@ export function registerSettings() {
         "Pause de party (remplace le pause global)",
         "Remplace le pause natif de Foundry par un pause propre à chaque party : le GM met SA party en pause (bandeau + blocage du déplacement de ses joueurs), sans affecter les autres. Masque l'indicateur de pause natif. Nécessite un rechargement.",
         false, { requiresReload: true }));
+    game.settings.register(MOD, "enableCharValidation", B(
+        "Validation des personnages",
+        "Les joueurs demandent la création d'un personnage ; un GM valide depuis le Casier (un acteur est créé dans un dossier dédié, le joueur en devient propriétaire). Le joueur construit sa fiche puis la soumet ; à la validation, la fiche est verrouillée (construction non modifiable côté joueur, jeu libre)."));
+    game.settings.register(MOD, "charValidationFolder", S(
+        "Validation — Dossier des personnages",
+        "Nom du dossier d'acteurs où sont créés les personnages validés.",
+        "Personnages"));
     // État de pause par party (mapping partyId -> true), synchronisé sur tous
     // les clients. Non affiché dans la configuration.
     game.settings.register(MOD, "partyPauseState", {
@@ -173,6 +180,9 @@ export function registerSettings() {
         name: "Table des objets magiques (par rareté)",
         scope: "world", config: false, type: Object, default: TM_DEFAULT_MAGIC
     });
+    game.settings.register(MOD, "tmCraftPack", S(
+        "Artisanat — Compendium des objets craftables",
+        "Compendium d'OBJETS (ex. importé via Plutonium). À la fin d'un craft, le module y cherche l'objet par son nom et l'ajoute automatiquement à la fiche du joueur. Vide = ajout manuel comme avant."));
 
     // ============================================================
     // TOOLKIT — Features génériques
@@ -446,13 +456,13 @@ function registerCategoryToggles() {
 const CATEGORIES = [
     { firstKey: "enableParty", master: "enableParty",           icon: "fa-users",           title: "Système de Party",
       desc: "Groupes de joueurs : chat filtré, combat par party, téléportation de groupe, journal de session, anti-cheat.",
-      keys: ["enableParty","enableJoinScene","enableShowParty","enablePlayerGrouping","enableGoWithPartyScenes","enableGoWithPartyJournal","enableChatFilter","enableSessionLog","sessionLogWebhookUrl","enableCombatParty","enableCombatTurnLock","enablePartyPause","enableAntiCheat"] },
+      keys: ["enableParty","enableJoinScene","enableShowParty","enablePlayerGrouping","enableGoWithPartyScenes","enableGoWithPartyJournal","enableChatFilter","enableSessionLog","sessionLogWebhookUrl","enableCombatParty","enableCombatTurnLock","enablePartyPause","enableAntiCheat","enableCharValidation","charValidationFolder"] },
     { firstKey: "enableXpBlock",         icon: "fa-server",          title: "Serveur",
       desc: "Personnalisations du serveur : blocage XP / Level Up, logs Discord, webhooks.",
       keys: ["enableXpBlock","enableDiscordLog","discordLogWebhookUrl","downtimeWebhookUrl","tmWebhookUrl"] },
     { firstKey: "tmSkillBase", master: "tmEnabled", icon: "fa-hourglass-half",  title: "Temps morts",
       desc: "Règles configurables des temps morts : valeurs, formules (gain de compétence, artisanat) et tables (parchemins, objets magiques). Chaque serveur peut avoir ses propres règles.",
-      keys: ["tmEnabled","tmSkillBase","tmAddAbilityMod","tmBonusMaitrise","tmBonusExpertise","tmBonusTools","tmRollMinDays","tmSkillFormula","tmCraftNonMagicCostDiv","tmCraftNonMagicDaysPerGp","tmCraftNonMagicCostFormula","tmCraftNonMagicDaysFormula","tmSingleUseFactor","tmScrollTable","tmMagicTable"] },
+      keys: ["tmEnabled","tmSkillBase","tmAddAbilityMod","tmBonusMaitrise","tmBonusExpertise","tmBonusTools","tmRollMinDays","tmSkillFormula","tmCraftNonMagicCostDiv","tmCraftNonMagicDaysPerGp","tmCraftNonMagicCostFormula","tmCraftNonMagicDaysFormula","tmSingleUseFactor","tmScrollTable","tmMagicTable","tmCraftPack"] },
     { firstKey: "enableTokenAppearance", icon: "fa-toolbox",         title: "Toolkit",
       desc: "Apparences de tokens, transformations, tailles Large, TGCM, utilitaires GM, templates AoE, boutiques MEJ et réapprovisionnement.",
       keys: ["enableTokenAppearance","enableTokenPortraitButton","enableRageSize","enableLargeForm","enablePolymorph","enableTgcm","enableFolderMove","enableToolAbilityFix","enableHideHotbar","enableHideHotbarGM","enableConnStats","enablePlayerListCompact","enableTemplateSnap","enableMejShopFix","enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
@@ -635,7 +645,9 @@ function settingControlHtml(key) {
     } else if (key.includes("Folder")) {
         control = `<select name="${key}" style="width:100%;">${folderOptionsHtml(val)}</select>`;
     } else if (key.includes("Pack")) {
-        control = `<select name="${key}" style="width:100%;">${packOptionsHtml(val)}</select>`;
+        // tmCraftPack = compendium d'OBJETS ; les autres = compendiums d'acteurs.
+        const docType = key === "tmCraftPack" ? "Item" : "Actor";
+        control = `<select name="${key}" style="width:100%;">${packOptionsHtml(val, docType)}</select>`;
     } else if (key === "expeditionMapSceneId") {
         control = `<select name="${key}" style="width:100%;">${sceneOptionsHtml(val)}</select>`;
     } else {
@@ -734,9 +746,10 @@ function sceneOptionsHtml(currentVal) {
     ].join("");
 }
 
-// Menu déroulant des compendiums d'acteurs (valeur = collection, ex. world.pnj).
-function packOptionsHtml(currentVal) {
-    const packs = game.packs.filter(p => p.documentName === "Actor")
+// Menu déroulant des compendiums (valeur = collection). docType filtre le type
+// de document (Actor par défaut ; Item pour les objets craftables).
+function packOptionsHtml(currentVal, docType = "Actor") {
+    const packs = game.packs.filter(p => p.documentName === docType)
         .sort((a, b) => (a.title ?? a.metadata?.label ?? "").localeCompare(b.title ?? b.metadata?.label ?? ""));
     return [
         `<option value="">— aucun —</option>`,

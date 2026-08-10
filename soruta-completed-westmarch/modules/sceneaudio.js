@@ -158,9 +158,44 @@ async function deleteCue(id) {
     await saveCues(getCues().filter(c => c.id !== id));
 }
 
+// ---- Sections & organisation (la liste mélange cues et sections) ----
+function newSection() {
+    return { id: rid(), type: "section", title: "Nouvelle section", collapsed: false };
+}
+async function addItem(item) {
+    const list = getCues();
+    list.push(item);
+    await saveCues(list);
+}
+async function deleteItem(id) {
+    await saveCues(getCues().filter(c => c.id !== id));
+}
+async function moveItem(id, dir) {
+    const list = getCues();
+    const i = list.findIndex(c => c.id === id);
+    const j = i + dir;
+    if (i < 0 || j < 0 || j >= list.length) return;
+    [list[i], list[j]] = [list[j], list[i]];
+    await saveCues(list);
+}
+async function setCollapsed(id, collapsed) {
+    const list = getCues();
+    const it = list.find(c => c.id === id);
+    if (!it) return;
+    it.collapsed = collapsed;
+    await saveCues(list);
+}
+async function patchItem(id, patch) {
+    const list = getCues();
+    const it = list.find(c => c.id === id);
+    if (!it) return;
+    Object.assign(it, patch);
+    await saveCues(list);
+}
+
 // Cues liés à un token précis (par id de token sur la scène).
 function cuesForToken(tokenId) {
-    return getCues().filter(c => c.tokenId && c.tokenId === tokenId);
+    return getCues().filter(c => c.type !== "section" && c.tokenId && c.tokenId === tokenId);
 }
 
 // ============================================================
@@ -178,17 +213,45 @@ class SceneCuesApp extends foundry.applications.api.ApplicationV2 {
     _replaceHTML(result, content) { content.innerHTML = result; this.#wire(content); }
 
     #buildHTML() {
-        const cues = getCues();
-        const cards = cues.map(c => this.#card(c)).join("") ||
-            `<p class="scwm-cue-empty">Aucun cue préparé. Cliquez sur « Nouveau cue » pour commencer.</p>`;
+        const items = getCues();
+        let html = "";
+        let sectionCollapsed = false;   // les cues sous une section repliée sont masqués
+        for (const it of items) {
+            if (it.type === "section") {
+                sectionCollapsed = !!it.collapsed;
+                html += this.#section(it);
+            } else {
+                if (sectionCollapsed) continue;   // caché sous une section repliée
+                html += this.#card(it);
+            }
+        }
+        if (!html) html = `<p class="scwm-cue-empty">Aucun cue préparé. Cliquez sur « Nouveau cue » pour commencer.</p>`;
 
         return `
         <div class="scwm-cue-manager">
             <div class="scwm-cue-toolbar">
                 <button type="button" class="scwm-cue-add"><i class="fas fa-plus"></i> Nouveau cue</button>
+                <button type="button" class="scwm-cue-add-section"><i class="fas fa-folder-plus"></i> Section</button>
+                <span class="scwm-cue-toolbar-sep"></span>
                 <button type="button" class="scwm-cue-stopall"><i class="fas fa-stop"></i> Tout arrêter</button>
             </div>
-            <div class="scwm-cue-list">${cards}</div>
+            <div class="scwm-cue-list">${html}</div>
+        </div>`;
+    }
+
+    // En-tête de section (repliable, renommable, déplaçable).
+    #section(s) {
+        const chevron = s.collapsed ? "fa-chevron-right" : "fa-chevron-down";
+        return `
+        <div class="scwm-cue-section${s.collapsed ? " collapsed" : ""}" data-item-id="${s.id}">
+            <button type="button" class="scwm-cue-sec-collapse" title="Replier / déplier"><i class="fas ${chevron}"></i></button>
+            <i class="fas fa-folder scwm-cue-sec-icon"></i>
+            <input type="text" class="scwm-cue-sec-title" name="sectitle" value="${esc(s.title ?? "")}" placeholder="Nom de la section"/>
+            <div class="scwm-cue-move">
+                <button type="button" class="scwm-cue-up" title="Monter"><i class="fas fa-chevron-up"></i></button>
+                <button type="button" class="scwm-cue-down" title="Descendre"><i class="fas fa-chevron-down"></i></button>
+                <button type="button" class="scwm-cue-del" title="Supprimer la section"><i class="fas fa-trash"></i></button>
+            </div>
         </div>`;
     }
 
@@ -207,35 +270,45 @@ class SceneCuesApp extends foundry.applications.api.ApplicationV2 {
                 ${c.tokenId ? `<button type="button" class="scwm-cue-unlink" title="Délier"><i class="fas fa-unlink"></i></button>` : ""}
             </div>`;
 
+        const collapsed = !!c.collapsed;
+        const chevron = collapsed ? "fa-chevron-right" : "fa-chevron-down";
+        const body = `
+            <div class="scwm-cue-body">
+                <div class="form-group">
+                    <label>Fichier audio</label>
+                    <div class="scwm-cue-file">
+                        <input type="text" name="path" value="${esc(c.path)}" placeholder="ex. music/reveal.ogg"/>
+                        <button type="button" class="scwm-cue-playlists" title="Choisir depuis les playlists (monde &amp; compendiums)"><i class="fas fa-music"></i></button>
+                        <button type="button" class="scwm-cue-browse" title="Parcourir les fichiers"><i class="fas fa-folder-open"></i></button>
+                    </div>
+                </div>
+                <div class="scwm-cue-grid">
+                    <div class="form-group"><label>Départ (s)</label><input type="number" name="offset" value="${c.offset}" min="0" step="0.1"/></div>
+                    <div class="form-group"><label>Volume</label><input type="number" name="volume" value="${c.volume}" min="0" max="1" step="0.05"/></div>
+                    <div class="form-group"><label>Fondu (ms)</label><input type="number" name="fade" value="${c.fade}" min="0" step="50"/></div>
+                    <div class="form-group"><label>Boucle</label><input type="checkbox" name="loop" ${c.loop ? "checked" : ""}/></div>
+                </div>
+                <div class="form-group">
+                    <label>Déclencheur</label>
+                    <select name="trigger" class="scwm-cue-trigger">${trigOpts}</select>
+                </div>
+                ${tokenRow}
+            </div>`;
+
         return `
-        <div class="scwm-cue-card" data-cue-id="${c.id}">
+        <div class="scwm-cue-card${collapsed ? " collapsed" : ""}" data-cue-id="${c.id}" data-item-id="${c.id}">
             <div class="scwm-cue-head">
+                <button type="button" class="scwm-cue-collapse" title="Replier / déplier"><i class="fas ${chevron}"></i></button>
                 <input type="text" class="scwm-cue-title" name="name" value="${esc(c.name)}" placeholder="Nom du cue"/>
                 <div class="scwm-cue-head-actions">
+                    <button type="button" class="scwm-cue-up" title="Monter"><i class="fas fa-chevron-up"></i></button>
+                    <button type="button" class="scwm-cue-down" title="Descendre"><i class="fas fa-chevron-down"></i></button>
                     <button type="button" class="scwm-cue-play" title="Jouer pour tous"><i class="fas fa-play"></i></button>
                     <button type="button" class="scwm-cue-stop" title="Stop"><i class="fas fa-stop"></i></button>
                     <button type="button" class="scwm-cue-del" title="Supprimer"><i class="fas fa-trash"></i></button>
                 </div>
             </div>
-            <div class="form-group">
-                <label>Fichier audio</label>
-                <div class="scwm-cue-file">
-                    <input type="text" name="path" value="${esc(c.path)}" placeholder="ex. music/reveal.ogg"/>
-                    <button type="button" class="scwm-cue-playlists" title="Choisir depuis les playlists (monde &amp; compendiums)"><i class="fas fa-music"></i></button>
-                    <button type="button" class="scwm-cue-browse" title="Parcourir les fichiers"><i class="fas fa-folder-open"></i></button>
-                </div>
-            </div>
-            <div class="scwm-cue-grid">
-                <div class="form-group"><label>Départ (s)</label><input type="number" name="offset" value="${c.offset}" min="0" step="0.1"/></div>
-                <div class="form-group"><label>Volume</label><input type="number" name="volume" value="${c.volume}" min="0" max="1" step="0.05"/></div>
-                <div class="form-group"><label>Fondu (ms)</label><input type="number" name="fade" value="${c.fade}" min="0" step="50"/></div>
-                <div class="form-group"><label>Boucle</label><input type="checkbox" name="loop" ${c.loop ? "checked" : ""}/></div>
-            </div>
-            <div class="form-group">
-                <label>Déclencheur</label>
-                <select name="trigger" class="scwm-cue-trigger">${trigOpts}</select>
-            </div>
-            ${tokenRow}
+            ${collapsed ? "" : body}
         </div>`;
     }
 
@@ -244,16 +317,17 @@ class SceneCuesApp extends foundry.applications.api.ApplicationV2 {
     #readCard(cardEl) {
         const base = getCue(cardEl.dataset.cueId) ?? { id: cardEl.dataset.cueId };
         const q = (sel) => cardEl.querySelector(sel);
-        return {
-            ...base,
-            name:    q("[name=name]").value.trim() || "Cue",
-            path:    q("[name=path]").value.trim(),
-            offset:  Number(q("[name=offset]").value) || 0,
-            volume:  Number(q("[name=volume]").value),
-            fade:    Number(q("[name=fade]").value) || 0,
-            loop:    q("[name=loop]").checked,
-            trigger: q("[name=trigger]").value
-        };
+        // Une carte repliée n'a pas ses champs de corps → on garde les valeurs
+        // existantes (base) pour ceux qui sont absents.
+        const out = { ...base };
+        const name = q("[name=name]"); if (name) out.name = name.value.trim() || "Cue";
+        const path = q("[name=path]"); if (path) out.path = path.value.trim();
+        const off = q("[name=offset]"); if (off) out.offset = Number(off.value) || 0;
+        const vol = q("[name=volume]"); if (vol) out.volume = Number(vol.value);
+        const fade = q("[name=fade]"); if (fade) out.fade = Number(fade.value) || 0;
+        const loop = q("[name=loop]"); if (loop) out.loop = loop.checked;
+        const trig = q("[name=trigger]"); if (trig) out.trigger = trig.value;
+        return out;
     }
 
     #wire(root) {
@@ -261,10 +335,38 @@ class SceneCuesApp extends foundry.applications.api.ApplicationV2 {
             await upsertCue(newCue());
             this.render();
         });
+        root.querySelector(".scwm-cue-add-section")?.addEventListener("click", async () => {
+            await addItem(newSection());
+            this.render();
+        });
         root.querySelector(".scwm-cue-stopall")?.addEventListener("click", () => _broadcast("stop", { fade: 300 }));
+
+        // ---- Sections (en-têtes) ----
+        root.querySelectorAll(".scwm-cue-section").forEach(sec => {
+            const id = sec.dataset.itemId;
+            sec.querySelector(".scwm-cue-sec-collapse")?.addEventListener("click", async () => {
+                const cur = getCue(id);
+                await setCollapsed(id, !cur?.collapsed);
+                this.render();
+            });
+            sec.querySelector(".scwm-cue-sec-title")?.addEventListener("change", (e) =>
+                patchItem(id, { title: e.target.value.trim() || "Section" }));
+            sec.querySelector(".scwm-cue-up")?.addEventListener("click", async () => { await moveItem(id, -1); this.render(); });
+            sec.querySelector(".scwm-cue-down")?.addEventListener("click", async () => { await moveItem(id, 1); this.render(); });
+            sec.querySelector(".scwm-cue-del")?.addEventListener("click", async () => { await deleteItem(id); this.render(); });
+        });
 
         root.querySelectorAll(".scwm-cue-card").forEach(card => {
             const id = card.dataset.cueId;
+
+            // Replier / déplier + réordonner.
+            card.querySelector(".scwm-cue-collapse")?.addEventListener("click", async () => {
+                const cur = getCue(id);
+                await setCollapsed(id, !cur?.collapsed);
+                this.render();
+            });
+            card.querySelector(".scwm-cue-up")?.addEventListener("click", async () => { await moveItem(id, -1); this.render(); });
+            card.querySelector(".scwm-cue-down")?.addEventListener("click", async () => { await moveItem(id, 1); this.render(); });
 
             // Sauvegarde silencieuse à chaque modification de champ (sans re-render).
             card.querySelectorAll("input[name], select[name]").forEach(el => {

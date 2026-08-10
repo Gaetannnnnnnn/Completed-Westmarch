@@ -50,30 +50,8 @@ function getMagicTable() {
 export function TmHooks() {
     if (!game.settings.get(MOD, "tmEnabled")) return;
 
-
-    // ---- Bouton dans le groupe WestMarch (barre de gauche, GM uniquement) ----
-    Hooks.on("getSceneControlButtons", (controls) => {
-        if (!game.user.isGM) return;
-        // Créer le groupe westmarch si fake-warning.js n'a pas encore tourné
-        // (sécurité contre les inversions d'ordre de hook)
-        if (!controls.westmarch) {
-            controls.westmarch = {
-                name:  "westmarch",
-                title: "WestMarch",
-                icon:  "fa-solid fa-hammer",
-                layer: "tokens",
-                tools: {}
-            };
-        }
-        controls.westmarch.tools.downtime = {
-            name:     "downtime",
-            title:    "Temps morts",
-            icon:     "fa-solid fa-hourglass-half",
-            button:   true,
-            onChange: () => openDowntimeDialog(),
-            visible:  true
-        };
-    });
+    // La fenêtre GM des temps morts s'ouvre désormais depuis le Casier
+    // (bouton « Temps morts ») — plus d'icône dédiée dans la barre WestMarch.
 
     // ---- Bouton déclaration TM sur la fiche perso (ApplicationV2, joueurs) ----
     Hooks.on("renderApplicationV2", (app, element) => {
@@ -497,6 +475,111 @@ async function deductGoldCost(actor, costGP) {
     return enough;
 }
 
+// Ajoute automatiquement l'objet fabriqué à la fiche, en le cherchant PAR NOM
+// dans le compendium configuré (setting tmCraftPack). Retourne le nom de l'objet
+// ajouté, ou null si aucun compendium n'est réglé / objet introuvable / erreur.
+function _normName(s) {
+    return String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+}
+async function grantCraftedItem(actor, craftName, craftUuid) {
+    try {
+        // 1) Objet EXACT choisi dans le compendium (uuid).
+        if (craftUuid) {
+            const doc = await fromUuid(craftUuid);
+            if (doc) {
+                const data = doc.toObject();
+                delete data._id;
+                await actor.createEmbeddedDocuments("Item", [data]);
+                return doc.name;
+            }
+        }
+
+        // 2) Repli : recherche par nom dans le compendium configuré.
+        const coll = game.settings.get(MOD, "tmCraftPack");
+        if (!coll) return null;
+        const pack = game.packs.get(coll);
+        if (!pack || pack.documentName !== "Item") return null;
+
+        const index = await pack.getIndex();
+        const target = _normName(craftName);
+        if (!target) return null;
+
+        let entry = index.find(e => _normName(e.name) === target)
+                 ?? index.find(e => _normName(e.name).includes(target) || target.includes(_normName(e.name)));
+        if (!entry) return null;
+
+        const doc = await pack.getDocument(entry._id);
+        if (!doc) return null;
+        const data = doc.toObject();
+        delete data._id;
+        await actor.createEmbeddedDocuments("Item", [data]);
+        return doc.name;
+    } catch (e) {
+        console.warn("[TM] Ajout de l'objet craft échoué :", e);
+        return null;
+    }
+}
+
+// Sélecteur d'objets (barre de recherche) lié au compendium craftable configuré.
+// Retourne { uuid, name, priceGp } ou null.
+async function pickCraftItem() {
+    const coll = game.settings.get(MOD, "tmCraftPack");
+    if (!coll) { ui.notifications?.warn("Aucun compendium d'objets craftables configuré (réglages → Temps morts)."); return null; }
+    const pack = game.packs.get(coll);
+    if (!pack || pack.documentName !== "Item") { ui.notifications?.warn("Le compendium configuré n'est pas un compendium d'objets."); return null; }
+
+    const index = await pack.getIndex({ fields: ["system.price.value", "system.price.denomination"] });
+    const denomFactor = { pp: 10, gp: 1, ep: 0.5, sp: 0.1, cp: 0.01 };
+    const entries = [...index].map(e => {
+        const v = e.system?.price?.value;
+        const d = e.system?.price?.denomination ?? "gp";
+        return {
+            uuid: `Compendium.${pack.collection}.Item.${e._id}`,
+            name: e.name ?? "Objet",
+            priceGp: (v != null) ? v * (denomFactor[d] ?? 1) : null
+        };
+    }).sort((a, b) => a.name.localeCompare(b.name));
+
+    const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+    return await new Promise(resolve => {
+        const rows = entries.map((e, i) =>
+            `<div class="tm-pick-row" data-i="${i}" style="padding:4px 6px; cursor:pointer; border-bottom:1px solid rgba(128,128,128,0.2);">
+                ${esc(e.name)}${e.priceGp != null ? ` <span style="color:#888;">— ${Math.round(e.priceGp)} po</span>` : ""}
+            </div>`).join("") || `<p style="opacity:.7; padding:8px;">Ce compendium ne contient aucun objet.</p>`;
+
+        const content = `
+            <input type="text" class="tm-pick-search" placeholder="Rechercher un objet…" style="width:100%; margin-bottom:6px;">
+            <div class="tm-pick-list" style="max-height:340px; overflow:auto; border:1px solid rgba(128,128,128,0.3); border-radius:4px;">${rows}</div>`;
+
+        let done = false;
+        const finish = (val) => { if (!done) { done = true; resolve(val); } };
+
+        const dlg = new Dialog({
+            title: `${pack.title ?? pack.metadata?.label ?? "Compendium"} — choisir un objet`,
+            content,
+            buttons: { cancel: { icon: '<i class="fas fa-times"></i>', label: "Annuler", callback: () => finish(null) } },
+            default: "cancel",
+            render: (html) => {
+                const root = html[0] ?? html;
+                const search = root.querySelector(".tm-pick-search");
+                search?.addEventListener("input", () => {
+                    const q = _normName(search.value);
+                    root.querySelectorAll(".tm-pick-row").forEach(r => {
+                        const e = entries[+r.dataset.i];
+                        r.style.display = _normName(e.name).includes(q) ? "" : "none";
+                    });
+                });
+                root.querySelectorAll(".tm-pick-row").forEach(r =>
+                    r.addEventListener("click", () => { finish(entries[+r.dataset.i]); dlg.close(); }));
+                setTimeout(() => search?.focus(), 50);
+            },
+            close: () => finish(null)
+        }, { width: 440, height: 480, resizable: true });
+        dlg.render(true);
+    });
+}
+
 function craftTypeLabel(ct) {
     if (ct === "nonmagique") return "Non-magique";
     if (ct === "parchemin")  return "Parchemin";
@@ -526,7 +609,7 @@ function craftInfoStr(item) {
 // Formulaire craft — joueur
 // ============================================================
 
-function craftDeclFormHtml(id, craftType, craftName, price, scrollLevel, rarity, singleUse, daysAlready, sDay, sMonth, sYear, eDay, eMonth, eYear) {
+function craftDeclFormHtml(id, craftType, craftName, price, scrollLevel, rarity, singleUse, daysAlready, sDay, sMonth, sYear, eDay, eMonth, eYear, craftUuid = "") {
     const scrollOptions = [
         "Sort mineur", "Niveau 1", "Niveau 2", "Niveau 3", "Niveau 4",
         "Niveau 5",    "Niveau 6", "Niveau 7", "Niveau 8", "Niveau 9"
@@ -556,6 +639,8 @@ function craftDeclFormHtml(id, craftType, craftName, price, scrollLevel, rarity,
 <div style="display:flex; gap:6px; align-items:center;">
     <label style="min-width:90px; white-space:nowrap;">Nom :</label>
     <input type="text" name="tm-craft-name-${id}" value="${craftName}" placeholder="Nom de l'objet" style="flex:1;">
+    <input type="hidden" name="tm-craft-uuid-${id}" value="${craftUuid ?? ""}">
+    <button type="button" class="tm-craft-pick-${id}" title="Choisir dans le compendium des objets craftables" style="flex:0 0 auto; width:30px;"><i class="fas fa-book"></i></button>
 </div>
 <div class="tm-craft-param-nonmagique-${id}" style="display:${craftType === "nonmagique" ? "flex" : "none"}; gap:6px; align-items:center;">
     <label style="min-width:90px; white-space:nowrap;">Prix d'achat :</label>
@@ -643,7 +728,23 @@ function wireCraftControls(html, idPrefix) {
         html.find(`[name="tm-craft-done-${idPrefix}"]`).closest("div").find("span").text(`sur ${totalDays} j total`);
     }
 
+    // Bouton « choisir dans le compendium » : remplit nom, uuid et prix.
+    html.find(`.tm-craft-pick-${idPrefix}`).on("click", async () => {
+        const picked = await pickCraftItem();
+        if (!picked) return;
+        html.find(`[name="tm-craft-name-${idPrefix}"]`).val(picked.name);
+        html.find(`[name="tm-craft-uuid-${idPrefix}"]`).val(picked.uuid);
+        if (picked.priceGp != null) {
+            html.find(`[name="tm-craft-type-${idPrefix}"]`).val("nonmagique");
+            html.find(`[name="tm-craft-price-${idPrefix}"]`).val(Math.max(1, Math.round(picked.priceGp)));
+            refreshTypeVisibility();
+        }
+        refreshPreview();
+    });
+
     html.find(`[name="tm-craft-type-${idPrefix}"]`).on("change", () => { refreshTypeVisibility(); refreshPreview(); });
+    // Toute saisie manuelle du nom invalide l'objet lié (uuid) précédemment choisi.
+    html.find(`[name="tm-craft-name-${idPrefix}"]`).on("input", () => html.find(`[name="tm-craft-uuid-${idPrefix}"]`).val(""));
     html.find(`[name="tm-craft-price-${idPrefix}"], [name="tm-craft-scroll-${idPrefix}"], [name="tm-craft-rarity-${idPrefix}"], [name="tm-craft-single-${idPrefix}"], [name="tm-craft-done-${idPrefix}"]`)
         .on("change input", refreshPreview);
     const dateFields = [
@@ -770,7 +871,7 @@ async function openDeclarationDialog(actor) {
             ${previewHtml("decl")}
         </div>
         <div class="tm-section-craft-decl" style="display:none; flex-direction:column; gap:8px;">
-            ${craftDeclFormHtml("decl", "nonmagique", ongoingCraft?.craftName ?? "", ongoingCraft?.craftPrice ?? 50, ongoingCraft?.craftScrollLevel ?? 0, ongoingCraft?.craftRarity ?? "courant", ongoingCraft?.craftSingleUse ?? false, ongoingCraft?.craftDaysAlready ?? 0, today.day, today.month, today.year, today.day, today.month, today.year)}
+            ${craftDeclFormHtml("decl", "nonmagique", ongoingCraft?.craftName ?? "", ongoingCraft?.craftPrice ?? 50, ongoingCraft?.craftScrollLevel ?? 0, ongoingCraft?.craftRarity ?? "courant", ongoingCraft?.craftSingleUse ?? false, ongoingCraft?.craftDaysAlready ?? 0, today.day, today.month, today.year, today.day, today.month, today.year, ongoingCraft?.craftUuid ?? "")}
         </div>
         <button type="button" id="tm-add-to-cart"
                 style="padding:6px 12px; background:#2980b9; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:bold; font-size:0.95em;">
@@ -817,6 +918,7 @@ async function openDeclarationDialog(actor) {
                 if (type === "craft") {
                     const craftType   = $html.find('[name="tm-craft-type-decl"]').val();
                     const craftName   = ($html.find('[name="tm-craft-name-decl"]').val() ?? "").trim() || craftTypeLabel(craftType);
+                    const craftUuid   = ($html.find('[name="tm-craft-uuid-decl"]').val() ?? "").trim();
                     const price       = Math.max(1, parseInt($html.find('[name="tm-craft-price-decl"]').val())  || 1);
                     const scrollLevel = parseInt($html.find('[name="tm-craft-scroll-decl"]').val())             || 0;
                     const rarity      = $html.find('[name="tm-craft-rarity-decl"]').val()                      ?? "courant";
@@ -834,7 +936,7 @@ async function openDeclarationDialog(actor) {
 
                     cartItems.push({
                         type: "craft",
-                        craftType, craftName, craftTotalDays: totalDays, craftCost: cost,
+                        craftType, craftName, craftUuid, craftTotalDays: totalDays, craftCost: cost,
                         craftDaysAlready: daysAlready,
                         craftPrice: price, craftScrollLevel: scrollLevel,
                         craftRarity: rarity, craftSingleUse: singleUse,
@@ -977,7 +1079,7 @@ function buildActorRow(actor, startUnchecked = false) {
 // Dialogue GM — ouverture
 // ============================================================
 
-async function openDowntimeDialog() {
+export async function openDowntimeDialog() {
     const allActors  = getPlayerActors();
     const declared   = allActors.filter(a =>  a.getFlag(MOD, "tm")?.declared);
     const undeclared = allActors.filter(a => !a.getFlag(MOD, "tm")?.declared);
@@ -1175,10 +1277,14 @@ async function applyDowntimeGains($html, actors) {
                     });
                 }
 
-                // Message privé GM — rappel d'ajouter l'objet manuellement
+                // Craft terminé : tentative d'ajout automatique de l'objet depuis
+                // le compendium configuré (recherche par nom). Sinon, rappel manuel.
                 if (complete) {
+                    const granted = await grantCraftedItem(actor, craftName, item.craftUuid);
                     ChatMessage.create({
-                        content: `⚠️ <strong>${actor.name}</strong> a terminé son craft : <strong>${craftName}</strong> (${infoStr}). Pensez à ajouter l'objet manuellement sur sa fiche. Le coût de <strong>${craftCost} po</strong> a déjà été retiré de sa bourse.`,
+                        content: granted
+                            ? `✅ <strong>${actor.name}</strong> a terminé son craft : <strong>${craftName}</strong> (${infoStr}). L'objet <em>${granted}</em> a été <strong>ajouté automatiquement</strong> à sa fiche. Coût de ${craftCost} po déjà retiré.`
+                            : `⚠️ <strong>${actor.name}</strong> a terminé son craft : <strong>${craftName}</strong> (${infoStr}). Objet introuvable dans le compendium — <strong>ajoutez-le manuellement</strong>. Coût de ${craftCost} po déjà retiré.`,
                         whisper: ChatMessage.getWhisperRecipients("GM"),
                         speaker: { alias: "WestMarch — Temps morts" }
                     });

@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 3.0.6
+Version : 3.0.9
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -186,6 +186,22 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v3.0.9 | 2026-08-04
+   - Creation de perso : quand un GM cree un PJ directement dans le sous-dossier
+     d'un joueur (Dossier des PJ), les etapes de demande/validation sont sautees
+     — la fiche est d'emblee validee, verrouillee et attribuee au joueur
+     (proprietaire). (charvalidation.js)
+
+v3.0.8 | 2026-08-04
+   - Dossiers : nouveau reglage "Sous-dossier auto au nom du joueur". A la
+     premiere connexion d'un joueur, le GM cree automatiquement dans le Dossier
+     des PJ un sous-dossier a son nom (idempotent). (settings.js, charvalidation.js)
+
+v3.0.7 | 2026-08-04
+   - Temps morts / Craft : le champ "Nom" est desormais en lecture seule et ne
+     fait qu'afficher l'objet choisi dans le compendium (clic sur le champ ou
+     l'icone livre pour choisir). Plus de saisie libre (tm.js).
 
 v3.0.6 | 2026-08-04
    - Note GM : onglet restyle (en-tete avec icone + titre + badge "Prive", zone de

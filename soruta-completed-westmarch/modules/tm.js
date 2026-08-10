@@ -639,7 +639,7 @@ function craftDeclFormHtml(id, craftType, craftName, price, scrollLevel, rarity,
 </div>
 <div style="display:flex; gap:6px; align-items:center;">
     <label style="min-width:90px; white-space:nowrap;">Nom :</label>
-    <input type="text" name="tm-craft-name-${id}" value="${craftName}" placeholder="Nom de l'objet" style="flex:1;">
+    <input type="text" name="tm-craft-name-${id}" value="${craftName}" placeholder="Choisir un objet…" style="flex:1; cursor:pointer;" readonly title="Cliquez sur l'icône livre pour choisir un objet du compendium">
     <input type="hidden" name="tm-craft-uuid-${id}" value="${craftUuid ?? ""}">
     <button type="button" class="tm-craft-pick-${id}" title="Choisir dans le compendium des objets craftables" style="flex:0 0 auto; width:30px;"><i class="fas fa-book"></i></button>
 </div>
@@ -730,7 +730,9 @@ function wireCraftControls(html, idPrefix) {
     }
 
     // Bouton « choisir dans le compendium » : remplit nom, uuid et prix.
-    html.find(`.tm-craft-pick-${idPrefix}`).on("click", async () => {
+    // Ouverture du sélecteur de compendium : via le bouton livre OU un clic
+    // direct sur le champ (en lecture seule, il ne sert qu'à afficher le choix).
+    const openPicker = async () => {
         const picked = await pickCraftItem();
         if (!picked) return;
         html.find(`[name="tm-craft-name-${idPrefix}"]`).val(picked.name);
@@ -741,11 +743,11 @@ function wireCraftControls(html, idPrefix) {
             refreshTypeVisibility();
         }
         refreshPreview();
-    });
+    };
+    html.find(`.tm-craft-pick-${idPrefix}`).on("click", openPicker);
+    html.find(`[name="tm-craft-name-${idPrefix}"]`).on("click", openPicker);
 
     html.find(`[name="tm-craft-type-${idPrefix}"]`).on("change", () => { refreshTypeVisibility(); refreshPreview(); });
-    // Toute saisie manuelle du nom invalide l'objet lié (uuid) précédemment choisi.
-    html.find(`[name="tm-craft-name-${idPrefix}"]`).on("input", () => html.find(`[name="tm-craft-uuid-${idPrefix}"]`).val(""));
     html.find(`[name="tm-craft-price-${idPrefix}"], [name="tm-craft-scroll-${idPrefix}"], [name="tm-craft-rarity-${idPrefix}"], [name="tm-craft-single-${idPrefix}"], [name="tm-craft-done-${idPrefix}"]`)
         .on("change input", refreshPreview);
     const dateFields = [

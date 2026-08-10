@@ -21,7 +21,7 @@
 // ============================================================
 
 import { MOD } from "./const.js";
-import { commonFolderNewChars } from "./settings.js";
+import { commonFolderNewChars, commonFolderPJ } from "./settings.js";
 
 // ---- Frontière construction / jeu -------------------------------------------
 // Chemins d'acteur relevant de la CONSTRUCTION (verrouillés).
@@ -138,6 +138,54 @@ async function ensurePlayerFolder(user) {
         x.type === "Actor" && x.name === name && (x.folder?.id ?? null) === (parent?.id ?? null));
     if (!f) f = await Folder.create({ name, type: "Actor", folder: parent?.id ?? null });
     return f;
+}
+
+// Résout le « Dossier des PJ » configuré (setting commonFolderPJ) : accepte un
+// id de dossier (stocké par le sélecteur) ou un nom (saisie libre).
+function resolvePJFolder() {
+    const val = commonFolderPJ();
+    if (!val) return null;
+    const looksLikeId = (s) => /^[A-Za-z0-9]{16}$/.test(s ?? "");
+    const byId = game.folders?.get(val);
+    if (byId?.type === "Actor") return byId;
+    if (!looksLikeId(val)) {
+        const byName = game.folders?.find(f => f.type === "Actor" && f.name === val);
+        if (byName) return byName;
+    }
+    return null;
+}
+
+// Crée (une seule fois) un sous-dossier au nom du joueur dans le Dossier des PJ.
+// Exécuté côté GM uniquement (la création de dossier requiert des droits GM).
+async function ensurePlayerPJFolder(user) {
+    if (!game.user.isGM) return null;
+    if (!game.settings.get(MOD, "autoPlayerFolder")) return null;
+    if (!user || user.isGM) return null;
+    const parent = resolvePJFolder();
+    if (!parent) return null;                       // aucun Dossier des PJ configuré
+    const name = user.name ?? "Joueur";
+    let f = game.folders?.find(x =>
+        x.type === "Actor" && x.name === name && (x.folder?.id ?? null) === (parent.id ?? null));
+    if (!f) {
+        f = await Folder.create({ name, type: "Actor", folder: parent.id });
+        console.log(`[${MOD}] Sous-dossier PJ créé pour « ${name} ».`);
+    }
+    return f;
+}
+
+// Si l'acteur est rangé dans un sous-dossier « au nom d'un joueur » situé dans
+// l'arbre du Dossier des PJ, retourne l'utilisateur correspondant (sinon null).
+function findPlayerForActorFolder(actor) {
+    const folder = actor?.folder;
+    if (!folder) return null;
+    const pj = resolvePJFolder();
+    if (!pj) return null;
+    // Le dossier de l'acteur doit appartenir à l'arbre du Dossier des PJ.
+    let inTree = false;
+    for (let cur = folder; cur; cur = cur.folder) { if (cur.id === pj.id) { inTree = true; break; } }
+    if (!inTree) return null;
+    // Le dossier immédiat doit porter le nom d'un joueur (non-GM).
+    return (game.users ?? []).find(u => !u.isGM && u.name === folder.name) ?? null;
 }
 
 // ---- Actions GM (appelées depuis le Casier) ----
@@ -380,6 +428,17 @@ export function CharValidationHooks() {
     // Requête d'(dés)activation d'un personnage — traitée par le GM.
     CONFIG.queries["westmarch.charStock"] = async ({ actorId, stock }) => { await applyCharStock(actorId, stock); return true; };
 
+    // ---- Sous-dossier auto au nom du joueur (Dossier des PJ) ----
+    // À la connexion d'un joueur, le GM crée son sous-dossier s'il n'existe pas.
+    Hooks.on("userConnected", (user, connected) => {
+        if (connected) ensurePlayerPJFolder(user);
+    });
+    // Passe initiale : couvre les joueurs déjà connectés quand le GM arrive.
+    Hooks.once("ready", () => {
+        if (!game.user.isGM) return;
+        for (const u of (game.users ?? [])) if (!u.isGM && u.active) ensurePlayerPJFolder(u);
+    });
+
     // Bouton dans la barre WestMarch pour les JOUEURS.
     Hooks.on("getSceneControlButtons", (controls) => {
         if (!enabled()) return;
@@ -462,9 +521,32 @@ export function CharValidationHooks() {
         const f = changes?.flags?.[MOD];
         if (f && ("pendingValidation" in f || "pendingLevelUp" in f || "locked" in f || "validated" in f || "createdFor" in f || "stock" in f || "levelUpGranted" in f)) ui.actors?.render();
     });
-    // Nouvelle fiche créée (ex. via validation d'une demande) → badge « En création ».
-    Hooks.on("createActor", (actor) => {
-        if (actor?.getFlag?.(MOD, "createdFor")) ui.actors?.render();
+    // Nouvelle fiche créée.
+    Hooks.on("createActor", async (actor, options, userId) => {
+        // Déjà rattachée à un joueur (ex. validation d'une demande) → juste rafraîchir.
+        if (actor?.getFlag?.(MOD, "createdFor")) { ui.actors?.render(); return; }
+        // PJ créé DIRECTEMENT par le GM dans le sous-dossier d'un joueur :
+        // on saute la demande / validation → fiche d'emblée VALIDÉE et VERROUILLÉE.
+        if (!enabled()) return;
+        if (userId !== game.user.id || !game.user.isGM) return;   // seul le GM créateur agit
+        if (actor.type !== "character") return;
+        const user = findPlayerForActorFolder(actor);
+        if (!user) return;
+        const L = CONST.DOCUMENT_OWNERSHIP_LEVELS;
+        await actor.update({
+            ownership: { ...actor.ownership, [user.id]: L.OWNER },
+            [`flags.${MOD}.createdFor`]:       user.id,
+            [`flags.${MOD}.validated`]:        true,
+            [`flags.${MOD}.locked`]:           true,
+            [`flags.${MOD}.pendingValidation`]: false,
+            [`flags.${MOD}.stock`]:            false
+        });
+        ChatMessage.create({
+            whisper: [user.id],
+            speaker: { alias: "Validation" },
+            content: `<strong>${actor.name}</strong> a été créé et validé par le MJ. La fiche est verrouillée : tu peux jouer, mais les modifications de construction passent par le MJ.`
+        });
+        ui.actors?.render();
     });
 }
 

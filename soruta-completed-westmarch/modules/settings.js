@@ -88,6 +88,9 @@ export function registerSettings() {
     game.settings.register(MOD, "commonFolderPJ", S(
         "Dossier des PJ",
         "Dossier d'acteurs contenant les personnages joueurs. Utilisé par Relations et Bestiaire pour reconnaître les PJ."));
+    game.settings.register(MOD, "autoPlayerFolder", B(
+        "Sous-dossier auto au nom du joueur",
+        "À la première connexion d'un joueur, crée automatiquement dans le « Dossier des PJ » un sous-dossier portant son nom.", true));
     game.settings.register(MOD, "commonFolderPNJ", S(
         "Dossier des PNJ",
         "Dossier d'acteurs des PNJ récurrents (alliés, marchands, figures importantes). Utilisé par Relations."));
@@ -540,7 +543,7 @@ function registerCategoryToggles() {
 const CATEGORIES = [
     { firstKey: "commonFolderPJ", icon: "fa-folder-tree", title: "Dossiers & Compendiums",
       desc: "Dossiers et compendiums communs, renseignés une seule fois ici et utilisés par toutes les fonctions (Relations, Bestiaire, Création de personnages, Temps morts).",
-      keys: ["commonFolderPJ","commonFolderPNJ","commonFolderNewChars","commonPackPNJ","commonPackCemetery","commonPackCreatures","commonPackCraft"] },
+      keys: ["commonFolderPJ","autoPlayerFolder","commonFolderPNJ","commonFolderNewChars","commonPackPNJ","commonPackCemetery","commonPackCreatures","commonPackCraft"] },
     { firstKey: "enableParty", master: "enableParty",           icon: "fa-users",           title: "Système de Party",
       desc: "Groupes de joueurs : chat filtré, combat par party, téléportation de groupe, journal de session, anti-cheat.",
       keys: ["enableParty","enableJoinScene","enableShowParty","enablePlayerGrouping","enableGoWithPartyScenes","enableGoWithPartyJournal","enableChatFilter","enableSessionLog","sessionLogWebhookUrl","enableCombatParty","enableCombatTurnLock","enablePartyPause","enableAntiCheat"] },

@@ -6,9 +6,18 @@ export function XpHooks() {
     // - Les joueurs ne peuvent pas modifier leur XP manuellement
     // - Les GM peuvent toujours modifier l'XP librement
     // ============================================================
-    // Montée de niveau autorisée par le MJ (validation des personnages) :
-    // xp.js laisse alors passer le changement de niveau le temps de la montée.
-    const levelUpGranted = (actor) => actor?.getFlag?.(MOD, "levelUpGranted") === true;
+    // Le joueur peut construire librement sa fiche (XP / niveau / classe) quand :
+    //   - une montée de niveau lui a été autorisée (flag levelUpGranted), OU
+    //   - c'est un perso du circuit de validation encore EN CONSTRUCTION,
+    //     c.-à-d. pas encore verrouillé (création initiale, avant validation).
+    const levelUpGranted = (actor) => {
+        if (!actor) return false;
+        if (actor.getFlag?.(MOD, "levelUpGranted") === true) return true;
+        if (game.settings.get(MOD, "enableCharValidation")
+            && actor.getFlag?.(MOD, "createdFor")
+            && actor.getFlag?.(MOD, "locked") !== true) return true;
+        return false;
+    };
 
     Hooks.on("preUpdateActor", (actor, changes, options, userId) => {
         // On laisse passer les GM

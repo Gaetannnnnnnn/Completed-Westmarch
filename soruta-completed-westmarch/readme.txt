@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 2.16.1
+Version : 2.16.7
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -23,6 +23,12 @@ modules Soruta, jusque-là distribués séparément :
 Toutes les fonctionnalités restent activables / désactivables individuellement
 depuis les paramètres du module. Les données (settings et flags) sont désormais
 regroupées sous un identifiant unique : "soruta-completed-westmarch".
+
+Le module a depuis été enrichi de nombreuses fonctions West March propres au
+serveur : Casier du MJ (tableau de bord), validation des personnages (demande,
+verrouillage, montée de niveau, limites & stock), cues audio de mise en scène,
+onglet Note GM privé, statut de disponibilité des PJ, pause de party, et un
+regroupement central des dossiers/compendiums communs (« Dossiers & Compendiums »).
 
 MIGRATION AUTOMATIQUE — Au premier chargement par un GM, le module reprend
 automatiquement toutes les données des anciens modules (réglages + flags sur
@@ -56,22 +62,45 @@ modules/migration.js
 
 FICHE PERSONNAGE
    character-sheet.js  — Une seule sous-classe dnd5e (PARTS/TABS) composant les
-                         onglets Relations / Bestiaire / Carnet / Expéditions
-                         selon les settings activés.
+                         onglets Relations / Bestiaire / Carnet / Expéditions et
+                         Note GM (privé, GM) selon les settings activés. Masque
+                         aussi l'onglet « étoile » aux joueurs (option).
    relations.js        — Système de relations entre acteurs (flag relationsList).
    bestiary.js         — Bestiaire par personnage (flag bestiaryList).
    carnet.js           — Onglets Carnet (notes ProseMirror) et Expéditions
                          (dates + durée), bouton "Date Expédition" dans la barre.
+   pcstatus.js         — Badge de disponibilité des PJ (Disponible / En expédition)
+                         dans le répertoire des Acteurs, déduit des expéditions.
 
 WESTMARCH CORE
-   chat.js combat.js player.js session.js anticheat.js scenes.js journal.js
-   image.js audio.js document.js socket.js
-   — Party, filtrage du chat, combat par party, journal de session, anti-cheat,
-     téléportation de groupe, partage d'images.
+   chat.js combat.js player.js playerlist.js session.js anticheat.js scenes.js
+   journal.js image.js audio.js document.js socket.js partypause.js connstats.js
+   — Party, filtrage du chat, combat par party (blocage de mouvement hors tour
+     natif), pause de party (remplace le pause global, banner natif), liste des
+     joueurs compacte, journal / clôture de session, anti-cheat, téléportation
+     de groupe, partage d'images, stats de connexion, audio cloisonné par party.
+
+GESTION DES PERSONNAGES & MENEUR
+   casier.js         — Tableau de bord du MJ (bouton WestMarch) : onglets
+                       Dashboard, Rapports, Expéditions, Temps morts (validation
+                       embarquée), Validation des personnages, Suivi des GM.
+   charvalidation.js — Cycle de vie des PJ : demande de création → validation GM
+                       (acteur créé dans « Joueurs / <joueur> », propriétaire =
+                       joueur), construction, soumission, verrouillage sélectif
+                       (construction bloquée / jeu libre), montée de niveau
+                       validée, limites de persos et système de stock (Observateur).
+
+MISE EN SCÈNE
+   sceneaudio.js     — Cues audio (bouton WestMarch, GM) : sons préparés avec
+                       seconde de départ / volume / fondu, déclencheurs (manuel,
+                       révélation d'un token, début de combat), lecture locale par
+                       party (faible latence), navigateur de playlists monde/compendiums.
 
 SERVEUR
-   tm.js         — Temps morts (gain de compétence + artisanat, panier, validation GM).
-   xp.js         — Blocage XP / Level Up côté joueur.
+   tm.js         — Temps morts (gain de compétence + artisanat ; ajout automatique
+                   de l'objet fabriqué depuis un compendium ; validation dans le Casier).
+   xp.js         — Blocage XP / Level Up côté joueur (levé pendant la création d'un
+                   perso et lors d'une montée de niveau validée par le MJ).
    caldate.js    — Notification Discord au changement de date (API calendrier
                    native game.time.calendar — Mini Calendar, etc.).
    discordlog.js — Logs Discord des modifications (objets, monnaie, XP, persos).
@@ -89,8 +118,10 @@ CARTE / MIDI / TUTORIEL
    range-fix.js  — Correction de portée midi-qol pour tokens Large+.
    tutorial.js welcome.js toolbar.js — Fenêtre de bienvenue + tutoriel interactif.
 
-templates/   — Onglets de fiche (character-relations/bestiary/journal/downtime.hbs).
-styles/      — Feuilles de style de toutes les features.
+templates/   — Onglets de fiche (character-relations / bestiary / journal /
+               downtime / gmnotes .hbs).
+styles/      — Feuilles de style de toutes les features (dont casier, charvalidation,
+               sceneaudio, pcstatus, gmnotes, partypause, connstats, playerlist).
 
 --------------------------------------------------------------------------------
 DÉPENDANCES
@@ -117,9 +148,14 @@ PARAMÈTRES CONFIGURABLES
 
 Paramètres du jeu → Configuration des modules → Soruta — Completed Westmarch
 
-Regroupés par section : Système de Party · Serveur · Toolkit ·
+Regroupés par section : Dossiers & Compendiums · Système de Party ·
+Création de personnages · Serveur (dont Note GM) · Temps morts · Toolkit ·
 Fiche PJ (Relations / Bestiaire / Carnet) · Carte des expéditions ·
-Midi Range Fix · Tutoriel.
+Mise en scène — Cues audio · Midi Range Fix · Tutoriel.
+
+La section « Dossiers & Compendiums » centralise, à un seul endroit, les dossiers
+et compendiums communs (PJ, PNJ, cimetière, créatures, objets craftables, dossier
+des nouveaux personnages) utilisés par toutes les fonctions.
 
 --------------------------------------------------------------------------------
 NOTE DE FUSION (clés renommées)
@@ -150,6 +186,41 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v2.16.7 | 2026-08-04
+   - Readme : mise a jour des sections descriptives (architecture, features,
+     reglages) pour refleter toutes les nouveautes (Casier, validation des
+     personnages, cues audio, note GM, statut PJ, pause de party, dossiers &
+     compendiums communs...).
+
+v2.16.6 | 2026-08-04
+   - Casier / Validation : les fiches a valider indiquent desormais s il s agit
+     d une "Creation" (verte) ou d une "Montee de niveau" (bleue) — une fiche deja
+     validee qui revient = montee de niveau (charvalidation.js, casier.js,
+     charvalidation.css).
+
+v2.16.5 | 2026-08-04
+   - Validation des personnages : pendant la CREATION (fiche non encore
+     verrouillee), xp.js laisse le joueur construire librement (XP, niveau,
+     classe) au lieu de bloquer "level up non autorise". Le blocage ne s applique
+     qu une fois la fiche validee & verrouillee (xp.js).
+
+v2.16.4 | 2026-08-04
+   - Validation des personnages : les persos valides sont crees dans un
+     sous-dossier au NOM DU JOUEUR, a l interieur du dossier parent configure
+     (ex. Joueurs / Gauthier). Le sous-dossier est cree au besoin (charvalidation.js).
+
+v2.16.3 | 2026-08-04
+   - Validation des personnages : la fenetre "Mes personnages" liste desormais
+     TOUS les persos du joueur — y compris ceux crees a la main par le MJ (via la
+     propriete du joueur), pas seulement ceux issus d une demande. Statut
+     "jouable" pour ces persos hors circuit, avec option de soumission
+     (charvalidation.js).
+
+v2.16.2 | 2026-08-04
+   - Validation des personnages : badge "En construction" (orange) sur la ligne de
+     l acteur tant qu une montee de niveau est autorisee (fiche deverrouillee pour
+     edition), jusqu a la re-validation (charvalidation.js, charvalidation.css).
 
 v2.16.1 | 2026-08-04
    - Temps morts : suppression des messages "ajouter l objet a la main" (l objet

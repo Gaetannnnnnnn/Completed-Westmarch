@@ -47,7 +47,13 @@ export function getCreationRequests() {
 export function getPendingActors() {
     return (game.actors ?? [])
         .filter(a => a.type === "character" && a.getFlag(MOD, "pendingValidation") === true)
-        .map(a => ({ id: a.id, name: a.name, ownerName: game.users.get(a.getFlag(MOD, "createdFor"))?.name ?? "—" }));
+        .map(a => ({
+            id: a.id,
+            name: a.name,
+            ownerName: game.users.get(a.getFlag(MOD, "createdFor"))?.name ?? "—",
+            // Déjà validé une fois → c'est une montée de niveau / respec ; sinon création.
+            kind: a.getFlag(MOD, "validated") === true ? "levelup" : "creation"
+        }));
 }
 export function myCharActor() {
     return game.actors?.find(a => a.getFlag(MOD, "createdFor") === game.user.id) ?? null;
@@ -58,8 +64,14 @@ const maxTotal  = () => Number(game.settings.get(MOD, "charMaxTotal"))  || 0;   
 const maxActive = () => Math.max(1, Number(game.settings.get(MOD, "charMaxActive")) || 2);
 const isStock   = (a) => a?.getFlag?.(MOD, "stock") === true;
 
+// Personnages d'un utilisateur : ceux du circuit de validation (createdFor) ET
+// ceux qu'il possède directement (Propriétaire), par ex. créés à la main par le
+// MJ. Les persos en stock (Observateur) restent inclus via createdFor.
 function actorsForUser(userId) {
-    return (game.actors ?? []).filter(a => a.getFlag(MOD, "createdFor") === userId);
+    const L = CONST.DOCUMENT_OWNERSHIP_LEVELS;
+    return (game.actors ?? []).filter(a =>
+        a.type === "character" &&
+        (a.getFlag(MOD, "createdFor") === userId || a.ownership?.[userId] === L.OWNER));
 }
 function activeCountForUser(userId) {
     return actorsForUser(userId).filter(a => !isStock(a)).length;
@@ -108,13 +120,23 @@ async function ensureFolder() {
     return f;
 }
 
+// Sous-dossier au nom du joueur, à l'intérieur du dossier parent configuré.
+async function ensurePlayerFolder(user) {
+    const parent = await ensureFolder();
+    const name = user?.name ?? "Joueur";
+    let f = game.folders?.find(x =>
+        x.type === "Actor" && x.name === name && (x.folder?.id ?? null) === (parent?.id ?? null));
+    if (!f) f = await Folder.create({ name, type: "Actor", folder: parent?.id ?? null });
+    return f;
+}
+
 // ---- Actions GM (appelées depuis le Casier) ----
 export async function approveCreation(userId) {
     if (!game.user.isGM) return;
     const user = game.users.get(userId);
     if (!user) return;
     const req = user.getFlag(MOD, "charRequest") ?? {};
-    const folder = await ensureFolder();
+    const folder = await ensurePlayerFolder(user);   // Joueurs / <nom du joueur>
     const L = CONST.DOCUMENT_OWNERSHIP_LEVELS;
     // Si le joueur a déjà atteint sa limite de persos actifs, le nouveau est
     // créé « en stock » (Observateur) ; sinon actif (Propriétaire).
@@ -203,9 +225,9 @@ export async function unlockActor(actorId) {
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const gmIds = () => game.users.filter(u => u.isGM).map(u => u.id);
 
-// Tous les personnages du joueur courant (multi-personnages).
+// Tous les personnages du joueur courant (créés par le MJ ou via demande).
 export function myCharActors() {
-    return (game.actors ?? []).filter(a => a.getFlag(MOD, "createdFor") === game.user.id);
+    return actorsForUser(game.user.id);
 }
 
 // Sous-fenêtre : formulaire de demande d'un NOUVEAU personnage.
@@ -253,6 +275,8 @@ export function openPlayerHub() {
         const lvlPending = a.getFlag(MOD, "pendingLevelUp");
         let status, btns = "";
 
+        const inFlow    = a.getFlag(MOD, "createdFor") === game.user.id;
+        const validated = a.getFlag(MOD, "validated");
         if (stock) {
             status = "🔒 en stock (non jouable)";
             const dis = atActiveLimit ? "disabled title=\"Limite de personnages actifs atteinte — mettez-en un en stock d'abord\"" : "";
@@ -261,7 +285,8 @@ export function openPlayerHub() {
             if (locked && lvlPending)      status = "verrouillé · ⬆️ montée en attente";
             else if (locked)             { status = "🔒 validé & verrouillé"; btns = `<button type="button" class="scwm-cv-act" data-act="levelup" data-id="${a.id}"><i class="fas fa-arrow-up-1-9"></i> Monter de niveau</button>`; }
             else if (pending)              status = "⏳ en attente de validation";
-            else                         { status = "🛠️ en construction"; btns = `<button type="button" class="scwm-cv-act" data-act="submit" data-id="${a.id}"><i class="fas fa-paper-plane"></i> Soumettre</button>`; }
+            else if (inFlow || validated) { status = "🛠️ en construction"; btns = `<button type="button" class="scwm-cv-act" data-act="submit" data-id="${a.id}"><i class="fas fa-paper-plane"></i> Soumettre</button>`; }
+            else                         { status = "🎭 jouable"; btns = `<button type="button" class="scwm-cv-act" data-act="submit" data-id="${a.id}" title="Soumettre pour validation & verrouillage"><i class="fas fa-paper-plane"></i> Soumettre</button>`; }
             btns += `<button type="button" class="scwm-cv-act" data-act="stock" data-id="${a.id}" title="Mettre en stock"><i class="fas fa-box-archive"></i></button>`;
         }
 
@@ -405,7 +430,7 @@ export function CharValidationHooks() {
     });
     Hooks.on("updateActor", (actor, changes) => {
         const f = changes?.flags?.[MOD];
-        if (f && ("pendingValidation" in f || "pendingLevelUp" in f || "locked" in f || "validated" in f || "createdFor" in f || "stock" in f)) ui.actors?.render();
+        if (f && ("pendingValidation" in f || "pendingLevelUp" in f || "locked" in f || "validated" in f || "createdFor" in f || "stock" in f || "levelUpGranted" in f)) ui.actors?.render();
     });
     // Nouvelle fiche créée (ex. via validation d'une demande) → badge « En création ».
     Hooks.on("createActor", (actor) => {
@@ -430,9 +455,10 @@ function injectValidationBadges(root) {
 
         let b = null;
         if (actor.getFlag(MOD, "stock") === true) b = { cls: "stock", label: "Stock", icon: "fa-lock" };
-        else if (pending)                     b = { cls: "pending",  label: "À valider",   icon: "fa-hourglass-half" };
-        else if (createdFor && !validated)    b = { cls: "creating", label: "En création", icon: "fa-user-pen" };
-        else if (levelup)                     b = { cls: "levelup",  label: "Level up",    icon: "fa-arrow-up-1-9" };
+        else if (pending)                     b = { cls: "pending",  label: "À valider",     icon: "fa-hourglass-half" };
+        else if (createdFor && !validated)    b = { cls: "creating", label: "En création",   icon: "fa-user-pen" };
+        else if (actor.getFlag(MOD, "levelUpGranted") === true) b = { cls: "building", label: "En construction", icon: "fa-hammer" };
+        else if (levelup)                     b = { cls: "levelup",  label: "Level up",      icon: "fa-arrow-up-1-9" };
         if (!b) continue;
 
         const span = document.createElement("span");

@@ -40,6 +40,11 @@
     background: rgba(120, 130, 140, 0.25);
     border-color: rgba(120, 130, 140, 0.6);
 }
+.scwm-cv-badge-building {
+    color: #ffcf9e;
+    background: rgba(214, 130, 40, 0.22);
+    border-color: rgba(214, 130, 40, 0.6);
+}
 
 /* Ligne d'un perso en stock (grisée). */
 .scwm-cv-charrow.scwm-cv-stocked { opacity: 0.7; }
@@ -84,5 +89,20 @@
 }
 .scwm-casier-cv-row .scwm-cv-info { flex: 1 1 auto; min-width: 0; }
 .scwm-casier-cv-row .scwm-cv-info small { opacity: 0.75; }
+.scwm-cv-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 8px;
+    padding: 1px 7px;
+    border-radius: 9px;
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+    border: 1px solid transparent;
+    vertical-align: middle;
+}
+.scwm-cv-tag-creation { color: #b9f6c8; background: rgba(46,160,67,0.22); border-color: rgba(46,160,67,0.55); }
+.scwm-cv-tag-levelup  { color: #b9d9ff; background: rgba(52,120,201,0.22); border-color: rgba(52,120,201,0.6); }
 .scwm-casier-cv-row .scwm-cv-row-actions { flex: 0 0 auto; display: flex; gap: 4px; }
 .scwm-casier-cv-row .scwm-cv-row-actions button { white-space: nowrap; }

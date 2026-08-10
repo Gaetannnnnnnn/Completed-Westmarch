@@ -245,6 +245,9 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             <div class="scwm-casier-cv-row" data-cv-actor="${esc(a.id)}">
                 <div class="scwm-cv-info">
                     <strong>${esc(a.name)}</strong> — <em>${esc(a.ownerName)}</em>
+                    ${a.kind === "levelup"
+                        ? `<span class="scwm-cv-tag scwm-cv-tag-levelup"><i class="fas fa-arrow-up-1-9"></i> Montée de niveau</span>`
+                        : `<span class="scwm-cv-tag scwm-cv-tag-creation"><i class="fas fa-user-plus"></i> Création</span>`}
                 </div>
                 <div class="scwm-cv-row-actions">
                     <button type="button" class="scwm-cv-openactor" data-actor="${esc(a.id)}" title="Ouvrir la fiche"><i class="fas fa-user"></i></button>

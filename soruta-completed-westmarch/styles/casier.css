@@ -121,6 +121,31 @@
 .scwm-casier-gm-head { display: flex; align-items: center; gap: 8px; }
 .scwm-casier-gm-head i { color: #a8863a; }
 .scwm-casier-gm-name { font-weight: 700; color: #dccba4; font-size: 14px; }
+.scwm-casier-gm-open { cursor: pointer; }
+.scwm-casier-gm-open:hover { color: #f0d98a; text-decoration: underline; }
+
+/* Retour depuis le dashboard d'un GM + présentation en lecture seule */
+.scwm-casier-gm-back {
+    background: rgba(0,0,0,0.25);
+    border: 1px solid rgba(201,162,39,0.3);
+    border-radius: 4px;
+    color: #dccba4;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 4px 10px;
+    margin-bottom: 8px;
+}
+.scwm-casier-gm-back:hover { border-color: rgba(201,162,39,0.6); color: #f0d98a; }
+.scwm-casier-presentation-view {
+    background: rgba(0,0,0,0.28);
+    border: 1px solid rgba(201,162,39,0.3);
+    border-radius: 4px;
+    color: #e8dcc0;
+    font-family: "Bookinsanity", Georgia, serif;
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 8px 10px;
+}
 .scwm-casier-gm-badge {
     margin-left: auto;
     font-size: 10px;

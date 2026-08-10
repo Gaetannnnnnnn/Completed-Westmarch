@@ -26,19 +26,20 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 // Brouillons du GM courant (les rapports sont rangés par gmId).
-function myDrafts() {
-    return getSessionDrafts().filter(d => d.gmId === game.user.id)
+function draftsFor(gmId) {
+    return getSessionDrafts().filter(d => d.gmId === gmId)
         .sort((a, b) => (b.dateISO ?? "").localeCompare(a.dateISO ?? ""));
 }
+function myDrafts() { return draftsFor(game.user.id); }
 
 // Expéditions EN COURS du GM (issues de l'onglet Expédition des fiches),
 // regroupées par expédition (nom + date de début). La party actuelle du GM
 // sert à marquer "En session" l'expédition qu'il MJ en ce moment.
-function gmExpeditions() {
+function gmExpeditions(gmId = game.user.id) {
     // Personnages de la party actuellement menée par ce GM.
     const partyCharIds = new Set(
         (game.users ?? [])
-            .filter(u => u.getFlag(MOD, "partyId") === game.user.id)
+            .filter(u => u.getFlag(MOD, "partyId") === gmId)
             .map(u => u.character?.id)
             .filter(Boolean)
     );
@@ -49,7 +50,7 @@ function gmExpeditions() {
         for (const e of getExpeditions(actor)) {
             if (!e.startDate || e.endDate) continue;
             // Uniquement les expéditions dont CE GM est le MJ (tag gmId).
-            if (e.gmId !== game.user.id) continue;
+            if (e.gmId !== gmId) continue;
             const key = `${e.name || "Expédition"}|${JSON.stringify(e.startDate)}`;
             if (!groups.has(key)) groups.set(key, { name: e.name || "Expédition sans nom", startDate: e.startDate, participants: [] });
             groups.get(key).participants.push({ id: actor.id, name: actor.name });
@@ -96,7 +97,7 @@ function gmTracking() {
 
     return (game.users ?? []).filter(u => u.isGM).map(gm => {
         const exps = byGm.has(gm.id) ? [...byGm.get(gm.id).values()] : [];
-        return { name: gm.name, count: exps.length, exps };
+        return { id: gm.id, name: gm.name, count: exps.length, exps };
     });
 }
 
@@ -110,6 +111,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
 
     #tab = "dashboard";
     #selectedId = null;
+    #viewGmId = null;   // GM dont on consulte le dashboard depuis « Suivi des GM »
 
     get title() { return `Casier de ${game.user.name}`; }
 
@@ -288,6 +290,9 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
 
     // ---- Onglet Suivi des GM ----
     #gmsDetail() {
+        // Si un GM est sélectionné → on affiche uniquement SON dashboard.
+        if (this.#viewGmId) return this.#gmDashboardDetail(this.#viewGmId);
+
         const gms = gmTracking();
         if (!gms.length) return `<div class="scwm-casier-placeholder"><i class="fas fa-users-gear"></i><p>Aucun GM.</p></div>`;
         return `
@@ -297,7 +302,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                     <div class="scwm-casier-gm-card ${gm.count ? "active" : ""}">
                         <div class="scwm-casier-gm-head">
                             <i class="fas fa-user-shield"></i>
-                            <span class="scwm-casier-gm-name">${esc(gm.name)}</span>
+                            <span class="scwm-casier-gm-name scwm-casier-gm-open" data-gm="${esc(gm.id)}" title="Voir le dashboard de ${esc(gm.name)}">${esc(gm.name)}</span>
                             <span class="scwm-casier-gm-badge">${gm.count} expédition${gm.count > 1 ? "s" : ""}</span>
                         </div>
                         ${gm.exps.length
@@ -309,6 +314,37 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                                 </li>`).join("")}</ul>`
                             : `<div class="scwm-casier-gm-line" style="opacity:.6;">Aucune expédition en cours.</div>`}
                     </div>`).join("")}
+            </div>`;
+    }
+
+    // Dashboard d'un GM donné, consulté depuis « Suivi des GM » (uniquement le
+    // dashboard). Éditable si c'est le sien, en lecture seule sinon.
+    #gmDashboardDetail(gmId) {
+        const gm     = game.users?.get(gmId);
+        const name   = gm?.name ?? "GM";
+        const drafts = draftsFor(gmId);
+        const exps   = gmExpeditions(gmId);
+        const isSelf = gmId === game.user.id;
+        const pres   = getPresentation(gmId);
+        const presHtml = isSelf
+            ? `<textarea class="scwm-casier-presentation" rows="8"
+                    placeholder="Présentez-vous, vos critères, vos horaires… (visible ici, sauvegardé automatiquement)">${esc(pres)}</textarea>`
+            : (pres
+                ? `<div class="scwm-casier-presentation-view">${esc(pres).replace(/\n/g, "<br>")}</div>`
+                : `<div class="scwm-casier-empty">Aucune présentation renseignée.</div>`);
+        return `
+            <div class="scwm-casier-detail scwm-casier-dashboard">
+                <button type="button" class="scwm-casier-gm-back"><i class="fas fa-arrow-left"></i> Retour au suivi des GM</button>
+                <h2><i class="fas fa-box-archive"></i> Casier de ${esc(name)}</h2>
+                <p class="scwm-casier-meta">Tableau de bord du meneur${isSelf ? "" : " — lecture seule"}</p>
+
+                <div class="scwm-casier-stats">
+                    <div class="scwm-casier-stat"><b>${drafts.length}</b><span>Rapport(s) à finaliser</span></div>
+                    <div class="scwm-casier-stat"><b>${exps.length}</b><span>Expédition(s) en cours</span></div>
+                </div>
+
+                <h3>Présentation</h3>
+                ${presHtml}
             </div>`;
     }
 
@@ -351,8 +387,14 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
         root.querySelectorAll(".scwm-casier-tab").forEach(btn =>
             btn.addEventListener("click", () => {
                 this.#tab = btn.dataset.tab;
+                this.#viewGmId = null;   // on quitte la vue dashboard d'un GM
                 this.render();
             }));
+
+        // ---- Suivi des GM : ouvrir / fermer le dashboard d'un GM ----
+        root.querySelectorAll(".scwm-casier-gm-open").forEach(el =>
+            el.addEventListener("click", () => { this.#viewGmId = el.dataset.gm; this.render(); }));
+        root.querySelector(".scwm-casier-gm-back")?.addEventListener("click", () => { this.#viewGmId = null; this.render(); });
 
         root.querySelectorAll(".scwm-casier-page[data-draft-id]").forEach(pg =>
             pg.addEventListener("click", () => {

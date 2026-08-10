@@ -26,6 +26,9 @@ export function MapHooks() {
         if (!game.user.isGM) return;
         if (!game.settings.get(MOD, "enableExpeditionMap")) return;
 
+        // Acteur/token Groupe « modèle » (bons paramètres, à copier/renommer).
+        await ensureTemplateGroupActor();
+
         const sceneId = game.settings.get(MOD, "expeditionMapSceneId");
         const scene = sceneId ? game.scenes.get(sceneId) : null;
 
@@ -75,6 +78,60 @@ export function MapHooks() {
     Hooks.on("createFogExploration", refreshFogIfMine);
     Hooks.on("updateFogExploration", refreshFogIfMine);
     Hooks.on("deleteFogExploration", refreshFogIfMine);
+}
+
+// ============================================================
+// Crée (une seule fois) un acteur Groupe « modèle » avec les bons
+// paramètres de token pour la carte des expéditions — token NON LIÉ
+// (Members stockés dans le delta du token) et VISION activée — puis en
+// pose un exemplaire sur la scène configurée. Le GM n'a plus qu'à le
+// copier / renommer et régler ses Members.
+// ============================================================
+const TEMPLATE_GROUP_NAME = "Token à copier et rennomer";
+
+async function ensureTemplateGroupActor() {
+    if (!game.user.isGM) return null;
+
+    let actor = game.actors.find(a => a.type === "group" && a.getFlag(MOD, "templateGroupToken") === true);
+    if (!actor) {
+        // Ne recrée pas si un acteur du même nom existe déjà (posé à la main).
+        if (game.actors.find(a => a.type === "group" && a.name === TEMPLATE_GROUP_NAME)) return null;
+        try {
+            actor = await Actor.create({
+                name: TEMPLATE_GROUP_NAME,
+                type: "group",
+                flags: { [MOD]: { templateGroupToken: true } },
+                prototypeToken: {
+                    name: TEMPLATE_GROUP_NAME,
+                    actorLink: false,                                  // Members dans le delta du token
+                    sight: { enabled: true, range: 30 },               // vision (fog) — ajustez la portée au besoin
+                    disposition: CONST.TOKEN_DISPOSITIONS.FRIENDLY,
+                    displayName: CONST.TOKEN_DISPLAY_MODES.HOVER
+                }
+            });
+            console.log(`[${MOD}] Acteur Groupe modèle « ${TEMPLATE_GROUP_NAME} » créé.`);
+        } catch (e) {
+            console.warn(`[${MOD}] Création de l'acteur Groupe modèle échouée :`, e);
+            return null;
+        }
+    }
+    if (!actor) return null;
+
+    // Pose un exemplaire du token sur la scène de la carte (une seule fois).
+    const sceneId = game.settings.get(MOD, "expeditionMapSceneId");
+    const scene = sceneId ? game.scenes.get(sceneId) : null;
+    if (scene && !scene.tokens.some(t => t.actorId === actor.id)) {
+        try {
+            const x = Math.round((scene.width  ?? 1000) / 2);
+            const y = Math.round((scene.height ?? 1000) / 2);
+            const tokenDoc = await actor.getTokenDocument({ x, y });
+            await scene.createEmbeddedDocuments("Token", [tokenDoc.toObject()]);
+            console.log(`[${MOD}] Token Groupe modèle posé sur la scène de la carte.`);
+        } catch (e) {
+            console.warn(`[${MOD}] Dépôt du token Groupe modèle échoué :`, e);
+        }
+    }
+    return actor;
 }
 
 function refreshFogIfMine(fogDoc) {

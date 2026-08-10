@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 3.0.9
+Version : 3.1.1
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -186,6 +186,16 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v3.1.1 | 2026-08-04
+   - Carte des expeditions : creation auto d'un acteur Groupe modele
+     "Token a copier et rennomer" (token non lie + vision activee) et depot d'un
+     exemplaire sur la scene configuree, pret a copier/renommer (idempotent). (map.js)
+
+v3.1.0 | 2026-08-04
+   - Casier / Suivi des GM : cliquer sur le pseudo d'un GM affiche uniquement
+     son dashboard (stats + presentation) ; bouton retour. Presentation editable
+     seulement pour son propre casier, sinon lecture seule. (casier.js, casier.css)
 
 v3.0.9 | 2026-08-04
    - Creation de perso : quand un GM cree un PJ directement dans le sous-dossier

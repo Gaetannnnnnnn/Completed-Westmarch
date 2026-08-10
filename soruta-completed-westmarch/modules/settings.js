@@ -409,6 +409,9 @@ export function registerSettings() {
     game.settings.register(MOD, "expeditionMapSceneId", S(
         "Carte des expéditions — Scène",
         "Scène sur laquelle le brouillard de guerre est suivi par personnage plutôt que par compte joueur."));
+    game.settings.register(MOD, "expeditionMapTemplateFolder", S(
+        "Carte des expéditions — Dossier du token modèle",
+        "Dossier d'acteurs où créer l'acteur Groupe modèle « Token à copier et rennomer ». Laissez vide pour la racine."));
 
     // ============================================================
     // MISE EN SCÈNE — CUES AUDIO (clés sceneCues*)
@@ -570,7 +573,7 @@ const CATEGORIES = [
       keys: ["carnetEnabled","enablePcStatus"] },
     { firstKey: "enableExpeditionMap", master: "enableExpeditionMap",   icon: "fa-map",             title: "Carte des expéditions",
       desc: "Brouillard de guerre par party et par personnage sur une scène dédiée.",
-      keys: ["enableExpeditionMap","expeditionMapSceneId"] },
+      keys: ["enableExpeditionMap","expeditionMapSceneId","expeditionMapTemplateFolder"] },
     { firstKey: "enableSceneCues", master: "enableSceneCues",       icon: "fa-clapperboard",    title: "Mise en scène — Cues audio",
       desc: "Cues audio attachés aux tokens : déclenchement auto quand le token perd son invisibilité GM, ou manuel. Réglage de la seconde de départ, du volume et du fondu.",
       keys: ["enableSceneCues","sceneCuesDefaultVolume"] },

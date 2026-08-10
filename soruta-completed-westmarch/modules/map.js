@@ -78,6 +78,65 @@ export function MapHooks() {
     Hooks.on("createFogExploration", refreshFogIfMine);
     Hooks.on("updateFogExploration", refreshFogIfMine);
     Hooks.on("deleteFogExploration", refreshFogIfMine);
+
+    // ---- Exploration par le MJ « pour » des joueurs hors-scène ----
+    // Quand le MJ déplace un token de GROUPE sélectionné sur la scène de la
+    // carte, son exploration est enregistrée dans la fog des membres de ce
+    // groupe qui ne regardent pas la scène (hors-ligne ou sur une autre scène),
+    // pour que la zone soit persistée par personnage.
+    Hooks.on("createFogExploration", scheduleGmFogPropagation);
+    Hooks.on("updateFogExploration", scheduleGmFogPropagation);
+}
+
+const _propagateGmFog = foundry.utils.debounce(() => { doPropagateGmFog(); }, 1200);
+
+function scheduleGmFogPropagation(fogDoc) {
+    if (!game.user.isGM) return;
+    if (fogDoc.user !== game.user.id) return;             // seulement la fog du MJ courant
+    if (!game.settings.get(MOD, "enableExpeditionMap")) return;
+    if (fogDoc.scene !== game.settings.get(MOD, "expeditionMapSceneId")) return;
+    _propagateGmFog();
+}
+
+async function doPropagateGmFog() {
+    const sceneId = game.settings.get(MOD, "expeditionMapSceneId");
+    const scene = sceneId ? game.scenes.get(sceneId) : null;
+    if (!scene) return;
+
+    // Token(s) de GROUPE actuellement sélectionné(s) par le MJ : cible l'exploration.
+    const controlled = (canvas?.tokens?.controlled ?? []).filter(t => t.actor?.type === "group");
+    if (!controlled.length) return;
+
+    // Instantané de la fog du MJ sur cette scène (reflète la vision des tokens
+    // qu'il contrôle si la scène a bien « Vision par token » activée).
+    const fogCollection = game.collections.get("FogExploration");
+    const gmFog = fogCollection.find(f => f.scene === scene.id && f.user === game.user.id);
+    if (!gmFog) return;
+    const snapshot = { explored: gmFog.explored, positions: gmFog.positions, timestamp: gmFog.timestamp };
+
+    for (const tok of controlled) {
+        const memberIds = Array.from(tok.actor?.system?.members?.ids ?? []);
+        for (const charId of memberIds) {
+            const user = game.users.find(u => !u.isGM && u.character?.id === charId);
+            if (!user) continue;
+            // Ne pas écraser la fog d'un joueur qui explore lui-même la scène.
+            if (user.active && user.viewedScene === scene.id) continue;
+
+            // Fog personnelle au personnage → clé = personnage seul.
+            const key = charId;
+            const savedByKey = foundry.utils.deepClone(user.getFlag(MOD, "fogByKey") ?? {});
+            savedByKey[key] = { ...snapshot };
+            await user.setFlag(MOD, "fogByKey", savedByKey);
+            // Si ce personnage est actuellement affiché, met aussi à jour sa fog
+            // « live » pour qu'il la retrouve en ouvrant la scène.
+            if (_charOf(user.getFlag(MOD, "activeFogKey")) === charId) {
+                const userFog = fogCollection.find(f => f.scene === scene.id && f.user === user.id);
+                if (userFog) await userFog.update(snapshot);
+                else await foundry.documents.FogExploration.create({ scene: scene.id, user: user.id, ...snapshot });
+            }
+        }
+    }
+    console.log(`[CE] Fog du MJ propagée aux membres des groupes sélectionnés.`);
 }
 
 // ============================================================
@@ -89,6 +148,23 @@ export function MapHooks() {
 // ============================================================
 const TEMPLATE_GROUP_NAME = "Token à copier et rennomer";
 
+// Résout le dossier d'acteurs configuré (id du sélecteur ou nom en saisie libre).
+async function resolveTemplateFolderId() {
+    const val = game.settings.get(MOD, "expeditionMapTemplateFolder");
+    if (!val) return null;
+    const looksLikeId = (s) => /^[A-Za-z0-9]{16}$/.test(s ?? "");
+    const byId = game.folders?.get(val);
+    if (byId?.type === "Actor") return byId.id;
+    if (!looksLikeId(val)) {
+        const byName = game.folders?.find(f => f.type === "Actor" && f.name === val);
+        if (byName) return byName.id;
+        // Nom libre inexistant → on crée le dossier.
+        const created = await Folder.create({ name: val, type: "Actor" });
+        return created?.id ?? null;
+    }
+    return null;
+}
+
 async function ensureTemplateGroupActor() {
     if (!game.user.isGM) return null;
 
@@ -97,9 +173,11 @@ async function ensureTemplateGroupActor() {
         // Ne recrée pas si un acteur du même nom existe déjà (posé à la main).
         if (game.actors.find(a => a.type === "group" && a.name === TEMPLATE_GROUP_NAME)) return null;
         try {
+            const folderId = await resolveTemplateFolderId();
             actor = await Actor.create({
                 name: TEMPLATE_GROUP_NAME,
                 type: "group",
+                folder: folderId ?? null,
                 flags: { [MOD]: { templateGroupToken: true } },
                 prototypeToken: {
                     name: TEMPLATE_GROUP_NAME,
@@ -277,29 +355,19 @@ async function enforceGroupExclusivity(actor) {
 }
 
 // ============================================================
-// Fog par personnage ET par groupe actuel. Un même personnage qui
-// change de Groupe (nouvelle expédition, même sans changer de
-// personnage assigné) doit voir sa fog se ré-isoler : l'exploration
-// faite avec le Groupe A ne doit pas rester visible une fois rejoint
-// le Groupe B, sinon les deux Groupes "interfèrent" sur la carte.
+// Fog PERSONNELLE par personnage. Chaque personnage possède UNE seule
+// fog, valable pour toutes les expéditions : il la conserve et la fait
+// évoluer au fil de ses explorations, quel que soit le groupe. Le token
+// de Groupe sert uniquement à savoir QUI explore en ce moment (vision),
+// il ne partitionne pas la fog.
 //
-// Clé de sauvegarde = "<characterId>:<groupActorId>" (pas de groupe
-// trouvé => pas de clé => fog vide, comme un personnage qui n'a
-// encore rejoint aucune expédition).
+// Clé de sauvegarde = "<characterId>". Un changement de personnage
+// assigné sur un même compte joueur permute la fog (l'ancienne est
+// sauvegardée sous son personnage, celle du nouveau est restaurée).
 // ============================================================
 
-function findGroupIdForCharacter(characterId, scene) {
-    if (!characterId) return null;
-    for (const token of scene.tokens) {
-        if (!token.actorId) continue;
-        // Utilise l'acteur synthétique pour lire les Members (token non-lié).
-        const actor = token.actor;
-        if (!actor || actor.type !== "group") continue;
-        const ids = Array.from(actor.system?.members?.ids ?? []);
-        if (ids.includes(characterId)) return actor.id; // actor.id = id de l'acteur de base
-    }
-    return null;
-}
+// Partie « personnage » d'une clé (compat. anciennes clés "char:group").
+const _charOf = (k) => (k == null ? null : String(k).split(":")[0]);
 
 function resyncAllCharacterFog() {
     if (!game.user.isGM) return;
@@ -320,45 +388,62 @@ async function recomputeFogForCharacter(characterId) {
     const user = game.users.find(u => !u.isGM && u.character?.id === characterId);
     if (!user) { console.log(`[CE] recomputeFog: aucun joueur non-GM avec le perso ${characterId}`); return; }
 
-    const newGroupId = findGroupIdForCharacter(characterId, scene);
-    const newKey = newGroupId ? `${characterId}:${newGroupId}` : null;
+    // La fog est personnelle au personnage : la clé est le personnage seul.
+    const newKey = characterId;
 
     const rawFlag = user.getFlag(MOD, "activeFogKey");
     console.log(`[CE] recomputeFog | user=${user.name} | rawFlag=${JSON.stringify(rawFlag)} | newKey=${newKey}`);
 
     if (rawFlag === undefined) {
-        console.log(`[CE] → première init, on pose la clé sans swap`);
         await user.setFlag(MOD, "activeFogKey", newKey);
         return;
     }
 
     const oldKey = rawFlag ?? null;
-    if (oldKey === newKey) { console.log(`[CE] → clés identiques, rien à faire`); return; }
+    // Même personnage (y compris ancienne clé "char:group") → aucune permutation,
+    // on conserve la fog en place et on normalise juste la clé.
+    if (_charOf(oldKey) === characterId) {
+        if (oldKey !== newKey) await user.setFlag(MOD, "activeFogKey", newKey);
+        return;
+    }
 
-    console.log(`[CE] → SWAP fog: oldKey=${oldKey} → newKey=${newKey}`);
+    console.log(`[CE] → SWAP fog: ${oldKey} → ${newKey}`);
     await swapFogForUserKey(scene, user, oldKey, newKey);
     await user.setFlag(MOD, "activeFogKey", newKey);
 }
 
 async function swapFogForUserKey(scene, user, oldKey, newKey) {
+    const oldChar = _charOf(oldKey);
+    const newChar = _charOf(newKey);
     const fogCollection = game.collections.get("FogExploration");
     const fogDoc = fogCollection.find(f => f.scene === scene.id && f.user === user.id);
-    console.log(`[CE] swapFog | fogDoc trouvé: ${!!fogDoc} | oldKey=${oldKey} | newKey=${newKey}`);
+    console.log(`[CE] swapFog | fogDoc trouvé: ${!!fogDoc} | ${oldChar} → ${newChar}`);
 
-    if (fogDoc && oldKey) {
-        const savedByKey = foundry.utils.deepClone(user.getFlag(MOD, "fogByKey") ?? {});
-        savedByKey[oldKey] = {
+    const savedByKey = foundry.utils.deepClone(user.getFlag(MOD, "fogByKey") ?? {});
+
+    // Sauvegarde la fog courante sous SON personnage (normalisé).
+    if (fogDoc && oldChar) {
+        savedByKey[oldChar] = {
             explored: fogDoc.explored,
             positions: fogDoc.positions,
             timestamp: fogDoc.timestamp
         };
-        await user.setFlag(MOD, "fogByKey", savedByKey);
-        console.log(`[CE] → fog sauvegardée sous ${oldKey}`);
     }
 
-    const savedByKey = user.getFlag(MOD, "fogByKey") ?? {};
-    const saved = newKey ? savedByKey[newKey] : null;
-    console.log(`[CE] → fog restaurée pour ${newKey}: ${saved ? "OUI" : "NON (suppression)"}`);
+    // Restaure la fog du nouveau personnage (repli sur d'anciennes clés "char:group").
+    let saved = null;
+    if (newChar) {
+        saved = savedByKey[newChar] ?? null;
+        if (!saved) {
+            const legacy = Object.entries(savedByKey)
+                .filter(([k]) => k.startsWith(`${newChar}:`))
+                .map(([, v]) => v)
+                .sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0));
+            if (legacy.length) saved = legacy[0];
+        }
+    }
+    await user.setFlag(MOD, "fogByKey", savedByKey);
+    console.log(`[CE] → fog restaurée pour ${newChar}: ${saved ? "OUI" : "NON (suppression)"}`);
 
     if (fogDoc) {
         if (saved) {

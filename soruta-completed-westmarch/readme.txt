@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 3.1.1
+Version : 3.1.4
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -186,6 +186,25 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v3.1.4 | 2026-08-04
+   - Carte des expeditions : la fog est desormais PERSONNELLE par personnage et
+     unique pour toutes les expeditions (conservee et cumulative). Le token de
+     groupe ne sert qu'a indiquer qui explore ; il ne partitionne plus la fog.
+     Cle de sauvegarde = personnage seul, avec migration des anciennes cles
+     "perso:groupe". (map.js)
+
+v3.1.3 | 2026-08-04
+   - Carte des expeditions : le MJ peut explorer POUR des joueurs hors-scene. En
+     deplacant un token de GROUPE selectionne sur la scene, son exploration est
+     enregistree dans la fog des membres du groupe qui ne regardent pas la scene
+     (hors-ligne / autre scene), persistee par personnage. Necessite Vision par
+     token sur la scene. (map.js)
+
+v3.1.2 | 2026-08-04
+   - Carte des expeditions : nouveau reglage "Dossier du token modele" — l'acteur
+     Groupe modele est cree dans le dossier d'acteurs choisi (cree le dossier si
+     nom libre inexistant). (settings.js, map.js)
 
 v3.1.1 | 2026-08-04
    - Carte des expeditions : creation auto d'un acteur Groupe modele

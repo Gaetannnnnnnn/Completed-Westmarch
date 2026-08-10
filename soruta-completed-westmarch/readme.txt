@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 2.11.0
+Version : 2.16.1
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -150,6 +150,58 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v2.16.1 | 2026-08-04
+   - Temps morts : suppression des messages "ajouter l objet a la main" (l objet
+     s importe desormais automatiquement du compendium). Message de fin de craft
+     simplifie ; plus de rappel manuel au demarrage (tm.js).
+
+v2.16.0 | 2026-08-04
+   - Tutoriel : mise a jour complete avec les nouvelles fonctionnalites. Nouvelles
+     sections — Note GM (GM), Mes personnages (joueur : demande/soumission/stock),
+     Cues audio (GM). Le Casier gagne les etapes onglets Temps morts et Validation.
+     L etape de validation des temps morts pointe desormais le Casier (l ancien
+     bouton de barre ayant ete retire). Toutes les etapes pointent l element
+     concerne (const.js, tutorial.js, settings.js, charvalidation.js).
+
+v2.15.2 | 2026-08-04
+   - Casier / Temps morts : suppression du scroll interne (55vh) dans le panneau
+     embarque, pour un scroll unique et fluide via la colonne du Casier (tm.js).
+
+v2.15.1 | 2026-08-04
+   - Fiche PJ : nouveau reglage "Masquer l onglet etoile aux joueurs" (Serveur).
+     Cache l onglet a icone etoile (favoris) sur les fiches, cote joueurs
+     uniquement ; les GM le voient toujours (character-sheet.js, settings.js).
+
+v2.15.0 | 2026-08-04
+   - Fiche PJ : onglet "Note GM" (reglage Serveur). Ajoute un onglet prive sur les
+     fiches de personnage, visible et editable uniquement par les GM (la part
+     n existe pas pour les joueurs). Notes stockees sur l acteur (flag gmNotes)
+     (character-sheet.js, character-gmnotes.hbs, gmnotes.css, settings.js).
+
+v2.14.0 | 2026-08-04
+   - Casier : l onglet "Temps morts" embarque directement le panneau de validation
+     (liste des declarations, recherche, modifier/refuser) et un bouton
+     "Appliquer les gains" — plus besoin d ouvrir une fenetre separee. openDowntime
+     refactorise en fonctions reutilisables (tm.js, casier.js).
+
+v2.13.0 | 2026-08-04
+   - Validation des personnages : limites & stock. Deux reglages — "Nombre de
+     personnages max par joueur" (0 = illimite) et "Personnages actifs simultanes"
+     (defaut 2). Au-dela du nombre d actifs, les persos passent EN STOCK : cadenas
+     dans la fenetre "Mes personnages", ownership Observateur (non jouable),
+     badge "Stock" sur la ligne de l acteur. Boutons Activer / Mettre en stock
+     (changement d ownership via requete au GM). Le total limite le nombre de
+     demandes de creation (charvalidation.js, settings.js, charvalidation.css).
+
+v2.12.0 | 2026-08-04
+   - Validation des personnages : MULTI-PERSONNAGES. La fenetre "Mes personnages"
+     liste tous les persos du joueur (statut + actions) et un bouton "Demander un
+     nouveau personnage" permet d en demander plusieurs (2e, 3e...). Chaque perso
+     a ses propres actions (ouvrir, soumettre, monter de niveau).
+   - Verrou : re-affichage de la fiche apres un blocage, pour que la valeur
+     saisie (affichage optimiste) revienne bien a l etat verrouille reel
+     (charvalidation.js, charvalidation.css).
 
 v2.11.0 | 2026-08-04
    - Reglages : nouvelle section "Dossiers & Compendiums" en tete, qui regroupe

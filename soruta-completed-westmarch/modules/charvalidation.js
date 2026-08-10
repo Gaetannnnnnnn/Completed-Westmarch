@@ -53,6 +53,42 @@ export function myCharActor() {
     return game.actors?.find(a => a.getFlag(MOD, "createdFor") === game.user.id) ?? null;
 }
 
+// ---- Stock / actifs -------------------------------------------------------
+const maxTotal  = () => Number(game.settings.get(MOD, "charMaxTotal"))  || 0;   // 0 = illimité
+const maxActive = () => Math.max(1, Number(game.settings.get(MOD, "charMaxActive")) || 2);
+const isStock   = (a) => a?.getFlag?.(MOD, "stock") === true;
+
+function actorsForUser(userId) {
+    return (game.actors ?? []).filter(a => a.getFlag(MOD, "createdFor") === userId);
+}
+function activeCountForUser(userId) {
+    return actorsForUser(userId).filter(a => !isStock(a)).length;
+}
+
+// GM : (dés)active un personnage — bascule le flag « stock » et l'ownership du
+// joueur (Propriétaire si actif, Observateur si en stock).
+async function applyCharStock(actorId, stock) {
+    if (!game.user.isGM) return;
+    const actor = game.actors.get(actorId);
+    if (!actor) return;
+    const uid = actor.getFlag(MOD, "createdFor");
+    if (!uid) return;
+    const L = CONST.DOCUMENT_OWNERSHIP_LEVELS;
+    await actor.update({
+        [`flags.${MOD}.stock`]: !!stock,
+        [`ownership.${uid}`]: stock ? L.OBSERVER : L.OWNER
+    });
+}
+
+// Joueur : passe par une requête au GM (changement d'ownership réservé au GM).
+async function requestCharStock(actorId, stock) {
+    if (game.user.isGM) { await applyCharStock(actorId, stock); return; }
+    const gm = game.users.find(u => u.isGM && u.active);
+    if (!gm) { ui.notifications?.warn("Aucun MJ en ligne pour (dés)activer ce personnage."); return; }
+    try { await gm.query("westmarch.charStock", { actorId, stock }); }
+    catch (e) { console.warn(`[${MOD}] charStock :`, e); }
+}
+
 async function ensureFolder() {
     const val = commonFolderNewChars();
     const looksLikeId = (s) => /^[A-Za-z0-9]{16}$/.test(s ?? "");
@@ -80,12 +116,15 @@ export async function approveCreation(userId) {
     const req = user.getFlag(MOD, "charRequest") ?? {};
     const folder = await ensureFolder();
     const L = CONST.DOCUMENT_OWNERSHIP_LEVELS;
+    // Si le joueur a déjà atteint sa limite de persos actifs, le nouveau est
+    // créé « en stock » (Observateur) ; sinon actif (Propriétaire).
+    const asStock = activeCountForUser(userId) >= maxActive();
     const actor = await Actor.create({
         name: req.name || `${user.name} — personnage`,
         type: "character",
         folder: folder.id,
-        ownership: { default: L.NONE, [userId]: L.OWNER },
-        flags: { [MOD]: { createdFor: userId, concept: req.concept || "", validated: false, locked: false } }
+        ownership: { default: L.NONE, [userId]: asStock ? L.OBSERVER : L.OWNER },
+        flags: { [MOD]: { createdFor: userId, concept: req.concept || "", validated: false, locked: false, stock: asStock } }
     });
     await user.unsetFlag(MOD, "charRequest");
     ChatMessage.create({
@@ -161,74 +200,135 @@ export async function unlockActor(actorId) {
 // ============================================================
 // UI JOUEUR — hub « Mon personnage »
 // ============================================================
-function openPlayerHub() {
-    const req = game.user.getFlag(MOD, "charRequest");
-    const actor = myCharActor();
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const gmIds = () => game.users.filter(u => u.isGM).map(u => u.id);
 
-    const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-    let body, actions = "";
-    if (req) {
-        body = `<p>Votre <strong>demande de création</strong> (« ${esc(req.name)} ») est en attente de validation par un MJ.</p>`;
-        actions = `<button type="button" class="scwm-cv-act" data-act="cancel"><i class="fas fa-times"></i> Annuler la demande</button>`;
-    } else if (!actor) {
-        body = `<p>Vous n'avez pas encore de personnage. Faites une <strong>demande de création</strong> ; une fois validée par un MJ, une fiche sera créée dans vos acteurs.</p>
+// Tous les personnages du joueur courant (multi-personnages).
+export function myCharActors() {
+    return (game.actors ?? []).filter(a => a.getFlag(MOD, "createdFor") === game.user.id);
+}
+
+// Sous-fenêtre : formulaire de demande d'un NOUVEAU personnage.
+function promptNewCharRequest() {
+    new Dialog({
+        title: "Demander un nouveau personnage",
+        content: `<div class="scwm-cv-hub">
             <div class="form-group"><label>Nom</label><input type="text" name="cv-name" placeholder="Nom du personnage"/></div>
-            <div class="form-group"><label>Concept</label><textarea name="cv-concept" rows="3" placeholder="Classe visée, idée générale, historique…"></textarea></div>`;
-        actions = `<button type="button" class="scwm-cv-act" data-act="request"><i class="fas fa-paper-plane"></i> Envoyer la demande</button>`;
-    } else {
-        const locked = actor.getFlag(MOD, "locked");
-        const pending = actor.getFlag(MOD, "pendingValidation");
-        const lvlPending = actor.getFlag(MOD, "pendingLevelUp");
-        if (locked) {
-            if (lvlPending) {
-                body = `<p>🔒 <strong>${esc(actor.name)}</strong> est verrouillé. ⏳ Votre <strong>demande de montée de niveau</strong> est en attente de validation par un MJ.</p>`;
-            } else {
-                body = `<p>🔒 <strong>${esc(actor.name)}</strong> est validé et verrouillé. Jouez normalement ; pour <strong>monter de niveau</strong> ou changer votre construction, faites-en la demande ci-dessous.</p>`;
-                actions = `<button type="button" class="scwm-cv-act" data-act="levelup"><i class="fas fa-arrow-up-1-9"></i> Demander une montée de niveau</button>`;
-            }
-        } else if (pending) {
-            body = `<p>⏳ <strong>${esc(actor.name)}</strong> est en attente de validation par un MJ.</p>`;
-        } else {
-            body = `<p>Votre fiche <strong>${esc(actor.name)}</strong> est en construction. Terminez-la (imports Plutonium compris), puis soumettez-la.</p>`;
-            actions = `<button type="button" class="scwm-cv-act" data-act="open"><i class="fas fa-user"></i> Ouvrir la fiche</button>
-                       <button type="button" class="scwm-cv-act" data-act="submit"><i class="fas fa-paper-plane"></i> Soumettre pour validation</button>`;
-        }
-    }
-
-    const dlg = new Dialog({
-        title: "Mon personnage — validation",
-        content: `<div class="scwm-cv-hub">${body}${actions ? `<div class="scwm-cv-actions">${actions}</div>` : ""}</div>`,
-        buttons: { close: { icon: '<i class="fas fa-times"></i>', label: "Fermer" } },
-        render: (html) => {
-            const root = html[0] ?? html;
-            const run = async (a) => {
-                if (a === "request") {
+            <div class="form-group"><label>Concept</label><textarea name="cv-concept" rows="3" placeholder="Classe visée, idée générale, historique…"></textarea></div>
+        </div>`,
+        buttons: {
+            send: {
+                icon: '<i class="fas fa-paper-plane"></i>', label: "Envoyer la demande",
+                callback: async (html) => {
+                    const root = html[0] ?? html;
                     const name = root.querySelector("[name=cv-name]")?.value.trim();
                     if (!name) { ui.notifications?.warn("Indiquez un nom."); return; }
                     const concept = root.querySelector("[name=cv-concept]")?.value.trim() ?? "";
                     await game.user.setFlag(MOD, "charRequest", { name, concept, dateISO: new Date().toISOString() });
-                    ChatMessage.create({ whisper: game.users.filter(u => u.isGM).map(u => u.id), speaker: { alias: "Validation" }, content: `📝 <strong>${esc(game.user.name)}</strong> demande la création d'un personnage : « ${esc(name)} ».` });
+                    ChatMessage.create({ whisper: gmIds(), speaker: { alias: "Validation" }, content: `📝 <strong>${esc(game.user.name)}</strong> demande la création d'un personnage : « ${esc(name)} ».` });
                     ui.notifications?.info("Demande envoyée.");
-                } else if (a === "cancel") {
-                    await game.user.unsetFlag(MOD, "charRequest");
-                } else if (a === "open") {
-                    myCharActor()?.sheet.render(true);
-                } else if (a === "submit") {
-                    const ac = myCharActor();
-                    if (!ac) return;
+                }
+            },
+            cancel: { icon: '<i class="fas fa-times"></i>', label: "Annuler" }
+        },
+        default: "send"
+    }).render(true);
+}
+
+export function openPlayerHub() {
+    const req = game.user.getFlag(MOD, "charRequest");
+    const actors = myCharActors();
+
+    const nbActive = activeCountForUser(game.user.id);
+    const limActive = maxActive();
+    const limTotal = maxTotal();
+    const atActiveLimit = nbActive >= limActive;
+    const atTotalLimit = limTotal > 0 && actors.length >= limTotal;
+
+    // Liste des personnages du joueur, avec statut et actions.
+    const rows = actors.map(a => {
+        const stock      = isStock(a);
+        const locked     = a.getFlag(MOD, "locked");
+        const pending    = a.getFlag(MOD, "pendingValidation");
+        const lvlPending = a.getFlag(MOD, "pendingLevelUp");
+        let status, btns = "";
+
+        if (stock) {
+            status = "🔒 en stock (non jouable)";
+            const dis = atActiveLimit ? "disabled title=\"Limite de personnages actifs atteinte — mettez-en un en stock d'abord\"" : "";
+            btns = `<button type="button" class="scwm-cv-act" data-act="activate" data-id="${a.id}" ${dis}><i class="fas fa-lock-open"></i> Activer</button>`;
+        } else {
+            if (locked && lvlPending)      status = "verrouillé · ⬆️ montée en attente";
+            else if (locked)             { status = "🔒 validé & verrouillé"; btns = `<button type="button" class="scwm-cv-act" data-act="levelup" data-id="${a.id}"><i class="fas fa-arrow-up-1-9"></i> Monter de niveau</button>`; }
+            else if (pending)              status = "⏳ en attente de validation";
+            else                         { status = "🛠️ en construction"; btns = `<button type="button" class="scwm-cv-act" data-act="submit" data-id="${a.id}"><i class="fas fa-paper-plane"></i> Soumettre</button>`; }
+            btns += `<button type="button" class="scwm-cv-act" data-act="stock" data-id="${a.id}" title="Mettre en stock"><i class="fas fa-box-archive"></i></button>`;
+        }
+
+        return `<div class="scwm-cv-charrow${stock ? " scwm-cv-stocked" : ""}">
+            <div class="scwm-cv-charinfo"><strong>${esc(a.name)}</strong><br><span class="scwm-cv-charstatus">${status}</span></div>
+            <div class="scwm-cv-charactions">
+                <button type="button" class="scwm-cv-act" data-act="open" data-id="${a.id}" title="Ouvrir la fiche"><i class="fas fa-user"></i></button>
+                ${btns}
+            </div>
+        </div>`;
+    }).join("") || `<p class="scwm-cv-empty">Vous n'avez pas encore de personnage.</p>`;
+
+    const counters = `<p class="scwm-cv-counters">Actifs : <strong>${nbActive}/${limActive}</strong>${limTotal > 0 ? ` · Total : <strong>${actors.length}/${limTotal}</strong>` : ""}</p>`;
+
+    let createBlock;
+    if (req) {
+        createBlock = `<p>📝 Votre demande de création (« ${esc(req.name)} ») est en attente de validation.</p>
+           <div class="scwm-cv-actions"><button type="button" class="scwm-cv-act" data-act="cancel"><i class="fas fa-times"></i> Annuler la demande</button></div>`;
+    } else if (atTotalLimit) {
+        createBlock = `<p class="scwm-cv-empty">Nombre maximum de personnages atteint (${limTotal}).</p>`;
+    } else {
+        createBlock = `<div class="scwm-cv-actions"><button type="button" class="scwm-cv-act" data-act="newreq"><i class="fas fa-plus"></i> Demander un nouveau personnage</button></div>`;
+    }
+
+    const content = `<div class="scwm-cv-hub">
+        <h3 style="margin-top:0;">Mes personnages</h3>
+        ${counters}
+        <div class="scwm-cv-charlist">${rows}</div>
+        <hr>
+        ${createBlock}
+    </div>`;
+
+    const dlg = new Dialog({
+        title: "Mes personnages — validation",
+        content,
+        buttons: { close: { icon: '<i class="fas fa-times"></i>', label: "Fermer" } },
+        render: (html) => {
+            const root = html[0] ?? html;
+            const run = async (a, id) => {
+                const ac = id ? game.actors.get(id) : null;
+                if (a === "newreq") { dlg.close(); promptNewCharRequest(); return; }
+                if (a === "cancel") { await game.user.unsetFlag(MOD, "charRequest"); }
+                else if (a === "open") { ac?.sheet.render(true); return; }   // garder le hub ouvert
+                else if (a === "activate") {
+                    if (activeCountForUser(game.user.id) >= maxActive()) {
+                        ui.notifications?.warn(`Vous avez déjà ${maxActive()} personnage(s) actif(s). Mettez-en un en stock d'abord.`);
+                        return;
+                    }
+                    await requestCharStock(id, false);
+                    ui.notifications?.info(`${ac?.name ?? "Personnage"} activé.`);
+                }
+                else if (a === "stock") {
+                    await requestCharStock(id, true);
+                    ui.notifications?.info(`${ac?.name ?? "Personnage"} mis en stock.`);
+                }
+                else if (a === "submit" && ac) {
                     await ac.setFlag(MOD, "pendingValidation", true);
-                    ChatMessage.create({ whisper: game.users.filter(u => u.isGM).map(u => u.id), speaker: { alias: "Validation" }, content: `📩 <strong>${esc(game.user.name)}</strong> soumet <strong>${esc(ac.name)}</strong> pour validation.` });
+                    ChatMessage.create({ whisper: gmIds(), speaker: { alias: "Validation" }, content: `📩 <strong>${esc(game.user.name)}</strong> soumet <strong>${esc(ac.name)}</strong> pour validation.` });
                     ui.notifications?.info("Fiche soumise pour validation.");
-                } else if (a === "levelup") {
-                    const ac = myCharActor();
-                    if (!ac) return;
+                } else if (a === "levelup" && ac) {
                     await ac.setFlag(MOD, "pendingLevelUp", true);
-                    ChatMessage.create({ whisper: game.users.filter(u => u.isGM).map(u => u.id), speaker: { alias: "Validation" }, content: `⬆️ <strong>${esc(game.user.name)}</strong> demande une <strong>montée de niveau</strong> pour <strong>${esc(ac.name)}</strong>.` });
+                    ChatMessage.create({ whisper: gmIds(), speaker: { alias: "Validation" }, content: `⬆️ <strong>${esc(game.user.name)}</strong> demande une <strong>montée de niveau</strong> pour <strong>${esc(ac.name)}</strong>.` });
                     ui.notifications?.info("Demande de montée de niveau envoyée.");
                 }
                 dlg.close();
             };
-            root.querySelectorAll(".scwm-cv-act").forEach(b => b.addEventListener("click", () => run(b.dataset.act)));
+            root.querySelectorAll(".scwm-cv-act").forEach(b => b.addEventListener("click", () => run(b.dataset.act, b.dataset.id)));
         }
     });
     dlg.render(true);
@@ -238,6 +338,9 @@ function openPlayerHub() {
 // HOOKS
 // ============================================================
 export function CharValidationHooks() {
+    // Requête d'(dés)activation d'un personnage — traitée par le GM.
+    CONFIG.queries["westmarch.charStock"] = async ({ actorId, stock }) => { await applyCharStock(actorId, stock); return true; };
+
     // Bouton dans la barre WestMarch pour les JOUEURS.
     Hooks.on("getSceneControlButtons", (controls) => {
         if (!enabled()) return;
@@ -261,6 +364,7 @@ export function CharValidationHooks() {
         if (!enabled() || !isLocked(actor)) return;
         if (BLOCKED_ACTOR_PATHS.some(p => foundry.utils.hasProperty(changes, p))) {
             ui.notifications?.warn("Fiche validée : caractéristiques et maîtrises verrouillées. Demandez une modification au MJ.");
+            setTimeout(() => actor.sheet?.render(false), 30);   // reverte l'affichage optimiste
             return false;
         }
     });
@@ -276,6 +380,7 @@ export function CharValidationHooks() {
         const allowed = ITEM_PLAY_KEYS[item.type] ?? [];
         if (Object.keys(sys).every(k => allowed.includes(k))) return;   // uniquement du jeu
         ui.notifications?.warn(`Fiche validée : « ${item.name} » est un élément de construction verrouillé.`);
+        setTimeout(() => actor.sheet?.render(false), 30);   // reverte l'affichage optimiste
         return false;
     });
 
@@ -300,7 +405,7 @@ export function CharValidationHooks() {
     });
     Hooks.on("updateActor", (actor, changes) => {
         const f = changes?.flags?.[MOD];
-        if (f && ("pendingValidation" in f || "pendingLevelUp" in f || "locked" in f || "validated" in f || "createdFor" in f)) ui.actors?.render();
+        if (f && ("pendingValidation" in f || "pendingLevelUp" in f || "locked" in f || "validated" in f || "createdFor" in f || "stock" in f)) ui.actors?.render();
     });
     // Nouvelle fiche créée (ex. via validation d'une demande) → badge « En création ».
     Hooks.on("createActor", (actor) => {
@@ -324,7 +429,8 @@ function injectValidationBadges(root) {
         const levelup    = actor.getFlag(MOD, "pendingLevelUp") === true;
 
         let b = null;
-        if (pending)                          b = { cls: "pending",  label: "À valider",   icon: "fa-hourglass-half" };
+        if (actor.getFlag(MOD, "stock") === true) b = { cls: "stock", label: "Stock", icon: "fa-lock" };
+        else if (pending)                     b = { cls: "pending",  label: "À valider",   icon: "fa-hourglass-half" };
         else if (createdFor && !validated)    b = { cls: "creating", label: "En création", icon: "fa-user-pen" };
         else if (levelup)                     b = { cls: "levelup",  label: "Level up",    icon: "fa-arrow-up-1-9" };
         if (!b) continue;

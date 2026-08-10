@@ -1,0 +1,29 @@
+/* ============================================================
+   gmnotes.css — Onglet « Note GM » (privé, fiche PJ)
+   ============================================================ */
+
+.scwm-gmnotes {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    height: 100%;
+    padding: 8px 10px;
+}
+.scwm-gmnotes-hint {
+    margin: 0;
+    font-size: 12px;
+    opacity: 0.8;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.scwm-gmnotes-input {
+    flex: 1 1 auto;
+    width: 100%;
+    min-height: 300px;
+    resize: vertical;
+    box-sizing: border-box;
+    padding: 8px 10px;
+    line-height: 1.5;
+    font-family: inherit;
+}

@@ -1080,13 +1080,23 @@ function buildActorRow(actor, startUnchecked = false) {
 // Dialogue GM — ouverture
 // ============================================================
 
-export async function openDowntimeDialog() {
+function _downtimeData() {
     const allActors  = getPlayerActors();
-    const declared   = allActors.filter(a =>  a.getFlag(MOD, "tm")?.declared);
-    const undeclared = allActors.filter(a => !a.getFlag(MOD, "tm")?.declared);
+    return {
+        allActors,
+        declared:   allActors.filter(a =>  a.getFlag(MOD, "tm")?.declared),
+        undeclared: allActors.filter(a => !a.getFlag(MOD, "tm")?.declared)
+    };
+}
 
-    if (allActors.length === 0) { ui.notifications.warn("Aucun personnage joueur trouvé."); return; }
+export function downtimeHasActors() { return getPlayerActors().length > 0; }
 
+// Contenu du panneau des temps morts (sans les boutons de dialogue). Réutilisé
+// par la fenêtre GM ET par l'onglet Temps morts du Casier. expanded=true → la
+// liste est déjà déroulée (cas Casier, pas de case « Afficher la liste »).
+export function downtimeContentHtml(expanded = false) {
+    const { allActors, declared, undeclared } = _downtimeData();
+    if (allActors.length === 0) return `<p style="opacity:.75; font-style:italic; padding:8px;">Aucun personnage joueur trouvé.</p>`;
     const showAllByDefault = declared.length === 0;
 
     const headerHtml = `
@@ -1094,10 +1104,9 @@ export async function openDowntimeDialog() {
     ${declared.length === 0
         ? `<span style="color:#e67e22;"><em>Aucune déclaration reçue.</em></span>`
         : `<span><strong>${declared.length}</strong> déclaration${declared.length > 1 ? "s" : ""} reçue${declared.length > 1 ? "s" : ""}.</span>`}
-    <label style="cursor:pointer; display:flex; align-items:center; gap:5px;">
-        <input type="checkbox" id="tm-show-list" style="margin:0;">
-        Afficher la liste${declared.length > 0 ? ` (${declared.length})` : ""}
-    </label>
+    ${expanded ? "" : `<label style="cursor:pointer; display:flex; align-items:center; gap:5px;">
+        <input type="checkbox" id="tm-show-list" style="margin:0;"> Afficher la liste${declared.length > 0 ? ` (${declared.length})` : ""}
+    </label>`}
     ${!showAllByDefault && undeclared.length > 0
         ? `<label style="cursor:pointer; color:#888; display:flex; align-items:center; gap:5px;">
                <input type="checkbox" id="tm-show-undeclared" style="margin:0;">${undeclared.length} sans déclaration
@@ -1105,13 +1114,13 @@ export async function openDowntimeDialog() {
         : ""}
 </div>`;
 
-    const content = `
+    return `
 <div>
     ${headerHtml}
-    <div id="tm-actor-list" style="display:none;">
+    <div id="tm-actor-list" style="display:${expanded ? "block" : "none"};">
         <input id="tm-search" type="text" placeholder="Rechercher un personnage…"
                style="width:100%; box-sizing:border-box; margin-bottom:6px; padding:4px 8px; border:1px solid #ccc; border-radius:4px;">
-        <div id="tm-actor-scroll" style="max-height:55vh; overflow-y:auto; padding-right:4px;">
+        <div id="tm-actor-scroll" style="max-height:${expanded ? "none" : "55vh"}; overflow-y:${expanded ? "visible" : "auto"}; padding-right:4px;">
             ${(showAllByDefault ? allActors : declared).map(a => buildActorRow(a, true)).join("")}
             ${!showAllByDefault && undeclared.length > 0
                 ? `<div class="tm-undeclared-group" style="display:none;">${undeclared.map(a => buildActorRow(a, true)).join("")}</div>`
@@ -1119,98 +1128,89 @@ export async function openDowntimeDialog() {
         </div>
     </div>
 </div>`;
+}
 
+// Câble les écouteurs du panneau des temps morts sur un conteneur donné.
+export function wireDowntime(rootEl) {
+    const { allActors } = _downtimeData();
+    const $html = $(rootEl);
+
+    $html.find("#tm-show-list").on("change", function () {
+        $html.find("#tm-actor-list").css("display", this.checked ? "block" : "none");
+        if (this.checked) $html.find("#tm-search").trigger("focus");
+    });
+    $html.find("#tm-search").on("input", function () {
+        const q = this.value.trim().toLowerCase();
+        $html.find(".tm-actor-row").each(function () {
+            const name = $(this).find(".tm-actor-name").text().toLowerCase();
+            $(this).toggle(!q || name.includes(q));
+        });
+    });
+    $html.find("#tm-show-undeclared").on("change", function () {
+        $html.find(".tm-undeclared-group").css("display", this.checked ? "block" : "none");
+    });
+    for (const actor of allActors) {
+        const id = actor.id;
+        $html.find(`[name="tm-active-${id}"]`).on("change", function () {
+            $html.find(`.tm-controls-${id}`).css("opacity", this.checked ? "1" : "0.4");
+        });
+    }
+    $html.find(".tm-actor-name").on("click", function () {
+        const actor = game.actors.get(this.dataset.actorId);
+        if (actor) actor.sheet.render(true);
+    });
+    $html.find(".tm-edit-btn").on("click", function () {
+        const actor = game.actors.get(this.dataset.actorId);
+        if (actor) openDeclarationDialog(actor);
+    });
+    $html.find(".tm-refuse-btn").on("click", async function () {
+        const actorId = this.dataset.actorId;
+        const actor   = game.actors.get(actorId);
+        if (!actor) return;
+        await actor.unsetFlag(MOD, "tm");
+        const owners = getActorOwners(actor);
+        if (owners.length > 0) {
+            ChatMessage.create({
+                content: `❌ Votre demande de temps mort a été refusée par le MJ.`,
+                whisper: owners.map(u => u.id),
+                speaker: { alias: "WestMarch — Temps morts" }
+            });
+        }
+        $html.find(`[data-actor-id="${actorId}"].tm-actor-row`).css("opacity", "0.4");
+        $html.find(`[name="tm-active-${actorId}"]`).prop("checked", false);
+        $html.find(`.tm-controls-${actorId}`).css("opacity", "0.4");
+        this.textContent = "Refusé";
+        this.disabled = true;
+        this.style.color = "#888";
+        this.style.borderColor = "#888";
+        ui.notifications.info(`Demande TM refusée pour ${actor.name}.`);
+    });
+}
+
+// Applique les gains à partir d'un conteneur (fenêtre ou onglet Casier).
+export async function applyDowntimeFromRoot(rootEl) {
+    const { allActors } = _downtimeData();
+    await applyDowntimeGains($(rootEl), allActors);
+}
+
+export async function openDowntimeDialog() {
+    if (!downtimeHasActors()) { ui.notifications.warn("Aucun personnage joueur trouvé."); return; }
     let dialogHtml = null;
-
     await (foundry.applications.api.DialogV2 ?? DialogV2).wait({
         window: { title: "Temps morts", resizable: true },
         position: { width: 560 },
-        content,
+        content: downtimeContentHtml(false),
         rejectClose: false,
         render: () => {
-            // Ne pas utiliser l'argument — son type varie (HTMLElement, Event, string…) selon les builds v13.
-            // On accède au DOM directement par ID unique ; garanti disponible quand render() est appelé.
-            const rootEl = document.getElementById("tm-show-list")
+            const rootEl = (document.getElementById("tm-show-list") ?? document.getElementById("tm-actor-list"))
                 ?.closest(".application, .dialog, form") ?? document.body;
             dialogHtml = rootEl;
-            const $html = $(rootEl);
-
-            $html.find("#tm-show-list").on("change", function () {
-                $html.find("#tm-actor-list").css("display", this.checked ? "block" : "none");
-                if (this.checked) $html.find("#tm-search").trigger("focus");
-            });
-
-            $html.find("#tm-search").on("input", function () {
-                const q = this.value.trim().toLowerCase();
-                $html.find(".tm-actor-row").each(function () {
-                    const name = $(this).find(".tm-actor-name").text().toLowerCase();
-                    $(this).toggle(!q || name.includes(q));
-                });
-            });
-
-            $html.find("#tm-show-undeclared").on("change", function () {
-                $html.find(".tm-undeclared-group").css("display", this.checked ? "block" : "none");
-            });
-
-            for (const actor of allActors) {
-                const id = actor.id;
-                $html.find(`[name="tm-active-${id}"]`).on("change", function () {
-                    $html.find(`.tm-controls-${id}`).css("opacity", this.checked ? "1" : "0.4");
-                });
-            }
-
-            $html.find(".tm-actor-name").on("click", function () {
-                const actor = game.actors.get(this.dataset.actorId);
-                if (actor) actor.sheet.render(true);
-            });
-
-            $html.find(".tm-edit-btn").on("click", function () {
-                const actor = game.actors.get(this.dataset.actorId);
-                if (actor) openDeclarationDialog(actor);
-            });
-
-            $html.find(".tm-refuse-btn").on("click", async function () {
-                const actorId = this.dataset.actorId;
-                const actor   = game.actors.get(actorId);
-                if (!actor) return;
-
-                await actor.unsetFlag(MOD, "tm");
-
-                const owners = getActorOwners(actor);
-                if (owners.length > 0) {
-                    ChatMessage.create({
-                        content: `❌ Votre demande de temps mort a été refusée par le MJ.`,
-                        whisper: owners.map(u => u.id),
-                        speaker: { alias: "WestMarch — Temps morts" }
-                    });
-                }
-
-                $html.find(`[data-actor-id="${actorId}"].tm-actor-row`).css("opacity", "0.4");
-                $html.find(`[name="tm-active-${actorId}"]`).prop("checked", false);
-                $html.find(`.tm-controls-${actorId}`).css("opacity", "0.4");
-                this.textContent = "Refusé";
-                this.disabled = true;
-                this.style.color = "#888";
-                this.style.borderColor = "#888";
-
-                ui.notifications.info(`Demande TM refusée pour ${actor.name}.`);
-            });
+            wireDowntime(rootEl);
         },
         buttons: [
-            {
-                action: "apply",
-                label: "Appliquer les gains",
-                icon: '<i class="fas fa-coins"></i>',
-                default: true,
-                callback: async () => {
-                    if (dialogHtml) await applyDowntimeGains($(dialogHtml), allActors);
-                }
-            },
-            {
-                action: "cancel",
-                label: "Annuler",
-                icon: '<i class="fas fa-times"></i>'
-            }
+            { action: "apply", label: "Appliquer les gains", icon: '<i class="fas fa-coins"></i>', default: true,
+              callback: async () => { if (dialogHtml) await applyDowntimeFromRoot(dialogHtml); } },
+            { action: "cancel", label: "Annuler", icon: '<i class="fas fa-times"></i>' }
         ]
     });
 }
@@ -1278,20 +1278,14 @@ async function applyDowntimeGains($html, actors) {
                     });
                 }
 
-                // Craft terminé : tentative d'ajout automatique de l'objet depuis
-                // le compendium configuré (recherche par nom). Sinon, rappel manuel.
+                // Craft terminé : ajout automatique de l'objet depuis le
+                // compendium configuré (objet choisi via uuid, sinon par nom).
                 if (complete) {
                     const granted = await grantCraftedItem(actor, craftName, item.craftUuid);
                     ChatMessage.create({
                         content: granted
-                            ? `✅ <strong>${actor.name}</strong> a terminé son craft : <strong>${craftName}</strong> (${infoStr}). L'objet <em>${granted}</em> a été <strong>ajouté automatiquement</strong> à sa fiche. Coût de ${craftCost} po déjà retiré.`
-                            : `⚠️ <strong>${actor.name}</strong> a terminé son craft : <strong>${craftName}</strong> (${infoStr}). Objet introuvable dans le compendium — <strong>ajoutez-le manuellement</strong>. Coût de ${craftCost} po déjà retiré.`,
-                        whisper: ChatMessage.getWhisperRecipients("GM"),
-                        speaker: { alias: "WestMarch — Temps morts" }
-                    });
-                } else if (isFirstPeriod) {
-                    ChatMessage.create({
-                        content: `ℹ️ <strong>${actor.name}</strong> a démarré un craft : <strong>${craftName}</strong> (${infoStr}) — ${newTotal}/${totalDays} j. Dès que le craft sera terminé, pensez à ajouter l'objet manuellement sur sa fiche.`,
+                            ? `✅ <strong>${actor.name}</strong> a terminé son craft : <strong>${craftName}</strong> (${infoStr}). L'objet <em>${granted}</em> a été <strong>ajouté à sa fiche</strong>. Coût de ${craftCost} po déjà retiré.`
+                            : `✅ <strong>${actor.name}</strong> a terminé son craft : <strong>${craftName}</strong> (${infoStr}). Coût de ${craftCost} po déjà retiré.`,
                         whisper: ChatMessage.getWhisperRecipients("GM"),
                         speaker: { alias: "WestMarch — Temps morts" }
                     });

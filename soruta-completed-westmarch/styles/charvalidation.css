@@ -35,12 +35,39 @@
     background: rgba(140, 100, 210, 0.22);
     border-color: rgba(140, 100, 210, 0.6);
 }
+.scwm-cv-badge-stock {
+    color: #cbd2d9;
+    background: rgba(120, 130, 140, 0.25);
+    border-color: rgba(120, 130, 140, 0.6);
+}
+
+/* Ligne d'un perso en stock (grisée). */
+.scwm-cv-charrow.scwm-cv-stocked { opacity: 0.7; }
+.scwm-cv-counters { font-size: 12px; opacity: 0.85; margin: 2px 0 8px; }
 
 /* Hub joueur « Mon personnage ». */
 .scwm-cv-hub .form-group { display: flex; flex-direction: column; gap: 2px; margin: 6px 0; }
 .scwm-cv-hub .form-group > label { font-weight: 600; font-size: 12px; }
 .scwm-cv-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .scwm-cv-actions button { flex: 0 0 auto; white-space: nowrap; }
+
+/* Liste des personnages du joueur (multi-personnages). */
+.scwm-cv-charlist { display: flex; flex-direction: column; gap: 6px; }
+.scwm-cv-charrow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 8px;
+    border: 1px solid rgba(201, 148, 40, 0.35);
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.12);
+}
+.scwm-cv-charinfo { flex: 1 1 auto; min-width: 0; }
+.scwm-cv-charstatus { font-size: 12px; opacity: 0.85; }
+.scwm-cv-charactions { flex: 0 0 auto; display: flex; gap: 4px; }
+.scwm-cv-charactions button { white-space: nowrap; }
+.scwm-cv-empty { opacity: 0.7; padding: 8px; text-align: center; }
 
 /* Onglet Validation du Casier. */
 .scwm-casier-cv-section { margin-bottom: 14px; }

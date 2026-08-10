@@ -20,7 +20,7 @@ import {
     getPendingActors, validateActor, returnActor,
     getLevelUpRequests, grantLevelUp
 } from "./charvalidation.js";
-import { openDowntimeDialog } from "./tm.js";
+import { downtimeContentHtml, wireDowntime, applyDowntimeFromRoot } from "./tm.js";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -212,22 +212,15 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             </div>`;
     }
 
-    // ---- Onglet Temps morts ----
-    #downtimeDetail(declared) {
+    // ---- Onglet Temps morts (panneau embarqué) ----
+    #downtimeDetail() {
         return `
             <div class="scwm-casier-detail scwm-casier-downtime">
                 <h2><i class="fas fa-hourglass-half"></i> Temps morts</h2>
-                <p class="scwm-casier-meta">${declared > 0
-                    ? `<strong>${declared}</strong> personnage${declared > 1 ? "s ont" : " a"} déclaré un temps mort en attente de validation.`
-                    : "Aucune déclaration en attente pour le moment."}</p>
-                <div class="scwm-casier-quickactions">
-                    <button type="button" class="scwm-casier-open-tm"><i class="fas fa-hourglass-half"></i> Ouvrir la fenêtre des temps morts</button>
+                <div class="scwm-tm-embed">${downtimeContentHtml(true)}</div>
+                <div class="scwm-casier-actions" style="margin-top:10px;">
+                    <button type="button" class="scwm-casier-apply-tm"><i class="fas fa-coins"></i> Appliquer les gains</button>
                 </div>
-                <p style="opacity:.75; font-size:12px; margin-top:8px;">
-                    La fenêtre pré-remplit les déclarations des joueurs (gains de compétence et artisanat) ;
-                    vous validez et appliquez les gains en un clic. L'objet fabriqué est ajouté automatiquement
-                    depuis le compendium configuré si le joueur l'a choisi.
-                </p>
             </div>`;
     }
 
@@ -372,8 +365,14 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
         root.querySelectorAll(".scwm-cv-grantlvl").forEach(b => b.addEventListener("click", async () => { await grantLevelUp(b.dataset.actor); this.render(); refreshCasierBadge(); }));
         root.querySelectorAll(".scwm-cv-openactor").forEach(b => b.addEventListener("click", () => game.actors.get(b.dataset.actor)?.sheet.render(true)));
 
-        // Accès rapide aux temps morts depuis le dashboard.
-        root.querySelector(".scwm-casier-open-tm")?.addEventListener("click", () => openDowntimeDialog());
+        // Onglet Temps morts embarqué : câblage + application des gains.
+        if (this.#tab === "downtime") {
+            wireDowntime(root);
+            root.querySelector(".scwm-casier-apply-tm")?.addEventListener("click", async () => {
+                await applyDowntimeFromRoot(root);
+                this.render();
+            });
+        }
 
         // Présentation du dashboard : sauvegarde à la perte de focus.
         const pres = root.querySelector(".scwm-casier-presentation");

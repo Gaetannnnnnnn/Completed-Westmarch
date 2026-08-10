@@ -13,10 +13,13 @@ export const MOD = "soruta-completed-westmarch";
 export const TUTO_TOGGLES = [
     { key: "tutoBarreWestmarch",  legacy: "barreWestmarch",  label: "Barre WestMarch (navigation & groupe)" },
     { key: "tutoTourFiche",       legacy: "tourFiche",       label: "Tour de la fiche personnage" },
+    { key: "tutoNoteGm",          legacy: "noteGm",          label: "Note GM (onglet privé de fiche)" },
+    { key: "tutoMonPerso",        legacy: "monPerso",        label: "Mes personnages (création & validation, joueur)" },
     { key: "tutoBestiary",        legacy: "bestiary",        label: "Bestiaire (onglet fiche)" },
     { key: "tutoRelations",       legacy: "relations",       label: "Relations (onglet fiche)" },
     { key: "tutoCarnet",          legacy: "carnet",          label: "Carnet & Expéditions (onglet fiche)" },
     { key: "tutoCasier",          legacy: "casier",          label: "Casier du MJ (tableau de bord)" },
+    { key: "tutoCues",            legacy: "cues",            label: "Mise en scène — Cues audio (GM)" },
     { key: "tutoBoutiques",       legacy: "boutiques",       label: "Boutiques Monk's Enhanced Journal" },
     { key: "tutoTempsMorts",      legacy: "tempsMorts",      label: "Temps morts (déclaration & validation)" },
     { key: "tutoApparenceTokens", legacy: "apparenceTokens", label: "Apparence des tokens (portrait, polymorph, cycle)" },

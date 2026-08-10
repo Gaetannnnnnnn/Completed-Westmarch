@@ -161,6 +161,14 @@ export function registerSettings() {
     game.settings.register(MOD, "enableCharValidation", B(
         "Validation des personnages",
         "Les joueurs demandent la création d'un personnage ; un GM valide depuis le Casier (un acteur est créé dans un dossier dédié, le joueur en devient propriétaire). Le joueur construit sa fiche puis la soumet ; à la validation, la fiche est verrouillée (construction non modifiable côté joueur, jeu libre)."));
+    game.settings.register(MOD, "charMaxTotal", N(
+        "Nombre de personnages max par joueur",
+        "Nombre maximum de personnages qu'un joueur peut posséder (actifs + en stock). 0 = illimité.",
+        0));
+    game.settings.register(MOD, "charMaxActive", N(
+        "Personnages actifs simultanés",
+        "Nombre de personnages jouables en même temps. Les autres passent « en stock » (cadenas, en Observateur, non jouables).",
+        2));
     game.settings.register(MOD, "charValidationFolder", S(
         "Validation — Dossier des personnages",
         "Nom du dossier d'acteurs où sont créés les personnages validés.",
@@ -181,6 +189,13 @@ export function registerSettings() {
     game.settings.register(MOD, "enableXpBlock", B(
         "Blocage de l'XP et du Level Up",
         "Empêche les joueurs de modifier leur XP et masque le bouton Level Up. Les GM ne sont pas affectés."));
+    game.settings.register(MOD, "enableGmNotes", B(
+        "Note GM sur les fiches PJ",
+        "Ajoute un onglet « Note GM » sur les fiches de personnage, visible et modifiable uniquement par les GM. Les joueurs ne voient pas l'onglet. Nécessite un rechargement.",
+        true, { requiresReload: true }));
+    game.settings.register(MOD, "hidePlayerStarTab", B(
+        "Masquer l'onglet « étoile » aux joueurs",
+        "Cache l'onglet dont l'icône est une étoile (favoris) sur les fiches de personnage, pour les joueurs uniquement. Les GM le voient toujours."));
     game.settings.register(MOD, "enableDiscordLog", B(
         "Log Discord (modifications)",
         "Envoie un message Discord à chaque ajout/suppression d'objet, changement de quantité/monnaie, gain d'XP/niveau, et création/suppression de personnage.",
@@ -528,10 +543,10 @@ const CATEGORIES = [
       keys: ["enableParty","enableJoinScene","enableShowParty","enablePlayerGrouping","enableGoWithPartyScenes","enableGoWithPartyJournal","enableChatFilter","enableSessionLog","sessionLogWebhookUrl","enableCombatParty","enableCombatTurnLock","enablePartyPause","enableAntiCheat"] },
     { firstKey: "enableCharValidation", master: "enableCharValidation", icon: "fa-id-card", title: "Création de personnages",
       desc: "Les joueurs demandent la création d'un personnage ; un GM valide depuis le Casier, puis le joueur construit et soumet sa fiche ; à la validation elle est verrouillée. Le dossier de destination se règle dans « Dossiers & Compendiums ».",
-      keys: ["enableCharValidation"] },
+      keys: ["enableCharValidation","charMaxTotal","charMaxActive"] },
     { firstKey: "enableXpBlock",         icon: "fa-server",          title: "Serveur",
       desc: "Personnalisations du serveur : blocage XP / Level Up, logs Discord, webhooks.",
-      keys: ["enableXpBlock","enableDiscordLog","discordLogWebhookUrl","downtimeWebhookUrl","tmWebhookUrl"] },
+      keys: ["enableXpBlock","enableGmNotes","hidePlayerStarTab","enableDiscordLog","discordLogWebhookUrl","downtimeWebhookUrl","tmWebhookUrl"] },
     { firstKey: "tmSkillBase", master: "tmEnabled", icon: "fa-hourglass-half",  title: "Temps morts",
       desc: "Règles configurables des temps morts : valeurs, formules (gain de compétence, artisanat) et tables (parchemins, objets magiques). Chaque serveur peut avoir ses propres règles.",
       keys: ["tmEnabled","tmSkillBase","tmAddAbilityMod","tmBonusMaitrise","tmBonusExpertise","tmBonusTools","tmRollMinDays","tmSkillFormula","tmCraftNonMagicCostDiv","tmCraftNonMagicDaysPerGp","tmCraftNonMagicCostFormula","tmCraftNonMagicDaysFormula","tmSingleUseFactor","tmScrollTable","tmMagicTable"] },
@@ -558,7 +573,7 @@ const CATEGORIES = [
       keys: ["rangeFixEnabled","rangeAdjust"] },
     { firstKey: "serverName", master: "tutoEnabled", icon: "fa-circle-question", title: "Tutoriel",
       desc: "Fenêtre de bienvenue et guide interactif, configurable section par section.",
-      keys: ["tutoEnabled","serverName","tutoBarreWestmarch","tutoTourFiche","tutoBestiary","tutoRelations","tutoCarnet","tutoCasier","tutoBoutiques","tutoTempsMorts","tutoApparenceTokens","tutoOutilsGm","showWelcome"] },
+      keys: ["tutoEnabled","serverName","tutoBarreWestmarch","tutoTourFiche","tutoNoteGm","tutoMonPerso","tutoBestiary","tutoRelations","tutoCarnet","tutoCasier","tutoCues","tutoBoutiques","tutoTempsMorts","tutoApparenceTokens","tutoOutilsGm","showWelcome"] },
 ];
 
 const ACCENT = "#e67e22";

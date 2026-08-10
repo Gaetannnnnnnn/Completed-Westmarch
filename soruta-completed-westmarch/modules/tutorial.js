@@ -13,7 +13,20 @@
 import { MOD } from "./const.js";
 import { getTutorialActor, grantTutorialAccess, revokeTutorialAccess } from "./demoactor.js";
 import { openCasier } from "./casier.js";
+import { openSceneCues } from "./sceneaudio.js";
+import { openPlayerHub } from "./charvalidation.js";
 const MODULE = MOD;
+
+// Ouvre le gestionnaire de cues audio (étapes GM).
+async function _openCues() {
+    try { openSceneCues(); } catch {}
+    await new Promise(r => setTimeout(r, 400));
+}
+// Ouvre la fenêtre « Mes personnages » (étapes joueur).
+async function _openMonPerso() {
+    try { openPlayerHub(); } catch {}
+    await new Promise(r => setTimeout(r, 350));
+}
 
 // Ouvre le Casier et bascule sur l'onglet voulu (pour les étapes du tutoriel).
 async function _openCasier(tab) {
@@ -40,10 +53,13 @@ function _tutorialActor() {
 export const SECTION_LABELS = {
     barreWestmarch:  "Barre WestMarch",
     tourFiche:       "Tour de la fiche",
+    noteGm:          "Note GM (privé)",
+    monPerso:        "Mes personnages",
     bestiary:        "Bestiaire",
     relations:       "Relations",
     carnet:          "Carnet & Expéditions",
     casier:          "Casier du MJ",
+    cues:            "Cues audio (mise en scène)",
     boutiques:       "Boutiques (MEJ)",
     tempsMorts:      "Temps morts",
     apparenceTokens: "Apparence des tokens",
@@ -53,10 +69,13 @@ export const SECTION_LABELS = {
 export const SECTION_ICONS = {
     barreWestmarch:  "fa-compass",
     tourFiche:       "fa-id-card",
+    noteGm:          "fa-user-secret",
+    monPerso:        "fa-id-badge",
     bestiary:        "fa-dragon",
     relations:       "fa-users",
     carnet:          "fa-book-open",
     casier:          "fa-box-archive",
+    cues:            "fa-clapperboard",
     boutiques:       "fa-store",
     tempsMorts:      "fa-hourglass-half",
     apparenceTokens: "fa-masks-theater",
@@ -66,10 +85,13 @@ export const SECTION_ICONS = {
 export const SETTING_KEYS = {
     barreWestmarch:  "tutoBarreWestmarch",
     tourFiche:       "tutoTourFiche",
+    noteGm:          "tutoNoteGm",
+    monPerso:        "tutoMonPerso",
     bestiary:        "tutoBestiary",
     relations:       "tutoRelations",
     carnet:          "tutoCarnet",
     casier:          "tutoCasier",
+    cues:            "tutoCues",
     boutiques:       "tutoBoutiques",
     tempsMorts:      "tutoTempsMorts",
     apparenceTokens: "tutoApparenceTokens",
@@ -86,10 +108,13 @@ export const SETTING_KEYS = {
 export const SECTION_FEATURE_SETTING = {
     barreWestmarch:  null,               // le tutoriel crée lui-même le groupe
     tourFiche:       null,               // tour générique de la fiche dnd5e
+    noteGm:          "enableGmNotes",
+    monPerso:        "enableCharValidation",
     bestiary:        "bestiaryEnabled",
     relations:       "relationsEnabled",
     carnet:          "carnetEnabled",
     casier:          null,               // outil MJ intégré (gmOnly)
+    cues:            "enableSceneCues",
     boutiques:       null,               // dépendance externe (MEJ) gérée à part
     tempsMorts:      null,               // fonctionnalité intégrée
     apparenceTokens: null,               // fonctionnalité intégrée
@@ -97,7 +122,7 @@ export const SECTION_FEATURE_SETTING = {
 };
 
 // Sections réservées au GM (toutes leurs étapes sont gmOnly)
-export const SECTION_GM_ONLY = new Set(["casier", "boutiques", "outilsGm"]);
+export const SECTION_GM_ONLY = new Set(["casier", "cues", "noteGm", "boutiques", "outilsGm"]);
 
 /**
  * Retourne true si la section est disponible pour l'utilisateur courant :
@@ -505,6 +530,46 @@ const STEPS_BY_FEATURE = {
         },
     ],
 
+    // ---- Note GM (onglet privé, GM) ----
+    noteGm: [
+        {
+            beforeShow: _toSheet("gmnotes"),
+            target:     "nav.tabs [data-tab='gmnotes'], .tabs [data-tab='gmnotes']",
+            title:      "Onglet Note GM",
+            textGM:     "Sur chaque fiche de personnage, l'onglet <strong>Note GM</strong> <i class='fas fa-user-secret'></i> n'est visible que par vous — il n'existe même pas côté joueur. Idéal pour vos secrets et rappels sur un PJ.",
+            position:   "bottom",
+            gmOnly:     true
+        },
+        {
+            beforeShow: _toSheet("gmnotes"),
+            target:     ".scwm-gmnotes-input, .scwm-gmnotes",
+            title:      "Vos notes privées",
+            textGM:     "Écrivez ici tout ce que vous voulez retenir sur ce personnage (plans, secrets, dettes…). Sauvegarde automatique à la perte de focus. Le joueur ne peut pas les lire dans son interface.",
+            position:   "left",
+            gmOnly:     true
+        },
+    ],
+
+    // ---- Mes personnages (création & validation, joueur) ----
+    monPerso: [
+        {
+            beforeShow: _expandWestmarch,
+            target:     "[data-tool='charValidation']",
+            title:      "Mes personnages",
+            text:       "Le bouton <i class='fas fa-id-card'></i> dans la barre WestMarch ouvre <strong>« Mes personnages »</strong> : vous y demandez la création d'un personnage, suivez son état et le soumettez au MJ pour validation.",
+            position:   "right",
+            playerOnly: true
+        },
+        {
+            beforeShow: _openMonPerso,
+            target:     ".scwm-cv-hub",
+            title:      "Demander & gérer",
+            text:       "« <strong>Demander un nouveau personnage</strong> » envoie une demande au MJ (dans la limite autorisée). Une fois le perso créé et construit, cliquez <strong>Soumettre</strong> : le MJ le valide et le verrouille. En haut, un compteur indique vos personnages <strong>actifs</strong> ; au-delà de la limite, les autres passent <strong>en stock</strong> <i class='fas fa-lock'></i> et vous pouvez les activer / mettre en stock selon vos places.",
+            position:   "left",
+            playerOnly: true
+        },
+    ],
+
     // ---- Bestiaire ----
     bestiary: [
         {
@@ -732,6 +797,48 @@ const STEPS_BY_FEATURE = {
             textGM:     "Pour chaque meneur : le nombre d'expéditions en cours, leur nom et les joueurs qui y participent — pratique pour se coordonner à plusieurs MJ.",
             position:   "right"
         },
+        {
+            beforeShow: () => _openCasier("downtime"),
+            target:     ".scwm-casier-tab[data-tab='downtime'], .scwm-casier-downtime",
+            title:      "Temps morts (dans le Casier)",
+            textGM:     "L'onglet <strong>Temps morts</strong> affiche directement toutes les déclarations des joueurs (gains de compétence et artisanat). Vous les modifiez/refusez au besoin, puis <strong>Appliquer les gains</strong> applique tout en un clic — l'objet fabriqué est ajouté automatiquement depuis le compendium configuré.",
+            position:   "right"
+        },
+        {
+            beforeShow: () => _openCasier("validation"),
+            target:     ".scwm-casier-tab[data-tab='validation'], .scwm-casier-validation",
+            title:      "Validation des personnages",
+            textGM:     "L'onglet <strong>Validation</strong> regroupe les <strong>demandes de création</strong> (Créer &amp; assigner), les <strong>fiches à valider</strong> (Valider &amp; verrouiller) et les <strong>montées de niveau</strong> à autoriser. C'est ici que vous gérez tout le cycle de vie des personnages joueurs.",
+            position:   "right"
+        },
+    ],
+
+    // ---- Cues audio (mise en scène) ----
+    cues: [
+        {
+            beforeShow: _expandWestmarch,
+            target:     "[data-tool='sceneCues']",
+            title:      "Cues audio — le bouton",
+            textGM:     "Le bouton <i class='fas fa-clapperboard'></i> <strong>Cues audio</strong> dans la barre WestMarch ouvre le gestionnaire de mise en scène : des sons préparés que vous déclenchez au bon moment, uniquement pour votre party.",
+            position:   "right",
+            gmOnly:     true
+        },
+        {
+            beforeShow: _openCues,
+            target:     ".scwm-cue-toolbar",
+            title:      "Préparer un cue",
+            textGM:     "« <strong>Nouveau cue</strong> » crée un son (fichier, seconde de départ, volume, fondu, boucle). « <strong>Section</strong> » regroupe et replie vos cues. Le bouton 🎵 à côté du fichier ouvre vos playlists (monde &amp; compendiums) pour <strong>écouter et choisir</strong> un son.",
+            position:   "bottom",
+            gmOnly:     true
+        },
+        {
+            beforeShow: _openCues,
+            target:     ".scwm-cue-trigger, .scwm-cue-card",
+            title:      "Le déclencheur",
+            textGM:     "Chaque cue a un <strong>déclencheur</strong> : <em>Manuel</em> (bouton ▶), <em>Révélation du token lié</em> (le son part quand vous retirez l'invisibilité GM du token), ou <em>Début de combat</em>. Reliez un cue au token sélectionné avec « Lier au token ». Depuis le HUD du token, le bouton <i class='fas fa-clapperboard'></i> rejoue les cues liés.",
+            position:   "left",
+            gmOnly:     true
+        },
     ],
 
     // ---- Boutiques ----
@@ -796,12 +903,12 @@ const STEPS_BY_FEATURE = {
             position:   "bottom",
             playerOnly: true
         },
-        // ── Valider (GM) ──────────────────────────────────────────
+        // ── Valider (GM) — désormais dans le Casier ───────────────
         {
-            beforeShow: _expandWestmarch,
-            target:     "[data-tool='downtime']",
+            beforeShow: () => _openCasier("downtime"),
+            target:     ".scwm-casier-tab[data-tab='downtime'], .scwm-casier-downtime",
             title:      "Valider les temps morts (GM)",
-            text:       "Ce bouton ouvre la liste de toutes les déclarations reçues. Pour chaque joueur, vous voyez ses activités, les jours travaillés et les gains calculés. Cliquez <strong>Valider</strong> pour appliquer les bonus directement sur la fiche (XP de compétence, progression de craft…). Vous pouvez aussi voir les joueurs sans déclaration via la case en bas.",
+            textGM:     "La validation se fait dans le <strong>Casier → onglet Temps morts</strong>. Toutes les déclarations reçues y sont pré-remplies (activités, jours, gains calculés). Modifiez/refusez au besoin, puis <strong>Appliquer les gains</strong> applique tout en un clic — l'objet fabriqué est ajouté automatiquement depuis le compendium configuré.",
             position:   "right",
             gmOnly:     true
         },

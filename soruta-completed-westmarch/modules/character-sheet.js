@@ -16,16 +16,52 @@ import {
     buildJournalHtml, buildDowntimeHtml, wireJournalTab, wireDowntimeTab
 } from "./carnet.js";
 
+// Onglet « Note GM » — notes privées du MJ, invisibles pour les joueurs.
+const _escNotes = (s) => String(s ?? "").replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+function buildGmNotesHtml(actor) {
+    const notes = actor.getFlag(MOD, "gmNotes") ?? "";
+    return `<div class="scwm-gmnotes">
+        <p class="scwm-gmnotes-hint"><i class="fas fa-user-secret"></i> Notes privées du MJ — invisibles pour les joueurs.</p>
+        <textarea class="scwm-gmnotes-input" rows="18" placeholder="Notes du MJ sur ${_escNotes(actor.name)}…">${_escNotes(notes)}</textarea>
+    </div>`;
+}
+function wireGmNotes(actor, htmlElement) {
+    const ta = htmlElement.querySelector(".scwm-gmnotes-input");
+    if (!ta) return;
+    ta.addEventListener("change", () => actor.setFlag(MOD, "gmNotes", ta.value));
+}
+
 export function setupCharacterSheet() {
+    // Masque l'onglet « étoile » (favoris) aux joueurs, sur toute fiche PJ
+    // (fiche native ou custom). Ne touche jamais l'affichage des GM.
+    const hideStarTabForPlayers = (sheet, html) => {
+        if (game.user.isGM) return;
+        if (!game.settings.get(MOD, "hidePlayerStarTab")) return;
+        const root = html instanceof HTMLElement ? html : html?.[0];
+        if (!root) return;
+        root.querySelectorAll("nav i.fa-star").forEach(ic => {
+            const navItem = ic.closest("[data-tab]");
+            if (!navItem || !navItem.closest("nav")) return;   // uniquement la barre d'onglets
+            navItem.style.display = "none";
+            const t = navItem.dataset.tab;
+            if (t) { const panel = root.querySelector(`.tab[data-tab="${t}"]`); if (panel) panel.style.display = "none"; }
+        });
+    };
+    Hooks.on("renderActorSheet",   (s, h) => hideStarTabForPlayers(s, h));
+    Hooks.on("renderActorSheetV2", (s, h) => hideStarTabForPlayers(s, h));
+
     // Enregistrement au hook "setup" : garanti après tous les "init",
     // et game.settings est disponible.
     Hooks.once("setup", () => {
         const relOn    = game.settings.get(MOD, "relationsEnabled");
         const bestOn   = game.settings.get(MOD, "bestiaryEnabled");
         const carnetOn = game.settings.get(MOD, "carnetEnabled");
+        // Onglet Note GM : uniquement si activé ET si l'utilisateur courant est GM
+        // (la part n'existe pas du tout pour les joueurs → onglet + contenu privés).
+        const gmNotesOn = game.settings.get(MOD, "enableGmNotes") && game.user?.isGM;
 
         // Aucun onglet custom demandé → on laisse la fiche dnd5e native.
-        if (!relOn && !bestOn && !carnetOn) return;
+        if (!relOn && !bestOn && !carnetOn && !gmNotesOn) return;
 
         const Base = dnd5e.applications.actor.CharacterActorSheet;
         const tpl  = (name) => `modules/${MOD}/templates/${name}`;
@@ -39,6 +75,7 @@ export function setupCharacterSheet() {
 
             static PARTS = {
                 ...super.PARTS,
+                ...(gmNotesOn ? { gmnotes: partDef("character-gmnotes.hbs") } : {}),
                 ...(relOn    ? { relations: partDef("character-relations.hbs") } : {}),
                 ...(bestOn   ? { bestiary:  partDef("character-bestiary.hbs")  } : {}),
                 ...(carnetOn ? {
@@ -48,6 +85,7 @@ export function setupCharacterSheet() {
             };
 
             static TABS = [
+                ...(gmNotesOn ? [{ tab: "gmnotes", group: "primary", label: "Note GM", icon: "fas fa-user-secret" }] : []),
                 ...super.TABS,
                 ...(relOn    ? [{ tab: "relations",       group: "primary", label: "Relations",    icon: "fas fa-heart" }] : []),
                 ...(bestOn   ? [{ tab: "bestiary",        group: "primary", label: "Bestiaire",    icon: "fas fa-dragon" }] : []),
@@ -62,6 +100,7 @@ export function setupCharacterSheet() {
 
             async _prepareContext(options = {}) {
                 const ctx = await super._prepareContext(options);
+                if (gmNotesOn) ctx.gmNotesHtml = buildGmNotesHtml(this.actor);
                 if (relOn)  ctx.relationsHtml = relBuildTab(this.actor);
                 if (bestOn) ctx.bestiaryHtml  = bstBuildTab(this.actor);
                 if (carnetOn) {
@@ -73,6 +112,7 @@ export function setupCharacterSheet() {
 
             _attachPartListeners(partId, htmlElement, options) {
                 super._attachPartListeners(partId, htmlElement, options);
+                if (gmNotesOn && partId === "gmnotes")        wireGmNotes(this.actor, htmlElement);
                 if (relOn    && partId === "relations")      relWireTab(this.actor, $(htmlElement));
                 if (bestOn   && partId === "bestiary")        bstWireTab(this.actor, $(htmlElement));
                 if (carnetOn && partId === "carnet-journal")  wireJournalTab(this.actor, htmlElement, this);
@@ -84,6 +124,7 @@ export function setupCharacterSheet() {
             async _onRender(context, options) {
                 await super._onRender(context, options);
                 const customTabs = [];
+                if (gmNotesOn) customTabs.push("gmnotes");
                 if (relOn)    customTabs.push("relations");
                 if (bestOn)   customTabs.push("bestiary");
                 if (carnetOn) customTabs.push("carnet-journal", "carnet-downtime");

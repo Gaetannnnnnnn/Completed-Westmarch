@@ -7,23 +7,98 @@
     flex-direction: column;
     gap: 8px;
     height: 100%;
-    padding: 8px 10px;
+    padding: 12px 14px;
+    box-sizing: border-box;
 }
-.scwm-gmnotes-hint {
-    margin: 0;
-    font-size: 12px;
-    opacity: 0.8;
+
+/* En-tête : icône + titre + badge « privé » */
+.scwm-gmnotes-header {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 9px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(201, 148, 40, 0.45);
 }
+.scwm-gmnotes-header > i {
+    font-size: 18px;
+    color: #e0a13a;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+.scwm-gmnotes-title {
+    flex: 1 1 auto;
+    font-family: "Modesto Condensed", "Signika", serif;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: #f0e6cc;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+}
+.scwm-gmnotes-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex: 0 0 auto;
+    padding: 2px 9px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #ffe3a3;
+    background: rgba(201, 148, 40, 0.18);
+    border: 1px solid rgba(201, 148, 40, 0.6);
+}
+.scwm-gmnotes-badge i { font-size: 9px; }
+
+.scwm-gmnotes-sub {
+    margin: 0;
+    font-size: 12px;
+    font-style: italic;
+    opacity: 0.75;
+}
+
+/* « Papier » qui entoure la zone de saisie */
+.scwm-gmnotes-paper {
+    flex: 1 1 auto;
+    display: flex;
+    min-height: 260px;
+    border-radius: 8px;
+    border: 1px solid rgba(201, 148, 40, 0.5);
+    background:
+        radial-gradient(ellipse at 15% 10%, rgba(201, 148, 40, 0.06), transparent 55%),
+        linear-gradient(180deg, rgba(30, 26, 18, 0.55), rgba(18, 15, 10, 0.55));
+    box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+}
+
 .scwm-gmnotes-input {
     flex: 1 1 auto;
     width: 100%;
-    min-height: 300px;
-    resize: vertical;
+    resize: none;
     box-sizing: border-box;
-    padding: 8px 10px;
-    line-height: 1.5;
-    font-family: inherit;
+    padding: 12px 14px;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #ece3cf;
+    font-family: "Signika", sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+}
+.scwm-gmnotes-input::placeholder {
+    color: rgba(236, 227, 207, 0.4);
+    font-style: italic;
+}
+.scwm-gmnotes-paper:focus-within {
+    border-color: rgba(224, 161, 58, 0.85);
+    box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(224, 161, 58, 0.25);
+}
+
+.scwm-gmnotes-foot {
+    margin: 0;
+    font-size: 11px;
+    opacity: 0.6;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }

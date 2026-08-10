@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 3.0.0
+Version : 3.0.6
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -186,6 +186,38 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v3.0.6 | 2026-08-04
+   - Note GM : onglet restyle (en-tete avec icone + titre + badge "Prive", zone de
+     notes en panneau "papier", focus dore) au lieu du textarea brut
+     (character-sheet.js, gmnotes.css).
+
+v3.0.5 | 2026-08-04
+   - Tutoriel (Mes personnages) : ajout d une etape d intro qui explique tout le
+     principe du circuit (demande -> validation -> construction -> soumission ->
+     verrouillage ; montee de niveau ; limites & stock), en plus des etapes
+     d interface (tutorial.js).
+
+v3.0.4 | 2026-08-04
+   - Validation des personnages : dans "Mes personnages", le bouton "Monter de
+     niveau" ne s affiche que si le PJ a atteint le seuil d XP (value >= max)
+     (charvalidation.js).
+
+v3.0.3 | 2026-08-04
+   - Tutoriel : la fenetre de bienvenue ne propose plus que "Commencer le
+     tutoriel" (bouton "Plus tard" retire ; fermeture via la croix) (welcome.js).
+
+v3.0.2 | 2026-08-04
+   - Validation des personnages : nouveau reglage "Bloquer les imports Plutonium
+     hors autorisation" (defaut on). Sur une fiche VERROUILLEE, un joueur ne peut
+     pas importer de contenu Plutonium (items marques du flag plutonium) ; l import
+     n est possible que pendant une creation ou une montee de niveau autorisee par
+     le MJ. GM jamais bloque (charvalidation.js, settings.js).
+
+v3.0.1 | 2026-08-04
+   - Tutoriel : les sections reservees aux joueurs (Mes personnages, Temps morts)
+     sont cachees aux GM (elles y seraient vides). Nouvelle notion
+     SECTION_PLAYER_ONLY (tutorial.js).
 
 v3.0.0 | 2026-08-04
    - Version : passage en 3.0.0 (retenue — le versionnage ne depasse pas 9 par

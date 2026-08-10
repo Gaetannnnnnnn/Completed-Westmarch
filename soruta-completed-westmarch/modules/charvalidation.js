@@ -64,6 +64,16 @@ const maxTotal  = () => Number(game.settings.get(MOD, "charMaxTotal"))  || 0;   
 const maxActive = () => Math.max(1, Number(game.settings.get(MOD, "charMaxActive")) || 2);
 const isStock   = (a) => a?.getFlag?.(MOD, "stock") === true;
 
+// Le PJ a-t-il atteint le seuil d'XP pour monter de niveau ? (XP dnd5e :
+// value = XP actuelle, max = XP requise pour le niveau suivant.)
+function canLevelUp(actor) {
+    const xp = actor?.system?.details?.xp;
+    if (!xp) return false;
+    const value = Number(xp.value) || 0;
+    const max   = Number(xp.max)   || 0;
+    return max > 0 && value >= max;
+}
+
 // Personnages d'un utilisateur : ceux du circuit de validation (createdFor) ET
 // ceux qu'il possède directement (Propriétaire), par ex. créés à la main par le
 // MJ. Les persos en stock (Observateur) restent inclus via createdFor.
@@ -283,7 +293,11 @@ export function openPlayerHub() {
             btns = `<button type="button" class="scwm-cv-act" data-act="activate" data-id="${a.id}" ${dis}><i class="fas fa-lock-open"></i> Activer</button>`;
         } else {
             if (locked && lvlPending)      status = "verrouillé · ⬆️ montée en attente";
-            else if (locked)             { status = "🔒 validé & verrouillé"; btns = `<button type="button" class="scwm-cv-act" data-act="levelup" data-id="${a.id}"><i class="fas fa-arrow-up-1-9"></i> Monter de niveau</button>`; }
+            else if (locked)             {
+                status = "🔒 validé & verrouillé";
+                // Bouton de montée de niveau uniquement si le PJ a atteint le seuil d'XP.
+                if (canLevelUp(a)) btns = `<button type="button" class="scwm-cv-act" data-act="levelup" data-id="${a.id}"><i class="fas fa-arrow-up-1-9"></i> Monter de niveau</button>`;
+            }
             else if (pending)              status = "⏳ en attente de validation";
             else if (inFlow || validated) { status = "🛠️ en construction"; btns = `<button type="button" class="scwm-cv-act" data-act="submit" data-id="${a.id}"><i class="fas fa-paper-plane"></i> Soumettre</button>`; }
             else                         { status = "🎭 jouable"; btns = `<button type="button" class="scwm-cv-act" data-act="submit" data-id="${a.id}" title="Soumettre pour validation & verrouillage"><i class="fas fa-paper-plane"></i> Soumettre</button>`; }
@@ -421,6 +435,22 @@ export function CharValidationHooks() {
     };
     Hooks.on("preCreateItem", blockBuildItemCD);
     Hooks.on("preDeleteItem", blockBuildItemCD);
+
+    // Bloque les imports PLUTONIUM sur une fiche verrouillée (les items importés
+    // via Plutonium portent un flag "plutonium"). Autorisé pendant les fenêtres
+    // de création / montée de niveau (fiche déverrouillée). GM jamais bloqué.
+    Hooks.on("preCreateItem", (item, data, options, userId) => {
+        if (game.user.isGM || userId !== game.user.id) return;
+        if (!enabled() || !game.settings.get(MOD, "blockPlayerPlutonium")) return;
+        const actor = item.parent;
+        if (!actor || !isLocked(actor)) return;   // création / level-up autorisés
+        const flags = data?.flags ?? item?.flags ?? {};
+        const isPluto = Object.keys(flags).some(k => k.toLowerCase().includes("plutonium"));
+        if (isPluto) {
+            ui.notifications?.warn("Import Plutonium bloqué : cette fiche est verrouillée. Demandez au MJ d'autoriser une création ou une montée de niveau.");
+            return false;
+        }
+    });
 
     // ---- Badge d'état dans le répertoire des Acteurs (entre le nom et le
     //      statut d'expédition) : « À valider » / « Level up ». ----

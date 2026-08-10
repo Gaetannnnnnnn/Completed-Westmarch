@@ -21,8 +21,16 @@ const _escNotes = (s) => String(s ?? "").replace(/[&<>]/g, c => ({ "&": "&amp;",
 function buildGmNotesHtml(actor) {
     const notes = actor.getFlag(MOD, "gmNotes") ?? "";
     return `<div class="scwm-gmnotes">
-        <p class="scwm-gmnotes-hint"><i class="fas fa-user-secret"></i> Notes privées du MJ — invisibles pour les joueurs.</p>
-        <textarea class="scwm-gmnotes-input" rows="18" placeholder="Notes du MJ sur ${_escNotes(actor.name)}…">${_escNotes(notes)}</textarea>
+        <div class="scwm-gmnotes-header">
+            <i class="fas fa-user-secret"></i>
+            <span class="scwm-gmnotes-title">Notes du MJ</span>
+            <span class="scwm-gmnotes-badge"><i class="fas fa-lock"></i> Privé</span>
+        </div>
+        <p class="scwm-gmnotes-sub">Visibles et modifiables uniquement par les MJ — le joueur ne les voit jamais.</p>
+        <div class="scwm-gmnotes-paper">
+            <textarea class="scwm-gmnotes-input" placeholder="Écrivez ici vos notes sur ${_escNotes(actor.name)} : secrets, projets, dettes, rappels…">${_escNotes(notes)}</textarea>
+        </div>
+        <p class="scwm-gmnotes-foot"><i class="fas fa-cloud-arrow-up"></i> Sauvegarde automatique quand vous cliquez ailleurs.</p>
     </div>`;
 }
 function wireGmNotes(actor, htmlElement) {

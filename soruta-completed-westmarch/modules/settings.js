@@ -169,6 +169,9 @@ export function registerSettings() {
         "Personnages actifs simultanés",
         "Nombre de personnages jouables en même temps. Les autres passent « en stock » (cadenas, en Observateur, non jouables).",
         2));
+    game.settings.register(MOD, "blockPlayerPlutonium", B(
+        "Bloquer les imports Plutonium hors autorisation",
+        "Empêche les joueurs d'importer du contenu Plutonium sur une fiche VERROUILLÉE. L'import n'est possible que pendant une fenêtre autorisée par le MJ (création du personnage, ou montée de niveau validée). Les GM ne sont jamais bloqués."));
     game.settings.register(MOD, "charValidationFolder", S(
         "Validation — Dossier des personnages",
         "Nom du dossier d'acteurs où sont créés les personnages validés.",
@@ -543,7 +546,7 @@ const CATEGORIES = [
       keys: ["enableParty","enableJoinScene","enableShowParty","enablePlayerGrouping","enableGoWithPartyScenes","enableGoWithPartyJournal","enableChatFilter","enableSessionLog","sessionLogWebhookUrl","enableCombatParty","enableCombatTurnLock","enablePartyPause","enableAntiCheat"] },
     { firstKey: "enableCharValidation", master: "enableCharValidation", icon: "fa-id-card", title: "Création de personnages",
       desc: "Les joueurs demandent la création d'un personnage ; un GM valide depuis le Casier, puis le joueur construit et soumet sa fiche ; à la validation elle est verrouillée. Le dossier de destination se règle dans « Dossiers & Compendiums ».",
-      keys: ["enableCharValidation","charMaxTotal","charMaxActive"] },
+      keys: ["enableCharValidation","charMaxTotal","charMaxActive","blockPlayerPlutonium"] },
     { firstKey: "enableXpBlock",         icon: "fa-server",          title: "Serveur",
       desc: "Personnalisations du serveur : blocage XP / Level Up, logs Discord, webhooks.",
       keys: ["enableXpBlock","enableGmNotes","hidePlayerStarTab","enableDiscordLog","discordLogWebhookUrl","downtimeWebhookUrl","tmWebhookUrl"] },

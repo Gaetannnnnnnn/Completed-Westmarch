@@ -125,6 +125,10 @@ export const SECTION_FEATURE_SETTING = {
 // Sections réservées au GM (toutes leurs étapes sont gmOnly)
 export const SECTION_GM_ONLY = new Set(["casier", "cues", "noteGm", "boutiques", "outilsGm"]);
 
+// Sections réservées aux JOUEURS (étapes playerOnly) : cachées aux GM, pour qui
+// elles seraient vides (déclaration de temps morts, gestion de ses personnages).
+export const SECTION_PLAYER_ONLY = new Set(["monPerso", "tempsMorts"]);
+
 /**
  * Retourne true si la section est disponible pour l'utilisateur courant :
  *   - la fonctionnalité correspondante est activée (ou intégrée)
@@ -133,6 +137,7 @@ export const SECTION_GM_ONLY = new Set(["casier", "cues", "noteGm", "boutiques",
  */
 export function isSectionAvailable(sectionKey) {
     if (SECTION_GM_ONLY.has(sectionKey) && !game.user?.isGM) return false;
+    if (SECTION_PLAYER_ONLY.has(sectionKey) && game.user?.isGM) return false;
     if (sectionKey === "boutiques")
         return !!game.modules.get("monks-enhanced-journal")?.active;
     const setting = SECTION_FEATURE_SETTING[sectionKey];
@@ -553,19 +558,36 @@ const STEPS_BY_FEATURE = {
 
     // ---- Mes personnages (création & validation, joueur) ----
     monPerso: [
+        // ── Le principe (avant l'interface) ──────────────────────
+        {
+            target:     null,
+            title:      "Comment fonctionne la création de personnage",
+            text:       "Sur ce serveur, les personnages passent par un <strong>circuit de validation</strong> avec le MJ. Le principe, étape par étape :<br><br>"
+                      + "<strong>1. Demande</strong> — vous demandez la création d'un personnage (un nom, une idée générale).<br>"
+                      + "<strong>2. Validation</strong> — un MJ accepte : une fiche vierge est créée dans vos acteurs, vous en devenez propriétaire.<br>"
+                      + "<strong>3. Construction</strong> — vous montez librement votre personnage (classe, sorts, équipement…).<br>"
+                      + "<strong>4. Soumission</strong> — quand c'est prêt, vous le soumettez au MJ.<br>"
+                      + "<strong>5. Verrouillage</strong> — le MJ valide : la fiche est <strong>verrouillée</strong>. Vous jouez normalement (PV, sorts, or, conditions…) mais vous ne pouvez plus changer sa <em>construction</em> (caractéristiques, classe, aptitudes…) sans repasser par le MJ.<br><br>"
+                      + "<strong>Monter de niveau :</strong> quand vous avez assez d'XP, un bouton apparaît ; vous en faites la demande, le MJ l'autorise (la fiche se déverrouille), vous montez de niveau, puis vous re-soumettez.<br><br>"
+                      + "<strong>Plusieurs personnages :</strong> vous pouvez en avoir plusieurs, dans la limite fixée par le MJ. Au-delà du nombre de personnages <em>actifs</em> autorisés, les autres passent <strong>en stock</strong> (non jouables) ; vous en activez un à la place d'un autre.",
+            position:   "center",
+            playerOnly: true
+        },
+        // ── Le bouton dans la barre ──────────────────────────────
         {
             beforeShow: _expandWestmarch,
             target:     "[data-tool='charValidation']",
-            title:      "Mes personnages",
-            text:       "Le bouton <i class='fas fa-id-card'></i> dans la barre WestMarch ouvre <strong>« Mes personnages »</strong> : vous y demandez la création d'un personnage, suivez son état et le soumettez au MJ pour validation.",
+            title:      "Le bouton « Mes personnages »",
+            text:       "Tout se passe depuis le bouton <i class='fas fa-id-card'></i> de la barre WestMarch : il ouvre <strong>« Mes personnages »</strong>, d'où vous demandez, suivez et soumettez vos personnages.",
             position:   "right",
             playerOnly: true
         },
+        // ── La fenêtre ───────────────────────────────────────────
         {
             beforeShow: _openMonPerso,
             target:     ".scwm-cv-hub",
             title:      "Demander & gérer",
-            text:       "« <strong>Demander un nouveau personnage</strong> » envoie une demande au MJ (dans la limite autorisée). Une fois le perso créé et construit, cliquez <strong>Soumettre</strong> : le MJ le valide et le verrouille. En haut, un compteur indique vos personnages <strong>actifs</strong> ; au-delà de la limite, les autres passent <strong>en stock</strong> <i class='fas fa-lock'></i> et vous pouvez les activer / mettre en stock selon vos places.",
+            text:       "« <strong>Demander un nouveau personnage</strong> » envoie une demande au MJ (dans la limite autorisée). Une fois le perso créé et construit, cliquez <strong>Soumettre</strong> : le MJ le valide et le verrouille. En haut, un compteur indique vos personnages <strong>actifs</strong> ; au-delà de la limite, les autres passent <strong>en stock</strong> <i class='fas fa-lock'></i> — vous les activez / mettez en stock selon vos places. Le bouton <strong>Monter de niveau</strong> n'apparaît que lorsque le PJ a assez d'XP.",
             position:   "left",
             playerOnly: true
         },

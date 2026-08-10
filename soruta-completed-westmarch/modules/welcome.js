@@ -105,11 +105,6 @@ export function showWelcome() {
                 icon:     '<i class="fas fa-play"></i>',
                 label:    "Commencer le tutoriel",
                 callback: () => startTutorial()
-            },
-            later: {
-                icon:     '<i class="fas fa-clock"></i>',
-                label:    "Plus tard",
-                callback: () => {}
             }
         },
         default: "start"

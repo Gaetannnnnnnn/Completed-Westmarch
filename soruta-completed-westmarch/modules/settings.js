@@ -134,7 +134,7 @@ export function registerSettings() {
     // ============================================================
     game.settings.register(MOD, "tmEnabled", B(
         "Temps morts — Activer",
-        "Active tout le système de temps morts : bouton sablier sur la fiche PJ (joueur) et bouton GM dans la barre WestMarch. Nécessite un rechargement.",
+        "Active tout le système de temps morts : bouton sablier sur la fiche PJ (joueur) et onglet « Temps morts » dans le Casier (GM). Nécessite un rechargement.",
         true, { requiresReload: true }));
     // -- Gain de compétence --
     game.settings.register(MOD, "tmSkillBase", N(
@@ -456,7 +456,10 @@ function registerCategoryToggles() {
 const CATEGORIES = [
     { firstKey: "enableParty", master: "enableParty",           icon: "fa-users",           title: "Système de Party",
       desc: "Groupes de joueurs : chat filtré, combat par party, téléportation de groupe, journal de session, anti-cheat.",
-      keys: ["enableParty","enableJoinScene","enableShowParty","enablePlayerGrouping","enableGoWithPartyScenes","enableGoWithPartyJournal","enableChatFilter","enableSessionLog","sessionLogWebhookUrl","enableCombatParty","enableCombatTurnLock","enablePartyPause","enableAntiCheat","enableCharValidation","charValidationFolder"] },
+      keys: ["enableParty","enableJoinScene","enableShowParty","enablePlayerGrouping","enableGoWithPartyScenes","enableGoWithPartyJournal","enableChatFilter","enableSessionLog","sessionLogWebhookUrl","enableCombatParty","enableCombatTurnLock","enablePartyPause","enableAntiCheat"] },
+    { firstKey: "enableCharValidation", master: "enableCharValidation", icon: "fa-id-card", title: "Création de personnages",
+      desc: "Les joueurs demandent la création d'un personnage ; un GM valide depuis le Casier (acteur créé dans le dossier choisi, joueur propriétaire), puis le joueur construit et soumet sa fiche ; à la validation elle est verrouillée (construction non modifiable côté joueur, jeu libre).",
+      keys: ["enableCharValidation","charValidationFolder"] },
     { firstKey: "enableXpBlock",         icon: "fa-server",          title: "Serveur",
       desc: "Personnalisations du serveur : blocage XP / Level Up, logs Discord, webhooks.",
       keys: ["enableXpBlock","enableDiscordLog","discordLogWebhookUrl","downtimeWebhookUrl","tmWebhookUrl"] },

@@ -121,11 +121,16 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
 
         const cvEnabled = game.settings.get(MOD, "enableCharValidation");
         const cvCount = cvEnabled ? (getCreationRequests().length + getPendingActors().length) : 0;
+        const tmEnabled = game.settings.get(MOD, "tmEnabled");
+        const tmDeclared = tmEnabled
+            ? (game.actors?.filter(a => a.type === "character" && a.hasPlayerOwner && a.getFlag(MOD, "tm")?.declared).length ?? 0)
+            : 0;
 
         const TABS = [
             { key: "dashboard",   icon: "fa-gauge-high", label: "Dashboard" },
             { key: "reports",     icon: "fa-scroll",     label: `Rapports${drafts.length ? ` (${drafts.length})` : ""}` },
             { key: "expeditions", icon: "fa-route",      label: "Expéditions" },
+            ...(tmEnabled ? [{ key: "downtime", icon: "fa-hourglass-half", label: `Temps morts${tmDeclared ? ` (${tmDeclared})` : ""}` }] : []),
             { key: "gms",         icon: "fa-users-gear", label: "Suivi des GM" },
             ...(cvEnabled ? [{ key: "validation", icon: "fa-id-card", label: `Validation${cvCount ? ` (${cvCount})` : ""}` }] : [])
         ];
@@ -153,6 +158,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             detail = draft ? this.#draftDetail(draft) : `<div class="scwm-casier-placeholder"><i class="fas fa-book-open"></i><p>Sélectionnez un rapport à finaliser dans le livret.</p></div>`;
         }
         else if (this.#tab === "expeditions") detail = this.#expeditionsDetail();
+        else if (this.#tab === "downtime")    detail = this.#downtimeDetail(tmDeclared);
         else if (this.#tab === "validation")  detail = this.#validationDetail();
         else                                  detail = this.#gmsDetail();
 
@@ -179,11 +185,6 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                     <div class="scwm-casier-stat"><b>${exps.length}</b><span>Expédition(s) en cours</span></div>
                 </div>
 
-                ${game.settings.get(MOD, "tmEnabled") ? `
-                <div class="scwm-casier-quickactions">
-                    <button type="button" class="scwm-casier-open-tm"><i class="fas fa-hourglass-half"></i> Temps morts</button>
-                </div>` : ""}
-
                 <h3>Présentation</h3>
                 <textarea class="scwm-casier-presentation" rows="8"
                     placeholder="Présentez-vous, vos critères, vos horaires… (visible ici, sauvegardé automatiquement)">${esc(getPresentation(game.user.id))}</textarea>
@@ -207,6 +208,25 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                         </div>
                         ${x.participants.length ? `<div class="scwm-casier-exp-parts">${x.participants.map(p => esc(p.name)).join(", ")}</div>` : ""}
                     </div>`).join("")}
+            </div>`;
+    }
+
+    // ---- Onglet Temps morts ----
+    #downtimeDetail(declared) {
+        return `
+            <div class="scwm-casier-detail scwm-casier-downtime">
+                <h2><i class="fas fa-hourglass-half"></i> Temps morts</h2>
+                <p class="scwm-casier-meta">${declared > 0
+                    ? `<strong>${declared}</strong> personnage${declared > 1 ? "s ont" : " a"} déclaré un temps mort en attente de validation.`
+                    : "Aucune déclaration en attente pour le moment."}</p>
+                <div class="scwm-casier-quickactions">
+                    <button type="button" class="scwm-casier-open-tm"><i class="fas fa-hourglass-half"></i> Ouvrir la fenêtre des temps morts</button>
+                </div>
+                <p style="opacity:.75; font-size:12px; margin-top:8px;">
+                    La fenêtre pré-remplit les déclarations des joueurs (gains de compétence et artisanat) ;
+                    vous validez et appliquez les gains en un clic. L'objet fabriqué est ajouté automatiquement
+                    depuis le compendium configuré si le joueur l'a choisi.
+                </p>
             </div>`;
     }
 

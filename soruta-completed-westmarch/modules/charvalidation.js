@@ -53,7 +53,19 @@ export function myCharActor() {
 }
 
 async function ensureFolder() {
-    const name = game.settings.get(MOD, "charValidationFolder") || "Personnages";
+    const val = game.settings.get(MOD, "charValidationFolder");
+    const looksLikeId = (s) => /^[A-Za-z0-9]{16}$/.test(s ?? "");
+    if (val) {
+        // Le sélecteur de dossier stocke un id ; on l'accepte en priorité.
+        const byId = game.folders?.get(val);
+        if (byId?.type === "Actor") return byId;
+        // Sinon on traite la valeur comme un nom de dossier (saisie libre).
+        if (!looksLikeId(val)) {
+            const byName = game.folders?.find(f => f.type === "Actor" && f.name === val);
+            if (byName) return byName;
+        }
+    }
+    const name = (val && !looksLikeId(val)) ? val : "Personnages";
     let f = game.folders?.find(x => x.type === "Actor" && x.name === name);
     if (!f) f = await Folder.create({ name, type: "Actor" });
     return f;

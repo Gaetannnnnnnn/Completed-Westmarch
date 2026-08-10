@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 2.9.0
+Version : 2.9.3
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -150,6 +150,21 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v2.9.3 | 2026-08-04
+   - Casier : les temps morts ont desormais leur propre ONGLET "Temps morts"
+     (avec compteur de declarations en attente) au lieu d un simple bouton sur
+     le dashboard (casier.js, settings.js).
+
+v2.9.2 | 2026-08-04
+   - Reglages : la validation des personnages a desormais sa propre section
+     "Creation de personnages" (au lieu d etre dans Systeme de Party)
+     (settings.js).
+
+v2.9.1 | 2026-08-04
+   - Validation des personnages : le reglage "Dossier des personnages" est un
+     selecteur de dossier (stocke un id) ; ensureFolder accepte desormais id ou
+     nom, avec repli sur "Personnages" (charvalidation.js).
 
 v2.9.0 | 2026-08-04
    - Artisanat : selecteur d objet lie au compendium. Dans le formulaire de craft,

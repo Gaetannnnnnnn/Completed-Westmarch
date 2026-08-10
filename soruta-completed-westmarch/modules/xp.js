@@ -6,10 +6,15 @@ export function XpHooks() {
     // - Les joueurs ne peuvent pas modifier leur XP manuellement
     // - Les GM peuvent toujours modifier l'XP librement
     // ============================================================
+    // Montée de niveau autorisée par le MJ (validation des personnages) :
+    // xp.js laisse alors passer le changement de niveau le temps de la montée.
+    const levelUpGranted = (actor) => actor?.getFlag?.(MOD, "levelUpGranted") === true;
+
     Hooks.on("preUpdateActor", (actor, changes, options, userId) => {
         // On laisse passer les GM
         if (game.user.isGM) return true;
         if (!game.settings.get(MOD, "enableXpBlock")) return;
+        if (levelUpGranted(actor)) return true;   // montée de niveau autorisée
 
         // Si la mise à jour touche à l'XP
         if (changes?.system?.details?.xp !== undefined) {
@@ -37,6 +42,7 @@ export function XpHooks() {
         if (game.user.isGM) return true;
         if (!game.settings.get(MOD, "enableXpBlock")) return;
         if (item.type !== "class") return;
+        if (levelUpGranted(item.parent)) return true;   // montée de niveau autorisée
 
         if (changes?.system?.levels !== undefined) {
             ui.notifications.warn("Vous n'êtes pas autorisé à monter de niveau.");
@@ -47,6 +53,7 @@ export function XpHooks() {
     Hooks.on("preCreateItem", (item, itemData, options, userId) => {
         if (game.user.isGM) return true;
         if (!game.settings.get(MOD, "enableXpBlock")) return;
+        if (levelUpGranted(item.parent)) return true;   // montée de niveau autorisée
 
         // Empêche l'ajout d'une nouvelle classe (multiclasse) par un joueur
         if ((item.type ?? itemData?.type) === "class") {
@@ -61,9 +68,10 @@ export function XpHooks() {
     // - On garde le badge de niveau visible (le joueur doit voir son
     //   niveau), on retire juste l'interactivité du clic.
     // ============================================================
-    const hideLevelUpAndXp = (html) => {
+    const hideLevelUpAndXp = (actor, html) => {
         if (game.user.isGM) return;
         if (!game.settings.get(MOD, "enableXpBlock")) return;
+        if (levelUpGranted(actor)) return;   // montée autorisée → bouton actif
 
         const $html = $(html);
 
@@ -85,8 +93,8 @@ export function XpHooks() {
         $html.find('.experience input, .xp input').prop('disabled', true);
     };
 
-    Hooks.on("renderActorSheet", (sheet, html, data) => hideLevelUpAndXp(html));
+    Hooks.on("renderActorSheet", (sheet, html) => hideLevelUpAndXp(sheet?.actor ?? sheet?.document, html));
 
     // Pour les fiches V2 (ApplicationV2 / Tidy5e etc.)
-    Hooks.on("renderActorSheetV2", (sheet, html, data) => hideLevelUpAndXp(html));
+    Hooks.on("renderActorSheetV2", (sheet, html) => hideLevelUpAndXp(sheet?.actor ?? sheet?.document, html));
 }

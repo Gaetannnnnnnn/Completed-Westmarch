@@ -108,11 +108,37 @@ export async function validateActor(actorId) {
     await actor.update({
         [`flags.${MOD}.locked`]: true,
         [`flags.${MOD}.validated`]: true,
-        [`flags.${MOD}.pendingValidation`]: false
+        [`flags.${MOD}.pendingValidation`]: false,
+        [`flags.${MOD}.pendingLevelUp`]: false,
+        [`flags.${MOD}.levelUpGranted`]: false
     });
     const uid = actor.getFlag(MOD, "createdFor");
     if (uid) ChatMessage.create({ whisper: [uid], speaker: { alias: "Validation" }, content: `🔒 <strong>${actor.name}</strong> est validé et verrouillé. Vous pouvez jouer normalement ; les changements de construction passeront par le MJ.` });
     ui.notifications?.info(`${actor.name} validé et verrouillé.`);
+}
+
+// Demandes de montée de niveau en attente (badge « Level up »).
+export function getLevelUpRequests() {
+    return (game.actors ?? [])
+        .filter(a => a.type === "character" && a.getFlag(MOD, "pendingLevelUp") === true)
+        .map(a => ({ id: a.id, name: a.name, ownerName: game.users.get(a.getFlag(MOD, "createdFor"))?.name ?? "—" }));
+}
+
+// GM : autorise une montée de niveau — déverrouille la fiche pour l'édition et
+// signale à xp.js d'autoriser le changement de niveau (levelUpGranted). Le joueur
+// re-soumet ensuite la fiche pour re-validation (qui re-verrouille).
+export async function grantLevelUp(actorId) {
+    if (!game.user.isGM) return;
+    const actor = game.actors.get(actorId);
+    if (!actor) return;
+    await actor.update({
+        [`flags.${MOD}.levelUpGranted`]: true,
+        [`flags.${MOD}.locked`]: false,
+        [`flags.${MOD}.pendingLevelUp`]: false
+    });
+    const uid = actor.getFlag(MOD, "createdFor");
+    if (uid) ChatMessage.create({ whisper: [uid], speaker: { alias: "Validation" }, content: `⬆️ Montée de niveau autorisée pour <strong>${actor.name}</strong>. Effectuez-la (assistant / Plutonium), puis re-soumettez la fiche pour re-validation.` });
+    ui.notifications?.info(`Montée de niveau autorisée pour ${actor.name}.`);
 }
 export async function returnActor(actorId) {
     if (!game.user.isGM) return;
@@ -151,8 +177,14 @@ function openPlayerHub() {
     } else {
         const locked = actor.getFlag(MOD, "locked");
         const pending = actor.getFlag(MOD, "pendingValidation");
+        const lvlPending = actor.getFlag(MOD, "pendingLevelUp");
         if (locked) {
-            body = `<p>🔒 <strong>${esc(actor.name)}</strong> est validé et verrouillé. Jouez normalement ; pour changer votre construction, demandez au MJ.</p>`;
+            if (lvlPending) {
+                body = `<p>🔒 <strong>${esc(actor.name)}</strong> est verrouillé. ⏳ Votre <strong>demande de montée de niveau</strong> est en attente de validation par un MJ.</p>`;
+            } else {
+                body = `<p>🔒 <strong>${esc(actor.name)}</strong> est validé et verrouillé. Jouez normalement ; pour <strong>monter de niveau</strong> ou changer votre construction, faites-en la demande ci-dessous.</p>`;
+                actions = `<button type="button" class="scwm-cv-act" data-act="levelup"><i class="fas fa-arrow-up-1-9"></i> Demander une montée de niveau</button>`;
+            }
         } else if (pending) {
             body = `<p>⏳ <strong>${esc(actor.name)}</strong> est en attente de validation par un MJ.</p>`;
         } else {
@@ -186,6 +218,12 @@ function openPlayerHub() {
                     await ac.setFlag(MOD, "pendingValidation", true);
                     ChatMessage.create({ whisper: game.users.filter(u => u.isGM).map(u => u.id), speaker: { alias: "Validation" }, content: `📩 <strong>${esc(game.user.name)}</strong> soumet <strong>${esc(ac.name)}</strong> pour validation.` });
                     ui.notifications?.info("Fiche soumise pour validation.");
+                } else if (a === "levelup") {
+                    const ac = myCharActor();
+                    if (!ac) return;
+                    await ac.setFlag(MOD, "pendingLevelUp", true);
+                    ChatMessage.create({ whisper: game.users.filter(u => u.isGM).map(u => u.id), speaker: { alias: "Validation" }, content: `⬆️ <strong>${esc(game.user.name)}</strong> demande une <strong>montée de niveau</strong> pour <strong>${esc(ac.name)}</strong>.` });
+                    ui.notifications?.info("Demande de montée de niveau envoyée.");
                 }
                 dlg.close();
             };
@@ -261,7 +299,11 @@ export function CharValidationHooks() {
     });
     Hooks.on("updateActor", (actor, changes) => {
         const f = changes?.flags?.[MOD];
-        if (f && ("pendingValidation" in f || "pendingLevelUp" in f || "locked" in f)) ui.actors?.render();
+        if (f && ("pendingValidation" in f || "pendingLevelUp" in f || "locked" in f || "validated" in f || "createdFor" in f)) ui.actors?.render();
+    });
+    // Nouvelle fiche créée (ex. via validation d'une demande) → badge « En création ».
+    Hooks.on("createActor", (actor) => {
+        if (actor?.getFlag?.(MOD, "createdFor")) ui.actors?.render();
     });
 }
 
@@ -275,9 +317,15 @@ function injectValidationBadges(root) {
 
         li.querySelector(":scope .scwm-cv-badge")?.remove();
 
+        const validated  = actor.getFlag(MOD, "validated") === true;
+        const pending    = actor.getFlag(MOD, "pendingValidation") === true;
+        const createdFor = actor.getFlag(MOD, "createdFor");
+        const levelup    = actor.getFlag(MOD, "pendingLevelUp") === true;
+
         let b = null;
-        if (actor.getFlag(MOD, "pendingValidation") === true) b = { cls: "pending", label: "À valider", icon: "fa-hourglass-half" };
-        else if (actor.getFlag(MOD, "pendingLevelUp") === true) b = { cls: "levelup", label: "Level up", icon: "fa-arrow-up-1-9" };
+        if (pending)                          b = { cls: "pending",  label: "À valider",   icon: "fa-hourglass-half" };
+        else if (createdFor && !validated)    b = { cls: "creating", label: "En création", icon: "fa-user-pen" };
+        else if (levelup)                     b = { cls: "levelup",  label: "Level up",    icon: "fa-arrow-up-1-9" };
         if (!b) continue;
 
         const span = document.createElement("span");

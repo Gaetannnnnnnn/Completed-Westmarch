@@ -801,7 +801,7 @@ async function openDeclarationDialog(actor) {
         window: { title: `Temps mort — ${actor.name}`, resizable: true },
         position: { width: 720 },
         content: `
-<div style="display:flex; gap:0; align-items:stretch; min-height:380px;">
+<div style="display:flex; gap:0; align-items:stretch; min-height:380px; max-height:74vh; overflow-y:auto;">
 
     <!-- GUIDE GAUCHE -->
     <div style="width:175px; flex-shrink:0; background:#1e2235; color:#d0d4e8; border-radius:4px 0 0 4px;

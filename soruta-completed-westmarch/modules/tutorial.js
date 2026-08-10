@@ -435,7 +435,14 @@ const STEPS_BY_FEATURE = {
         },
         {
             beforeShow: _openSheet,
-            target:     ".ability-scores .rows .bottom, .ability-scores .bottom, section.ability-scores",
+            targets:    [
+                ".ability-scores [data-ability='str']",
+                ".ability-scores [data-ability='dex']",
+                ".ability-scores [data-ability='con']",
+                ".ability-scores [data-ability='int']",
+                ".ability-scores [data-ability='wis']",
+                ".ability-scores [data-ability='cha']"
+            ],
             title:      "Caractéristiques",
             text:       "La rangée du haut affiche les six <strong>caractéristiques</strong> (Force, Dextérité, Constitution, Intelligence, Sagesse, Charisme) avec leur score et leur modificateur. Cliquez-en une pour lancer un test de caractéristique.",
             position:   "bottom"
@@ -1234,6 +1241,11 @@ function _positionBubble(bubble, targetEl, position) {
                 left = clamp(cx - BW / 2, M, window.innerWidth - BW - M);
                 break;
         }
+
+        // Garde-fou final : la bulle reste TOUJOURS entièrement dans l'écran,
+        // même si la cible est collée à un bord (sinon elle sort du cadre).
+        left = clamp(left, M, Math.max(M, window.innerWidth  - BW - M));
+        top  = clamp(top,  M, Math.max(M, window.innerHeight - BH - M));
 
         bubble.style.top       = `${top}px`;
         bubble.style.left      = `${left}px`;

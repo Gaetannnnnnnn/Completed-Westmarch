@@ -30,6 +30,11 @@
     background: rgba(52, 120, 201, 0.22);
     border-color: rgba(52, 120, 201, 0.6);
 }
+.scwm-cv-badge-creating {
+    color: #d9c6ff;
+    background: rgba(140, 100, 210, 0.22);
+    border-color: rgba(140, 100, 210, 0.6);
+}
 
 /* Hub joueur « Mon personnage ». */
 .scwm-cv-hub .form-group { display: flex; flex-direction: column; gap: 2px; margin: 6px 0; }

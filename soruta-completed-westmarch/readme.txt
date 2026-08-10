@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 2.9.3
+Version : 2.10.1
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -150,6 +150,35 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v2.10.1 | 2026-08-04
+   - Tutoriel (Caracteristiques) : le halo cible desormais directement les six
+     cases de caracteristiques (une par capacite) au lieu du conteneur qui
+     debordait sur les Skills/Saves (tutorial.js).
+
+v2.10.0 | 2026-08-04
+   - Validation des personnages : flux de MONTEE DE NIVEAU. Le joueur demande une
+     montee de niveau (bouton dans "Mon personnage", fiche verrouillee) -> badge
+     "Level up" sur la ligne de l acteur -> le GM autorise depuis le Casier
+     (onglet Validation, section Montees de niveau) : la fiche se deverrouille et
+     xp.js laisse passer la montee (flag levelUpGranted) -> le joueur monte de
+     niveau puis re-soumet -> re-validation re-verrouille. (charvalidation.js,
+     xp.js, casier.js).
+
+v2.9.6 | 2026-08-04
+   - Validation des personnages : badge "En creation" (violet) affiche des qu une
+     fiche est creee pour un joueur et pas encore validee (avant meme la
+     soumission) ; "A valider" quand soumise. Rafraichi a la creation de l acteur
+     (charvalidation.js, charvalidation.css).
+
+v2.9.5 | 2026-08-04
+   - Temps morts : la fenetre de declaration du joueur ne depasse plus l ecran.
+     Le contenu est borne (max-height 74vh) et devient scrollable, gardant les
+     boutons Declarer/Ajouter accessibles (tm.js).
+
+v2.9.4 | 2026-08-04
+   - Tutoriel : la bulle ne sort plus de l ecran quand la cible est collee a un
+     bord (clamp final sur les deux axes en plus du flip) (tutorial.js).
 
 v2.9.3 | 2026-08-04
    - Casier : les temps morts ont desormais leur propre ONGLET "Temps morts"

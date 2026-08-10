@@ -17,7 +17,8 @@ import {
 } from "./session.js";
 import {
     getCreationRequests, approveCreation, rejectCreation,
-    getPendingActors, validateActor, returnActor
+    getPendingActors, validateActor, returnActor,
+    getLevelUpRequests, grantLevelUp
 } from "./charvalidation.js";
 import { openDowntimeDialog } from "./tm.js";
 
@@ -120,7 +121,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
         const drafts = myDrafts();
 
         const cvEnabled = game.settings.get(MOD, "enableCharValidation");
-        const cvCount = cvEnabled ? (getCreationRequests().length + getPendingActors().length) : 0;
+        const cvCount = cvEnabled ? (getCreationRequests().length + getPendingActors().length + getLevelUpRequests().length) : 0;
         const tmEnabled = game.settings.get(MOD, "tmEnabled");
         const tmDeclared = tmEnabled
             ? (game.actors?.filter(a => a.type === "character" && a.hasPlayerOwner && a.getFlag(MOD, "tm")?.declared).length ?? 0)
@@ -259,6 +260,18 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                 </div>
             </div>`).join("") : `<div class="scwm-casier-empty">Aucune fiche à valider.</div>`;
 
+        const lvl = getLevelUpRequests();
+        const lvlRows = lvl.length ? lvl.map(a => `
+            <div class="scwm-casier-cv-row" data-cv-actor="${esc(a.id)}">
+                <div class="scwm-cv-info">
+                    <strong>${esc(a.name)}</strong> — <em>${esc(a.ownerName)}</em>
+                </div>
+                <div class="scwm-cv-row-actions">
+                    <button type="button" class="scwm-cv-openactor" data-actor="${esc(a.id)}" title="Ouvrir la fiche"><i class="fas fa-user"></i></button>
+                    <button type="button" class="scwm-cv-grantlvl" data-actor="${esc(a.id)}"><i class="fas fa-unlock"></i> Autoriser la montée</button>
+                </div>
+            </div>`).join("") : `<div class="scwm-casier-empty">Aucune demande de montée de niveau.</div>`;
+
         return `
             <div class="scwm-casier-detail scwm-casier-validation">
                 <h2><i class="fas fa-id-card"></i> Validation des personnages</h2>
@@ -269,6 +282,10 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                 <div class="scwm-casier-cv-section">
                     <h3>Fiches à valider</h3>
                     ${pendRows}
+                </div>
+                <div class="scwm-casier-cv-section">
+                    <h3>Montées de niveau</h3>
+                    ${lvlRows}
                 </div>
             </div>`;
     }
@@ -352,6 +369,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
         root.querySelectorAll(".scwm-cv-reject").forEach(b => b.addEventListener("click", async () => { await rejectCreation(b.dataset.user); this.render(); refreshCasierBadge(); }));
         root.querySelectorAll(".scwm-cv-validate").forEach(b => b.addEventListener("click", async () => { await validateActor(b.dataset.actor); this.render(); refreshCasierBadge(); }));
         root.querySelectorAll(".scwm-cv-return").forEach(b => b.addEventListener("click", async () => { await returnActor(b.dataset.actor); this.render(); refreshCasierBadge(); }));
+        root.querySelectorAll(".scwm-cv-grantlvl").forEach(b => b.addEventListener("click", async () => { await grantLevelUp(b.dataset.actor); this.render(); refreshCasierBadge(); }));
         root.querySelectorAll(".scwm-cv-openactor").forEach(b => b.addEventListener("click", () => game.actors.get(b.dataset.actor)?.sheet.render(true)));
 
         // Accès rapide aux temps morts depuis le dashboard.

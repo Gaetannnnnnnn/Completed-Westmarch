@@ -40,6 +40,10 @@ export function showTutorialSelector() {
     <div class="tuto-selector-body">
         <p class="tuto-selector-hint">Choisissez les sections à revoir :</p>
         <div class="tuto-section-list">${rows}</div>
+        <p class="tuto-selector-warn" style="margin-top:10px;color:#e0a13a;font-size:12px;display:flex;gap:6px;align-items:flex-start;">
+            <i class="fas fa-triangle-exclamation" style="margin-top:2px;"></i>
+            <span>Avant de commencer, <strong>fermez toutes les fiches et fenêtres ouvertes</strong> — le guide ouvre lui-même celles qu'il explique.</span>
+        </p>
     </div>`;
 
     new Dialog({
@@ -87,6 +91,10 @@ export function showWelcome() {
             Des fonctionnalités spéciales sont disponibles sur ce serveur.<br>
             Souhaitez-vous faire un tour guidé de l'interface ?
         </p>
+        <p class="tuto-welcome-warn" style="margin-top:8px;color:#e0a13a;font-size:12px;">
+            <i class="fas fa-triangle-exclamation"></i>
+            Fermez toutes les fiches et fenêtres ouvertes avant de commencer, pour le bon déroulement du guide.
+        </p>
     </div>`;
 
     new Dialog({
@@ -98,13 +106,10 @@ export function showWelcome() {
                 label:    "Commencer le tutoriel",
                 callback: () => startTutorial()
             },
-            hide: {
-                icon:     '<i class="fas fa-eye-slash"></i>',
-                label:    "Ne plus afficher",
-                callback: () => {
-                    game.settings.set(MODULE, "hideWelcome", true);
-                    ui.notifications.info("[Tutoriel] La fenêtre d'accueil ne s'affichera plus pour toi. Tu peux la rouvrir via le bouton « ? » dans la barre WestMarch.");
-                }
+            later: {
+                icon:     '<i class="fas fa-clock"></i>',
+                label:    "Plus tard",
+                callback: () => {}
             }
         },
         default: "start"

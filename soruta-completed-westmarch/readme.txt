@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 2.16.7
+Version : 3.0.0
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -186,6 +186,27 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v3.0.0 | 2026-08-04
+   - Version : passage en 3.0.0 (retenue — le versionnage ne depasse pas 9 par
+     chiffre : 2.9.9 -> 3.0.0).
+   - Tutoriel : la section "Note GM" passe apres "Carnet & Expeditions" dans l
+     ordre de passage (tutorial.js).
+
+v2.16.10 | 2026-08-04
+   - Tutoriel : "Temps morts" n apparait plus qu une fois cote GM. L etape du
+     Casier est placee entre Expeditions et Suivi des GM ; l etape de validation
+     en double (section Temps morts) est retiree (tutorial.js).
+
+v2.16.9 | 2026-08-04
+   - Tutoriel : "Ne plus afficher" deplace de la fenetre de bienvenue vers la FIN
+     du guide (propose seulement quand il est termine) — la fenetre de bienvenue
+     n a plus que "Commencer" et "Plus tard" (welcome.js, tutorial.js).
+
+v2.16.8 | 2026-08-04
+   - Tutoriel : les fenetres de bienvenue et de selection affichent un
+     avertissement invitant a fermer toutes les fiches/fenetres ouvertes avant de
+     lancer le guide (welcome.js).
 
 v2.16.7 | 2026-08-04
    - Readme : mise a jour des sections descriptives (architecture, features,

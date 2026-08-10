@@ -82,14 +82,15 @@ export const SECTION_ICONS = {
     outilsGm:        "fa-shield-halved",
 };
 
+// L'ordre des clés = ordre de passage du tutoriel.
 export const SETTING_KEYS = {
     barreWestmarch:  "tutoBarreWestmarch",
     tourFiche:       "tutoTourFiche",
-    noteGm:          "tutoNoteGm",
     monPerso:        "tutoMonPerso",
     bestiary:        "tutoBestiary",
     relations:       "tutoRelations",
     carnet:          "tutoCarnet",
+    noteGm:          "tutoNoteGm",
     casier:          "tutoCasier",
     cues:            "tutoCues",
     boutiques:       "tutoBoutiques",
@@ -791,17 +792,17 @@ const STEPS_BY_FEATURE = {
             position:   "right"
         },
         {
-            beforeShow: () => _openCasier("gms"),
-            target:     ".scwm-casier-tab[data-tab='gms']",
-            title:      "Suivi des GM",
-            textGM:     "Pour chaque meneur : le nombre d'expéditions en cours, leur nom et les joueurs qui y participent — pratique pour se coordonner à plusieurs MJ.",
-            position:   "right"
-        },
-        {
             beforeShow: () => _openCasier("downtime"),
             target:     ".scwm-casier-tab[data-tab='downtime'], .scwm-casier-downtime",
             title:      "Temps morts (dans le Casier)",
             textGM:     "L'onglet <strong>Temps morts</strong> affiche directement toutes les déclarations des joueurs (gains de compétence et artisanat). Vous les modifiez/refusez au besoin, puis <strong>Appliquer les gains</strong> applique tout en un clic — l'objet fabriqué est ajouté automatiquement depuis le compendium configuré.",
+            position:   "right"
+        },
+        {
+            beforeShow: () => _openCasier("gms"),
+            target:     ".scwm-casier-tab[data-tab='gms']",
+            title:      "Suivi des GM",
+            textGM:     "Pour chaque meneur : le nombre d'expéditions en cours, leur nom et les joueurs qui y participent — pratique pour se coordonner à plusieurs MJ.",
             position:   "right"
         },
         {
@@ -903,15 +904,8 @@ const STEPS_BY_FEATURE = {
             position:   "bottom",
             playerOnly: true
         },
-        // ── Valider (GM) — désormais dans le Casier ───────────────
-        {
-            beforeShow: () => _openCasier("downtime"),
-            target:     ".scwm-casier-tab[data-tab='downtime'], .scwm-casier-downtime",
-            title:      "Valider les temps morts (GM)",
-            textGM:     "La validation se fait dans le <strong>Casier → onglet Temps morts</strong>. Toutes les déclarations reçues y sont pré-remplies (activités, jours, gains calculés). Modifiez/refusez au besoin, puis <strong>Appliquer les gains</strong> applique tout en un clic — l'objet fabriqué est ajouté automatiquement depuis le compendium configuré.",
-            position:   "right",
-            gmOnly:     true
-        },
+        // La validation des temps morts (GM) est couverte par la section Casier
+        // (onglet Temps morts) — pas de doublon ici.
     ],
 
     // ---- Apparence des tokens ----
@@ -1066,10 +1060,34 @@ export function closeTutorial() {
 }
 
 // Fin réelle du tutoriel (croix / Échap / dernière étape) : on retire l'accès
-// temporaire à la fiche démo, puis on nettoie le DOM.
-function _endTutorial() {
+// temporaire à la fiche démo, puis on nettoie le DOM. Si le guide a été TERMINÉ
+// (dernière étape), on propose de ne plus afficher la fenêtre de bienvenue.
+function _endTutorial(completed = false) {
     revokeTutorialAccess();
     closeTutorial();
+    if (completed) _promptHideWelcome();
+}
+
+// Proposé à la fin du guide : masquer la fenêtre de bienvenue (par utilisateur).
+function _promptHideWelcome() {
+    if (!game.settings.get(MODULE, "tutoEnabled")) return;
+    if (game.settings.get(MODULE, "hideWelcome"))  return;   // déjà masquée
+    new Dialog({
+        title:   "Guide terminé",
+        content: `<p>Vous avez terminé le guide. Souhaitez-vous <strong>ne plus afficher la fenêtre de bienvenue</strong> à la connexion ?</p>
+                  <p style="opacity:.7;font-size:12px;">Vous pourrez toujours relancer le guide via le bouton « ? » dans la barre WestMarch.</p>`,
+        buttons: {
+            hide: {
+                icon: '<i class="fas fa-eye-slash"></i>', label: "Ne plus afficher",
+                callback: () => {
+                    game.settings.set(MODULE, "hideWelcome", true);
+                    ui.notifications.info("[Tutoriel] La fenêtre d'accueil ne s'affichera plus. Bouton « ? » dans la barre WestMarch pour relancer le guide.");
+                }
+            },
+            keep: { icon: '<i class="fas fa-check"></i>', label: "Garder l'accueil", callback: () => {} }
+        },
+        default: "hide"
+    }).render(true);
 }
 
 // ================================================================
@@ -1236,13 +1254,13 @@ async function _showStep(idx) {
 
     _wrapEl.appendChild(bubble);
 
-    bubble.querySelector(".tuto-close-btn").addEventListener("click", _endTutorial);
+    bubble.querySelector(".tuto-close-btn").addEventListener("click", () => _endTutorial(false));
     bubble.querySelector(".tuto-prev").addEventListener("click", () => {
         if (_current > 0) _showStep(--_current);
     });
     bubble.querySelector(".tuto-next").addEventListener("click", () => {
         if (_current < _steps.length - 1) _showStep(++_current);
-        else _endTutorial();
+        else _endTutorial(true);   // dernière étape → guide terminé
     });
 
     bubble.querySelector(".tuto-cat-prev")?.addEventListener("click", () => {

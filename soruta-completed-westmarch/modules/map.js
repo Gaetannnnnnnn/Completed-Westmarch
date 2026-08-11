@@ -7,6 +7,45 @@ import { MOD } from "./const.js";
 
 export function MapHooks() {
 
+    // ---- Queries de coordination de la fog (ciblent LE client d'un joueur) ----
+    // Un onglet en arrière-plan est throttlé par le navigateur et ne « commit »
+    // plus sa fog tout seul. Le GM peut donc demander explicitement au client
+    // concerné de persister sa fog (avant un swap) ou de la recharger (après).
+    CONFIG.queries["westmarch.fogCommit"] = async () => {
+        try {
+            const sceneId = game.settings.get(MOD, "expeditionMapSceneId");
+            if (!sceneId || canvas?.scene?.id !== sceneId) return { ok: false };
+            canvas.fog?.commit?.();
+            await canvas.fog?.save?.();
+            const fog = game.collections.get("FogExploration").find(f => f.scene === sceneId && f.user === game.user.id);
+            return fog
+                ? { ok: true, explored: fog.explored, positions: fog.positions, timestamp: fog.timestamp }
+                : { ok: true };
+        } catch (e) { console.warn("[CE] fogCommit:", e); return { ok: false }; }
+    };
+    CONFIG.queries["westmarch.fogReload"] = async () => {
+        try {
+            const sceneId = game.settings.get(MOD, "expeditionMapSceneId");
+            if (!sceneId || canvas?.scene?.id !== sceneId) return { ok: false };
+            await canvas.fog?.load?.();
+            canvas.perception.update({ refreshLighting: true, refreshVision: true }, true);
+            return { ok: true };
+        } catch (e) { console.warn("[CE] fogReload:", e); return { ok: false }; }
+    };
+
+    // Après le déplacement d'un token de GROUPE sur la scène, force chaque membre
+    // en ligne (même onglet en arrière-plan) à committer sa fog, pour qu'elle
+    // soit persistée en continu et pas seulement quand l'onglet a le focus.
+    Hooks.on("updateToken", (tokenDoc, changes) => {
+        if (!game.user.isGM) return;
+        if (!game.settings.get(MOD, "enableExpeditionMap")) return;
+        if (!("x" in changes || "y" in changes)) return;
+        const sceneId = game.settings.get(MOD, "expeditionMapSceneId");
+        if (!sceneId || tokenDoc.parent?.id !== sceneId) return;
+        if (tokenDoc.actor?.type !== "group") return;
+        _commitObserversFog(tokenDoc.actor);
+    });
+
     Hooks.on("updateActor", (actor, changes, options, userId) => {
         if (!game.settings.get(MOD, "enableExpeditionMap")) return;
         if (actor.type !== "group") return;
@@ -369,6 +408,22 @@ async function enforceGroupExclusivity(actor) {
 // Partie « personnage » d'une clé (compat. anciennes clés "char:group").
 const _charOf = (k) => (k == null ? null : String(k).split(":")[0]);
 
+// Demande aux clients des membres d'un groupe (en ligne + regardant la scène)
+// de persister leur fog maintenant. Débounce pour éviter le spam en déplacement.
+const _commitDebounce = new Map();
+function _commitObserversFog(groupActor) {
+    const sceneId = game.settings.get(MOD, "expeditionMapSceneId");
+    const memberIds = Array.from(groupActor?.system?.members?.ids ?? []);
+    for (const charId of memberIds) {
+        const u = game.users.find(x => !x.isGM && x.character?.id === charId);
+        if (!u?.active || u.viewedScene !== sceneId) continue;
+        clearTimeout(_commitDebounce.get(u.id));
+        _commitDebounce.set(u.id, setTimeout(() => {
+            u.query("westmarch.fogCommit", {}).catch(() => {});
+        }, 400));
+    }
+}
+
 function resyncAllCharacterFog() {
     if (!game.user.isGM) return;
     game.users
@@ -408,11 +463,34 @@ async function recomputeFogForCharacter(characterId) {
     }
 
     console.log(`[CE] → SWAP fog: ${oldKey} → ${newKey}`);
-    await swapFogForUserKey(scene, user, oldKey, newKey);
+
+    // Si le client du joueur est en ligne et regarde la scène, on le pilote :
+    //  1) on lui fait committer sa fog actuelle (sinon un onglet en arrière-plan
+    //     ne la persiste pas → l'ancien PJ perdrait son exploration) ;
+    //  2) on permute en base ;
+    //  3) on lui fait recharger la fog du nouveau PJ (sinon son client réaffiche
+    //     et re-commit l'ancienne).
+    const clientLive = user.active && user.viewedScene === scene.id;
+    let currentSnapshot = null;
+    if (clientLive) {
+        try {
+            const res = await user.query("westmarch.fogCommit", {});
+            if (res?.ok && res.explored !== undefined) {
+                currentSnapshot = { explored: res.explored, positions: res.positions, timestamp: res.timestamp };
+            }
+        } catch (e) { console.warn("[CE] fogCommit (swap) échoué:", e); }
+    }
+
+    await swapFogForUserKey(scene, user, oldKey, newKey, currentSnapshot);
     await user.setFlag(MOD, "activeFogKey", newKey);
+
+    if (clientLive) {
+        try { await user.query("westmarch.fogReload", {}); }
+        catch (e) { console.warn("[CE] fogReload (swap) échoué:", e); }
+    }
 }
 
-async function swapFogForUserKey(scene, user, oldKey, newKey) {
+async function swapFogForUserKey(scene, user, oldKey, newKey, currentSnapshot = null) {
     const oldChar = _charOf(oldKey);
     const newChar = _charOf(newKey);
     const fogCollection = game.collections.get("FogExploration");
@@ -421,13 +499,13 @@ async function swapFogForUserKey(scene, user, oldKey, newKey) {
 
     const savedByKey = foundry.utils.deepClone(user.getFlag(MOD, "fogByKey") ?? {});
 
-    // Sauvegarde la fog courante sous SON personnage (normalisé).
-    if (fogDoc && oldChar) {
-        savedByKey[oldChar] = {
-            explored: fogDoc.explored,
-            positions: fogDoc.positions,
-            timestamp: fogDoc.timestamp
-        };
+    // Sauvegarde la fog courante sous SON personnage (normalisé). On privilégie
+    // l'instantané fraîchement committé par le client (currentSnapshot) ; sinon
+    // on lit le document en base.
+    const cur = currentSnapshot
+        ?? (fogDoc ? { explored: fogDoc.explored, positions: fogDoc.positions, timestamp: fogDoc.timestamp } : null);
+    if (cur && oldChar) {
+        savedByKey[oldChar] = cur;
     }
 
     // Restaure la fog du nouveau personnage (repli sur d'anciennes clés "char:group").

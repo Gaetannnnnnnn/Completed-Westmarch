@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 3.1.4
+Version : 3.1.5
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -186,6 +186,14 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v3.1.5 | 2026-08-04
+   - Carte des expeditions : fiabilisation de la sauvegarde de fog quand l'onglet
+     du joueur est en arriere-plan (navigateur qui throttle). Le GM pilote
+     desormais le client concerne via des queries : commit force de la fog avant
+     un changement de PJ, rechargement apres, et commit force apres chaque
+     deplacement d'un token de groupe. Corrige "au changement de PJ j'ai la fog du
+     PJ precedent". (map.js)
 
 v3.1.4 | 2026-08-04
    - Carte des expeditions : la fog est desormais PERSONNELLE par personnage et

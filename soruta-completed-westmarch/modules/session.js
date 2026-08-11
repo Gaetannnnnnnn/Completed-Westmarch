@@ -450,11 +450,17 @@ export async function sendSessionReport(data) {
         ui.notifications.warn("Aucun webhook Discord configuré (Paramètres → Système de Party → URL webhook rapport de session).");
         return false;
     }
+    const embed = buildSessionEmbed(data);
     try {
+        // Salon Forum : un post (fil) de forum par meneur, réutilisé ensuite.
+        if (game.settings.get(MOD, "sessionLogForum")) {
+            return await sendSessionReportToForum(webhookUrl, embed, data);
+        }
+        // Salon textuel classique.
         await fetch(webhookUrl, {
             method:  "POST",
             headers: { "Content-Type": "application/json" },
-            body:    JSON.stringify({ embeds: [buildSessionEmbed(data)] })
+            body:    JSON.stringify({ embeds: [embed] })
         });
         return true;
     } catch (err) {
@@ -462,6 +468,47 @@ export async function sendSessionReport(data) {
         ui.notifications.warn("Échec de l'envoi du rapport sur Discord (voir console).");
         return false;
     }
+}
+
+// Envoi vers un salon Forum : regroupe les rapports par meneur dans un fil
+// dédié (créé au 1er rapport, réutilisé ensuite via son thread_id mémorisé).
+async function sendSessionReportToForum(webhookUrl, embed, data) {
+    const base       = webhookUrl.split("?")[0];             // URL sans paramètres
+    const key        = data.gmId || data.gmName || "gm";
+    const threadName = (data.gmName || "Meneur").slice(0, 90); // titre du post de forum
+    const headers    = { "Content-Type": "application/json" };
+
+    const threads = foundry.utils.deepClone(game.settings.get(MOD, "sessionForumThreads") ?? {});
+    const existingThreadId = threads[key];
+
+    // 1) Poster dans le fil existant du meneur, s'il y en a un.
+    if (existingThreadId) {
+        const res = await fetch(`${base}?thread_id=${existingThreadId}&wait=true`, {
+            method: "POST", headers, body: JSON.stringify({ embeds: [embed] })
+        });
+        if (res.ok) return true;
+        console.warn(`[WestMarch] Fil forum du meneur introuvable (${res.status}) — recréation.`);
+    }
+
+    // 2) Sinon, créer un nouveau post de forum au nom du meneur.
+    const res = await fetch(`${base}?wait=true`, {
+        method: "POST", headers,
+        body: JSON.stringify({ thread_name: threadName, embeds: [embed] })
+    });
+    if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        console.error("[WestMarch] Création du post de forum échouée :", res.status, txt);
+        ui.notifications.warn("Échec de l'envoi du rapport sur Discord (forum — voir console).");
+        return false;
+    }
+    // Mémorise l'id du fil créé pour réutilisation (channel_id = id du thread).
+    const msg = await res.json().catch(() => null);
+    const newThreadId = msg?.channel_id;
+    if (newThreadId) {
+        threads[key] = newThreadId;
+        await game.settings.set(MOD, "sessionForumThreads", threads);
+    }
+    return true;
 }
 
 // ---- Brouillons de rapport (Casier du GM) ------------------

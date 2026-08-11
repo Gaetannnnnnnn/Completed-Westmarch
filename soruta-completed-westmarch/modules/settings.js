@@ -143,6 +143,14 @@ export function registerSettings() {
     game.settings.register(MOD, "sessionLogWebhookUrl", S(
         "URL du Webhook Discord (rapport de session)",
         "Le bouton 'Clore la session' envoie le rapport (même contenu que les anciens journaux) sur ce webhook. Laisser vide pour désactiver l'envoi."));
+    game.settings.register(MOD, "sessionLogForum", B(
+        "Salon Discord de type Forum",
+        "Si le webhook pointe vers un salon Forum : les rapports sont regroupés dans un post (fil) de forum par meneur, réutilisé à chaque nouveau rapport. Laisser désactivé pour un salon textuel classique.",
+        false));
+    // Fils de forum créés par meneur (gmId → threadId). Non affiché.
+    game.settings.register(MOD, "sessionForumThreads", {
+        scope: "world", config: false, type: Object, default: {}
+    });
     // Brouillons de rapports de session (Casier du GM). Non affiché.
     game.settings.register(MOD, "sessionDrafts", {
         scope: "world", config: false, type: Array, default: []
@@ -549,7 +557,7 @@ const CATEGORIES = [
       keys: ["commonFolderPJ","autoPlayerFolder","commonFolderPNJ","commonFolderNewChars","commonPackPNJ","commonPackCemetery","commonPackCreatures","commonPackCraft"] },
     { firstKey: "enableParty", master: "enableParty",           icon: "fa-users",           title: "Système de Party",
       desc: "Groupes de joueurs : chat filtré, combat par party, téléportation de groupe, journal de session, anti-cheat.",
-      keys: ["enableParty","enableJoinScene","enableShowParty","enablePlayerGrouping","enableGoWithPartyScenes","enableGoWithPartyJournal","enableChatFilter","enableSessionLog","sessionLogWebhookUrl","enableCombatParty","enableCombatTurnLock","enablePartyPause","enableAntiCheat"] },
+      keys: ["enableParty","enableJoinScene","enableShowParty","enablePlayerGrouping","enableGoWithPartyScenes","enableGoWithPartyJournal","enableChatFilter","enableSessionLog","sessionLogWebhookUrl","sessionLogForum","enableCombatParty","enableCombatTurnLock","enablePartyPause","enableAntiCheat"] },
     { firstKey: "enableCharValidation", master: "enableCharValidation", icon: "fa-id-card", title: "Création de personnages",
       desc: "Les joueurs demandent la création d'un personnage ; un GM valide depuis le Casier, puis le joueur construit et soumet sa fiche ; à la validation elle est verrouillée. Le dossier de destination se règle dans « Dossiers & Compendiums ».",
       keys: ["enableCharValidation","charMaxTotal","charMaxActive","blockPlayerPlutonium"] },

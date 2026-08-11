@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 3.1.5
+Version : 3.1.6
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -186,6 +186,12 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v3.1.6 | 2026-08-04
+   - Rapports de session Discord : prise en charge des salons de type Forum
+     (nouveau reglage "Salon Discord de type Forum"). Les rapports sont regroupes
+     dans un post (fil) de forum par meneur, cree au 1er rapport puis reutilise
+     (thread_id memorise). Salon textuel classique inchange. (settings.js, session.js)
 
 v3.1.5 | 2026-08-04
    - Carte des expeditions : fiabilisation de la sauvegarde de fog quand l'onglet

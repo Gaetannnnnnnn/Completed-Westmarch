@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 3.1.6
+Version : 3.1.9
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -186,6 +186,25 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v3.1.9 | 2026-08-04
+   - Controle des sources : nouveau reglage "Correspondance exacte des sources"
+     (active par defaut). En exact, "PHB" n'autorise pas "XPHB" (PHB 2024) et les
+     sources proches ne sont plus confondues. Mode souple (contient) disponible en
+     option. (sourcecontrol.js, settings.js)
+
+v3.1.8 | 2026-08-04
+   - Nouveau : Controle des sources. Reglemente les livres/extensions D&D
+     (Xanathar, Tal'Dorei, etc.) autorises sur les fiches PJ via deux listes
+     blanches distinctes (joueurs / MJ). Le contenu d'une source non autorisee est
+     bloque + avertissement, quelle que soit la methode d'ajout (Plutonium/5etools,
+     glisser-deposer, manuel). Detection via system.source + flags. Option de
+     blocage du contenu sans source. (sourcecontrol.js, settings.js, index.js)
+
+v3.1.7 | 2026-08-04
+   - Cues audio : correction d'affichage — la grille Depart/Volume/Fondu/Boucle et
+     la ligne Declencheur ne se chevauchent plus (espacement vertical du corps du
+     cue). (sceneaudio.css)
 
 v3.1.6 | 2026-08-04
    - Rapports de session Discord : prise en charge des salons de type Forum

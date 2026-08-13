@@ -78,6 +78,11 @@
     flex-direction: column;
     gap: 6px;
 }
+.scwm-cue-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
 .scwm-cue-head {
     display: flex;
     align-items: center;

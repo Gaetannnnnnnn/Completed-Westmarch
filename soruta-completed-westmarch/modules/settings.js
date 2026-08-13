@@ -187,6 +187,26 @@ export function registerSettings() {
         "Validation — Dossier des personnages",
         "Nom du dossier d'acteurs où sont créés les personnages validés.",
         "Personnages"));
+
+    // ---- Contrôle des sources (livres/extensions autorisés) ----
+    game.settings.register(MOD, "enableSourceControl", B(
+        "Contrôle des sources autorisées",
+        "Réglemente quels livres/extensions D&D (Xanathar, Tal'Dorei, etc.) peuvent être ajoutés à une fiche PJ, quelle que soit la méthode (import Plutonium/5etools, glisser-déposer, création manuelle). Le contenu d'une source non autorisée est bloqué avec un avertissement.",
+        false));
+    game.settings.register(MOD, "sourceAllowPlayers", S(
+        "Sources autorisées — Joueurs",
+        "Liste blanche des sources autorisées pour les JOUEURS, séparées par des virgules (ex. « PHB, XGE, Tasha, Tal'Dorei »). La correspondance est souple (code ou nom du livre). Laisser vide = aucune restriction pour les joueurs."));
+    game.settings.register(MOD, "sourceAllowGm", S(
+        "Sources autorisées — MJ",
+        "Liste blanche des sources autorisées pour le MJ, séparées par des virgules. Laisser vide = aucune restriction pour le MJ."));
+    game.settings.register(MOD, "sourceMatchExact", B(
+        "Correspondance exacte des sources",
+        "Activé : une source n'est autorisée que si elle correspond EXACTEMENT à une entrée de la liste (« PHB » n'autorise pas « XPHB », le PHB 2024). Désactivé : correspondance souple (une entrée autorise toute source qui la contient) — plus permissif mais risque d'autoriser des sources proches sans le vouloir.",
+        true));
+    game.settings.register(MOD, "sourceBlockUnknown", B(
+        "Bloquer le contenu sans source identifiable",
+        "Refuse tout contenu dont la source ne peut pas être déterminée (homebrew, objet créé à la main, source vide). Ne s'applique que si une liste de sources est renseignée pour le rôle concerné.",
+        true));
     // État de pause par party (mapping partyId -> true), synchronisé sur tous
     // les clients. Non affiché dans la configuration.
     game.settings.register(MOD, "partyPauseState", {
@@ -561,6 +581,9 @@ const CATEGORIES = [
     { firstKey: "enableCharValidation", master: "enableCharValidation", icon: "fa-id-card", title: "Création de personnages",
       desc: "Les joueurs demandent la création d'un personnage ; un GM valide depuis le Casier, puis le joueur construit et soumet sa fiche ; à la validation elle est verrouillée. Le dossier de destination se règle dans « Dossiers & Compendiums ».",
       keys: ["enableCharValidation","charMaxTotal","charMaxActive","blockPlayerPlutonium"] },
+    { firstKey: "enableSourceControl", master: "enableSourceControl", icon: "fa-book-skull", title: "Contrôle des sources",
+      desc: "Réglemente les livres/extensions D&D (Xanathar, Tal'Dorei, etc.) autorisés sur les fiches PJ, via deux listes blanches (joueurs / MJ). Le contenu d'une source non autorisée est bloqué avec un avertissement, quelle que soit la méthode d'ajout.",
+      keys: ["enableSourceControl","sourceAllowPlayers","sourceAllowGm","sourceMatchExact","sourceBlockUnknown"] },
     { firstKey: "enableXpBlock",         icon: "fa-server",          title: "Serveur",
       desc: "Personnalisations du serveur : blocage XP / Level Up, logs Discord, webhooks.",
       keys: ["enableXpBlock","enableGmNotes","hidePlayerStarTab","enableDiscordLog","discordLogWebhookUrl","downtimeWebhookUrl","tmWebhookUrl"] },

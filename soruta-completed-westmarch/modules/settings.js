@@ -195,10 +195,12 @@ export function registerSettings() {
         false));
     game.settings.register(MOD, "sourceAllowPlayers", S(
         "Sources autorisées — Joueurs",
-        "Liste blanche des sources autorisées pour les JOUEURS, séparées par des virgules (ex. « PHB, XGE, Tasha, Tal'Dorei »). La correspondance est souple (code ou nom du livre). Laisser vide = aucune restriction pour les joueurs."));
+        "Liste blanche des sources autorisées pour les JOUEURS. Sépare les entrées par « ; ». Une entrée = « Source » (tous types) ou « Source : type1, type2 » pour n'autoriser que certains types de cette source. "
+        + "Types : race, classe, sous-classe, don, sort, historique, objet. "
+        + "Ex. : « PHB 2024 ; Tal'Dorei : race ; Xanathar : sous-classe, don » = tout de PHB 2024, mais seulement les races de Tal'Dorei et seulement sous-classes/dons de Xanathar. Laisser vide = aucune restriction pour les joueurs."));
     game.settings.register(MOD, "sourceAllowGm", S(
         "Sources autorisées — MJ",
-        "Liste blanche des sources autorisées pour le MJ, séparées par des virgules. Laisser vide = aucune restriction pour le MJ."));
+        "Liste blanche des sources autorisées pour le MJ, même syntaxe que pour les joueurs (« Source » ou « Source : type1, type2 », entrées séparées par « ; »). Laisser vide = aucune restriction pour le MJ."));
     game.settings.register(MOD, "sourceMatchExact", B(
         "Correspondance exacte des sources",
         "Activé : une source n'est autorisée que si elle correspond EXACTEMENT à une entrée de la liste (« PHB » n'autorise pas « XPHB », le PHB 2024). Désactivé : correspondance souple (une entrée autorise toute source qui la contient) — plus permissif mais risque d'autoriser des sources proches sans le vouloir.",

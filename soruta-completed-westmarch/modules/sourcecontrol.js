@@ -17,12 +17,48 @@ import { MOD } from "./const.js";
 
 const on = () => game.settings.get(MOD, "enableSourceControl");
 
-// Découpe une liste saisie (virgules, points-virgules ou retours ligne).
-function parseList(raw) {
-    return String(raw ?? "")
-        .split(/[,;\n]/)
-        .map(s => s.trim())
-        .filter(Boolean);
+// Normalise un mot-clé (repli d'accents + minuscules + alphanum. seulement).
+const _slug = (s) => String(s ?? "")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase().replace(/[^a-z0-9]/g, "");
+
+// Mots-clés de type → types d'items dnd5e. « objet » couvre tout le matériel.
+const TYPE_ALIASES = {
+    race: ["race"],
+    classe: ["class"], class: ["class"],
+    sousclasse: ["subclass"], subclass: ["subclass"],
+    don: ["feat"], feat: ["feat"], aptitude: ["feat"],
+    sort: ["spell"], spell: ["spell"], sortilege: ["spell"],
+    historique: ["background"], background: ["background"],
+    objet: ["weapon", "equipment", "consumable", "tool", "loot", "container"],
+    item: ["weapon", "equipment", "consumable", "tool", "loot", "container"],
+    equipement: ["weapon", "equipment", "consumable", "tool", "loot", "container"]
+};
+
+// Parse une liste de règles. Séparateur d'entrées : « ; » ou retour ligne.
+// Chaque entrée : « Source »  (tous types)  ou  « Source : type1, type2 »
+// (uniquement ces types). Sans « : », les virgules séparent plusieurs sources
+// (rétro-compatible avec l'ancienne liste par virgules).
+function parseRules(raw) {
+    const rules = [];
+    const entries = String(raw ?? "").split(/[;\n]/).map(s => s.trim()).filter(Boolean);
+    for (const entry of entries) {
+        const ci = entry.indexOf(":");
+        if (ci === -1) {
+            for (const src of entry.split(",").map(s => s.trim()).filter(Boolean)) {
+                rules.push({ source: src, types: null });   // null = tous types
+            }
+        } else {
+            const src = entry.slice(0, ci).trim();
+            if (!src) continue;
+            const types = new Set();
+            for (const t of entry.slice(ci + 1).split(",").map(s => s.trim()).filter(Boolean)) {
+                (TYPE_ALIASES[_slug(t)] ?? [_slug(t)]).forEach(x => types.add(x));
+            }
+            rules.push({ source: src, types: types.size ? types : null });
+        }
+    }
+    return rules;
 }
 
 // Normalise pour comparaison souple : minuscules, sans espaces ni ponctuation.
@@ -69,31 +105,47 @@ export function SourceControlHooks() {
         const listRaw = isGM
             ? game.settings.get(MOD, "sourceAllowGm")
             : game.settings.get(MOD, "sourceAllowPlayers");
-        const allow = parseList(listRaw);
+        const rules = parseRules(listRaw);
 
         // Liste vide pour ce rôle → aucune restriction (anti-verrouillage total).
-        if (!allow.length) return;
+        if (!rules.length) return;
 
         const sources = detectSources(data, item);
+        const type = item.type;
         const blockUnknown = game.settings.get(MOD, "sourceBlockUnknown");
         const exact = game.settings.get(MOD, "sourceMatchExact");
 
-        let ok, label;
+        // Pas de source identifiable → selon l'option.
         if (!sources.length) {
-            ok = !blockUnknown;                 // pas de source identifiable
-            label = "source inconnue";
-        } else {
-            ok = sources.some(s => allow.some(a => entryMatches(s, a, exact)));
-            label = sources.join(" / ");
+            if (!blockUnknown) return;
+            ui.notifications?.warn(`« ${item.name} » — source non identifiable, contenu refusé sur le serveur.`);
+            console.warn(`[${MOD}] Source inconnue refusée : ${item.name} — rôle ${isGM ? "MJ" : "joueur"}.`);
+            return false;
         }
 
-        if (!ok) {
+        // Règles dont la SOURCE correspond à ce contenu.
+        const srcRules = rules.filter(r => sources.some(s => entryMatches(s, r.source, exact)));
+        const label = sources.join(" / ");
+
+        if (!srcRules.length) {
+            // Source pas du tout autorisée.
             ui.notifications?.warn(
                 `« ${item.name} » — source « ${label} » non autorisée sur le serveur. `
                 + `Pour l'autoriser, ajoute-la à la liste des sources dans les réglages.`
             );
             console.warn(`[${MOD}] Source refusée : ${item.name} (${label}) — rôle ${isGM ? "MJ" : "joueur"}.`);
-            return false;                       // bloque la création
+            return false;
+        }
+
+        // Source autorisée : le TYPE de ce contenu est-il permis pour cette source ?
+        const typeOk = srcRules.some(r => r.types === null || r.types.has(type));
+        if (!typeOk) {
+            ui.notifications?.warn(
+                `« ${item.name} » — les contenus de type « ${type} » de la source « ${label} » `
+                + `ne sont pas autorisés sur le serveur.`
+            );
+            console.warn(`[${MOD}] Type refusé : ${item.name} (${type} / ${label}) — rôle ${isGM ? "MJ" : "joueur"}.`);
+            return false;
         }
     });
 }

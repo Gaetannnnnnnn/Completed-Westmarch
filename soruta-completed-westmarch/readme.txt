@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 3.1.9
+Version : 3.2.0
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -186,6 +186,13 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v3.2.0 | 2026-08-04
+   - Controle des sources : filtrage par TYPE au sein d'une source. Syntaxe des
+     listes : "Source" (tous types) ou "Source : type1, type2" (entrees separees
+     par ";"). Types : race, classe, sous-classe, don, sort, historique, objet.
+     Permet ex. d'autoriser seulement les races d'un livre mais pas ses sous-classes.
+     Retro-compatible avec l'ancienne liste par virgules. (sourcecontrol.js, settings.js)
 
 v3.1.9 | 2026-08-04
    - Controle des sources : nouveau reglage "Correspondance exacte des sources"

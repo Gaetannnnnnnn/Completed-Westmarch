@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 3.2.0
+Version : 3.2.1
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -186,6 +186,11 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v3.2.1 | 2026-08-04
+   - Controle des sources : nouveau reglage "Champ compare" (menu deroulant) pour
+     choisir si les listes portent sur le champ Book (livre) ou Identifier
+     (identifiant precis de l'objet), ou les deux. (sourcecontrol.js, settings.js)
 
 v3.2.0 | 2026-08-04
    - Controle des sources : filtrage par TYPE au sein d'une source. Syntaxe des

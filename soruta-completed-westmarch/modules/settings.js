@@ -201,6 +201,12 @@ export function registerSettings() {
     game.settings.register(MOD, "sourceAllowGm", S(
         "Sources autorisées — MJ",
         "Liste blanche des sources autorisées pour le MJ, même syntaxe que pour les joueurs (« Source » ou « Source : type1, type2 », entrées séparées par « ; »). Laisser vide = aucune restriction pour le MJ."));
+    game.settings.register(MOD, "sourceMatchField", {
+        name: "Champ comparé (Book ou Identifier)",
+        hint: "Choisit sur quel champ de la source portent les listes ci-dessus. « Book » = le livre (ex. « PHB 2024 »), plus large. « Identifier » = l'identifiant précis de l'objet (ex. « unarmed-strike »), pour un filtrage fin. « Les deux » accepte une correspondance sur l'un OU l'autre.",
+        scope: "world", config: false, type: String, default: "book", requiresReload: false,
+        choices: { book: "Book (livre)", identifier: "Identifier (identifiant)", both: "Les deux (l'un ou l'autre)" }
+    });
     game.settings.register(MOD, "sourceMatchExact", B(
         "Correspondance exacte des sources",
         "Activé : une source n'est autorisée que si elle correspond EXACTEMENT à une entrée de la liste (« PHB » n'autorise pas « XPHB », le PHB 2024). Désactivé : correspondance souple (une entrée autorise toute source qui la contient) — plus permissif mais risque d'autoriser des sources proches sans le vouloir.",
@@ -585,7 +591,7 @@ const CATEGORIES = [
       keys: ["enableCharValidation","charMaxTotal","charMaxActive","blockPlayerPlutonium"] },
     { firstKey: "enableSourceControl", master: "enableSourceControl", icon: "fa-book-skull", title: "Contrôle des sources",
       desc: "Réglemente les livres/extensions D&D (Xanathar, Tal'Dorei, etc.) autorisés sur les fiches PJ, via deux listes blanches (joueurs / MJ). Le contenu d'une source non autorisée est bloqué avec un avertissement, quelle que soit la méthode d'ajout.",
-      keys: ["enableSourceControl","sourceAllowPlayers","sourceAllowGm","sourceMatchExact","sourceBlockUnknown"] },
+      keys: ["enableSourceControl","sourceAllowPlayers","sourceAllowGm","sourceMatchField","sourceMatchExact","sourceBlockUnknown"] },
     { firstKey: "enableXpBlock",         icon: "fa-server",          title: "Serveur",
       desc: "Personnalisations du serveur : blocage XP / Level Up, logs Discord, webhooks.",
       keys: ["enableXpBlock","enableGmNotes","hidePlayerStarTab","enableDiscordLog","discordLogWebhookUrl","downtimeWebhookUrl","tmWebhookUrl"] },
@@ -769,7 +775,12 @@ function settingControlHtml(key) {
     }
 
     let control;
-    if (cfg.type === Number) {
+    if (cfg.choices && typeof cfg.choices === "object") {
+        const opts = Object.entries(cfg.choices)
+            .map(([v, lbl]) => `<option value="${escapeAttr(v)}" ${val === v ? "selected" : ""}>${lbl}</option>`)
+            .join("");
+        control = `<select name="${key}" style="width:100%;">${opts}</select>`;
+    } else if (cfg.type === Number) {
         control = `<input type="number" name="${key}" value="${val ?? 0}" step="any" style="width:100%;">`;
     } else if (key.includes("Folder")) {
         control = `<select name="${key}" style="width:100%;">${folderOptionsHtml(val)}</select>`;

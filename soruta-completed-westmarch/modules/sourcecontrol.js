@@ -74,23 +74,37 @@ function entryMatches(sourceStr, entry, exact) {
     return exact ? c === e : (c.includes(e) || e.includes(c));
 }
 
-// Extrait les chaînes de source candidates d'un item (données de création).
+// Extrait les valeurs candidates d'un item, séparées par champ :
+//  - books : le livre/source (champ « Book », Custom Label, flags)
+//  - ids   : l'identifiant précis (champ « Identifier » = system.identifier)
 function detectSources(data, item) {
-    const out = [];
-    const push = (v) => { if (v != null && String(v).trim()) out.push(String(v).trim()); };
+    const books = [], ids = [];
+    const add = (arr, v) => { if (v != null && String(v).trim()) arr.push(String(v).trim()); };
 
     const sys = data?.system ?? item?.system ?? {};
     const src = sys.source;
-    if (typeof src === "string") push(src);
-    else if (src && typeof src === "object") { push(src.book); push(src.custom); }
+    if (typeof src === "string") add(books, src);
+    else if (src && typeof src === "object") { add(books, src.book); add(books, src.custom); }
 
     const flags = data?.flags ?? item?.flags ?? {};
     for (const ns of ["plutonium", "5etools", "srd5e"]) {
         const f = flags[ns];
-        if (f && typeof f === "object") { push(f.source); push(f.book); }
+        if (f && typeof f === "object") { add(books, f.source); add(books, f.book); }
     }
-    // Dédoublonne.
-    return [...new Set(out)];
+
+    add(ids, sys.identifier);
+    if (src && typeof src === "object") add(ids, src.identifier);
+
+    return { books: [...new Set(books)], ids: [...new Set(ids)] };
+}
+
+// Valeurs à comparer selon le champ choisi dans les réglages.
+function candidatesForField(det) {
+    switch (game.settings.get(MOD, "sourceMatchField")) {
+        case "identifier": return det.ids;
+        case "both":       return [...det.books, ...det.ids];
+        default:           return det.books;   // "book"
+    }
 }
 
 export function SourceControlHooks() {
@@ -110,7 +124,7 @@ export function SourceControlHooks() {
         // Liste vide pour ce rôle → aucune restriction (anti-verrouillage total).
         if (!rules.length) return;
 
-        const sources = detectSources(data, item);
+        const sources = candidatesForField(detectSources(data, item));
         const type = item.type;
         const blockUnknown = game.settings.get(MOD, "sourceBlockUnknown");
         const exact = game.settings.get(MOD, "sourceMatchExact");

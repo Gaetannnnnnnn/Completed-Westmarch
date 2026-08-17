@@ -114,6 +114,19 @@ export function registerSettings() {
     });
 
     // ============================================================
+    // À PROPOS & PROTECTION
+    // ============================================================
+    game.settings.register(MOD, "protectionEnabled", B(
+        "Activer la protection (code d'activation)",
+        "Si activé, le module ne fonctionne que si le code d'activation ci-dessous est correct. "
+        + "Protection légère et dissuasive (contournable par une personne technique), destinée à décourager "
+        + "une réutilisation non autorisée après téléchargement. Nécessite un rechargement.",
+        false, { requiresReload: true }));
+    game.settings.register(MOD, "activationCode", S(
+        "Code d'activation",
+        "Code attendu par la protection. À renseigner sur ton serveur. Nécessite un rechargement."));
+
+    // ============================================================
     // WESTMARCH — Système de party (core)
     // ============================================================
     game.settings.register(MOD, "enableParty", B(
@@ -588,6 +601,9 @@ function registerCategoryToggles() {
 // firstKey = clé devant laquelle insérer l'en-tête de catégorie.
 // ============================================================
 const CATEGORIES = [
+    { firstKey: "protectionEnabled", icon: "fa-shield-halved", title: "À propos & protection",
+      desc: "Informations de licence et protection dissuasive du module. Renseigne le code d'activation sur ton serveur si tu actives la protection.",
+      keys: ["protectionEnabled","activationCode"] },
     { firstKey: "commonFolderPJ", icon: "fa-folder-tree", title: "Dossiers & Compendiums",
       desc: "Dossiers et compendiums communs, renseignés une seule fois ici et utilisés par toutes les fonctions (Relations, Bestiaire, Création de personnages, Temps morts).",
       keys: ["commonFolderPJ","autoPlayerFolder","commonFolderPNJ","commonFolderNewChars","commonPackPNJ","commonPackCemetery","commonPackCreatures","commonPackCraft"] },
@@ -768,9 +784,26 @@ function buildCategoryForm(category, uid) {
         </div>` : "";
     return `
     <div id="${uid}" class="scwm-cat-form" style="display:flex;flex-direction:column;max-height:60vh;overflow-y:auto;padding-right:4px;">
+        ${licenseBannerHtml()}
         ${category.desc ? `<p style="margin:0 0 8px;font-size:.85em;color:#aaa;font-style:italic;">${category.desc}</p>` : ""}
         ${toggleBar}
         ${category.keys.map(settingControlHtml).join("")}
+    </div>`;
+}
+
+// Bandeau « droits & version » affiché en tête de chaque fenêtre de réglages.
+export function licenseBannerHtml() {
+    const version = game.modules.get(MOD)?.version ?? "";
+    return `
+    <div style="display:flex;align-items:center;gap:8px;margin:0 0 10px;padding:7px 10px;
+                border:1px solid rgba(201,162,39,0.5);border-radius:5px;
+                background:linear-gradient(180deg,rgba(201,162,39,0.12),rgba(0,0,0,0.15));">
+        <i class="fas fa-shield-halved" style="color:${ACCENT};font-size:15px;"></i>
+        <div style="font-size:.78em;line-height:1.4;color:#d8cfa8;">
+            <strong>Soruta — Completed Westmarch</strong> · v${version}<br>
+            © 2026 Soruta — Tous droits réservés. Usage personnel autorisé ; toute
+            redistribution, modification ou usage commercial est interdit sans autorisation écrite.
+        </div>
     </div>`;
 }
 

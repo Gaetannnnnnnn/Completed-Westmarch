@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 3.2.3
+Version : 3.2.5
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -186,6 +186,9 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v3.2.4 | 2026-08-04
+   - Reglages : bandeau "droits & version" en tete de chaque fenetre de reglages.
 
 v3.2.3 | 2026-08-04
    - Temps morts : reprise des apports du module autonome "downtime". Table des

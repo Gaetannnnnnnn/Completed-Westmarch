@@ -10,6 +10,7 @@
 // ============================================================
 
 import { registerSettings, migrateCommonResources } from "./modules/settings.js";
+import { MOD, ACTIVATION_CODE } from "./modules/const.js";
 import { MigrationHooks }    from "./modules/migration.js";
 
 // --- Phase 2 : Fiche PJ (Relations / Bestiaire / Carnet & Expéditions) ---
@@ -96,6 +97,22 @@ Hooks.on("init", () => {
     Handlebars.registerHelper("lte", (a, b) => a <= b);
 
     registerSettings();
+
+    // --- Protection dissuasive (code d'activation) ---
+    // Si la protection est activée et que le code saisi ne correspond pas, on
+    // n'initialise AUCUNE fonctionnalité (les réglages restent accessibles pour
+    // saisir le code). Contournable en lisant le code source — purement dissuasif.
+    if (game.settings.get(MOD, "protectionEnabled")
+        && (game.settings.get(MOD, "activationCode") ?? "").trim() !== ACTIVATION_CODE) {
+        console.warn("[soruta-completed-westmarch] Module non activé : code d'activation manquant ou invalide. Fonctionnalités désactivées.");
+        Hooks.once("ready", () => {
+            if (game.user?.isGM) ui.notifications?.error(
+                "Soruta — Completed Westmarch : ce module est protégé. Code d'activation manquant ou invalide "
+                + "(Réglages du module → « À propos & protection »). © Soruta — Tous droits réservés."
+            );
+        });
+        return;   // on arrête là : aucune feature n'est enregistrée
+    }
 
     // --- Phase 2 : Fiche PJ ---
     // RelationsHooks avant BestiaryHooks : relations est l'injecteur "primaire"

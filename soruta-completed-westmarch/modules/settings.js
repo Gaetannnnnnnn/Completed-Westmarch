@@ -6,7 +6,7 @@
 // © 2026 Soruta.
 // ============================================================
 
-import { MOD, TUTO_TOGGLES, TM_DEFAULT_SCROLL, TM_DEFAULT_MAGIC, TM_DEFAULT_ROLL } from "./const.js";
+import { MOD, TUTO_TOGGLES, TM_DEFAULT_SCROLL, TM_DEFAULT_MAGIC, TM_DEFAULT_ROLL, ACTIVATION_CODE } from "./const.js";
 import { applyHotbarVisibility } from "./hotbar.js";
 import { applyPartyPause } from "./partypause.js";
 
@@ -115,13 +115,10 @@ export function registerSettings() {
 
     // ============================================================
     // À PROPOS & PROTECTION
+    // Le module ne fonctionne que si le code d'activation est correct. Il n'y a
+    // volontairement AUCUN interrupteur pour désactiver la protection (sinon on
+    // pourrait la contourner en la décochant).
     // ============================================================
-    game.settings.register(MOD, "protectionEnabled", B(
-        "Activer la protection (code d'activation)",
-        "Si activé, le module ne fonctionne que si le code d'activation ci-dessous est correct. "
-        + "Protection légère et dissuasive (contournable par une personne technique), destinée à décourager "
-        + "une réutilisation non autorisée après téléchargement. Nécessite un rechargement.",
-        true, { requiresReload: true }));
     game.settings.register(MOD, "activationCode", S(
         "Code d'activation",
         "Code attendu par la protection. À renseigner sur ton serveur. Nécessite un rechargement."));
@@ -542,9 +539,14 @@ export function registerSettings() {
 
     // ============================================================
     // MENUS PAR CATÉGORIE (boutons "Configurer" dans la config du module)
+    // Visibles UNIQUEMENT si le module est activé (bon code saisi). Tant que le
+    // code n'est pas entré, aucun réglage n'est accessible — la seule entrée est
+    // la fenêtre de code au démarrage (voir index.js).
     // ============================================================
-    registerCategoryMenus();
-    registerCategoryToggles();
+    if ((game.settings.get(MOD, "activationCode") ?? "").trim() === ACTIVATION_CODE) {
+        registerCategoryMenus();
+        registerCategoryToggles();
+    }
 }
 
 // Cases à cocher "Activé" injectées à côté du nom de chaque catégorie qui
@@ -601,9 +603,9 @@ function registerCategoryToggles() {
 // firstKey = clé devant laquelle insérer l'en-tête de catégorie.
 // ============================================================
 const CATEGORIES = [
-    { firstKey: "protectionEnabled", icon: "fa-shield-halved", title: "À propos & protection",
-      desc: "Informations de licence et protection dissuasive du module. Renseigne le code d'activation sur ton serveur si tu actives la protection.",
-      keys: ["protectionEnabled","activationCode"] },
+    { firstKey: "activationCode", icon: "fa-shield-halved", title: "À propos & protection",
+      desc: "Informations de licence et protection du module. Le code d'activation se saisit au démarrage ; tu peux le modifier ici une fois le module activé.",
+      keys: ["activationCode"] },
     { firstKey: "commonFolderPJ", icon: "fa-folder-tree", title: "Dossiers & Compendiums",
       desc: "Dossiers et compendiums communs, renseignés une seule fois ici et utilisés par toutes les fonctions (Relations, Bestiaire, Création de personnages, Temps morts).",
       keys: ["commonFolderPJ","autoPlayerFolder","commonFolderPNJ","commonFolderNewChars","commonPackPNJ","commonPackCemetery","commonPackCreatures","commonPackCraft"] },
@@ -840,6 +842,9 @@ function settingControlHtml(key) {
         control = `<select name="${key}" style="width:100%;">${packOptionsHtml(val, docType)}</select>`;
     } else if (key === "expeditionMapSceneId") {
         control = `<select name="${key}" style="width:100%;">${sceneOptionsHtml(val)}</select>`;
+    } else if (key === "activationCode") {
+        // Champ masqué (comme un mot de passe) — la valeur ne s'affiche pas en clair.
+        control = `<input type="password" name="${key}" value="${escapeAttr(val ?? "")}" autocomplete="new-password" style="width:100%;">`;
     } else {
         control = `<input type="text" name="${key}" value="${escapeAttr(val ?? "")}" style="width:100%;">`;
     }

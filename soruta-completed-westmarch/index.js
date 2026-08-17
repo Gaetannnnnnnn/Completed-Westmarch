@@ -102,8 +102,7 @@ Hooks.on("init", () => {
     // Si la protection est activée et que le code saisi ne correspond pas, on
     // n'initialise AUCUNE fonctionnalité (les réglages restent accessibles pour
     // saisir le code). Contournable en lisant le code source — purement dissuasif.
-    if (game.settings.get(MOD, "protectionEnabled")
-        && (game.settings.get(MOD, "activationCode") ?? "").trim() !== ACTIVATION_CODE) {
+    if ((game.settings.get(MOD, "activationCode") ?? "").trim() !== ACTIVATION_CODE) {
         console.warn("[soruta-completed-westmarch] Module non activé : code d'activation manquant ou invalide. Fonctionnalités désactivées.");
         Hooks.once("ready", async () => {
             if (!game.user?.isGM) return;
@@ -204,10 +203,9 @@ Hooks.on("ready", () => {
 // intérêt pour un téléchargement neuf qui n'en a aucune.)
 MigrationHooks();
 
-// Vérifie l'activation (protection désactivée OU code correct).
+// Vérifie l'activation : le module ne fonctionne qu'avec le bon code.
 function scwmActivated() {
-    return !game.settings.get(MOD, "protectionEnabled")
-        || (game.settings.get(MOD, "activationCode") ?? "").trim() === ACTIVATION_CODE;
+    return (game.settings.get(MOD, "activationCode") ?? "").trim() === ACTIVATION_CODE;
 }
 
 // Fenêtre demandant le code d'activation (MJ). Retourne la saisie ou null.

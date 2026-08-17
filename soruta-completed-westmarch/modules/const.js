@@ -50,6 +50,14 @@ export const TM_DEFAULT_MAGIC = [
     { key: "tresrare",   label: "Very Rare", days: 125, cost: 20000,  lvl: 11 },
     { key: "legendaire", label: "Legendary", days: 250, cost: 100000, lvl: 17 }
 ];
+// Multiplicateur appliqué au gain selon le résultat du test de compétence.
+// Pour un résultat donné, la 1ère entrée dont max ≥ résultat est utilisée.
+export const TM_DEFAULT_ROLL = [
+    { max: 1,  mult: 0.8, label: "Échec critique (≤1) → −20 %" },
+    { max: 9,  mult: 1.0, label: "Neutre (2–9) → ±0 %"          },
+    { max: 19, mult: 1.1, label: "Succès (10–19) → +10 %"       },
+    { max: 99, mult: 1.2, label: "Critique (≥20) → +20 %"       }
+];
 
 // Anciens identifiants de module, conservés uniquement pour la migration
 // automatique des données existantes (voir migration.js).

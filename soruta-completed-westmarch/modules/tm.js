@@ -1,4 +1,4 @@
-import { MOD, TM_DEFAULT_SCROLL, TM_DEFAULT_MAGIC } from "./const.js";
+import { MOD, TM_DEFAULT_SCROLL, TM_DEFAULT_MAGIC, TM_DEFAULT_ROLL } from "./const.js";
 import { commonPackCraft } from "./settings.js";
 // ============================================================
 // tm.js — Temps morts : déclaration joueur + validation GM
@@ -46,6 +46,21 @@ function getScrollTable() {
 function getMagicTable() {
     const t = game.settings.get(MOD, "tmMagicTable");
     return (Array.isArray(t) && t.length) ? t : TM_DEFAULT_MAGIC;
+}
+function getRollTable() {
+    const t = game.settings.get(MOD, "tmRollTable");
+    return (Array.isArray(t) && t.length) ? t : TM_DEFAULT_ROLL;
+}
+// Multiplicateur configuré pour un résultat de test donné (1ère entrée dont max ≥ résultat).
+function getRollMultiplier(rollResult) {
+    const sorted = [...getRollTable()].sort((a, b) => (a.max ?? 0) - (b.max ?? 0));
+    for (const e of sorted) if (rollResult <= (e.max ?? 0)) return Number(e.mult ?? 1);
+    return Number(sorted[sorted.length - 1]?.mult ?? 1);
+}
+// Libellé de pourcentage à partir d'un multiplicateur (ex. 1.1 → "+10 %").
+function multPctLabel(mult) {
+    const pct = Math.round((mult - 1) * 100);
+    return `${pct >= 0 ? "+" : ""}${pct} %`;
 }
 
 export function TmHooks() {
@@ -297,6 +312,11 @@ function dateAndRollHtml(idPrefix, sDay, sMonth, sYear, eDay, eMonth, eYear, pre
 <div class="tm-d20-row-${idPrefix}" style="display:flex; gap:6px; align-items:center;${rollOpacity}">
     <input type="checkbox" name="tm-roll-${idPrefix}"${rollChecked}${rollDisabled} style="margin:0;">
     <label style="margin:0;">Test de compétence <em style="color:#888;">(≥ ${tmNum("tmRollMinDays", 5)} jours requis)</em></label>
+</div>
+<div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+    <label style="min-width:90px; white-space:nowrap;">Bonus au jet :</label>
+    <input type="text" name="tm-bonus-${idPrefix}" value="" placeholder="+10, 1d6…" style="width:80px;">
+    <input type="text" name="tm-bonus-src-${idPrefix}" value="" placeholder="Provenance du bonus…" style="flex:1;">
 </div>`;
 }
 
@@ -336,8 +356,11 @@ function wireControls(html, actor, idPrefix) {
         const hasTools     = html.find(`[name="tm-tools-${idPrefix}"]`).prop("checked");
         const days         = getDays();
         const rate         = calcDailyRate(actor, skillId, hasMaitrise, hasExpertise, hasTools);
+        const bonusRaw     = html.find(`[name="tm-bonus-${idPrefix}"]`).val()?.trim() ?? "";
+        const bonusSrc     = html.find(`[name="tm-bonus-src-${idPrefix}"]`).val()?.trim() ?? "";
+        const bonusPart    = bonusRaw ? ` · bonus jet : ${bonusRaw}${bonusSrc ? ` (${bonusSrc})` : ""}` : "";
         html.find(`.tm-preview-${idPrefix}`)
-            .text(`≈ ${rate} po/jour → ${Math.round(rate * days)} po sur ${days} jour${days > 1 ? "s" : ""}`);
+            .text(`≈ ${rate} po/jour → ${Math.round(rate * days)} po sur ${days} jour${days > 1 ? "s" : ""}${bonusPart}`);
     }
 
     function refreshAbility() {
@@ -403,6 +426,7 @@ function wireControls(html, actor, idPrefix) {
         `[name="tm-eday-${idPrefix}"]`, `[name="tm-emonth-${idPrefix}"]`, `[name="tm-eyear-${idPrefix}"]`
     ].join(", ");
     html.find(dateFields).on("change input", () => { refreshDayCount(); refreshD20(); refreshPreview(); });
+    html.find(`[name="tm-bonus-${idPrefix}"], [name="tm-bonus-src-${idPrefix}"]`).on("change input", refreshPreview);
 
     // État initial
     refreshAbility();
@@ -955,6 +979,8 @@ async function openDeclarationDialog(actor) {
                     const hasExpertise = $html.find('[name="tm-expertise-decl"]').prop("checked");
                     const hasTools     = $html.find('[name="tm-tools-decl"]').prop("checked");
                     const doRoll       = $html.find('[name="tm-roll-decl"]').prop("checked");
+                    const bonusRoll    = ($html.find('[name="tm-bonus-decl"]').val() ?? "").trim();
+                    const bonusSrc     = ($html.find('[name="tm-bonus-src-decl"]').val() ?? "").trim();
                     const sDay   = Math.max(1, parseInt($html.find('[name="tm-sday-decl"]').val())   || 1);
                     const sMonth = parseInt($html.find('[name="tm-smonth-decl"]').val())             || 0;
                     const sYear  = Math.max(1, parseInt($html.find('[name="tm-syear-decl"]').val())  || 1);
@@ -971,6 +997,7 @@ async function openDeclarationDialog(actor) {
                         type: "gain",
                         skillId, choiceLabel, abilityId,
                         hasMaitrise, hasExpertise, hasTools, doRoll,
+                        bonusRoll, bonusSrc,
                         startDay: sDay, startMonth: sMonth, startYear: sYear,
                         endDay: eDay, endMonth: eMonth, endYear: eYear,
                         days, dateRangeLabel
@@ -1340,14 +1367,32 @@ async function applyDowntimeGains($html, actors) {
                     // Reliable Talent (Roublard niv. 11) : si maîtrisé dans la compétence,
                     // le d20 ne peut pas être inférieur à 10.
                     const isProficient = hasMaitrise || hasExpertise || hasTools;
-                    const hasReliableTalent = isProficient && actor.items.some(i => {
-                        const n = i.name.toLowerCase();
-                        return n.includes("reliable talent") || n.includes("talent fiable");
-                    });
+                    const hasReliableTalent = game.settings.get(MOD, "tmReliableTalent")
+                        && isProficient && actor.items.some(i => {
+                            const n = i.name.toLowerCase();
+                            return n.includes("reliable talent") || n.includes("talent fiable");
+                        });
                     const effectiveD20 = (hasReliableTalent && d20Raw < 10) ? 10 : d20Raw;
                     rollResult = effectiveD20 + checkMod;
 
-                    const mult = rollResult <= 1 ? 0.8 : rollResult >= 20 ? 1.2 : rollResult >= 10 ? 1.1 : 1.0;
+                    // Bonus au jet optionnel (valeur fixe ou expression de dés).
+                    const bonusRoll = (item.bonusRoll ?? "").toString().trim();
+                    const bonusSrc  = (item.bonusSrc  ?? "").toString().trim();
+                    if (bonusRoll) {
+                        try {
+                            const bR = await new Roll(bonusRoll).evaluate();
+                            rollResult += bR.total ?? 0;
+                            await bR.toMessage({
+                                speaker: { alias: `Temps mort — ${actor.name}` },
+                                flavor: `Bonus au test${bonusSrc ? ` (${bonusSrc})` : ""}`
+                            });
+                        } catch (e) {
+                            const flat = parseInt(bonusRoll);
+                            if (!isNaN(flat)) rollResult += flat;
+                        }
+                    }
+
+                    const mult = getRollMultiplier(rollResult);
                     total = total * mult;
                     const abilityAbbr = game.i18n.localize(
                         CONFIG.DND5E.abilities[abilityId]?.abbreviation ?? abilityId
@@ -1369,10 +1414,7 @@ async function applyDowntimeGains($html, actors) {
 
                 if (owners.length > 0) {
                     const pctStr = rollResult === null ? ""
-                        : rollResult <= 1  ? " (test : ≤1 → −20 %)"
-                        : rollResult >= 20 ? ` (test : ${rollResult} → +20 %)`
-                        : rollResult >= 10 ? ` (test : ${rollResult} → +10 %)`
-                        :                   ` (test : ${rollResult} → ±0 %)`;
+                        : ` (test : ${rollResult} → ${multPctLabel(getRollMultiplier(rollResult))})`;
                     ChatMessage.create({
                         content: `<span style="color:#000;">🕰️ Temps mort appliqué pour <strong>${actor.name}</strong> : `
                                + `${activityName}${profStr}, ${dateLabel} — ${days} j (${dailyRate} po/j)${pctStr} → <strong>${gainStr}</strong></span>`,
@@ -1384,7 +1426,7 @@ async function applyDowntimeGains($html, actors) {
                 let line        = `<strong>${actor.name}</strong> — ${activityName}${profStr} — ${dateLabel} (${days} j, ${dailyRate} po/j)`;
                 let discordLine = `**${actor.name}** (${playerName}) — ${activityName}${profStr} — ${dateLabel} (${days} j, ${dailyRate} po/j)`;
                 if (rollResult !== null) {
-                    const pct = rollResult <= 1 ? "−20 %" : rollResult >= 20 ? "+20 %" : rollResult >= 10 ? "+10 %" : "±0 %";
+                    const pct = multPctLabel(getRollMultiplier(rollResult));
                     line        += ` → test : ${rollResult} (${pct})`;
                     discordLine += ` → test : ${rollResult} (${pct})`;
                 }

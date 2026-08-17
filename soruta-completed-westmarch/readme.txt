@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 3.2.1
+Version : 3.2.3
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -186,6 +186,18 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v3.2.3 | 2026-08-04
+   - Temps morts : reprise des apports du module autonome "downtime". Table des
+     multiplicateurs du test de competence desormais editable (reglages), au lieu
+     du code en dur ; interrupteur Reliable Talent (tmReliableTalent) ; champ
+     "Bonus au jet" (valeur fixe ou des + provenance) ajoute au test, pris en compte
+     dans l'apercu et le calcul. (const.js, settings.js, tm.js)
+
+v3.2.2 | 2026-08-04
+   - Diagnostic (carte des expeditions) : logs console [CE] au changement de
+     personnage assigne, pour tracer la synchro d'ownership et la permutation de
+     fog. (map.js)
 
 v3.2.1 | 2026-08-04
    - Controle des sources : nouveau reglage "Champ compare" (menu deroulant) pour

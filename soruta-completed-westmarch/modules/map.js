@@ -88,11 +88,13 @@ export function MapHooks() {
 
     Hooks.on("updateUser", async (user, changes, options, userId) => {
         if (!game.settings.get(MOD, "enableExpeditionMap")) return;
+        console.log(`[CE] updateUser | user=${user.name} | "character" in changes=${"character" in changes} | newChar=${changes.character ?? "—"} | jeSuisGM=${game.user.isGM}`);
         if (!("character" in changes)) return;
         if (!game.user.isGM) return;
 
         const sceneId = game.settings.get(MOD, "expeditionMapSceneId");
         const scene = sceneId ? game.scenes.get(sceneId) : null;
+        console.log(`[CE] updateUser → scene carte trouvée=${!!scene} | tokens groupe=${scene ? scene.tokens.filter(t => t.actor?.type === "group").length : 0}`);
 
         // Resynchronise les permissions Observer sur TOUS les Groupes (acteurs
         // synthétiques pour les tokens non-liés, acteurs de base pour les hors-scène).
@@ -330,6 +332,8 @@ async function syncGroupVisionOwnership(actor) {
             toGrant.push(userId);
         }
     }
+
+    console.log(`[CE] sync « ${baseActor.name} » | onScene=${onScene} | members=[${memberActorIds.join(",")}] | cibles=[${targetUserIds.join(",")}] | grant=[${toGrant.join(",")}] | revoke=[${toRevoke.join(",")}]`);
 
     if (toGrant.length === 0 && toRevoke.length === 0) return;
 

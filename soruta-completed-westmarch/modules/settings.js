@@ -6,7 +6,7 @@
 // © 2026 Soruta.
 // ============================================================
 
-import { MOD, TUTO_TOGGLES, TM_DEFAULT_SCROLL, TM_DEFAULT_MAGIC } from "./const.js";
+import { MOD, TUTO_TOGGLES, TM_DEFAULT_SCROLL, TM_DEFAULT_MAGIC, TM_DEFAULT_ROLL } from "./const.js";
 import { applyHotbarVisibility } from "./hotbar.js";
 import { applyPartyPause } from "./partypause.js";
 
@@ -303,6 +303,14 @@ export function registerSettings() {
         name: "Table des objets magiques (par rareté)",
         scope: "world", config: false, type: Object, default: TM_DEFAULT_MAGIC
     });
+    game.settings.register(MOD, "tmRollTable", {
+        name: "Multiplicateurs du test de compétence (par résultat)",
+        scope: "world", config: false, type: Object, default: TM_DEFAULT_ROLL
+    });
+    game.settings.register(MOD, "tmReliableTalent", B(
+        "Prise en charge du Reliable Talent",
+        "Un personnage possédant un objet nommé « Reliable Talent » ou « Talent Fiable » ne peut pas descendre en dessous de 10 sur le d20 de son test de compétence (s'il est maîtrisé).",
+        true));
     game.settings.register(MOD, "tmCraftPack", S(
         "Artisanat — Compendium des objets craftables",
         "Compendium d'OBJETS (ex. importé via Plutonium). À la fin d'un craft, le module y cherche l'objet par son nom et l'ajoute automatiquement à la fiche du joueur. Vide = ajout manuel comme avant."));
@@ -597,7 +605,7 @@ const CATEGORIES = [
       keys: ["enableXpBlock","enableGmNotes","hidePlayerStarTab","enableDiscordLog","discordLogWebhookUrl","downtimeWebhookUrl","tmWebhookUrl"] },
     { firstKey: "tmSkillBase", master: "tmEnabled", icon: "fa-hourglass-half",  title: "Temps morts",
       desc: "Règles configurables des temps morts : valeurs, formules (gain de compétence, artisanat) et tables (parchemins, objets magiques). Chaque serveur peut avoir ses propres règles.",
-      keys: ["tmEnabled","tmSkillBase","tmAddAbilityMod","tmBonusMaitrise","tmBonusExpertise","tmBonusTools","tmRollMinDays","tmSkillFormula","tmCraftNonMagicCostDiv","tmCraftNonMagicDaysPerGp","tmCraftNonMagicCostFormula","tmCraftNonMagicDaysFormula","tmSingleUseFactor","tmScrollTable","tmMagicTable"] },
+      keys: ["tmEnabled","tmSkillBase","tmAddAbilityMod","tmBonusMaitrise","tmBonusExpertise","tmBonusTools","tmRollMinDays","tmReliableTalent","tmSkillFormula","tmCraftNonMagicCostDiv","tmCraftNonMagicDaysPerGp","tmCraftNonMagicCostFormula","tmCraftNonMagicDaysFormula","tmSingleUseFactor","tmScrollTable","tmMagicTable","tmRollTable"] },
     { firstKey: "enableTokenAppearance", icon: "fa-toolbox",         title: "Toolkit",
       desc: "Apparences de tokens, transformations, tailles Large, TGCM, utilitaires GM, templates AoE, boutiques MEJ et réapprovisionnement.",
       keys: ["enableTokenAppearance","enableTokenPortraitButton","enableRageSize","enableLargeForm","enablePolymorph","enableTgcm","enableFolderMove","enableToolAbilityFix","enableHideHotbar","enableHideHotbarGM","enableConnStats","enablePlayerListCompact","enableTemplateSnap","enableMejShopFix","enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
@@ -644,6 +652,15 @@ const TM_TABLE_SCHEMAS = {
             { field: "days",  label: "Jours",       type: "number" },
             { field: "cost",  label: "Coût (PO)",   type: "number" },
             { field: "lvl",   label: "Niv. requis", type: "number" }
+        ]
+    },
+    tmRollTable: {
+        fallback: TM_DEFAULT_ROLL,
+        rowLabel: (i) => `Palier ${i + 1}`,
+        cols: [
+            { field: "max",   label: "Résultat ≤", type: "number" },
+            { field: "mult",  label: "Multipl.",   type: "number" },
+            { field: "label", label: "Libellé",    type: "text"   }
         ]
     }
 };

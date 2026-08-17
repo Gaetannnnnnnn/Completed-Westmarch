@@ -105,11 +105,17 @@ Hooks.on("init", () => {
     if (game.settings.get(MOD, "protectionEnabled")
         && (game.settings.get(MOD, "activationCode") ?? "").trim() !== ACTIVATION_CODE) {
         console.warn("[soruta-completed-westmarch] Module non activé : code d'activation manquant ou invalide. Fonctionnalités désactivées.");
-        Hooks.once("ready", () => {
-            if (game.user?.isGM) ui.notifications?.error(
-                "Soruta — Completed Westmarch : ce module est protégé. Code d'activation manquant ou invalide "
-                + "(Réglages du module → « À propos & protection »). © Soruta — Tous droits réservés."
+        Hooks.once("ready", async () => {
+            if (!game.user?.isGM) return;
+            ui.notifications?.error(
+                "Soruta — Completed Westmarch : ce module est protégé et n'est pas activé sur ce serveur. "
+                + "© Soruta — Tous droits réservés."
             );
+            const entered = await promptActivationCode();
+            if (entered == null) return;                       // annulé
+            await game.settings.set(MOD, "activationCode", entered.trim());
+            if (entered.trim() === ACTIVATION_CODE) foundry.utils.debouncedReload();
+            else ui.notifications?.error("Code d'activation invalide.");
         });
         return;   // on arrête là : aucune feature n'est enregistrée
     }
@@ -176,6 +182,8 @@ Hooks.on("init", () => {
 });
 
 Hooks.on("ready", () => {
+    if (!scwmActivated()) return;   // module non activé → rien
+
     // Midi Range Fix : enregistré en "ready" (pas "init") pour passer APRÈS
     // le listener canvasReady de midi-qol (qui s'inscrit lui-même en "ready").
     RangeFixHooks();
@@ -192,4 +200,29 @@ Hooks.on("ready", () => {
 });
 
 // Migration automatique des données des anciens modules (une seule fois, au ready GM).
+// (Non gardée par l'activation : ne fait que recopier d'anciennes données — sans
+// intérêt pour un téléchargement neuf qui n'en a aucune.)
 MigrationHooks();
+
+// Vérifie l'activation (protection désactivée OU code correct).
+function scwmActivated() {
+    return !game.settings.get(MOD, "protectionEnabled")
+        || (game.settings.get(MOD, "activationCode") ?? "").trim() === ACTIVATION_CODE;
+}
+
+// Fenêtre demandant le code d'activation (MJ). Retourne la saisie ou null.
+async function promptActivationCode() {
+    try {
+        return await foundry.applications.api.DialogV2.wait({
+            window: { title: "Soruta — Completed Westmarch", icon: "fas fa-shield-halved" },
+            content: `<p style="margin:0 0 8px;">Ce module est protégé. Saisissez le code d'activation pour l'activer sur ce serveur.</p>
+                      <input type="text" name="scwm-code" style="width:100%;box-sizing:border-box;" placeholder="Code d'activation" autofocus>`,
+            rejectClose: false,
+            buttons: [
+                { action: "ok", label: "Activer", icon: "fas fa-check", default: true,
+                  callback: (ev, btn) => btn.form.elements["scwm-code"]?.value ?? "" },
+                { action: "cancel", label: "Annuler", icon: "fas fa-xmark", callback: () => null }
+            ]
+        });
+    } catch (e) { return null; }
+}

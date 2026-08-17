@@ -121,7 +121,7 @@ export function registerSettings() {
         "Si activé, le module ne fonctionne que si le code d'activation ci-dessous est correct. "
         + "Protection légère et dissuasive (contournable par une personne technique), destinée à décourager "
         + "une réutilisation non autorisée après téléchargement. Nécessite un rechargement.",
-        false, { requiresReload: true }));
+        true, { requiresReload: true }));
     game.settings.register(MOD, "activationCode", S(
         "Code d'activation",
         "Code attendu par la protection. À renseigner sur ton serveur. Nécessite un rechargement."));

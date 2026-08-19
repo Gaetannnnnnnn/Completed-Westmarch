@@ -396,19 +396,29 @@ async function syncGroupVisionOwnership(actor) {
 
     if (toGrant.length === 0 && toRevoke.length === 0) return;
 
-    // IMPORTANT : update({ ownership: fullObject }) fait un MERGE dans Foundry v13 —
-    // les clés absentes du nouvel objet NE sont PAS supprimées de la base.
-    // On doit utiliser la syntaxe "ownership.-=userId" pour supprimer explicitement
-    // une entrée, et "ownership.userId" pour ajouter/modifier.
-    const updateData = { [`flags.${MOD}.autoOwners`]: targetUserIds };
-    for (const userId of toGrant) {
-        updateData[`ownership.${userId}`] = CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER;
+    // On RECONSTRUIT tout l'objet ownership plutôt que d'utiliser "ownership.-=userId"
+    // (mal interprété par certains acteurs / MidiActor → "ownership is not a mapping…",
+    // update rejeté, donc aucune révocation). On remplace l'objet EN ENTIER via
+    // l'option { recursive: false } pour que les entrées retirées disparaissent vraiment.
+    const L = CONST.DOCUMENT_OWNERSHIP_LEVELS;
+    const newOwnership = { default: currentOwnership.default ?? L.NONE };
+    for (const [uid, lvl] of Object.entries(currentOwnership)) {
+        if (uid === "default") continue;
+        const u = game.users.get(uid);
+        if (!u) continue;
+        if (u.isGM) { newOwnership[uid] = lvl; continue; }   // on ne touche jamais aux GM
+        if (targetUserIds.includes(uid)) newOwnership[uid] = L.OBSERVER;   // membre → Observateur
+        // sinon : non-membre → on l'omet (retiré → retombe sur "default")
     }
-    for (const userId of toRevoke) {
-        updateData[`ownership.-=${userId}`] = null;
-    }
+    for (const uid of targetUserIds) newOwnership[uid] = L.OBSERVER;   // membres pas encore présents
 
-    await baseActor.update(updateData);
+    if (!foundry.utils.objectsEqual(newOwnership, currentOwnership)) {
+        await baseActor.update({ ownership: newOwnership }, { recursive: false });
+    }
+    const prevAuto = baseActor.getFlag(MOD, "autoOwners") ?? [];
+    if (!foundry.utils.objectsEqual([...prevAuto].sort(), [...targetUserIds].sort())) {
+        await baseActor.setFlag(MOD, "autoOwners", targetUserIds);
+    }
 }
 
 // ============================================================

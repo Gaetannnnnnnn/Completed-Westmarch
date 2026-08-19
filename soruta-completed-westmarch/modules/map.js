@@ -27,7 +27,7 @@ export function MapHooks() {
     // Le client applique la fog fournie (ou l'efface) SUR SON PROPRE document, puis
     // recharge le canvas s'il regarde la scène. C'est ainsi qu'on permute la fog
     // d'un joueur : le GM ne pouvant pas écrire le FogExploration d'autrui.
-    CONFIG.queries["westmarch.fogSet"] = async ({ fog, clear } = {}) => {
+    CONFIG.queries["westmarch.fogSet"] = async ({ fog, clear, charId } = {}) => {
         try {
             const sceneId = game.settings.get(MOD, "expeditionMapSceneId");
             if (!sceneId) return { ok: false };
@@ -36,8 +36,11 @@ export function MapHooks() {
             if (clear) {
                 if (doc) await doc.delete();
             } else if (fog) {
-                if (doc) await doc.update({ explored: fog.explored, positions: fog.positions, timestamp: fog.timestamp });
-                else await foundry.documents.FogExploration.create({ scene: sceneId, user: game.user.id, explored: fog.explored, positions: fog.positions, timestamp: fog.timestamp });
+                // On ÉTIQUETTE le document avec le perso auquel il appartient
+                // (flag forChar), pour détecter et corriger un mélange de fogs.
+                const data = { explored: fog.explored, positions: fog.positions, timestamp: fog.timestamp, [`flags.${MOD}.forChar`]: charId ?? null };
+                if (doc) await doc.update(data);
+                else await foundry.documents.FogExploration.create({ scene: sceneId, user: game.user.id, ...data });
             }
             if (canvas?.scene?.id === sceneId) {
                 await canvas.fog?.load?.();
@@ -191,6 +194,10 @@ async function doPropagateGmFog() {
     const controlled = (canvas?.tokens?.controlled ?? []).filter(t => t.actor?.type === "group");
     if (!controlled.length) return;
 
+    // Force d'abord le commit de la fog du MJ pour capturer le TRACÉ COMPLET du
+    // déplacement (sinon on lit un document périmé qui rate le chemin parcouru).
+    if (canvas?.scene?.id === scene.id) { canvas.fog?.commit?.(); await canvas.fog?.save?.(); }
+
     // Instantané de la fog du MJ sur cette scène (reflète la vision des tokens
     // qu'il contrôle si la scène a bien « Vision par token » activée).
     const fogCollection = game.collections.get("FogExploration");
@@ -219,7 +226,7 @@ async function doPropagateGmFog() {
                 const isActiveChar = _charOf(user.getFlag(MOD, "activeFogKey")) === charId;
                 const isSelfExploring = user.active && user.viewedScene === scene.id;
                 if (isActiveChar && !isSelfExploring && user.active) {
-                    try { await user.query("westmarch.fogSet", { fog: snapshot }); }
+                    try { await user.query("westmarch.fogSet", { fog: snapshot, charId }); }
                     catch (e) { console.warn("[CE] fogSet (propagation) échoué:", e); }
                 }
             }
@@ -319,6 +326,9 @@ async function ensureVisionAnchorActor() {
                 name: VISION_ANCHOR_NAME,
                 type: "character",
                 folder: folderId ?? null,
+                // Observateur par défaut → TOUS les joueurs voient (donc ont une
+                // source de vision) via cette ancre, sans réglage manuel par joueur.
+                ownership: { default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER },
                 flags: { [MOD]: { visionAnchor: true } },
                 prototypeToken: {
                     name: VISION_ANCHOR_NAME,
@@ -336,12 +346,23 @@ async function ensureVisionAnchorActor() {
             return null;
         }
     }
+    if (!actor) return null;
+
+    // S'assure que l'ancre est bien Observateur par défaut (répare une ancienne
+    // ancre créée avant ce réglage).
+    const OBS = CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER;
+    if ((actor.ownership?.default ?? 0) !== OBS) {
+        try { await actor.update({ "ownership.default": OBS }); }
+        catch (e) { console.warn(`[${MOD}] MAJ ownership ancre échouée :`, e); }
+    }
     return actor;
 }
 
-// Réapplique la fog mémorisée du perso courant du joueur (fogByKey) dans son
-// document « live » à l'ouverture de la carte, pour voir ses zones explorées
-// même sans token de groupe (donc sans source de vision).
+// À l'ouverture de la carte, garantit que le document de fog « live » du joueur
+// appartient bien à SON perso courant. Le document est étiqueté (flag forChar) :
+//  - s'il correspond déjà au perso courant → on n'y touche pas (exploration en cours) ;
+//  - sinon (fog d'un AUTRE perso = mélange, ou vide) → on applique la fog mémorisée
+//    du perso courant (ou on efface s'il n'a rien exploré).
 async function restoreOwnFogOnCanvas() {
     if (game.user.isGM) return;
     if (!game.settings.get(MOD, "enableExpeditionMap")) return;
@@ -350,28 +371,44 @@ async function restoreOwnFogOnCanvas() {
     const charId = game.user.character?.id;
     if (!charId) return;
 
-    const savedByKey = game.user.getFlag(MOD, "fogByKey") ?? {};
-    let saved = savedByKey[charId] ?? null;
-    if (!saved) {
-        const legacy = Object.entries(savedByKey)
-            .filter(([k]) => k.startsWith(`${charId}:`))
-            .map(([, v]) => v)
-            .sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0));
-        if (legacy.length) saved = legacy[0];
-    }
-    if (!saved) return;   // rien de mémorisé pour ce perso → on ne touche à rien
-
     try {
         const coll = game.collections.get("FogExploration");
         const doc = coll.find(f => f.scene === sceneId && f.user === game.user.id);
-        if (doc) {
-            if (!doc.explored) await doc.update({ explored: saved.explored, positions: saved.positions, timestamp: saved.timestamp });
+
+        // Le document affiché appartient-il déjà au perso courant ?
+        const docChar = doc?.getFlag?.(MOD, "forChar") ?? null;
+        if (doc && docChar === charId) return;   // déjà la bonne fog → on respecte l'exploration en cours
+
+        // Fog mémorisée du perso courant (repli sur d'anciennes clés "char:group").
+        const savedByKey = game.user.getFlag(MOD, "fogByKey") ?? {};
+        let saved = savedByKey[charId] ?? null;
+        if (!saved) {
+            const legacy = Object.entries(savedByKey)
+                .filter(([k]) => k.startsWith(`${charId}:`))
+                .map(([, v]) => v)
+                .sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0));
+            if (legacy.length) saved = legacy[0];
+        }
+
+        if (saved) {
+            // On a une fog mémorisée pour le perso courant → on l'applique.
+            const data = { explored: saved.explored, positions: saved.positions, timestamp: saved.timestamp, [`flags.${MOD}.forChar`]: charId };
+            if (doc) await doc.update(data);
+            else await foundry.documents.FogExploration.create({ scene: sceneId, user: game.user.id, ...data });
+        } else if (doc && docChar == null && doc.explored) {
+            // Document non étiqueté avec du contenu → probablement l'exploration
+            // propre du perso courant (jamais passée par un swap) : on l'adopte.
+            await doc.update({ [`flags.${MOD}.forChar`]: charId });
+            return;   // contenu inchangé, pas besoin de recharger
+        } else if (doc && docChar && docChar !== charId) {
+            // Fog étiquetée pour un AUTRE perso, sans mémoire pour le perso courant → efface (noir).
+            await doc.delete();
         } else {
-            await foundry.documents.FogExploration.create({ scene: sceneId, user: game.user.id, explored: saved.explored, positions: saved.positions, timestamp: saved.timestamp });
+            return;   // rien à faire
         }
         await canvas.fog?.load?.();
         canvas.perception.update({ refreshVision: true, refreshLighting: true }, true);
-        console.log(`[CE] restoreOwnFog | perso=${charId} restauré à l'ouverture de la carte`);
+        console.log(`[CE] restoreOwnFog | perso=${charId} | docChar=${docChar} → appliqué`);
     } catch (e) { console.warn("[CE] restoreOwnFog:", e); }
 }
 
@@ -666,7 +703,7 @@ async function swapFogForUserKey(scene, user, oldKey, newKey, currentSnapshot = 
     // son FogExploration). Hors-ligne : impossible maintenant (limite Foundry) —
     // la fog reste mémorisée sous fogByKey et sera appliquée à sa reconnexion.
     if (user.active) {
-        try { await user.query("westmarch.fogSet", saved ? { fog: saved } : { clear: true }); }
+        try { await user.query("westmarch.fogSet", saved ? { fog: saved, charId: newChar } : { clear: true, charId: newChar }); }
         catch (e) { console.warn("[CE] fogSet (swap) échoué:", e); }
     }
 }

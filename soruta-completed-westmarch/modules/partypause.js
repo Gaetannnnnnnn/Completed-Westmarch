@@ -54,6 +54,20 @@ function partyPauseEnabled() {
     return game.settings.get(MOD, "enableParty") && game.settings.get(MOD, "enablePartyPause");
 }
 
+// Annule une pause GLOBALE résiduelle (seul le GM « primaire » agit). Le pause de
+// party remplace le pause global : ce dernier ne doit jamais rester au démarrage.
+function clearResidualGlobalPause() {
+    if (!partyPauseEnabled()) return;
+    if (!game.user.isGM || !game.paused) return;
+    const activeGM = game.users.activeGM;
+    if (activeGM && activeGM.id !== game.user.id) return;   // laisse le GM primaire s'en charger
+    try {
+        const unpause = _origTogglePause ?? game.togglePause?._scwmOrig;
+        unpause?.(false, { broadcast: true });
+        console.log("westmarch | partypause : pause globale résiduelle annulée");
+    } catch (e) { console.warn("westmarch | partypause : nettoyage pause globale", e); }
+}
+
 // Id de party de l'utilisateur courant (repli : son propre id s'il est GM
 // sans party assignée — cohérent avec combat.js).
 function myPartyId() {
@@ -98,12 +112,11 @@ export function PartyPauseHooks() {
 
         // Nettoyage d'une pause GLOBALE résiduelle (démarrage sur un monde laissé
         // en pause) : le pause de party la remplace, elle ne doit pas subsister.
-        if (game.user.isGM && game.paused) {
-            const activeGM = game.users.activeGM;
-            if (!activeGM || activeGM.id === game.user.id) {
-                try { _origTogglePause?.(false, { broadcast: true }); } catch (e) { console.warn("westmarch | partypause : nettoyage pause globale", e); }
-            }
-        }
+        // Foundry peut restaurer l'état "en pause" APRÈS "ready" → on nettoie tout
+        // de suite ET on re-vérifie peu après pour rattraper une pause tardive.
+        clearResidualGlobalPause();
+        setTimeout(clearResidualGlobalPause, 1500);
+        setTimeout(clearResidualGlobalPause, 4000);
 
         applyPartyPause();
     });

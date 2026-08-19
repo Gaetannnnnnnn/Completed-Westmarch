@@ -46,19 +46,31 @@ export function MapHooks() {
         _commitObserversFog(tokenDoc.actor);
     });
 
-    Hooks.on("updateActor", (actor, changes, options, userId) => {
+    Hooks.on("updateActor", async (actor, changes, options, userId) => {
         if (!game.settings.get(MOD, "enableExpeditionMap")) return;
         if (actor.type !== "group") return;
         if (!changes.system?.members) return;
+        console.log(`[CE] updateActor(group) « ${actor.name} » | isToken=${actor.isToken} | members changés`);
 
-        syncGroupVisionOwnership(actor);
-        if (isActorOnExpeditionScene(actor)) {
-            enforceGroupExclusivity(actor);
-            // Un changement de Members peut faire basculer le "groupe actuel"
-            // de n'importe quel personnage actuellement assigné à un joueur
-            // (ajouté/retiré de ce Groupe) → on recalcule pour tout le monde.
-            resyncAllCharacterFog();
-        }
+        if (isActorOnExpeditionScene(actor)) enforceGroupExclusivity(actor);
+        // Un membre ajouté/retiré peut accorder OU RETIRER Observer et changer le
+        // « groupe actuel » d'un perso → on resynchronise TOUS les groupes + la fog.
+        await resyncAllGroupOwnership();
+        resyncAllCharacterFog();
+    });
+
+    // Token de GROUPE non lié : l'édition des Members passe par le delta du token
+    // (pas par l'acteur de base) → écoute aussi updateToken pour ne pas rater un
+    // retrait de membre (sinon l'Observer n'est jamais révoqué).
+    Hooks.on("updateToken", async (tokenDoc, changes) => {
+        if (!game.user.isGM) return;
+        if (!game.settings.get(MOD, "enableExpeditionMap")) return;
+        if (tokenDoc.actor?.type !== "group") return;
+        if (!("delta" in changes) && !("actorData" in changes)) return;   // changement du delta (membres…)
+        console.log(`[CE] updateToken(group) « ${tokenDoc.name} » | delta modifié → resync permissions`);
+        if (isActorOnExpeditionScene(tokenDoc.actor)) enforceGroupExclusivity(tokenDoc.actor);
+        await resyncAllGroupOwnership();
+        resyncAllCharacterFog();
     });
 
     Hooks.once("ready", async () => {
@@ -158,26 +170,31 @@ async function doPropagateGmFog() {
     for (const tok of controlled) {
         const memberIds = Array.from(tok.actor?.system?.members?.ids ?? []);
         for (const charId of memberIds) {
-            const user = game.users.find(u => !u.isGM && u.character?.id === charId);
-            if (!user) continue;
-            // Ne pas écraser la fog d'un joueur qui explore lui-même la scène.
-            if (user.active && user.viewedScene === scene.id) continue;
+            const charActor = game.actors.get(charId);
+            if (!charActor) continue;
+            // On vise le(s) PROPRIÉTAIRE(S) du personnage membre, pas seulement le
+            // joueur qui l'a assigné : ainsi la fog est mémorisée sous ce perso même
+            // s'il n'est pas le perso actif du joueur. Il la retrouve en le rejouant.
+            const owners = game.users.filter(u => !u.isGM && charActor.testUserPermission(u, "OWNER"));
+            for (const user of owners) {
+                const savedByKey = foundry.utils.deepClone(user.getFlag(MOD, "fogByKey") ?? {});
+                savedByKey[charId] = { ...snapshot };
+                await user.setFlag(MOD, "fogByKey", savedByKey);
 
-            // Fog personnelle au personnage → clé = personnage seul.
-            const key = charId;
-            const savedByKey = foundry.utils.deepClone(user.getFlag(MOD, "fogByKey") ?? {});
-            savedByKey[key] = { ...snapshot };
-            await user.setFlag(MOD, "fogByKey", savedByKey);
-            // Si ce personnage est actuellement affiché, met aussi à jour sa fog
-            // « live » pour qu'il la retrouve en ouvrant la scène.
-            if (_charOf(user.getFlag(MOD, "activeFogKey")) === charId) {
-                const userFog = fogCollection.find(f => f.scene === scene.id && f.user === user.id);
-                if (userFog) await userFog.update(snapshot);
-                else await foundry.documents.FogExploration.create({ scene: scene.id, user: user.id, ...snapshot });
+                // Met à jour la fog « live » seulement si ce perso est le perso
+                // actif du joueur ET qu'il n'est pas en train d'explorer lui-même
+                // (pour ne pas écraser sa propre exploration en cours).
+                const isActiveChar = _charOf(user.getFlag(MOD, "activeFogKey")) === charId;
+                const isSelfExploring = user.active && user.viewedScene === scene.id;
+                if (isActiveChar && !isSelfExploring) {
+                    const userFog = fogCollection.find(f => f.scene === scene.id && f.user === user.id);
+                    if (userFog) await userFog.update(snapshot);
+                    else await foundry.documents.FogExploration.create({ scene: scene.id, user: user.id, ...snapshot });
+                }
             }
         }
     }
-    console.log(`[CE] Fog du MJ propagée aux membres des groupes sélectionnés.`);
+    console.log(`[CE] Fog du MJ propagée aux propriétaires des membres des groupes sélectionnés.`);
 }
 
 // ============================================================
@@ -280,6 +297,23 @@ function isActorOnExpeditionScene(actor) {
     return scene.tokens.some(t => t.actorId === actor.id);
 }
 
+// Resynchronise les permissions Observer de TOUS les groupes : ceux présents
+// sur la scène d'expédition (acteurs synthétiques des tokens non liés) et les
+// groupes hors-scène (nettoyage des permissions résiduelles).
+async function resyncAllGroupOwnership() {
+    if (!game.user.isGM) return;
+    const sceneId = game.settings.get(MOD, "expeditionMapSceneId");
+    const scene = sceneId ? game.scenes.get(sceneId) : null;
+    if (scene) {
+        for (const t of scene.tokens.filter(t => t.actor?.type === "group")) {
+            await syncGroupVisionOwnership(t.actor);
+        }
+    }
+    for (const a of game.actors.filter(a => a.type === "group" && !scene?.tokens.some(t => t.actorId === a.id))) {
+        await syncGroupVisionOwnership(a);
+    }
+}
+
 async function syncGroupVisionOwnership(actor) {
     // actor peut être un acteur synthétique (token non-lié) ou un acteur de base.
     // Dans tous les cas, actor.id est l'id de l'acteur de base, et actor.ownership
@@ -302,11 +336,13 @@ async function syncGroupVisionOwnership(actor) {
     // L'ownership est toujours sur l'acteur de base — on récupère le bon objet.
     const baseActor = game.actors.get(actor.id) ?? actor;
 
-    // Si aucun joueur n'est actuellement Member ET que le module n'en a jamais
-    // géré sur cet acteur, on ne touche à rien : groupes de ville, tokens
-    // décoratifs, etc. restent intacts (default Observer préservé).
+    // Hors-scène : si aucun joueur n'est Member ET que le module n'a jamais géré
+    // cet acteur, on ne touche à rien (groupes de ville / décoratifs préservés).
+    // SUR la scène d'expédition, on applique TOUJOURS la règle « vision = membre »
+    // pour qu'un membre retiré perde bien son Observer, même s'il avait été accordé
+    // manuellement ou avant le suivi du module.
     const previouslyAutoOwned = baseActor.getFlag(MOD, "autoOwners") ?? [];
-    if (targetUserIds.length === 0 && previouslyAutoOwned.length === 0) return;
+    if (!onScene && targetUserIds.length === 0 && previouslyAutoOwned.length === 0) return;
 
     const currentOwnership = baseActor.ownership;
     const toGrant = [];

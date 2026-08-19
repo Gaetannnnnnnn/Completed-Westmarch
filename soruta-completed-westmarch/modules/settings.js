@@ -466,6 +466,9 @@ export function registerSettings() {
     game.settings.register(MOD, "expeditionMapTemplateFolder", S(
         "Carte des expéditions — Dossier du token modèle",
         "Dossier d'acteurs où créer l'acteur Groupe modèle « Token à copier et rennomer ». Laissez vide pour la racine."));
+    game.settings.register(MOD, "expeditionAnchorFolder", S(
+        "Carte des expéditions — Dossier du token ancre de vision",
+        "Dossier d'acteurs où créer l'acteur « Ancre de vision » (token invisible, portée de vue 0). À copier et attribuer à un joueur pour qu'il voie ses zones explorées sans token de groupe. Laissez vide pour la racine."));
 
     // ============================================================
     // MISE EN SCÈNE — CUES AUDIO (clés sceneCues*)
@@ -638,7 +641,7 @@ const CATEGORIES = [
       keys: ["carnetEnabled","enablePcStatus"] },
     { firstKey: "enableExpeditionMap", master: "enableExpeditionMap",   icon: "fa-map",             title: "Carte des expéditions",
       desc: "Brouillard de guerre par party et par personnage sur une scène dédiée.",
-      keys: ["enableExpeditionMap","expeditionMapSceneId","expeditionMapTemplateFolder"] },
+      keys: ["enableExpeditionMap","expeditionMapSceneId","expeditionMapTemplateFolder","expeditionAnchorFolder"] },
     { firstKey: "enableSceneCues", master: "enableSceneCues",       icon: "fa-clapperboard",    title: "Mise en scène — Cues audio",
       desc: "Cues audio attachés aux tokens : déclenchement auto quand le token perd son invisibilité GM, ou manuel. Réglage de la seconde de départ, du volume et du fondu.",
       keys: ["enableSceneCues","sceneCuesDefaultVolume"] },

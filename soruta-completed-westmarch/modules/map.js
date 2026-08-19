@@ -102,6 +102,8 @@ export function MapHooks() {
 
         // Acteur/token Groupe « modèle » (bons paramètres, à copier/renommer).
         await ensureTemplateGroupActor();
+        // Acteur « Ancre de vision » (token invisible, à copier et attribuer).
+        await ensureVisionAnchorActor();
 
         const sceneId = game.settings.get(MOD, "expeditionMapSceneId");
         const scene = sceneId ? game.scenes.get(sceneId) : null;
@@ -154,6 +156,12 @@ export function MapHooks() {
     Hooks.on("createFogExploration", refreshFogIfMine);
     Hooks.on("updateFogExploration", refreshFogIfMine);
     Hooks.on("deleteFogExploration", refreshFogIfMine);
+
+    // ---- Restauration côté JOUEUR à l'ouverture de la carte d'expédition ----
+    // Sans token de groupe, le joueur n'a pas de source de vision. Pour qu'il voie
+    // quand même les zones DÉJÀ EXPLORÉES par son perso courant, on réapplique sa
+    // fog mémorisée (fogByKey) dans son document « live » à l'ouverture de la scène.
+    Hooks.on("canvasReady", () => restoreOwnFogOnCanvas());
 
     // ---- Exploration par le MJ « pour » des joueurs hors-scène ----
     // Quand le MJ déplace un token de GROUPE sélectionné sur la scène de la
@@ -229,9 +237,9 @@ async function doPropagateGmFog() {
 // ============================================================
 const TEMPLATE_GROUP_NAME = "Token à copier et rennomer";
 
-// Résout le dossier d'acteurs configuré (id du sélecteur ou nom en saisie libre).
-async function resolveTemplateFolderId() {
-    const val = game.settings.get(MOD, "expeditionMapTemplateFolder");
+// Résout un dossier d'acteurs configuré (id du sélecteur ou nom en saisie libre).
+async function resolveTemplateFolderId(settingKey = "expeditionMapTemplateFolder") {
+    const val = game.settings.get(MOD, settingKey);
     if (!val) return null;
     const looksLikeId = (s) => /^[A-Za-z0-9]{16}$/.test(s ?? "");
     const byId = game.folders?.get(val);
@@ -291,6 +299,80 @@ async function ensureTemplateGroupActor() {
         }
     }
     return actor;
+}
+
+// Acteur « Ancre de vision » : token INVISIBLE (alpha 0) avec vision activée à
+// portée 0. Il ne révèle rien de neuf mais fournit la source de vision requise
+// pour que le brouillard EXPLORÉ s'affiche à un joueur sans token de groupe.
+// À copier et attribuer à un joueur (propriétaire) sur la scène.
+const VISION_ANCHOR_NAME = "Ancre de vision";
+
+async function ensureVisionAnchorActor() {
+    if (!game.user.isGM) return null;
+
+    let actor = game.actors.find(a => a.getFlag(MOD, "visionAnchor") === true);
+    if (!actor) {
+        if (game.actors.find(a => a.name === VISION_ANCHOR_NAME)) return null;   // déjà créé à la main
+        try {
+            const folderId = await resolveTemplateFolderId("expeditionAnchorFolder");
+            actor = await Actor.create({
+                name: VISION_ANCHOR_NAME,
+                type: "character",
+                folder: folderId ?? null,
+                flags: { [MOD]: { visionAnchor: true } },
+                prototypeToken: {
+                    name: VISION_ANCHOR_NAME,
+                    actorLink: false,
+                    alpha: 0,                                          // invisible mais reste une source de vision
+                    sight: { enabled: true, range: 0 },                // contexte de vision sans rien révéler de neuf
+                    disposition: CONST.TOKEN_DISPOSITIONS.NEUTRAL,
+                    displayName: CONST.TOKEN_DISPLAY_MODES.NONE,
+                    displayBars: CONST.TOKEN_DISPLAY_MODES.NONE
+                }
+            });
+            console.log(`[${MOD}] Acteur « ${VISION_ANCHOR_NAME} » créé.`);
+        } catch (e) {
+            console.warn(`[${MOD}] Création de l'acteur Ancre de vision échouée :`, e);
+            return null;
+        }
+    }
+    return actor;
+}
+
+// Réapplique la fog mémorisée du perso courant du joueur (fogByKey) dans son
+// document « live » à l'ouverture de la carte, pour voir ses zones explorées
+// même sans token de groupe (donc sans source de vision).
+async function restoreOwnFogOnCanvas() {
+    if (game.user.isGM) return;
+    if (!game.settings.get(MOD, "enableExpeditionMap")) return;
+    const sceneId = game.settings.get(MOD, "expeditionMapSceneId");
+    if (!sceneId || canvas?.scene?.id !== sceneId) return;
+    const charId = game.user.character?.id;
+    if (!charId) return;
+
+    const savedByKey = game.user.getFlag(MOD, "fogByKey") ?? {};
+    let saved = savedByKey[charId] ?? null;
+    if (!saved) {
+        const legacy = Object.entries(savedByKey)
+            .filter(([k]) => k.startsWith(`${charId}:`))
+            .map(([, v]) => v)
+            .sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0));
+        if (legacy.length) saved = legacy[0];
+    }
+    if (!saved) return;   // rien de mémorisé pour ce perso → on ne touche à rien
+
+    try {
+        const coll = game.collections.get("FogExploration");
+        const doc = coll.find(f => f.scene === sceneId && f.user === game.user.id);
+        if (doc) {
+            if (!doc.explored) await doc.update({ explored: saved.explored, positions: saved.positions, timestamp: saved.timestamp });
+        } else {
+            await foundry.documents.FogExploration.create({ scene: sceneId, user: game.user.id, explored: saved.explored, positions: saved.positions, timestamp: saved.timestamp });
+        }
+        await canvas.fog?.load?.();
+        canvas.perception.update({ refreshVision: true, refreshLighting: true }, true);
+        console.log(`[CE] restoreOwnFog | perso=${charId} restauré à l'ouverture de la carte`);
+    } catch (e) { console.warn("[CE] restoreOwnFog:", e); }
 }
 
 function refreshFogIfMine(fogDoc) {

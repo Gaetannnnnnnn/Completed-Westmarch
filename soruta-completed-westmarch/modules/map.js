@@ -20,14 +20,14 @@ export function MapHooks() {
             if (canvas?.scene?.id === sceneId) { canvas.fog?.commit?.(); await canvas.fog?.save?.(); }
             const fog = game.collections.get("FogExploration").find(f => f.scene === sceneId && f.user === game.user.id);
             return fog
-                ? { ok: true, explored: fog.explored, positions: fog.positions, timestamp: fog.timestamp }
-                : { ok: true };
+                ? { ok: true, explored: fog.explored, positions: fog.positions, timestamp: fog.timestamp, forChar: fog.getFlag(MOD, "forChar") ?? null }
+                : { ok: true, forChar: null };
         } catch (e) { console.warn("[CE] fogCommit:", e); return { ok: false }; }
     };
     // Le client applique la fog fournie (ou l'efface) SUR SON PROPRE document, puis
     // recharge le canvas s'il regarde la scène. C'est ainsi qu'on permute la fog
     // d'un joueur : le GM ne pouvant pas écrire le FogExploration d'autrui.
-    CONFIG.queries["westmarch.fogSet"] = async ({ fog, clear, charId } = {}) => {
+    CONFIG.queries["westmarch.fogSet"] = async ({ fog, clear, charId, redraw } = {}) => {
         try {
             const sceneId = game.settings.get(MOD, "expeditionMapSceneId");
             if (!sceneId) return { ok: false };
@@ -43,8 +43,13 @@ export function MapHooks() {
                 else await foundry.documents.FogExploration.create({ scene: sceneId, user: game.user.id, ...data });
             }
             if (canvas?.scene?.id === sceneId) {
-                await canvas.fog?.load?.();
-                canvas.perception.update({ refreshLighting: true, refreshVision: true }, true);
+                // redraw = changement de perso : on force un redraw COMPLET du canvas,
+                // sinon la fog déjà affichée à l'écran ne se vide pas (mélange visuel).
+                if (redraw) await canvas.draw();
+                else {
+                    await canvas.fog?.load?.();
+                    canvas.perception.update({ refreshLighting: true, refreshVision: true }, true);
+                }
             }
             return { ok: true };
         } catch (e) { console.warn("[CE] fogSet:", e); return { ok: false }; }
@@ -219,11 +224,10 @@ async function doPropagateGmFog() {
                 savedByKey[charId] = { ...snapshot };
                 await user.setFlag(MOD, "fogByKey", savedByKey);
 
-                // Applique la fog « live » seulement si ce perso est le perso actif
-                // du joueur ET qu'il n'explore pas lui-même (pour ne pas écraser sa
-                // propre exploration). Via le client du joueur (le GM ne peut pas
-                // écrire son FogExploration).
-                const isActiveChar = _charOf(user.getFlag(MOD, "activeFogKey")) === charId;
+                // Applique la fog « live » seulement si le joueur JOUE actuellement
+                // ce perso (perso assigné) et qu'il ne l'explore pas lui-même en
+                // direct. Sinon on se contente de mémoriser sous fogByKey.
+                const isActiveChar = user.character?.id === charId;
                 const isSelfExploring = user.active && user.viewedScene === scene.id;
                 if (isActiveChar && !isSelfExploring && user.active) {
                     try { await user.query("westmarch.fogSet", { fog: snapshot, charId }); }
@@ -406,9 +410,9 @@ async function restoreOwnFogOnCanvas() {
         } else {
             return;   // rien à faire
         }
-        await canvas.fog?.load?.();
-        canvas.perception.update({ refreshVision: true, refreshLighting: true }, true);
-        console.log(`[CE] restoreOwnFog | perso=${charId} | docChar=${docChar} → appliqué`);
+        // Redraw complet pour vider la fog de l'autre perso restée affichée.
+        await canvas.draw();
+        console.log(`[CE] restoreOwnFog | perso=${charId} | docChar=${docChar} → appliqué (redraw)`);
     } catch (e) { console.warn("[CE] restoreOwnFog:", e); }
 }
 
@@ -634,44 +638,26 @@ async function recomputeFogForCharacter(characterId) {
 
     const user = game.users.find(u => !u.isGM && u.character?.id === characterId);
     if (!user) { console.log(`[CE] recomputeFog: aucun joueur non-GM avec le perso ${characterId}`); return; }
+    if (!user.active) return;   // hors ligne → on ne peut pas piloter sa fog (limite Foundry)
 
-    // La fog est personnelle au personnage : la clé est le personnage seul.
-    const newKey = characterId;
+    const newChar = characterId;
 
-    const rawFlag = user.getFlag(MOD, "activeFogKey");
-    console.log(`[CE] recomputeFog | user=${user.name} | rawFlag=${JSON.stringify(rawFlag)} | newKey=${newKey}`);
+    // SOURCE DE VÉRITÉ = l'étiquette du document de fog du joueur (forChar), pas un
+    // flag séparé. On demande à son client sa fog actuelle + à quel perso elle
+    // appartient réellement, ce qui évite toute désynchronisation.
+    let cur = null, oldChar = null;
+    try {
+        const res = await user.query("westmarch.fogCommit", {});
+        if (res?.ok) {
+            oldChar = res.forChar ?? null;
+            if (res.explored !== undefined) cur = { explored: res.explored, positions: res.positions, timestamp: res.timestamp };
+        }
+    } catch (e) { console.warn("[CE] fogCommit (swap) échoué:", e); return; }
 
-    if (rawFlag === undefined) {
-        await user.setFlag(MOD, "activeFogKey", newKey);
-        return;
-    }
+    console.log(`[CE] recomputeFog | user=${user.name} | docForChar=${oldChar} → newChar=${newChar}`);
+    if (oldChar === newChar) return;   // la fog affichée appartient déjà au bon perso
 
-    const oldKey = rawFlag ?? null;
-    // Même personnage (y compris ancienne clé "char:group") → aucune permutation,
-    // on conserve la fog en place et on normalise juste la clé.
-    if (_charOf(oldKey) === characterId) {
-        if (oldKey !== newKey) await user.setFlag(MOD, "activeFogKey", newKey);
-        return;
-    }
-
-    console.log(`[CE] → SWAP fog: ${oldKey} → ${newKey}`);
-
-    // Le GM ne pouvant pas lire/écrire le FogExploration du joueur, on pilote son
-    // client : (1) il commit et renvoie sa fog actuelle (ancien perso), (2) on la
-    // range sous fogByKey et on lui fait appliquer celle du nouveau perso (via
-    // fogSet dans swapFogForUserKey). Fonctionne même s'il est sur une autre scène.
-    let currentSnapshot = null;
-    if (user.active) {
-        try {
-            const res = await user.query("westmarch.fogCommit", {});
-            if (res?.ok && res.explored !== undefined) {
-                currentSnapshot = { explored: res.explored, positions: res.positions, timestamp: res.timestamp };
-            }
-        } catch (e) { console.warn("[CE] fogCommit (swap) échoué:", e); }
-    }
-
-    await swapFogForUserKey(scene, user, oldKey, newKey, currentSnapshot);
-    await user.setFlag(MOD, "activeFogKey", newKey);
+    await swapFogForUserKey(scene, user, oldChar, newChar, cur);
 }
 
 async function swapFogForUserKey(scene, user, oldKey, newKey, currentSnapshot = null) {
@@ -703,7 +689,7 @@ async function swapFogForUserKey(scene, user, oldKey, newKey, currentSnapshot = 
     // son FogExploration). Hors-ligne : impossible maintenant (limite Foundry) —
     // la fog reste mémorisée sous fogByKey et sera appliquée à sa reconnexion.
     if (user.active) {
-        try { await user.query("westmarch.fogSet", saved ? { fog: saved, charId: newChar } : { clear: true, charId: newChar }); }
+        try { await user.query("westmarch.fogSet", saved ? { fog: saved, charId: newChar, redraw: true } : { clear: true, charId: newChar, redraw: true }); }
         catch (e) { console.warn("[CE] fogSet (swap) échoué:", e); }
     }
 }

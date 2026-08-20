@@ -63,6 +63,34 @@ export function MapHooks() {
     Hooks.on("updateUser", (user, changes) => {
         if (user.id === game.user.id && "character" in changes) drawFog();
     });
+
+    // ---- Duplication d'un token/acteur de groupe modèle → fenêtre de renommage ----
+    // Le modèle porte le flag templateGroupToken. Sa COPIE le porte aussi : on la
+    // détecte (il existe alors 2+ acteurs avec ce flag), on propose un renommage,
+    // et on retire le flag de la copie (elle devient un vrai groupe d'expédition).
+    Hooks.on("createActor", async (actor, options, userId) => {
+        if (!game.user.isGM || userId !== game.user.id) return;
+        if (actor.type !== "group") return;
+        if (actor.getFlag(MOD, "templateGroupToken") !== true) return;
+        const templates = game.actors.filter(a => a.type === "group" && a.getFlag(MOD, "templateGroupToken") === true);
+        if (templates.length <= 1) return;   // c'est le modèle unique (créé par le module)
+        await promptRenameGroup(actor);       // c'est une copie du modèle
+    });
+
+    // ---- Bouton MJ : réinitialiser le brouillard ----
+    Hooks.on("getSceneControlButtons", (controls) => {
+        if (!game.user.isGM || !enabled()) return;
+        const tokens = controls.tokens ?? controls.token;
+        if (!tokens?.tools) return;
+        tokens.tools.scwmFogReset = {
+            name: "scwmFogReset",
+            title: "Carte d'expédition — Réinitialiser le brouillard",
+            icon: "fas fa-eraser",
+            button: true,
+            visible: true,
+            onChange: () => openFogResetDialog()
+        };
+    });
 }
 
 // ============================================================
@@ -264,13 +292,134 @@ async function disableNativeSceneFog() {
 }
 
 // ============================================================
-// API MJ (console) : réinitialiser les zones explorées
+// Réinitialisation du brouillard
 // ============================================================
+const _esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+async function resetOneCharFog(actorId) {
+    if (!game.user.isGM) return;
+    const actor = game.actors.get(actorId);
+    if (actor?.getFlag(MOD, FLAG_EXPLORED)) await actor.unsetFlag(MOD, FLAG_EXPLORED);
+    drawFog();
+}
+
+// API console : game.modules.get("soruta-completed-westmarch").api.resetExpeditionFog()
 export async function resetExpeditionFog() {
     if (!game.user.isGM) return;
     for (const a of game.actors.filter(a => a.type === "character")) {
         if (a.getFlag(MOD, FLAG_EXPLORED)) await a.unsetFlag(MOD, FLAG_EXPLORED);
     }
     drawFog();
-    ui.notifications?.info("Brouillard d'expédition réinitialisé (toutes les zones explorées effacées).");
+}
+
+// Renomme un groupe fraîchement dupliqué : applique le nom à la fiche (acteur)
+// ET au prototype token, puis retire le flag « modèle » de la copie.
+async function promptRenameGroup(actor) {
+    const DialogV2 = foundry.applications.api.DialogV2;
+    const suggested = actor.name?.replace(/\s*\(Copy\)\s*$/i, "").replace(/\s*\(copie\)\s*$/i, "") ?? "";
+
+    const name = await DialogV2.wait({
+        window: { title: "Nommer le groupe d'expédition", icon: "fas fa-flag" },
+        position: { width: 420 },
+        content: `<p style="margin:0 0 6px;">Nom du nouveau groupe (appliqué à la fiche et au prototype token) :</p>
+                  <input type="text" name="scwm-gname" style="width:100%;" value="${_esc(suggested)}" placeholder="Nom du groupe" autofocus>`,
+        rejectClose: false,
+        buttons: [
+            { action: "ok", label: "Renommer", icon: "fas fa-check", default: true,
+              callback: (ev, btn) => (btn.form.elements["scwm-gname"]?.value ?? "").trim() },
+            { action: "skip", label: "Garder tel quel", icon: "fas fa-xmark", callback: () => null }
+        ]
+    }).catch(() => null);
+
+    const update = { [`flags.${MOD}.-=templateGroupToken`]: null };   // la copie n'est plus un « modèle »
+    if (name) { update.name = name; update["prototypeToken.name"] = name; }
+    try { await actor.update(update); }
+    catch (e) { console.warn(`[${MOD}] Renommage du groupe échoué :`, e); }
+}
+
+async function openFogResetDialog() {
+    if (!game.user.isGM) return;
+    const DialogV2 = foundry.applications.api.DialogV2;
+
+    const chars = game.actors.filter(a => a.type === "character" && a.hasPlayerOwner)
+        .sort((a, b) => a.name.localeCompare(b.name));
+    const options = chars.length
+        ? chars.map(a => `<option value="${a.id}">${_esc(a.name)}</option>`).join("")
+        : `<option value="">(aucun personnage joueur)</option>`;
+
+    const content = `
+    <div style="display:flex;flex-direction:column;gap:10px;">
+        <p style="margin:0;">Réinitialise le brouillard d'exploration de la carte des expéditions.</p>
+        <div>
+            <label style="font-weight:600;">Personnage :</label>
+            <select name="scwm-fog-char" style="width:100%;">${options}</select>
+        </div>
+        <p style="margin:0;font-size:.85em;color:#c0392b;">
+            <i class="fas fa-triangle-exclamation"></i> Action <strong>irréversible</strong> : les zones explorées effacées ne peuvent pas être récupérées.
+        </p>
+    </div>`;
+
+    const action = await DialogV2.wait({
+        window: { title: "Réinitialiser le brouillard d'expédition", icon: "fas fa-eraser" },
+        position: { width: 460 },
+        content,
+        rejectClose: false,
+        buttons: [
+            { action: "one", label: "Réinitialiser CE personnage", icon: "fas fa-user",
+              callback: (ev, btn) => ({ type: "one", id: btn.form.elements["scwm-fog-char"]?.value }) },
+            { action: "all", label: "Réinitialiser TOUT LE MONDE", icon: "fas fa-triangle-exclamation",
+              callback: () => ({ type: "all" }) },
+            { action: "cancel", label: "Annuler", icon: "fas fa-xmark", callback: () => null }
+        ]
+    }).catch(() => null);
+    if (!action) return;
+
+    // ---- Un seul personnage ----
+    if (action.type === "one") {
+        const actor = game.actors.get(action.id);
+        if (!actor) { ui.notifications?.warn("Aucun personnage sélectionné."); return; }
+        const ok = await DialogV2.confirm({
+            window: { title: "Confirmer" },
+            content: `<p>Effacer toutes les zones explorées de <strong>${_esc(actor.name)}</strong> ?</p>
+                      <p style="color:#c0392b;">Ce joueur reverra sa carte entièrement noire jusqu'à ré-exploration. Irréversible.</p>`,
+            rejectClose: false
+        }).catch(() => false);
+        if (ok) { await resetOneCharFog(action.id); ui.notifications?.info(`Brouillard réinitialisé pour ${actor.name}.`); }
+        return;
+    }
+
+    // ---- Tout le monde : plusieurs avertissements + confirmation à taper ----
+    const w1 = await DialogV2.confirm({
+        window: { title: "⚠️ Réinitialiser TOUT LE MONDE" },
+        content: `<p>Tu es sur le point d'effacer le brouillard exploré de <strong>TOUS les personnages</strong> du serveur.</p>
+                  <p style="color:#c0392b;">Chaque joueur reverra la carte <strong>entièrement noire</strong> jusqu'à ce qu'elle soit ré-explorée.</p>`,
+        rejectClose: false
+    }).catch(() => false);
+    if (!w1) return;
+
+    const w2 = await DialogV2.confirm({
+        window: { title: "⚠️ Action DÉFINITIVE" },
+        content: `<p style="color:#c0392b;font-weight:700;">Cette action est irréversible et NON annulable.</p>
+                  <p>Toute la progression d'exploration de la campagne sera perdue pour l'ensemble des personnages.</p>
+                  <p>Veux-tu vraiment continuer ?</p>`,
+        rejectClose: false
+    }).catch(() => false);
+    if (!w2) return;
+
+    const typed = await DialogV2.wait({
+        window: { title: "Confirmation finale" },
+        content: `<p>Pour confirmer la réinitialisation <strong>totale</strong>, tape <code>RESET</code> ci-dessous :</p>
+                  <input type="text" name="scwm-confirm" style="width:100%;" placeholder="RESET" autofocus>`,
+        rejectClose: false,
+        buttons: [
+            { action: "ok", label: "Réinitialiser TOUT", icon: "fas fa-eraser", default: true,
+              callback: (ev, btn) => (btn.form.elements["scwm-confirm"]?.value ?? "").trim() },
+            { action: "cancel", label: "Annuler", icon: "fas fa-xmark", callback: () => null }
+        ]
+    }).catch(() => null);
+
+    if (typed !== "RESET") { ui.notifications?.warn("Réinitialisation annulée (confirmation incorrecte)."); return; }
+
+    await resetExpeditionFog();
+    ui.notifications?.info("Brouillard d'expédition réinitialisé pour tout le monde.");
 }

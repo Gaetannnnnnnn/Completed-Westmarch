@@ -23,8 +23,8 @@ const enabled  = () => game.settings.get(MOD, "enableExpeditionMap");
 const sceneId  = () => game.settings.get(MOD, "expeditionMapSceneId");
 const onExpeditionCanvas = () => enabled() && sceneId() && canvas?.scene?.id === sceneId();
 
-// Positions précédentes des tokens (pour tracer le trajet au déplacement).
-const _prevCenter = new Map();
+// Case (offset hex) précédente des tokens (pour tracer le trajet au déplacement).
+const _prevHex = new Map();
 
 export function MapHooks() {
 
@@ -43,7 +43,7 @@ export function MapHooks() {
         if (!game.user.isGM || !enabled()) return;
         if (!("x" in changes || "y" in changes)) return;
         if (tokenDoc.parent?.id !== sceneId() || tokenDoc.actor?.type !== "group") return;
-        _prevCenter.set(tokenDoc.id, tokenCenter(tokenDoc));
+        _prevHex.set(tokenDoc.id, tokenHex(tokenDoc));
     });
 
     // Déplacement d'un token de GROUPE → révèle les cases du trajet pour ses membres.
@@ -154,11 +154,16 @@ async function onPaintPointerDown(ev) {
 // ============================================================
 // Géométrie hex
 // ============================================================
-function tokenCenter(tokenDoc) {
-    const w = (tokenDoc.width ?? 1) * canvas.grid.sizeX;
-    const h = (tokenDoc.height ?? 1) * canvas.grid.sizeY;
-    return { x: tokenDoc.x + w / 2, y: tokenDoc.y + h / 2 };
+// Case (offset hex) OCCUPÉE par le token : on part du centre de sa boîte englobante
+// (toujours à l'intérieur de la case) puis on demande à la grille la case exacte.
+function tokenHex(tokenDoc) {
+    const sx = canvas.grid.sizeX ?? canvas.grid.size;
+    const sy = canvas.grid.sizeY ?? canvas.grid.size;
+    const bc = { x: tokenDoc.x + (tokenDoc.width ?? 1) * sx / 2, y: tokenDoc.y + (tokenDoc.height ?? 1) * sy / 2 };
+    return canvas.grid.getOffset(bc);
 }
+// Centre EXACT (aligné grille) d'une case, pour l'échantillonnage du trajet.
+function hexCenter(offset) { return canvas.grid.getCenterPoint(offset); }
 
 function hexKey(offset) { return `${offset.i}.${offset.j}`; }
 
@@ -212,13 +217,15 @@ function revealedHexKeys(fromCenter, toCenter, radius) {
 // Révélation (MJ)
 // ============================================================
 async function revealForGroupMove(tokenDoc) {
-    const from = _prevCenter.get(tokenDoc.id) ?? tokenCenter(tokenDoc);
-    const to = tokenCenter(tokenDoc);
-    _prevCenter.delete(tokenDoc.id);
+    const toOff = tokenHex(tokenDoc);                          // case d'arrivée (où il EST)
+    const fromOff = _prevHex.get(tokenDoc.id) ?? toOff;        // case de départ
+    _prevHex.delete(tokenDoc.id);
 
     const radius = Math.max(0, Number(game.settings.get(MOD, "expeditionRevealRadius")) || 0);
-    const keys = revealedHexKeys(from, to, radius);
-    if (!keys.length) return;
+    // Trajet (centres de case alignés grille) + garantie explicite de la case d'arrivée.
+    const keys = new Set(revealedHexKeys(hexCenter(fromOff), hexCenter(toOff), radius));
+    for (const h of hexesWithinRadius(toOff, radius)) keys.add(hexKey(h));
+    if (!keys.size) return;
 
     const memberIds = Array.from(tokenDoc.actor?.system?.members?.ids ?? []);
     for (const charId of memberIds) {
@@ -229,7 +236,7 @@ async function revealForGroupMove(tokenDoc) {
         for (const k of keys) if (!prev.has(k)) { prev.add(k); changed = true; }
         if (changed) await actor.setFlag(MOD, FLAG_EXPLORED, [...prev]);
     }
-    console.log(`[CE] révélation : ${keys.length} cases pour ${memberIds.length} membre(s)`);
+    console.log(`[CE] révélation : ${keys.size} cases (arrivée ${hexKey(toOff)}) pour ${memberIds.length} membre(s)`);
 }
 
 // ============================================================

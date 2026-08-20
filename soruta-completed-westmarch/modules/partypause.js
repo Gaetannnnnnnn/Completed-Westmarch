@@ -54,15 +54,23 @@ function partyPauseEnabled() {
     return game.settings.get(MOD, "enableParty") && game.settings.get(MOD, "enablePartyPause");
 }
 
-// Secours MJ : force la reprise (enlève la pause globale) sans passer par le
-// bouton détourné. Utilisable à tout moment si le jeu reste bloqué en pause.
-function forceGlobalUnpause() {
+// Secours MJ : force la reprise. Enlève la pause GLOBALE (via la vraie méthode
+// d'origine, pas le bouton détourné) ET vide toutes les pauses de PARTY (le
+// bandeau étant partagé). Utilisable à tout moment si le jeu reste bloqué.
+async function forceGlobalUnpause() {
     if (!game.user.isGM) return;
     try {
-        const unpause = _origTogglePause ?? game.togglePause?._scwmOrig;
-        if (unpause) unpause(false, { broadcast: true });
-        else game.togglePause?.(false, { broadcast: true });   // repli
-        ui.notifications?.info("Reprise forcée : pause globale enlevée.");
+        // 1. Pause GLOBALE : on appelle la méthode d'ORIGINE du prototype
+        //    (l'instance game.togglePause est détournée vers la pause de party).
+        if (game.paused) {
+            const orig = _origTogglePause ?? game.togglePause?._scwmOrig ?? Game.prototype.togglePause;
+            await orig.call(game, false, { broadcast: true });
+        }
+        // 2. Pauses de PARTY : on remet tout à zéro (le bandeau réutilise #pause).
+        const state = pauseState();
+        if (Object.keys(state).length) await game.settings.set(MOD, "partyPauseState", {});
+        applyPartyPause();
+        ui.notifications?.info("Reprise forcée : pauses globale et de party enlevées.");
         console.log("westmarch | partypause : reprise forcée (bouton de secours)");
     } catch (e) {
         console.warn("westmarch | partypause : reprise forcée échouée", e);

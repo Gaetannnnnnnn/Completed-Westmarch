@@ -44,10 +44,12 @@ export function HarvestHooks() {
             button: true, visible: true, onChange: () => harvestTargeted()
         };
         if (game.user.isGM) {
-            controls.westmarch.tools.scwmHarvestState = {
-                name: "scwmHarvestState", title: "Récolte — Régler l'état de la dépouille sélectionnée",
-                icon: "fas fa-droplet", button: true, visible: true, onChange: () => openStateDialog()
-            };
+            if (game.settings.get(MOD, "harvestShowState")) {
+                controls.westmarch.tools.scwmHarvestState = {
+                    name: "scwmHarvestState", title: "Récolte — Régler l'état de la dépouille sélectionnée",
+                    icon: "fas fa-droplet", button: true, visible: true, onChange: () => openStateDialog()
+                };
+            }
             controls.westmarch.tools.scwmHarvestConfig = {
                 name: "scwmHarvestConfig", title: "Récolte — Associer les créatures aux RollTables", icon: "fas fa-sitemap",
                 button: true, visible: true, onChange: () => openHarvestConfig()
@@ -84,13 +86,13 @@ function resolveTable(actor) {
 
 // État MANUEL de la dépouille. Défaut : fraîche — sauf morts-vivants → pourrie.
 // États : "fresh" (butin complet), "damaged" (butin réduit), "rotten" (rien).
-const STATE_LABELS = { fresh: "Dépouille fraîche", damaged: "Dépouille abîmée", rotten: "Pourrie (rien à récolter)" };
+const STATE_LABELS = { fresh: "Fraîche", damaged: "Abîmée", rotten: "Pourrie" };
 const STATE_COLORS = { fresh: "#8fd19e", damaged: "#e0a13a", rotten: "#e58f8f" };
 
 function harvestState(actor, tokenDoc) {
     const explicit = tokenDoc?.getFlag(MOD, "harvestState");
     if (explicit) return explicit;
-    return typeOf(actor) === "undead" ? "rotten" : "fresh";   // défaut selon le type
+    return typeOf(actor) === "undead" ? "damaged" : "fresh";   // défaut selon le type
 }
 
 // ============================================================
@@ -119,11 +121,16 @@ async function harvestTargeted(harvesterOverride = null) {
     }
 
     // Jet de compétence du récolteur (fait localement, l'acteur lui appartient).
+    // On utilise la MEILLEURE des trois compétences : Survie / Nature / Médecine.
     if (!harvester) { ui.notifications?.warn("Sélectionnez votre personnage (token) pour effectuer le jet de récolte."); return; }
-    const skill = sc("harvestSkill") || "sur";
-    const mod = harvester.system?.skills?.[skill]?.total ?? 0;
+    let skill = "sur", mod = -Infinity;
+    for (const s of ["sur", "nat", "med"]) {
+        const t = harvester.system?.skills?.[s]?.total;
+        if (Number.isFinite(t) && t > mod) { mod = t; skill = s; }
+    }
+    if (!Number.isFinite(mod)) mod = 0;
     const roll = await new Roll("1d20 + @m", { m: mod }).evaluate();
-    await roll.toMessage({ speaker: ChatMessage.getSpeaker({ actor: harvester }), flavor: `Récolte — jet de ${CONFIG.DND5E.skills[skill]?.label ?? skill}` });
+    await roll.toMessage({ speaker: ChatMessage.getSpeaker({ actor: harvester }), flavor: `Récolte — meilleur jet (${CONFIG.DND5E.skills[skill]?.label ?? skill})` });
 
     // Génération côté MJ (écriture sur la dépouille).
     const gm = game.users.activeGM;
@@ -315,15 +322,15 @@ function drawRotLabel(token, hovered) {
     const prev = _rotLabels.get(token.id);
     if (prev) { try { prev.destroy(); } catch (e) {} _rotLabels.delete(token.id); }
     if (!hovered || !enabled()) return;
+    if (!game.settings.get(MOD, "harvestShowState")) return;
     const actor = token.actor;
     if (!actor || actor.type !== "npc" || !isDead(actor)) return;
 
     const state = harvestState(actor, token.document);
-    const has = !!token.document.getFlag(MOD, "harvestGenerated") || !!resolveTable(actor);
-    const text = (STATE_LABELS[state] ?? state) + (has || state === "rotten" ? "" : " — pas de table");
+    const text = STATE_LABELS[state] ?? state;
     const color = STATE_COLORS[state] ?? "#ffffff";
 
-    const style = new PIXI.TextStyle({ fontFamily: "Signika, sans-serif", fontSize: 14, fill: color, stroke: "#000000", strokeThickness: 3 });
+    const style = new PIXI.TextStyle({ fontFamily: "Signika, sans-serif", fontSize: 22, fill: color, stroke: "#000000", strokeThickness: 4 });
     const label = new PIXI.Text(text, style);
     label.anchor.set(0.5, 1);
     label.position.set(token.w / 2, -4);

@@ -547,12 +547,6 @@ export function registerSettings() {
         "Système de récolte",
         "Permet de récolter (dépecer) une créature morte ciblée pour en tirer des matériaux via une RollTable que vous associez à la créature. Le module ne fournit pas de tables : il utilise les vôtres.",
         false, { requiresReload: true }));
-    game.settings.register(MOD, "harvestSkill", {
-        name: "Récolte — Compétence du jet",
-        hint: "Compétence utilisée pour le jet de récolte (réussite = meilleur butin).",
-        scope: "world", config: false, type: String, default: "sur",
-        choices: { sur: "Survie", nat: "Nature", med: "Médecine" }
-    });
     game.settings.register(MOD, "harvestDcBase", N(
         "Récolte — DC de base", "Difficulté de base du jet de récolte, avant ajout selon le CR.", 10));
     game.settings.register(MOD, "harvestDcPerCr", N(
@@ -562,6 +556,10 @@ export function registerSettings() {
     game.settings.register(MOD, "harvestBloodImage", S(
         "Récolte — Image de la tache de sang",
         "Chemin d'image posée à la place du token quand la dépouille est entièrement récoltée. Laisser vide pour une tache générée."));
+    game.settings.register(MOD, "harvestShowState", B(
+        "Récolte — Afficher l'état de la dépouille",
+        "Affiche l'état (Fraîche / Abîmée / Pourrie) au survol d'un token de créature morte. Si désactivé, retire aussi le bouton MJ de réglage de l'état.",
+        true));
     // Associations créature → RollTable. { byType: {beast: id…}, byName: {"Loup": id…} }
     game.settings.register(MOD, "harvestTables", {
         scope: "world", config: false, type: Object, default: { byType: {}, byName: {} }
@@ -656,7 +654,7 @@ const CATEGORIES = [
       keys: ["enableSourceControl","sourceAllowPlayers","sourceAllowGm","sourceMatchField","sourceMatchExact","sourceBlockUnknown"] },
     { firstKey: "enableHarvest", master: "enableHarvest", icon: "fa-hand-holding-medical", title: "Récolte (harvest)",
       desc: "Récolte de matériaux sur les créatures mortes. Le module utilise des RollTables que vous créez et associez aux créatures (bouton « Associations » dans l'onglet WestMarch). Butin partagé sur la dépouille, pourriture avec le temps, tache de sang une fois vidée.",
-      keys: ["enableHarvest","harvestSkill","harvestDcBase","harvestDcPerCr","harvestBaseDraws","harvestBloodImage"] },
+      keys: ["enableHarvest","harvestDcBase","harvestDcPerCr","harvestBaseDraws","harvestBloodImage","harvestShowState"] },
     { firstKey: "enableXpBlock",         icon: "fa-server",          title: "Serveur",
       desc: "Personnalisations du serveur : blocage XP / Level Up, logs Discord, webhooks.",
       keys: ["enableXpBlock","enableGmNotes","hidePlayerStarTab","enableDiscordLog","discordLogWebhookUrl","downtimeWebhookUrl","tmWebhookUrl"] },
@@ -884,6 +882,12 @@ function settingControlHtml(key) {
     } else if (key === "activationCode") {
         // Champ masqué (comme un mot de passe) — la valeur ne s'affiche pas en clair.
         control = `<input type="password" name="${key}" value="${escapeAttr(val ?? "")}" autocomplete="new-password" style="width:100%;">`;
+    } else if (key.endsWith("Image")) {
+        // Chemin d'image avec bouton « Parcourir » (FilePicker).
+        control = `<div style="display:flex;gap:4px;">
+            <input type="text" name="${key}" value="${escapeAttr(val ?? "")}" style="flex:1 1 auto;min-width:0;">
+            <button type="button" class="scwm-filepicker" data-target="${key}" data-fptype="image" title="Parcourir" style="flex:0 0 auto;width:34px;"><i class="fas fa-file-import"></i></button>
+        </div>`;
     } else {
         control = `<input type="text" name="${key}" value="${escapeAttr(val ?? "")}" style="width:100%;">`;
     }
@@ -903,6 +907,15 @@ function wireCategoryForm(category, root) {
     });
     root.querySelector(".scwm-all-on")?.addEventListener("click",  e => { e.preventDefault(); setAll(true); });
     root.querySelector(".scwm-all-off")?.addEventListener("click", e => { e.preventDefault(); setAll(false); });
+
+    // Boutons « Parcourir » (FilePicker) pour les champs d'image.
+    root.querySelectorAll(".scwm-filepicker").forEach(btn => btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        const input = root.querySelector(`[name="${btn.dataset.target}"]`);
+        if (!input) return;
+        const FP = foundry.applications?.apps?.FilePicker?.implementation ?? globalThis.FilePicker;
+        new FP({ type: btn.dataset.fptype || "image", current: input.value, callback: (path) => { input.value = path; } }).browse();
+    }));
 
     // Cascade Party : grise les sous-options quand le maître est décoché.
     const master = root.querySelector(`[name="enableParty"]`);

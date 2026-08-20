@@ -39,6 +39,11 @@ export function showTutorialSelector() {
     const content = `
     <div class="tuto-selector-body">
         <p class="tuto-selector-hint">Choisissez les sections à revoir :</p>
+        <div class="tuto-selector-toolbar" style="display:flex;gap:12px;justify-content:flex-end;margin:0 2px 6px;font-size:12px;">
+            <a class="tuto-select-all"   style="color:#8fd19e;cursor:pointer;">Tout sélectionner</a>
+            <span style="color:#555;">·</span>
+            <a class="tuto-select-none"  style="color:#e58f8f;cursor:pointer;">Tout désélectionner</a>
+        </div>
         <div class="tuto-section-list">${rows}</div>
         <p class="tuto-selector-warn" style="margin-top:10px;color:#e0a13a;font-size:12px;display:flex;gap:6px;align-items:flex-start;">
             <i class="fas fa-triangle-exclamation" style="margin-top:2px;"></i>
@@ -68,7 +73,14 @@ export function showTutorialSelector() {
                 label: "Fermer"
             }
         },
-        default: "start"
+        default: "start",
+        render: (html) => {
+            const root = html instanceof HTMLElement ? html : html?.[0];
+            if (!root) return;
+            const setAll = (v) => root.querySelectorAll('[name="tuto-section"]').forEach(cb => { cb.checked = v; });
+            root.querySelector(".tuto-select-all")?.addEventListener("click", (e) => { e.preventDefault(); setAll(true); });
+            root.querySelector(".tuto-select-none")?.addEventListener("click", (e) => { e.preventDefault(); setAll(false); });
+        }
     }, {
         width:   360,
         classes: ["dialog", "tuto-selector-dialog"]

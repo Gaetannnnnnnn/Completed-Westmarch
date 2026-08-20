@@ -54,6 +54,22 @@ function partyPauseEnabled() {
     return game.settings.get(MOD, "enableParty") && game.settings.get(MOD, "enablePartyPause");
 }
 
+// Secours MJ : force la reprise (enlève la pause globale) sans passer par le
+// bouton détourné. Utilisable à tout moment si le jeu reste bloqué en pause.
+function forceGlobalUnpause() {
+    if (!game.user.isGM) return;
+    try {
+        const unpause = _origTogglePause ?? game.togglePause?._scwmOrig;
+        if (unpause) unpause(false, { broadcast: true });
+        else game.togglePause?.(false, { broadcast: true });   // repli
+        ui.notifications?.info("Reprise forcée : pause globale enlevée.");
+        console.log("westmarch | partypause : reprise forcée (bouton de secours)");
+    } catch (e) {
+        console.warn("westmarch | partypause : reprise forcée échouée", e);
+        ui.notifications?.warn("Échec de la reprise forcée (voir console).");
+    }
+}
+
 // Annule une pause GLOBALE résiduelle (seul le GM « primaire » agit). Le pause de
 // party remplace le pause global : ce dernier ne doit jamais rester au démarrage.
 function clearResidualGlobalPause() {
@@ -138,6 +154,24 @@ export function PartyPauseHooks() {
     Hooks.on("updateUser", (user, changes) => {
         if (user.id !== game.user.id) return;
         if (foundry.utils.hasProperty(changes, `flags.${MOD}.partyId`)) applyPartyPause();
+    });
+
+    // Bouton de SECOURS (MJ) : force la reprise si Foundry reste bloqué en pause
+    // globale au démarrage (le détournement de la pause de party empêche parfois
+    // de l'enlever normalement).
+    Hooks.on("getSceneControlButtons", (controls) => {
+        if (!game.user.isGM || !partyPauseEnabled()) return;
+        if (!controls.westmarch) {
+            controls.westmarch = { name: "westmarch", title: "WestMarch", icon: "fa-solid fa-hammer", layer: "tokens", tools: {} };
+        }
+        controls.westmarch.tools.scwmForceResume = {
+            name: "scwmForceResume",
+            title: "Forcer la reprise (débloquer une pause globale)",
+            icon: "fas fa-play",
+            button: true,
+            visible: true,
+            onChange: () => forceGlobalUnpause()
+        };
     });
 
     // Le banner natif #pause est re-rendu par le cœur (cssClass basé sur

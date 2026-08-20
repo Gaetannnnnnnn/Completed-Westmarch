@@ -19,6 +19,7 @@ export const TUTO_TOGGLES = [
     { key: "tutoRelations",       legacy: "relations",       label: "Relations (onglet fiche)" },
     { key: "tutoCarnet",          legacy: "carnet",          label: "Carnet & Expéditions (onglet fiche)" },
     { key: "tutoCasier",          legacy: "casier",          label: "Casier du MJ (tableau de bord)" },
+    { key: "tutoCarteExpedition", legacy: "carteExpedition", label: "Carte des expéditions (brouillard maison, GM)" },
     { key: "tutoCues",            legacy: "cues",            label: "Mise en scène — Cues audio (GM)" },
     { key: "tutoBoutiques",       legacy: "boutiques",       label: "Boutiques Monk's Enhanced Journal" },
     { key: "tutoTempsMorts",      legacy: "tempsMorts",      label: "Temps morts (déclaration & validation)" },

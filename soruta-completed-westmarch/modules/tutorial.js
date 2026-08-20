@@ -59,6 +59,7 @@ export const SECTION_LABELS = {
     relations:       "Relations",
     carnet:          "Carnet & Expéditions",
     casier:          "Casier du MJ",
+    carteExpedition: "Carte des expéditions",
     cues:            "Cues audio (mise en scène)",
     boutiques:       "Boutiques (MEJ)",
     tempsMorts:      "Temps morts",
@@ -75,6 +76,7 @@ export const SECTION_ICONS = {
     relations:       "fa-users",
     carnet:          "fa-book-open",
     casier:          "fa-box-archive",
+    carteExpedition: "fa-map-location-dot",
     cues:            "fa-clapperboard",
     boutiques:       "fa-store",
     tempsMorts:      "fa-hourglass-half",
@@ -92,6 +94,7 @@ export const SETTING_KEYS = {
     carnet:          "tutoCarnet",
     noteGm:          "tutoNoteGm",
     casier:          "tutoCasier",
+    carteExpedition: "tutoCarteExpedition",
     cues:            "tutoCues",
     boutiques:       "tutoBoutiques",
     tempsMorts:      "tutoTempsMorts",
@@ -115,6 +118,7 @@ export const SECTION_FEATURE_SETTING = {
     relations:       "relationsEnabled",
     carnet:          "carnetEnabled",
     casier:          null,               // outil MJ intégré (gmOnly)
+    carteExpedition: "enableExpeditionMap",
     cues:            "enableSceneCues",
     boutiques:       null,               // dépendance externe (MEJ) gérée à part
     tempsMorts:      null,               // fonctionnalité intégrée
@@ -123,7 +127,7 @@ export const SECTION_FEATURE_SETTING = {
 };
 
 // Sections réservées au GM (toutes leurs étapes sont gmOnly)
-export const SECTION_GM_ONLY = new Set(["casier", "cues", "noteGm", "boutiques", "outilsGm"]);
+export const SECTION_GM_ONLY = new Set(["casier", "carteExpedition", "cues", "noteGm", "boutiques", "outilsGm"]);
 
 // Sections réservées aux JOUEURS (étapes playerOnly) : cachées aux GM, pour qui
 // elles seraient vides (déclaration de temps morts, gestion de ses personnages).
@@ -833,6 +837,57 @@ const STEPS_BY_FEATURE = {
             title:      "Validation des personnages",
             textGM:     "L'onglet <strong>Validation</strong> regroupe les <strong>demandes de création</strong> (Créer &amp; assigner), les <strong>fiches à valider</strong> (Valider &amp; verrouiller) et les <strong>montées de niveau</strong> à autoriser. C'est ici que vous gérez tout le cycle de vie des personnages joueurs.",
             position:   "right"
+        },
+    ],
+
+    // ---- Carte des expéditions (brouillard maison, GM) ----
+    carteExpedition: [
+        {
+            target:   null,
+            title:    "Carte des expéditions — le principe",
+            text:     "Cette carte du monde a un <strong>brouillard « maison »</strong>, géré par le module (pas celui de Foundry). Son intérêt : le brouillard est <strong>propre à CHAQUE personnage</strong>. Chaque PJ ne voit sur la carte que les zones que <em>lui</em> a découvertes — deux personnages d'un même joueur ont chacun leur exploration.<br><br>"
+                    + "En pratique : la scène est entièrement visible « nativement » (vision par token désactivée), et le module pose par-dessus un calque noir qui laisse des trous aux cases explorées du personnage joué. C'est fiable et isolé par perso, contrairement au brouillard natif de Foundry.<br><br>"
+                    + "La scène concernée est celle définie dans <strong>Réglages → Carte des expéditions → Scène</strong>. Tout ce qui suit ne s'applique qu'à cette scène.",
+            position: "center",
+            gmOnly:   true
+        },
+        {
+            target:   null,
+            title:    "Le token de groupe (qui explore)",
+            text:     "L'exploration se fait via un <strong>token de groupe</strong>. Le module crée un acteur modèle <strong>« Token à copier et rennomer »</strong> dans le dossier configuré.<br><br>"
+                    + "<strong>1.</strong> Duplique cet acteur : une petite fenêtre s'ouvre pour le <strong>renommer</strong> (le nom s'applique à la fiche et au prototype token).<br>"
+                    + "<strong>2.</strong> Ouvre la fiche du groupe et ajoute comme <strong>Membres</strong> les personnages de l'expédition (leurs PJ assignés).<br>"
+                    + "<strong>3.</strong> Pose son token sur la carte.<br><br>"
+                    + "Ce sont les <strong>membres</strong> du groupe qui recevront la révélation quand tu déplaces ce token.",
+            position: "center",
+            gmOnly:   true
+        },
+        {
+            target:   null,
+            title:    "Révéler en déplaçant",
+            text:     "Quand tu <strong>déplaces le token de groupe</strong> sur la carte, les cases (hex) du <strong>trajet parcouru</strong> se révèlent automatiquement pour chaque personnage <strong>membre</strong> du groupe — pas pour les autres.<br><br>"
+                    + "Le nombre de cases révélées autour du token se règle avec <strong>« Rayon de révélation (en cases) »</strong> dans les réglages (0 = seulement la case du token, 1 = la case + ses voisines, etc.).<br><br>"
+                    + "Astuce : pour pré-explorer proprement une zone pour un personnage, assure-toi qu'il est bien <strong>membre</strong> du groupe, puis promène le token.",
+            position: "center",
+            gmOnly:   true
+        },
+        {
+            beforeShow: _expandWestmarch,
+            target:     "[data-tool='scwmLightZone']",
+            title:      "Bouton « Éclairer une zone » (villes)",
+            text:       "Cet outil <i class='fas fa-city'></i> te permet de marquer des zones <strong>toujours éclairées pour tout le monde</strong> — typiquement les villes et lieux connus de tous, indépendamment de l'exploration.<br><br>"
+                      + "Active-le, puis sur la carte : <strong>clic gauche</strong> éclaire une case, <strong>clic droit</strong> la masque. Ces zones apparaissent pour tous les personnages, en plus de leur propre exploration. Pense à désactiver l'outil quand tu as fini.",
+            position:   "right",
+            gmOnly:     true
+        },
+        {
+            beforeShow: _expandWestmarch,
+            target:     "[data-tool='scwmFogReset']",
+            title:      "Bouton « Réinitialiser le brouillard »",
+            text:       "Cet outil <i class='fas fa-eraser'></i> ouvre une fenêtre pour effacer le brouillard exploré.<br><br>"
+                      + "Tu peux réinitialiser <strong>un seul personnage</strong> (choisi dans la liste) ou <strong>tout le monde</strong>. La réinitialisation totale est protégée par plusieurs avertissements et une confirmation à <strong>taper</strong>, car elle est <strong>irréversible</strong> : les zones effacées ne se récupèrent pas, chaque joueur reverra sa carte noire jusqu'à ré-exploration.",
+            position:   "right",
+            gmOnly:     true
         },
     ],
 

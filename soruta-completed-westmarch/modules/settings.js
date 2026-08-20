@@ -540,6 +540,33 @@ export function registerSettings() {
         scope: "client", config: false, type: Boolean, default: false
     });
 
+    // ============================================================
+    // RÉCOLTE (HARVEST)
+    // ============================================================
+    game.settings.register(MOD, "enableHarvest", B(
+        "Système de récolte",
+        "Permet de récolter (dépecer) une créature morte ciblée pour en tirer des matériaux via une RollTable que vous associez à la créature. Le module ne fournit pas de tables : il utilise les vôtres.",
+        false, { requiresReload: true }));
+    game.settings.register(MOD, "harvestSkill", {
+        name: "Récolte — Compétence du jet",
+        hint: "Compétence utilisée pour le jet de récolte (réussite = meilleur butin).",
+        scope: "world", config: false, type: String, default: "sur",
+        choices: { sur: "Survie", nat: "Nature", med: "Médecine" }
+    });
+    game.settings.register(MOD, "harvestDcBase", N(
+        "Récolte — DC de base", "Difficulté de base du jet de récolte, avant ajout selon le CR.", 10));
+    game.settings.register(MOD, "harvestDcPerCr", N(
+        "Récolte — DC ajouté par CR", "Ajout à la DC par point de facteur de puissance (CR) de la créature. Ex. 0.5 = +1 tous les 2 CR.", 0.5));
+    game.settings.register(MOD, "harvestBaseDraws", N(
+        "Récolte — Tirages de base", "Nombre de tirages sur la RollTable en cas de réussite normale. +1 par tranche de 5 au-dessus de la DC ; échec = 1 tirage. Une dépouille « abîmée » réduit ce nombre de moitié.", 2));
+    game.settings.register(MOD, "harvestBloodImage", S(
+        "Récolte — Image de la tache de sang",
+        "Chemin d'image posée à la place du token quand la dépouille est entièrement récoltée. Laisser vide pour une tache générée."));
+    // Associations créature → RollTable. { byType: {beast: id…}, byName: {"Loup": id…} }
+    game.settings.register(MOD, "harvestTables", {
+        scope: "world", config: false, type: Object, default: { byType: {}, byName: {} }
+    });
+
     // ---- Suivi de la migration des données des anciens modules ----
     // 0 = jamais migré. Incrémenté par migration.js une fois la reprise faite.
     game.settings.register(MOD, "migrationVersion", {
@@ -627,6 +654,9 @@ const CATEGORIES = [
     { firstKey: "enableSourceControl", master: "enableSourceControl", icon: "fa-book-skull", title: "Contrôle des sources",
       desc: "Réglemente les livres/extensions D&D (Xanathar, Tal'Dorei, etc.) autorisés sur les fiches PJ, via deux listes blanches (joueurs / MJ). Le contenu d'une source non autorisée est bloqué avec un avertissement, quelle que soit la méthode d'ajout.",
       keys: ["enableSourceControl","sourceAllowPlayers","sourceAllowGm","sourceMatchField","sourceMatchExact","sourceBlockUnknown"] },
+    { firstKey: "enableHarvest", master: "enableHarvest", icon: "fa-hand-holding-medical", title: "Récolte (harvest)",
+      desc: "Récolte de matériaux sur les créatures mortes. Le module utilise des RollTables que vous créez et associez aux créatures (bouton « Associations » dans l'onglet WestMarch). Butin partagé sur la dépouille, pourriture avec le temps, tache de sang une fois vidée.",
+      keys: ["enableHarvest","harvestSkill","harvestDcBase","harvestDcPerCr","harvestBaseDraws","harvestBloodImage"] },
     { firstKey: "enableXpBlock",         icon: "fa-server",          title: "Serveur",
       desc: "Personnalisations du serveur : blocage XP / Level Up, logs Discord, webhooks.",
       keys: ["enableXpBlock","enableGmNotes","hidePlayerStarTab","enableDiscordLog","discordLogWebhookUrl","downtimeWebhookUrl","tmWebhookUrl"] },

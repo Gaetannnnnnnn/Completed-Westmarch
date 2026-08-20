@@ -48,6 +48,7 @@ import { SessionHooks }   from "./modules/session.js";
 import { CasierHooks }    from "./modules/casier.js";
 import { CharValidationHooks } from "./modules/charvalidation.js";
 import { SourceControlHooks } from "./modules/sourcecontrol.js";
+import { HarvestHooks }       from "./modules/harvest.js";
 import { AntiCheatHooks } from "./modules/anticheat.js";
 import { SocketHooks }    from "./modules/socket.js";
 import { CombatHooks }    from "./modules/combat.js";
@@ -157,6 +158,7 @@ Hooks.on("init", () => {
     CasierHooks();
     CharValidationHooks();
     SourceControlHooks();
+    HarvestHooks();
     AntiCheatHooks();
     SocketHooks();
     CombatHooks();

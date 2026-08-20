@@ -470,6 +470,11 @@ export function registerSettings() {
         "Carte des expéditions — Rayon de révélation (en cases)",
         "Nombre de cases (hex) révélées autour du token de groupe lors de son déplacement. 0 = seulement la case du token, 1 = la case + ses voisines, etc.",
         1));
+    // Zones toujours éclairées (villes, lieux connus de tous) — peintes par le MJ.
+    // Liste de clés de case "i.j". Non affiché (édité via l'outil sur la carte).
+    game.settings.register(MOD, "expeditionRevealedZones", {
+        scope: "world", config: false, type: Array, default: []
+    });
 
     // ============================================================
     // MISE EN SCÈNE — CUES AUDIO (clés sceneCues*)

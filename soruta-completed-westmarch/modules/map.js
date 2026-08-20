@@ -63,6 +63,10 @@ export function MapHooks() {
     Hooks.on("updateUser", (user, changes) => {
         if (user.id === game.user.id && "character" in changes) drawFog();
     });
+    // Zones toujours éclairées modifiées → tous les clients redessinent.
+    Hooks.on("updateSetting", (setting) => {
+        if (setting?.key === `${MOD}.expeditionRevealedZones`) drawFog();
+    });
 
     // ---- Duplication d'un token/acteur de groupe modèle → fenêtre de renommage ----
     // Le modèle porte le flag templateGroupToken. Sa COPIE le porte aussi : on la
@@ -77,12 +81,13 @@ export function MapHooks() {
         await promptRenameGroup(actor);       // c'est une copie du modèle
     });
 
-    // ---- Bouton MJ : réinitialiser le brouillard ----
+    // ---- Bouton MJ : réinitialiser le brouillard (onglet WestMarch) ----
     Hooks.on("getSceneControlButtons", (controls) => {
         if (!game.user.isGM || !enabled()) return;
-        const tokens = controls.tokens ?? controls.token;
-        if (!tokens?.tools) return;
-        tokens.tools.scwmFogReset = {
+        if (!controls.westmarch) {
+            controls.westmarch = { name: "westmarch", title: "WestMarch", icon: "fa-solid fa-hammer", layer: "tokens", tools: {} };
+        }
+        controls.westmarch.tools.scwmFogReset = {
             name: "scwmFogReset",
             title: "Carte d'expédition — Réinitialiser le brouillard",
             icon: "fas fa-eraser",
@@ -90,7 +95,60 @@ export function MapHooks() {
             visible: true,
             onChange: () => openFogResetDialog()
         };
+        controls.westmarch.tools.scwmLightZone = {
+            name: "scwmLightZone",
+            title: "Carte d'expédition — Éclairer une zone (villes) : clic gauche = éclairer, clic droit = masquer",
+            icon: "fas fa-city",
+            toggle: true,
+            active: _paintMode,
+            visible: true,
+            onChange: (event, active) => setPaintMode(active)
+        };
     });
+
+    // Écouteur de peinture (une fois par canvas prêt).
+    Hooks.on("canvasReady", () => {
+        const view = canvas?.app?.view;
+        if (!view) return;
+        view.removeEventListener("pointerdown", onPaintPointerDown, true);
+        view.addEventListener("pointerdown", onPaintPointerDown, true);
+    });
+}
+
+// ============================================================
+// Zones toujours éclairées (villes) — peinture MJ
+// ============================================================
+let _paintMode = false;
+
+function setPaintMode(on) {
+    _paintMode = !!on;
+    ui.notifications?.info(_paintMode
+        ? "Éclairage permanent : clic GAUCHE = éclairer une case, clic DROIT = masquer."
+        : "Éclairage permanent désactivé.");
+    drawFog();   // (ré)affiche le repère des zones éclairées côté MJ
+}
+
+function globalZones() {
+    const z = game.settings.get(MOD, "expeditionRevealedZones");
+    return Array.isArray(z) ? z : [];
+}
+
+async function onPaintPointerDown(ev) {
+    if (!_paintMode || !game.user.isGM) return;
+    if (!onExpeditionCanvas()) return;
+    if (ev.button !== 0 && ev.button !== 2) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+
+    const rect = canvas.app.view.getBoundingClientRect();
+    const world = canvas.stage.toLocal(new PIXI.Point(ev.clientX - rect.left, ev.clientY - rect.top));
+    const key = hexKey(canvas.grid.getOffset(world));
+
+    const set = new Set(globalZones());
+    if (ev.button === 0) set.add(key); else set.delete(key);   // gauche éclaire, droit masque
+    await game.settings.set(MOD, "expeditionRevealedZones", [...set]);
+    // Le hook updateSetting n'existe pas partout → on redessine directement + broadcast implicite
+    drawFog();
 }
 
 // ============================================================
@@ -183,13 +241,36 @@ function clearFogLayer() {
     if (_fogLayer) { try { _fogLayer.destroy({ children: true }); } catch (e) {} _fogLayer = null; }
 }
 
+function drawHexInto(g, key) {
+    const [i, j] = key.split(".").map(Number);
+    const verts = canvas.grid.getVertices({ i, j });
+    if (verts?.length) g.drawPolygon(verts.flatMap(p => [p.x, p.y]));
+}
+
 function drawFog() {
     clearFogLayer();
     if (!onExpeditionCanvas()) return;
-    if (game.user.isGM) return;                       // le MJ voit toute la carte
+    const zones = globalZones();
 
+    // Le MJ voit toute la carte : on lui montre juste un repère (jaune pâle) des
+    // zones éclairées en permanence (villes), pour savoir ce qui est marqué.
+    if (game.user.isGM) {
+        if (!zones.length) return;
+        const g = new PIXI.Graphics();
+        g.eventMode = "none";
+        g.beginFill(0xffcc00, 0.15);
+        for (const key of zones) drawHexInto(g, key);
+        g.endFill();
+        g.zIndex = 900;
+        _fogLayer = g;
+        (canvas.interface ?? canvas.stage).addChild(g);
+        return;
+    }
+
+    // Joueur : noir partout, trous aux cases explorées de son perso + villes globales.
     const char = game.user.character;
     const explored = new Set(char?.getFlag(MOD, FLAG_EXPLORED) ?? []);
+    for (const z of zones) explored.add(z);   // zones toujours éclairées, visibles par tous
 
     const d = canvas.dimensions;
     const g = new PIXI.Graphics();
@@ -198,11 +279,7 @@ function drawFog() {
     g.drawRect(d.sceneX, d.sceneY, d.sceneWidth, d.sceneHeight);
     if (explored.size) {
         g.beginHole();
-        for (const key of explored) {
-            const [i, j] = key.split(".").map(Number);
-            const verts = canvas.grid.getVertices({ i, j });
-            if (verts?.length) g.drawPolygon(verts.flatMap(p => [p.x, p.y]));
-        }
+        for (const key of explored) drawHexInto(g, key);
         g.endHole();
     }
     g.endFill();

@@ -73,7 +73,8 @@ export function HarvestHooks() {
         if (actor?.type !== "npc") return;
         const newHp = foundry.utils.getProperty(changes, "system.attributes.hp.value");
         if (newHp === undefined || newHp > 0) return;
-        for (const token of actor.getActiveTokens(true)) {
+        // Tokens de CET acteur sur la scène courante (liés ou non).
+        for (const token of actor.getActiveTokens()) {
             const td = token.document;
             if (td.getFlag(MOD, "bloodPlaced")) continue;
             td.setFlag(MOD, "bloodPlaced", true);
@@ -160,6 +161,7 @@ async function harvestTargeted(harvesterOverride = null) {
         sceneId: tokenDoc.parent.id, tokenId: tokenDoc.id, total: roll.total
     }).catch(() => null);
     if (!res?.ok) { ui.notifications?.warn(res?.msg ?? "Échec de la récolte."); return; }
+    if (res.empty) { ui.notifications?.info(`Rien à récolter sur ${actor.name}.`); return; }
     openLootWindow(tokenDoc.parent.id, tokenDoc.id, harvester?.id ?? null);
 }
 
@@ -201,18 +203,51 @@ async function gmGenerate({ sceneId, tokenId, total }) {
         for (let i = 0; i < draws; i++) {
             const { results } = await table.roll();
             for (const r of (results ?? [])) {
-                const item = await resultToItem(r);
-                const entry = item
-                    ? { uuid: item.uuid, name: item.name, img: item.img, qty: 1 }
-                    : { uuid: null, name: r.text ?? r.name ?? "Objet", img: r.icon ?? r.img ?? "icons/svg/item-bag.svg", qty: 1 };
-                const ex = loot.find(l => l.uuid === entry.uuid && l.name === entry.name);
-                if (ex) ex.qty += 1; else loot.push(entry);
+                const p = await parseResult(r);
+                if (p.isNothing || p.qty <= 0) continue;          // « rien » : on n'ajoute pas de ligne
+                const uuid = p.item?.uuid ?? null;
+                const ex = loot.find(l => l.uuid === uuid && l.name === p.name);
+                if (ex) ex.qty += p.qty; else loot.push({ uuid, name: p.name, img: p.img, qty: p.qty });
             }
+        }
+
+        // Aucun butin (uniquement des « rien ») → message + la dépouille disparaît.
+        if (!loot.length) {
+            await tokenDoc.delete().catch(() => {});
+            return { ok: true, empty: true };
         }
 
         await tokenDoc.update({ [`flags.${MOD}.harvestGenerated`]: true, [`flags.${MOD}.harvestLoot`]: loot });
         return { ok: true, loot };
     } catch (e) { console.warn(`[${MOD}] harvestGenerate:`, e); return { ok: false, msg: "Erreur de génération." }; }
+}
+
+// Analyse un résultat de table. Renvoie { item, qty, name, img, isNothing }.
+//  • Quantité : une formule/nombre en TÊTE du texte est lancée (ex. « 1d4 Dent »,
+//    « 2 Dent », « 1d6+1 @UUID[…]{Écaille} »). Sans formule → 1.
+//  • Item : lien de document du résultat, sinon lien @UUID trouvé dans le texte.
+//  • « rien » : aucun item ET texte vide ou négatif (rien / nothing / - / aucun).
+async function parseResult(r) {
+    let text = (r.text ?? "").trim();
+    let qty = 1;
+    const m = text.match(/^\s*(\d+d\d+(?:\s*[+-]\s*\d+)?|\d+)\s*(?:[x×*]\s*)?/i);
+    if (m) {
+        try { qty = Math.max(0, Math.round((await new Roll(m[1]).evaluate()).total)); } catch { qty = 1; }
+        text = text.slice(m[0].length).trim();
+    }
+    let item = await resultToItem(r);
+    if (!item) {
+        const um = text.match(/@UUID\[([^\]]+)\]/);
+        if (um) item = await fromUuid(um[1]).catch(() => null);
+    }
+    const cleaned = text.replace(/@UUID\[[^\]]+\]\{([^}]*)\}/g, "$1").replace(/@UUID\[[^\]]+\]/g, "").trim();
+    const isNothing = !item && (cleaned === "" || /^(rien|néant|nothing|none|aucun|-|x)\.?$/i.test(cleaned));
+    return {
+        item, qty,
+        name: item?.name ?? (cleaned || "Objet"),
+        img: item?.img ?? r.icon ?? r.img ?? "icons/svg/item-bag.svg",
+        isNothing
+    };
 }
 
 async function resultToItem(result) {
@@ -327,20 +362,31 @@ async function placeBloodStain(tokenDoc) {
         // Image personnalisée si réglée, sinon une des images fournies au hasard.
         const custom = sc("harvestBloodImage");
         const img = custom || BUNDLED_BLOOD[Math.floor(Math.random() * BUNDLED_BLOOD.length)];
-        const w = tokenDoc.width * scene.grid.sizeX, h = tokenDoc.height * scene.grid.sizeY;
+
+        // Centre et taille RÉELS du token en pixels. On privilégie l'objet
+        // canvas (t.center / t.w / t.h) : il gère les grilles hexagonales, la
+        // mise à l'échelle et l'ancrage, là où largeur × sizeX se décale.
+        const t = tokenDoc.object;
+        let cx, cy, w, h;
+        if (t && Number.isFinite(t.center?.x)) {
+            cx = t.center.x; cy = t.center.y; w = t.w; h = t.h;
+        } else {
+            w = tokenDoc.width * scene.grid.sizeX; h = tokenDoc.height * scene.grid.sizeY;
+            cx = tokenDoc.x + w / 2; cy = tokenDoc.y + h / 2;
+        }
+
         if (img) {
             // Centrée sous le token, taille un peu débordante + rotation aléatoire.
             const scale = 1.1 + Math.random() * 0.2;
             const tw = w * scale, th = h * scale;
             await scene.createEmbeddedDocuments("Tile", [{
                 texture: { src: img },
-                x: tokenDoc.x + w / 2 - tw / 2, y: tokenDoc.y + h / 2 - th / 2,
+                x: cx - tw / 2, y: cy - th / 2,
                 width: tw, height: th, rotation: Math.floor(Math.random() * 360),
                 sort: -100, flags: { [MOD]: { bloodStain: true } }
             }]);
         } else {
             // Repli : éclaboussement procédural (flaque irrégulière + gouttes).
-            const cx = tokenDoc.x + w / 2, cy = tokenDoc.y + h / 2;
             const baseR = Math.max(w, h) / 2 * 1.15;
             await scene.createEmbeddedDocuments("Drawing", makeSplatterDrawings(cx, cy, baseR));
         }

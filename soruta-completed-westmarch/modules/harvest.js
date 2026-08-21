@@ -54,6 +54,10 @@ export function HarvestHooks() {
                 name: "scwmHarvestConfig", title: "Récolte — Associer les créatures aux RollTables", icon: "fas fa-sitemap",
                 button: true, visible: true, onChange: () => openHarvestConfig()
             };
+            controls.westmarch.tools.scwmHarvestClean = {
+                name: "scwmHarvestClean", title: "Récolte — Nettoyer les taches de sang de la scène", icon: "fas fa-broom",
+                button: true, visible: true, onChange: () => cleanBloodStains()
+            };
         }
     });
 
@@ -303,14 +307,78 @@ async function placeBloodStain(tokenDoc) {
                 sort: -100, flags: { [MOD]: { bloodStain: true } }
             }]);
         } else {
-            // Repli : un dessin rouge semi-transparent.
-            await scene.createEmbeddedDocuments("Drawing", [{
-                shape: { type: "e", width: w, height: h }, x: tokenDoc.x, y: tokenDoc.y,
-                fillType: 1, fillColor: "#6b0f0f", fillAlpha: 0.5, strokeWidth: 0,
-                flags: { [MOD]: { bloodStain: true } }
-            }]);
+            // Repli : éclaboussement procédural (flaque irrégulière + gouttes).
+            const cx = tokenDoc.x + w / 2, cy = tokenDoc.y + h / 2;
+            const baseR = Math.max(w, h) / 2 * 1.15;
+            await scene.createEmbeddedDocuments("Drawing", makeSplatterDrawings(cx, cy, baseR));
         }
     } catch (e) { console.warn(`[${MOD}] placeBloodStain:`, e); }
+}
+
+// Génère un éclaboussement de sang réaliste : une flaque centrale irrégulière
+// (polygone déformé, un peu aplati) + quelques gouttes autour, teintes et
+// opacités variées. Toutes marquées bloodStain pour le nettoyage.
+function makeSplatterDrawings(cx, cy, baseR) {
+    const rand = (a, b) => a + Math.random() * (b - a);
+    const reds = ["#3d0808", "#4e0b0b", "#5c0d0d", "#6e1010", "#7a1414"];
+    const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+    const docs = [];
+
+    // Flaque principale : polygone à rayon variable (aspect organique).
+    const n = 20;
+    const abs = [];
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2;
+        const r = baseR * rand(0.55, 1.05);
+        const x = cx + Math.cos(a) * r;
+        const y = cy + Math.sin(a) * r * 0.82;            // légèrement aplati au sol
+        abs.push([x, y]);
+        minX = Math.min(minX, x); minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
+    }
+    docs.push({
+        shape: { type: "p", points: abs.flatMap(([x, y]) => [x - minX, y - minY]), width: maxX - minX, height: maxY - minY },
+        x: minX, y: minY, fillType: 1, fillColor: pick(reds), fillAlpha: rand(0.62, 0.78), strokeWidth: 0,
+        flags: { [MOD]: { bloodStain: true } }
+    });
+
+    // Gouttes projetées autour.
+    const drops = 6 + Math.floor(Math.random() * 6);
+    for (let i = 0; i < drops; i++) {
+        const a = rand(0, Math.PI * 2);
+        const dist = baseR * rand(0.75, 1.7);
+        const dw = baseR * rand(0.07, 0.26);
+        const dh = dw * rand(0.7, 1.35);
+        docs.push({
+            shape: { type: "e", width: dw, height: dh },
+            x: cx + Math.cos(a) * dist - dw / 2, y: cy + Math.sin(a) * dist * 0.82 - dh / 2,
+            fillType: 1, fillColor: pick(reds), fillAlpha: rand(0.5, 0.75), strokeWidth: 0,
+            flags: { [MOD]: { bloodStain: true } }
+        });
+    }
+    return docs;
+}
+
+// Supprime toutes les taches de sang (tuiles + dessins marqués) de la scène active.
+async function cleanBloodStains() {
+    const scene = canvas.scene;
+    if (!scene) { ui.notifications?.warn("Aucune scène active."); return; }
+    const tileIds = scene.tiles.filter(t => t.getFlag(MOD, "bloodStain")).map(t => t.id);
+    const drawIds = scene.drawings.filter(d => d.getFlag(MOD, "bloodStain")).map(d => d.id);
+    const total = tileIds.length + drawIds.length;
+    if (!total) { ui.notifications?.info("Aucune tache de sang sur cette scène."); return; }
+    const ok = await foundry.applications.api.DialogV2.confirm({
+        window: { title: "Nettoyer les taches de sang", icon: "fas fa-broom" },
+        content: `<p>Supprimer <strong>${total}</strong> tache(s) de sang de la scène « ${scene.name} » ?</p>`,
+        rejectClose: false
+    });
+    if (!ok) return;
+    try {
+        if (tileIds.length) await scene.deleteEmbeddedDocuments("Tile", tileIds);
+        if (drawIds.length) await scene.deleteEmbeddedDocuments("Drawing", drawIds);
+        ui.notifications?.info(`${total} tache(s) de sang supprimée(s).`);
+    } catch (e) { console.warn(`[${MOD}] cleanBloodStains:`, e); ui.notifications?.warn("Erreur lors du nettoyage (voir console)."); }
 }
 
 // ============================================================

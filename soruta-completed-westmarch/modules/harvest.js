@@ -34,20 +34,9 @@ export function HarvestHooks() {
     CONFIG.queries["westmarch.harvestGenerate"] = gmGenerate;
     CONFIG.queries["westmarch.harvestTake"]     = gmTake;
 
-    // Le déclencheur de récolte est un bouton FLOTTANT dessiné au-dessus d'une
-    // créature MORTE, sur le canvas. Visible et cliquable par TOUS les joueurs,
-    // sans possession du token (à la différence du HUD). Voir ensureHarvestIcon.
-    Hooks.on("refreshToken", (token) => ensureHarvestIcon(token));
-    Hooks.on("drawToken", (token) => ensureHarvestIcon(token));
-    // Réagit aux changements de PV (mort/vivant) et au blocage de récolte.
-    Hooks.on("updateActor", (actor) => {
-        for (const t of actor.getActiveTokens?.() ?? []) ensureHarvestIcon(t);
-    });
-    // Visible seulement au survol du token (ou du bouton lui-même).
-    Hooks.on("hoverToken", (token, hovered) => {
-        const g = token?._scwmHarvestIcon;
-        if (g && !g.destroyed) g.visible = hovered || token._scwmHarvestOver === true;
-    });
+    // Déclencheur : bouton dans le HUD du token du JOUEUR (celui qu'il possède,
+    // donc le HUD s'ouvre). Il récolte la CIBLE ciblée (touche T) qui est à 0 PV.
+    Hooks.on("renderTokenHUD", (hud, html) => injectHarvestHudButton(hud, html));
 
     // Boutons de la barre : Associations & nettoyage (MJ uniquement).
     Hooks.on("getSceneControlButtons", (controls) => {
@@ -60,7 +49,7 @@ export function HarvestHooks() {
                 button: true, visible: true, onChange: () => openHarvestConfig()
             };
             controls.westmarch.tools.scwmHarvestClean = {
-                name: "scwmHarvestClean", title: "Récolte — Nettoyer les taches de sang de la scène", icon: "fa-solid fa-broom",
+                name: "scwmHarvestClean", title: "Nettoyer les taches de sang", icon: "fa-solid fa-trash",
                 button: true, visible: true, onChange: () => cleanBloodStains()
             };
         }
@@ -536,43 +525,31 @@ async function cleanBloodStains() {
 }
 
 // ============================================================
-// Bouton FLOTTANT de récolte au-dessus d'une créature morte (canvas PIXI)
-// Cliquable par tous les joueurs, sans possession du token.
+// Bouton de récolte dans le HUD du token du joueur (haut, centré)
+// Récolte la CIBLE (game.user.targets) qui est à 0 PV.
 // ============================================================
-function ensureHarvestIcon(token) {
+function injectHarvestHudButton(hud, html) {
     try {
-        if (!token || !token.actor) return;
-        const actor = token.actor;
-        const show = enabled() && actor.type === "npc" && isDead(actor) && !isHarvestBlocked(actor);
-        const existing = token._scwmHarvestIcon;
-        const alive = existing && !existing.destroyed && existing.parent;
+        if (!enabled()) return;
+        const token = hud?.object;
+        // On l'affiche sur un token que l'utilisateur possède (son PJ).
+        if (!token?.actor?.isOwner) return;
+        const root = (html instanceof HTMLElement) ? html : html?.[0];
+        if (!root || root.querySelector(".scwm-harvest-hud")) return;
 
-        if (!show) { if (alive) { try { existing.destroy(); } catch (e) {} } token._scwmHarvestIcon = null; return; }
-        if (alive) { existing.position.set(token.w / 2, -24); return; }   // déjà présent : repositionne
-
-        const label = new PIXI.Text("⚒ Récolter", {
-            fontFamily: "Signika, sans-serif", fontSize: 16, fontWeight: "bold",
-            fill: "#ffffff", stroke: "#000000", strokeThickness: 3
+        const btn = document.createElement("div");
+        btn.classList.add("control-icon", "scwm-harvest-hud");
+        btn.dataset.tooltip = "Récolter la créature ciblée (à 0 PV)";
+        btn.innerHTML = `<i class="fa-solid fa-hand-holding-droplet"></i>`;
+        // Au-dessus du token, centré (pas sur les côtés).
+        btn.style.cssText = "position:absolute; top:-52px; left:50%; transform:translateX(-50%); pointer-events:all;";
+        btn.addEventListener("click", (e) => {
+            e.preventDefault(); e.stopPropagation();
+            // Récolteur = ce token ; cible = la créature ciblée (T).
+            harvestTargeted(token.actor, null);
         });
-        label.anchor.set(0.5);
-        const padX = 9, padY = 4, w = label.width + padX * 2, h = label.height + padY * 2;
-        const bg = new PIXI.Graphics();
-        bg.beginFill(0x7a1414, 0.92); bg.lineStyle(2, 0x000000, 0.6);
-        bg.drawRoundedRect(-w / 2, -h / 2, w, h, 8); bg.endFill();
-
-        const g = new PIXI.Container();
-        g.addChild(bg); g.addChild(label);
-        g.position.set(token.w / 2, -24);      // au-dessus du token, centré
-        g.eventMode = "static";
-        g.cursor = "pointer";
-        g.visible = !!token.hover;             // caché tant que le token n'est pas survolé
-        g.on("pointerdown", (e) => { e.stopPropagation(); harvestTargeted(null, token); });
-        g.on("pointerover", () => { token._scwmHarvestOver = true; g.visible = true; });
-        g.on("pointerout",  () => { token._scwmHarvestOver = false; if (!token.hover) g.visible = false; });
-
-        token.addChild(g);
-        token._scwmHarvestIcon = g;
-    } catch (e) { console.warn(`[${MOD}] ensureHarvestIcon:`, e); }
+        root.appendChild(btn);
+    } catch (e) { console.warn(`[${MOD}] injectHarvestHudButton:`, e); }
 }
 
 // ============================================================

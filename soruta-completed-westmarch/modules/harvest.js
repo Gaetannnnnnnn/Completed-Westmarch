@@ -278,33 +278,24 @@ function injectHarvestQtyFields(app, html) {
         const table = app?.document ?? app?.object;
         if (!root || !table?.results) return;
 
-        // Ancre fiable : le champ « Weight » (poids) existe sur CHAQUE ligne. On
-        // mappe par ordre d'apparition sur les résultats de la table (même ordre).
-        const weights = [...root.querySelectorAll('input[name*="weight" i]')];
-        const results = table.results.contents ?? [...table.results.values()];
-        console.log(`[${MOD}] injectHarvestQtyFields: ${weights.length} ligne(s) poids, ${results.length} résultat(s)`);
+        const rows = root.querySelectorAll("tr[data-result-id]");
+        console.log(`[${MOD}] injectHarvestQtyFields: ${rows.length} ligne(s) de résultat`);
 
-        weights.forEach((wi, i) => {
-            const result = results[i];
+        rows.forEach(tr => {
+            if (tr.querySelector(".scwm-qty")) return;
+            const result = table.results.get(tr.dataset.resultId);
             if (!result) return;
-            const cell = wi.closest("td, .form-group, div, label") ?? wi.parentElement;
-            const row = wi.closest("tr, li, .table-result") ?? cell?.parentElement ?? cell;
-            if (!row || row.querySelector(".scwm-qty")) return;
+            const cell = tr.querySelector("td") ?? tr;   // cellule « Details »
+            const val = String(result.getFlag(MOD, "harvestQty") ?? "").replace(/"/g, "&quot;");
 
-            const raw = String(result.getFlag(MOD, "harvestQty") ?? "");
-            const val = raw.replace(/"/g, "&quot;");
-            const isRow = (cell?.tagName === "TD");
-            const holder = document.createElement(isRow ? "td" : "span");
-            holder.className = "scwm-qty";
-            holder.style.cssText = "display:inline-flex;align-items:center;gap:4px;white-space:nowrap;margin:0 6px;";
-            holder.innerHTML = `<span style="opacity:.7;font-size:.85em;">Qté récolte</span>
+            const wrap = document.createElement("span");
+            wrap.className = "scwm-qty";
+            wrap.style.cssText = "display:inline-flex;align-items:center;gap:4px;margin-left:12px;vertical-align:middle;";
+            wrap.innerHTML = `<span style="opacity:.7;font-size:.85em;">Qté récolte</span>
                 <input type="text" value="${val}" placeholder="1d4" style="width:60px;" title="Formule de quantité récoltée (ex. 1d4, 2). Vide = 1.">`;
-            holder.querySelector("input").addEventListener("change", (e) =>
+            wrap.querySelector("input").addEventListener("change", (e) =>
                 result.setFlag(MOD, "harvestQty", e.target.value.trim()));
-
-            // Insère juste avant la cellule/le champ du poids.
-            if (cell?.parentElement) cell.parentElement.insertBefore(holder, cell);
-            else row.appendChild(holder);
+            cell.appendChild(wrap);
         });
     } catch (e) { console.warn(`[${MOD}] injectHarvestQtyFields:`, e); }
 }

@@ -64,29 +64,13 @@ export function HarvestHooks() {
     // État de pourriture au survol du token.
     Hooks.on("hoverToken", (token, hovered) => drawRotLabel(token, hovered));
 
-    // Champ « Qté » (formule) injecté dans chaque ligne d'une RollTable, côté MJ.
-    if (game.user.isGM) {
-        // dnd5e remplace la fenêtre par RollTableSheet5e → hook renderRollTableSheet5e.
-        // On couvre aussi les variantes core (selon système/version).
-        for (const h of ["renderRollTableSheet5e", "renderRollTableSheet", "renderRollTableConfig"]) {
-            Hooks.on(h, injectHarvestQtyFields);
-        }
-        // Filet robuste : si aucun de ces hooks ne se déclenche (classe custom),
-        // on patche directement _onRender de la fenêtre de RollTable au ready.
-        Hooks.once("ready", () => {
-            try {
-                const Cls = foundry.applications?.sheets?.RollTableSheet;
-                if (Cls?.prototype && !Cls.prototype._scwmQtyPatched) {
-                    const orig = Cls.prototype._onRender;
-                    Cls.prototype._onRender = async function (...a) {
-                        const r = await orig.apply(this, a);
-                        try { injectHarvestQtyFields(this, this.element); } catch (e) {}
-                        return r;
-                    };
-                    Cls.prototype._scwmQtyPatched = true;
-                }
-            } catch (e) { console.warn(`[${MOD}] patch RollTableSheet:`, e); }
-        });
+    // Champ « Qté » (formule) injecté dans chaque ligne d'une RollTable (MJ).
+    // IMPORTANT : on N'enveloppe PAS d'un test game.user.isGM ici — HarvestHooks
+    // s'exécute à l'"init", où game.user.isGM n'est pas encore fiable, ce qui
+    // sauterait l'enregistrement. La vérification MJ se fait DANS la fonction.
+    // dnd5e remplace la fenêtre par RollTableSheet5e → hook renderRollTableSheet5e.
+    for (const h of ["renderRollTableSheet5e", "renderRollTableSheet", "renderRollTableConfig"]) {
+        Hooks.on(h, injectHarvestQtyFields);
     }
 
     // Tache de sang posée sous le token AU MOMENT DE LA MORT (PV → 0), une seule
@@ -294,6 +278,7 @@ function injectHarvestQtyFields(app, html) {
     try {
         const root = (html instanceof HTMLElement) ? html
             : (html?.[0] ?? (app?.element instanceof HTMLElement ? app.element : app?.element?.[0]) ?? null);
+        if (!game.user?.isGM) return;
         const table = app?.document ?? app?.object;
         if (!root || !table?.results) return;
 

@@ -71,6 +71,22 @@ export function HarvestHooks() {
         for (const h of ["renderRollTableSheet5e", "renderRollTableSheet", "renderRollTableConfig"]) {
             Hooks.on(h, injectHarvestQtyFields);
         }
+        // Filet robuste : si aucun de ces hooks ne se déclenche (classe custom),
+        // on patche directement _onRender de la fenêtre de RollTable au ready.
+        Hooks.once("ready", () => {
+            try {
+                const Cls = foundry.applications?.sheets?.RollTableSheet;
+                if (Cls?.prototype && !Cls.prototype._scwmQtyPatched) {
+                    const orig = Cls.prototype._onRender;
+                    Cls.prototype._onRender = async function (...a) {
+                        const r = await orig.apply(this, a);
+                        try { injectHarvestQtyFields(this, this.element); } catch (e) {}
+                        return r;
+                    };
+                    Cls.prototype._scwmQtyPatched = true;
+                }
+            } catch (e) { console.warn(`[${MOD}] patch RollTableSheet:`, e); }
+        });
     }
 
     // Tache de sang posée sous le token AU MOMENT DE LA MORT (PV → 0), une seule
@@ -288,7 +304,9 @@ function injectHarvestQtyFields(app, html) {
             if (tr.querySelector(".scwm-qty")) return;
             const result = table.results.get(tr.dataset.resultId);
             if (!result) return;
-            const cell = tr.querySelector("td") ?? tr;   // cellule « Details »
+            // Cellule du NOM (« Details ») = premier <td> qui n'est pas l'image.
+            const tds = [...tr.querySelectorAll("td")];
+            const cell = tds.find(td => !td.classList.contains("image")) ?? tds[0] ?? tr;
             const val = String(result.getFlag(MOD, "harvestQty") ?? "").replace(/"/g, "&quot;");
 
             const wrap = document.createElement("span");

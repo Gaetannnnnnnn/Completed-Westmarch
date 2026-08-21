@@ -90,7 +90,7 @@ export function MapHooks() {
         controls.westmarch.tools.scwmFogReset = {
             name: "scwmFogReset",
             title: "Carte d'expédition — Réinitialiser le brouillard",
-            icon: "fas fa-eraser",
+            icon: "fa-solid fa-eraser",
             button: true,
             visible: true,
             onChange: () => openFogResetDialog()
@@ -98,7 +98,7 @@ export function MapHooks() {
         controls.westmarch.tools.scwmLightZone = {
             name: "scwmLightZone",
             title: "Carte d'expédition — Éclairer une zone (villes) : clic gauche = éclairer, clic droit = masquer",
-            icon: "fas fa-city",
+            icon: "fa-solid fa-city",
             toggle: true,
             active: _paintMode,
             visible: true,
@@ -403,15 +403,15 @@ async function promptRenameGroup(actor) {
     const suggested = actor.name?.replace(/\s*\(Copy\)\s*$/i, "").replace(/\s*\(copie\)\s*$/i, "") ?? "";
 
     const name = await DialogV2.wait({
-        window: { title: "Nommer le groupe d'expédition", icon: "fas fa-flag" },
+        window: { title: "Nommer le groupe d'expédition", icon: "fa-solid fa-flag" },
         position: { width: 420 },
         content: `<p style="margin:0 0 6px;">Nom du nouveau groupe (appliqué à la fiche et au prototype token) :</p>
                   <input type="text" name="scwm-gname" style="width:100%;" value="${_esc(suggested)}" placeholder="Nom du groupe" autofocus>`,
         rejectClose: false,
         buttons: [
-            { action: "ok", label: "Renommer", icon: "fas fa-check", default: true,
+            { action: "ok", label: "Renommer", icon: "fa-solid fa-check", default: true,
               callback: (ev, btn) => (btn.form.elements["scwm-gname"]?.value ?? "").trim() },
-            { action: "skip", label: "Garder tel quel", icon: "fas fa-xmark", callback: () => null }
+            { action: "skip", label: "Garder tel quel", icon: "fa-solid fa-xmark", callback: () => null }
         ]
     }).catch(() => null);
 
@@ -439,21 +439,21 @@ async function openFogResetDialog() {
             <select name="scwm-fog-char" style="width:100%;">${options}</select>
         </div>
         <p style="margin:0;font-size:.85em;color:#c0392b;">
-            <i class="fas fa-triangle-exclamation"></i> Action <strong>irréversible</strong> : les zones explorées effacées ne peuvent pas être récupérées.
+            <i class="fa-solid fa-triangle-exclamation"></i> Action <strong>irréversible</strong> : les zones explorées effacées ne peuvent pas être récupérées.
         </p>
     </div>`;
 
     const action = await DialogV2.wait({
-        window: { title: "Réinitialiser le brouillard d'expédition", icon: "fas fa-eraser" },
+        window: { title: "Réinitialiser le brouillard d'expédition", icon: "fa-solid fa-eraser" },
         position: { width: 460 },
         content,
         rejectClose: false,
         buttons: [
-            { action: "one", label: "Réinitialiser CE personnage", icon: "fas fa-user",
+            { action: "one", label: "Réinitialiser CE personnage", icon: "fa-solid fa-user",
               callback: (ev, btn) => ({ type: "one", id: btn.form.elements["scwm-fog-char"]?.value }) },
-            { action: "all", label: "Réinitialiser TOUT LE MONDE", icon: "fas fa-triangle-exclamation",
+            { action: "all", label: "Réinitialiser TOUT LE MONDE", icon: "fa-solid fa-triangle-exclamation",
               callback: () => ({ type: "all" }) },
-            { action: "cancel", label: "Annuler", icon: "fas fa-xmark", callback: () => null }
+            { action: "cancel", label: "Annuler", icon: "fa-solid fa-xmark", callback: () => null }
         ]
     }).catch(() => null);
     if (!action) return;
@@ -496,9 +496,9 @@ async function openFogResetDialog() {
                   <input type="text" name="scwm-confirm" style="width:100%;" placeholder="RESET" autofocus>`,
         rejectClose: false,
         buttons: [
-            { action: "ok", label: "Réinitialiser TOUT", icon: "fas fa-eraser", default: true,
+            { action: "ok", label: "Réinitialiser TOUT", icon: "fa-solid fa-eraser", default: true,
               callback: (ev, btn) => (btn.form.elements["scwm-confirm"]?.value ?? "").trim() },
-            { action: "cancel", label: "Annuler", icon: "fas fa-xmark", callback: () => null }
+            { action: "cancel", label: "Annuler", icon: "fa-solid fa-xmark", callback: () => null }
         ]
     }).catch(() => null);
 

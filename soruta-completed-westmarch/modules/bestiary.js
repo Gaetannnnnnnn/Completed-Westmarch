@@ -136,7 +136,7 @@ function isCreatureToken(token) {
 
 function emptyStateHtml() {
     return `<div class="bst-empty">
-        <i class="fas fa-dragon"></i>
+        <i class="fa-solid fa-dragon"></i>
         <span>Aucune créature répertoriée.</span>
     </div>`;
 }
@@ -155,14 +155,14 @@ function buildRowHtml(entry, actor, canEdit) {
             <span class="bst-name">${name}</span>
             ${hostilitySelector(entry.hostility ?? 0, canEdit)}
             <div class="bst-btns">
-                ${game.user.isGM && target ? `<a class="bst-open-sheet" data-target-id="${entry.targetId}" title="Ouvrir la fiche"><i class="fas fa-external-link-alt"></i></a>` : ""}
-                <a class="bst-toggle" title="Notes"><i class="fas fa-chevron-${open ? "up" : "down"}"></i></a>
-                ${canEdit ? `<a class="bst-delete" title="Retirer du bestiaire"><i class="fas fa-trash"></i></a>` : ""}
+                ${game.user.isGM && target ? `<a class="bst-open-sheet" data-target-id="${entry.targetId}" title="Ouvrir la fiche"><i class="fa-solid fa-external-link-alt"></i></a>` : ""}
+                <a class="bst-toggle" title="Notes"><i class="fa-solid fa-chevron-${open ? "up" : "down"}"></i></a>
+                ${canEdit ? `<a class="bst-delete" title="Retirer du bestiaire"><i class="fa-solid fa-trash"></i></a>` : ""}
             </div>
         </div>
         <div class="bst-notes"${open ? "" : ' style="display:none;"'}>
             <div class="bst-scene-row">
-                <i class="fas fa-map-marker-alt"></i>
+                <i class="fa-solid fa-map-marker-alt"></i>
                 <span class="bst-field-label">Première rencontre :</span>
                 ${canEdit
                     ? `<input class="bst-scene-input" type="text" data-bst-id="${entry.id}"
@@ -210,20 +210,20 @@ export function buildTabHtml(actor) {
     <div class="bst-tab" data-actor-id="${actor.id}">
         <div style="${S.titleBar}">
             <span style="${S.title}">
-                <i class="fas fa-dragon" style="color:#e0a13a;font-size:15px;filter:drop-shadow(0 1px 1px rgba(0,0,0,0.5));"></i>
+                <i class="fa-solid fa-dragon" style="color:#e0a13a;font-size:15px;filter:drop-shadow(0 1px 1px rgba(0,0,0,0.5));"></i>
                 Bestiaire
             </span>
             ${isGM ? `<a class="bst-add-btn">
-                <i class="fas fa-plus" style="font-size:10px;"></i> Ajouter
+                <i class="fa-solid fa-plus" style="font-size:10px;"></i> Ajouter
             </a>` : ""}
         </div>
         <div style="${S.searchBar}">
             <div class="bst-search-wrap" style="${S.wrap}">
-                <i class="fas fa-search" style="${S.srchIcon}"></i>
+                <i class="fa-solid fa-search" style="${S.srchIcon}"></i>
                 <input class="bst-search-input" type="text"
                     placeholder="Rechercher une créature…" style="${S.srchInput}">
                 <a class="bst-search-clear" style="${S.clear}" title="Effacer">
-                    <i class="fas fa-times"></i>
+                    <i class="fa-solid fa-times"></i>
                 </a>
             </div>
         </div>
@@ -293,7 +293,7 @@ async function openAddDialog(actor) {
         buttons: [
             {
                 action: "confirm", default: true,
-                label: "Ajouter", icon: '<i class="fas fa-check"></i>',
+                label: "Ajouter", icon: '<i class="fa-solid fa-check"></i>',
                 callback: () => {
                     if (!selectedId) return;
                     // Acteur monde ou acteur compendium (retrouvé via l'index du dialog)
@@ -309,7 +309,7 @@ async function openAddDialog(actor) {
                     };
                 }
             },
-            { action: "cancel", label: "Annuler", icon: '<i class="fas fa-times"></i>', callback: () => {} }
+            { action: "cancel", label: "Annuler", icon: '<i class="fa-solid fa-times"></i>', callback: () => {} }
         ]
     });
 
@@ -445,7 +445,7 @@ export function wireTab(actor, $html) {
         if (q && $tab.find(".bst-row").length && !visible) {
             $tab.find(".bst-list").append(
                 `<div class="bst-no-results bst-empty">
-                    <i class="fas fa-search"></i>
+                    <i class="fa-solid fa-search"></i>
                     <span>Aucune créature trouvée.</span>
                 </div>`
             );

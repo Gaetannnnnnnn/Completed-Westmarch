@@ -224,7 +224,7 @@ function _dateDialogContent(currentDate, extraHtml = "") {
 
     const noCalWarning = !currentDate
         ? `<p style="margin:0 0 8px;font-size:11px;color:#e67e22;">
-               <i class="fas fa-exclamation-triangle"></i>
+               <i class="fa-solid fa-exclamation-triangle"></i>
                Calendrier non disponible — seule la date personnalisée est utilisable.
            </p>`
         : "";
@@ -314,11 +314,11 @@ async function _pickDateDialog(title) {
                 {
                     action:   "confirm",
                     label:    "Valider",
-                    icon:     '<i class="fas fa-check"></i>',
+                    icon:     '<i class="fa-solid fa-check"></i>',
                     default:  true,
                     callback: () => { resolvedDate = _readDateFromDom(currentDate); }
                 },
-                { action: "cancel", label: "Annuler", icon: '<i class="fas fa-times"></i>' }
+                { action: "cancel", label: "Annuler", icon: '<i class="fa-solid fa-times"></i>' }
             ]
         });
         if (action !== "confirm") return null;
@@ -329,14 +329,14 @@ async function _pickDateDialog(title) {
                 content,
                 buttons: {
                     confirm: {
-                        icon:  '<i class="fas fa-check"></i>',
+                        icon:  '<i class="fa-solid fa-check"></i>',
                         label: "Valider",
                         callback: (html) => {
                             try   { resolve(_readDateFromJQuery(html, currentDate)); }
                             catch { resolve(null); }
                         }
                     },
-                    cancel: { icon: '<i class="fas fa-times"></i>', label: "Annuler", callback: () => resolve(null) }
+                    cancel: { icon: '<i class="fa-solid fa-times"></i>', label: "Annuler", callback: () => resolve(null) }
                 },
                 default: "confirm"
             }, { width: 320 }).render(true);
@@ -351,7 +351,7 @@ async function _createExpDialog(members) {
     const currentDate = getCurrentDate();
     const { html: content } = _dateDialogContent(currentDate,
         `<p style="margin:0 0 6px;font-size:11px;color:#aaa;padding:0 2px;">
-             <i class="fas fa-info-circle"></i>
+             <i class="fa-solid fa-info-circle"></i>
              Crée une nouvelle expédition pour ${members.length} PJ de la party.
          </p>
          <div style="margin-bottom:2px;">
@@ -379,7 +379,7 @@ async function _createExpDialog(members) {
                 {
                     action:   "confirm",
                     label:    "Créer l'expédition",
-                    icon:     '<i class="fas fa-calendar-plus"></i>',
+                    icon:     '<i class="fa-solid fa-calendar-plus"></i>',
                     default:  true,
                     callback: () => {
                         resolvedDate = _readDateFromDom(currentDate);
@@ -387,7 +387,7 @@ async function _createExpDialog(members) {
                             || "Nouvelle expédition";
                     }
                 },
-                { action: "cancel", label: "Annuler", icon: '<i class="fas fa-times"></i>' }
+                { action: "cancel", label: "Annuler", icon: '<i class="fa-solid fa-times"></i>' }
             ]
         });
         if (action !== "confirm" || !resolvedDate) return;
@@ -398,7 +398,7 @@ async function _createExpDialog(members) {
                 content,
                 buttons: {
                     confirm: {
-                        icon:  '<i class="fas fa-calendar-plus"></i>',
+                        icon:  '<i class="fa-solid fa-calendar-plus"></i>',
                         label: "Créer l'expédition",
                         callback: (html) => {
                             try {
@@ -409,7 +409,7 @@ async function _createExpDialog(members) {
                             } catch { resolve({ date: null, name: "Nouvelle expédition" }); }
                         }
                     },
-                    cancel: { icon: '<i class="fas fa-times"></i>', label: "Annuler", callback: () => resolve({ date: null, name: "" }) }
+                    cancel: { icon: '<i class="fa-solid fa-times"></i>', label: "Annuler", callback: () => resolve({ date: null, name: "" }) }
                 },
                 default: "confirm"
             }, { width: 340 }).render(true);
@@ -444,12 +444,12 @@ async function _closeExpDialog(members) {
         <div style="padding:8px 10px;border-radius:5px;
                     border:1px solid rgba(231,76,60,0.3);background:rgba(231,76,60,0.06);">
             <p style="margin:0 0 6px;font-size:11px;color:#aaa;font-weight:600;">
-                <i class="fas fa-clock"></i> Expéditions en cours :
+                <i class="fa-solid fa-clock"></i> Expéditions en cours :
             </p>
             <ul style="margin:0;padding-left:18px;font-size:12px;">${openListHtml}</ul>
         </div>
         <p style="margin:0;font-size:11px;color:#aaa;padding:0 2px;">
-            <i class="fas fa-flag-checkered"></i>
+            <i class="fa-solid fa-flag-checkered"></i>
             Clôture les expéditions en cours pour chaque PJ de la party.
         </p>`;
 
@@ -469,11 +469,11 @@ async function _closeExpDialog(members) {
                 {
                     action:   "confirm",
                     label:    "Clôturer",
-                    icon:     '<i class="fas fa-flag-checkered"></i>',
+                    icon:     '<i class="fa-solid fa-flag-checkered"></i>',
                     default:  true,
                     callback: () => { resolvedDate = _readDateFromDom(currentDate); }
                 },
-                { action: "cancel", label: "Annuler", icon: '<i class="fas fa-times"></i>' }
+                { action: "cancel", label: "Annuler", icon: '<i class="fa-solid fa-times"></i>' }
             ]
         });
         if (action !== "confirm" || !resolvedDate) return;
@@ -484,14 +484,14 @@ async function _closeExpDialog(members) {
                 content,
                 buttons: {
                     confirm: {
-                        icon:  '<i class="fas fa-flag-checkered"></i>',
+                        icon:  '<i class="fa-solid fa-flag-checkered"></i>',
                         label: "Clôturer",
                         callback: (html) => {
                             try   { resolve(_readDateFromJQuery(html, currentDate)); }
                             catch { resolve(null); }
                         }
                     },
-                    cancel: { icon: '<i class="fas fa-times"></i>', label: "Annuler", callback: () => resolve(null) }
+                    cancel: { icon: '<i class="fa-solid fa-times"></i>', label: "Annuler", callback: () => resolve(null) }
                 },
                 default: "confirm"
             }, { width: 360 }).render(true);
@@ -562,10 +562,10 @@ export function buildJournalHtml(actor) {
     const addBar = canEdit ? `
         <div class="carnet-add-bar">
             <button type="button" class="carnet-add-section" title="Ajouter une section">
-                <i class="fas fa-folder-plus"></i> Section
+                <i class="fa-solid fa-folder-plus"></i> Section
             </button>
             <button type="button" class="carnet-add-note">
-                <i class="fas fa-plus"></i> Note
+                <i class="fa-solid fa-plus"></i> Note
             </button>
         </div>` : "";
 
@@ -574,7 +574,7 @@ export function buildJournalHtml(actor) {
         <div class="carnet-body">
             ${addBar}
             <div class="carnet-empty-state">
-                <i class="fas fa-book-open"></i>
+                <i class="fa-solid fa-book-open"></i>
                 <p>Aucune note dans le carnet.<br>
                    Utilisez les boutons ci-dessus pour rédiger votre première note.</p>
             </div>
@@ -593,7 +593,7 @@ export function buildJournalHtml(actor) {
             const titleEsc = (item.title ?? "").replace(/"/g, "&quot;");
             return `
         <div class="carnet-section-header carnet-item" data-carnet-id="${item.id}" data-carnet-type="section">
-            ${canEdit ? `<div class="carnet-drag-handle" draggable="true" title="Déplacer"><i class="fas fa-grip-vertical"></i></div>` : ""}
+            ${canEdit ? `<div class="carnet-drag-handle" draggable="true" title="Déplacer"><i class="fa-solid fa-grip-vertical"></i></div>` : ""}
             <button type="button" class="carnet-toggle-section" data-section-id="${item.id}"
                     title="${currentSectionCollapsed ? "Déplier" : "Replier"}">
                 <i class="fas ${chevron}"></i>
@@ -606,7 +606,7 @@ export function buildJournalHtml(actor) {
                 : `<span class="carnet-section-title-label">${item.title || "Section"}</span>`}
             ${canEdit ? `
             <a class="carnet-del-section" data-section-id="${item.id}" title="Supprimer la section">
-                <i class="fas fa-trash"></i>
+                <i class="fa-solid fa-trash"></i>
             </a>` : ""}
         </div>`;
         }
@@ -620,17 +620,17 @@ export function buildJournalHtml(actor) {
         const linkBadge = linkedExp
             ? `<a class="carnet-go-exp" data-exp-id="${linkedExp.id}"
                   title="Voir l'expédition liée">
-                   <i class="fas fa-calendar-alt"></i> ${linkedExp.name || "Expédition"}
+                   <i class="fa-solid fa-calendar-alt"></i> ${linkedExp.name || "Expédition"}
                </a>
                ${canEdit ? `<a class="carnet-unlink-note" data-note-id="${note.id}"
                   title="Délier de l'expédition"
                   style="font-size:11px;color:#666;cursor:pointer;margin-left:4px;">
-                   <i class="fas fa-unlink"></i>
+                   <i class="fa-solid fa-unlink"></i>
                </a>` : ""}`
             : (canEdit
                 ? `<a class="carnet-link-exp" data-note-id="${note.id}"
                       title="Lier cette note à une expédition">
-                       <i class="fas fa-link"></i> Lier
+                       <i class="fa-solid fa-link"></i> Lier
                    </a>`
                 : "");
 
@@ -641,14 +641,14 @@ export function buildJournalHtml(actor) {
         return `
         <div class="carnet-note-card carnet-item" data-carnet-id="${note.id}" data-carnet-type="note"
              data-note-id="${note.id}"${hidden ? ' style="display:none;"' : ''}>
-            ${canEdit ? `<div class="carnet-drag-handle" draggable="true" title="Déplacer"><i class="fas fa-grip-vertical"></i></div>` : ""}
+            ${canEdit ? `<div class="carnet-drag-handle" draggable="true" title="Déplacer"><i class="fa-solid fa-grip-vertical"></i></div>` : ""}
             <div class="carnet-note-inner">
                 <div class="carnet-note-header">
                     <button type="button" class="carnet-toggle-note" data-note-id="${note.id}"
                             title="${isCollapsed ? "Déplier" : "Replier"}"
                             style="background:none;border:none;color:#8a7a65;cursor:pointer;
                                    padding:2px 6px 2px 0;font-size:11px;flex-shrink:0;">
-                        <i class="fas fa-chevron-${isCollapsed ? "right" : "down"}"></i>
+                        <i class="fa-solid fa-chevron-${isCollapsed ? "right" : "down"}"></i>
                     </button>
                     <div class="carnet-note-title-row" style="flex:1;min-width:0;">
                         ${canEdit
@@ -661,7 +661,7 @@ export function buildJournalHtml(actor) {
                             ${linkBadge}
                             ${canEdit ? `
                             <a class="carnet-del-note" data-note-id="${note.id}" title="Supprimer">
-                                <i class="fas fa-trash"></i>
+                                <i class="fa-solid fa-trash"></i>
                             </a>` : ""}
                         </div>
                     </div>
@@ -673,7 +673,7 @@ export function buildJournalHtml(actor) {
                     ${canEdit ? `
                     <div class="carnet-edit-actions" data-note-id="${note.id}">
                         <button type="button" class="carnet-edit-note" data-note-id="${note.id}">
-                            <i class="fas fa-pen"></i> Modifier
+                            <i class="fa-solid fa-pen"></i> Modifier
                         </button>
                     </div>` : ""}
                 </div>
@@ -697,7 +697,7 @@ export function buildDowntimeHtml(actor) {
     const addBar = isGM ? `
         <div class="carnet-add-bar">
             <button type="button" class="carnet-add-exp">
-                <i class="fas fa-plus"></i> Nouvelle expédition
+                <i class="fa-solid fa-plus"></i> Nouvelle expédition
             </button>
         </div>` : "";
 
@@ -706,7 +706,7 @@ export function buildDowntimeHtml(actor) {
         <div class="carnet-body">
             ${addBar}
             <div class="carnet-empty-state">
-                <i class="fas fa-calendar-alt"></i>
+                <i class="fa-solid fa-calendar-alt"></i>
                 <p>Aucune expédition enregistrée.<br>
                    Le GM peut en créer une via le bouton <strong>Date Expédition</strong>
                    dans la barre de gauche, ou via le bouton ci-dessus.</p>
@@ -719,12 +719,12 @@ export function buildDowntimeHtml(actor) {
             <button type="button" class="carnet-date-btn"
                     data-exp-id="${expId}" data-field="${field}" data-action="set"
                     title="Définir à la date actuelle">
-                <i class="fas fa-calendar-day"></i>
+                <i class="fa-solid fa-calendar-day"></i>
             </button>
             <button type="button" class="carnet-date-btn"
                     data-exp-id="${expId}" data-field="${field}" data-action="clear"
                     title="Effacer la date">
-                <i class="fas fa-times"></i>
+                <i class="fa-solid fa-times"></i>
             </button>
         </div>` : "";
 
@@ -744,14 +744,14 @@ export function buildDowntimeHtml(actor) {
             ? `<a class="carnet-go-note" data-note-id="${linkedNotes[0].id}"
                   title="Voir la note liée dans l'onglet Carnet"
                   style="font-size:11px;color:#9b59b6;text-decoration:none;white-space:nowrap;cursor:pointer;">
-                   <i class="fas fa-book-open"></i>
+                   <i class="fa-solid fa-book-open"></i>
                    ${linkedNotes.length === 1 ? "Note liée" : `${linkedNotes.length} notes liées`}
                </a>`
             : (canEdit
                 ? `<a class="carnet-create-note" data-exp-id="${exp.id}" data-exp-name="${(exp.name ?? "").replace(/"/g, "&quot;")}"
                       title="Créer une note liée dans le Carnet"
                       style="font-size:11px;color:#666;text-decoration:none;white-space:nowrap;cursor:pointer;">
-                       <i class="fas fa-plus"></i> Créer une note
+                       <i class="fa-solid fa-plus"></i> Créer une note
                    </a>`
                 : "");
 
@@ -776,26 +776,26 @@ export function buildDowntimeHtml(actor) {
                         ${noteLink}
                         ${isGM ? `
                         <a class="carnet-del-exp" data-exp-id="${exp.id}" title="Supprimer" style="cursor:pointer;">
-                            <i class="fas fa-trash"></i>
+                            <i class="fa-solid fa-trash"></i>
                         </a>` : ""}
                     </div>
                 </div>
 
                 <div class="carnet-tm-dates">
                     <div class="carnet-date-block">
-                        <span class="carnet-date-label"><i class="fas fa-play"></i> Début</span>
+                        <span class="carnet-date-label"><i class="fa-solid fa-play"></i> Début</span>
                         <span class="carnet-date-value${!exp.startDate ? " empty" : ""}">${startStr}</span>
                         ${dateBtns(exp.id, "startDate")}
                     </div>
-                    <span class="carnet-dates-sep"><i class="fas fa-long-arrow-alt-right"></i></span>
+                    <span class="carnet-dates-sep"><i class="fa-solid fa-long-arrow-alt-right"></i></span>
                     <div class="carnet-date-block">
-                        <span class="carnet-date-label"><i class="fas fa-flag-checkered"></i> Fin</span>
+                        <span class="carnet-date-label"><i class="fa-solid fa-flag-checkered"></i> Fin</span>
                         <span class="carnet-date-value${!exp.endDate ? " empty" : ""}">${endStr ?? "—"}</span>
                         ${dateBtns(exp.id, "endDate")}
                     </div>
                     ${duration ? `
                     <div class="carnet-date-block duration">
-                        <span class="carnet-date-label"><i class="fas fa-hourglass-half"></i> Durée</span>
+                        <span class="carnet-date-label"><i class="fa-solid fa-hourglass-half"></i> Durée</span>
                         <span class="carnet-duration-value">${duration}</span>
                     </div>` : ""}
                 </div>
@@ -1221,7 +1221,7 @@ async function _linkNoteToExpDialog(actor, noteId, sheet) {
             <div style="width:36px;height:36px;border-radius:50%;flex-shrink:0;
                         display:flex;align-items:center;justify-content:center;
                         background:rgba(155,89,182,0.15);">
-                <i class="fas fa-route" style="color:#9b59b6;"></i>
+                <i class="fa-solid fa-route" style="color:#9b59b6;"></i>
             </div>
             <div style="flex:1;min-width:0;">
                 <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
@@ -1235,7 +1235,7 @@ async function _linkNoteToExpDialog(actor, noteId, sheet) {
                 </div>
             </div>
             <div class="carnet-picker-check" style="flex-shrink:0;opacity:0;transition:opacity 0.12s;">
-                <i class="fas fa-check-circle" style="color:#9b59b6;font-size:18px;"></i>
+                <i class="fa-solid fa-check-circle" style="color:#9b59b6;font-size:18px;"></i>
             </div>
         </div>`;
     }).join("");
@@ -1243,7 +1243,7 @@ async function _linkNoteToExpDialog(actor, noteId, sheet) {
     const content = `
 <div style="display:flex;flex-direction:column;gap:8px;padding:2px 0;">
     <div style="position:relative;">
-        <i class="fas fa-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);
+        <i class="fa-solid fa-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);
                                          color:#777;pointer-events:none;font-size:12px;"></i>
         <input type="text" id="carnet-exp-search"
                placeholder="Rechercher une expédition…"
@@ -1319,11 +1319,11 @@ async function _linkNoteToExpDialog(actor, noteId, sheet) {
                 {
                     action:   "confirm",
                     label:    "Lier",
-                    icon:     '<i class="fas fa-link"></i>',
+                    icon:     '<i class="fa-solid fa-link"></i>',
                     default:  true,
                     callback: () => {} // selectedId mis à jour via click
                 },
-                { action: "cancel", label: "Annuler", icon: '<i class="fas fa-times"></i>' }
+                { action: "cancel", label: "Annuler", icon: '<i class="fa-solid fa-times"></i>' }
             ]
         });
         if (action !== "confirm" || !selectedId) return;
@@ -1576,7 +1576,7 @@ async function initNoteEditor(actor, _container, noteId) {
                 {
                     action:   "save",
                     label:    "Sauvegarder",
-                    icon:     '<i class="fas fa-save"></i>',
+                    icon:     '<i class="fa-solid fa-save"></i>',
                     default:  true,
                     callback: () => {
                         // Fallback si l'input event n'a pas capturé (ex: premier clic sans frappe)
@@ -1584,7 +1584,7 @@ async function initNoteEditor(actor, _container, noteId) {
                         if (editor) savedContent = editor.innerHTML;
                     }
                 },
-                { action: "cancel", label: "Annuler", icon: '<i class="fas fa-times"></i>' }
+                { action: "cancel", label: "Annuler", icon: '<i class="fa-solid fa-times"></i>' }
             ]
         });
 
@@ -1602,7 +1602,7 @@ async function initNoteEditor(actor, _container, noteId) {
             content: `<div style="padding:4px 0;">${editorContent}</div>`,
             buttons: {
                 save: {
-                    icon:  '<i class="fas fa-save"></i>',
+                    icon:  '<i class="fa-solid fa-save"></i>',
                     label: "Sauvegarder",
                     callback: async (html) => {
                         const editor  = html[0]?.querySelector('#carnet-note-editor');
@@ -1613,7 +1613,7 @@ async function initNoteEditor(actor, _container, noteId) {
                         await actor.setFlag(MODULE, "carnetNotes", updated);
                     }
                 },
-                cancel: { icon: '<i class="fas fa-times"></i>', label: "Annuler" }
+                cancel: { icon: '<i class="fa-solid fa-times"></i>', label: "Annuler" }
             },
             default: "save",
             render: (html) => {

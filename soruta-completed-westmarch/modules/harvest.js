@@ -40,22 +40,22 @@ export function HarvestHooks() {
             controls.westmarch = { name: "westmarch", title: "WestMarch", icon: "fa-solid fa-hammer", layer: "tokens", tools: {} };
         }
         controls.westmarch.tools.scwmHarvest = {
-            name: "scwmHarvest", title: "Récolter la créature ciblée", icon: "fas fa-hand-holding-medical",
+            name: "scwmHarvest", title: "Récolter la créature ciblée", icon: "fa-solid fa-hand-holding-droplet",
             button: true, visible: true, onChange: () => harvestTargeted()
         };
         if (game.user.isGM) {
             if (game.settings.get(MOD, "harvestShowState")) {
                 controls.westmarch.tools.scwmHarvestState = {
                     name: "scwmHarvestState", title: "Récolte — Régler l'état de la dépouille sélectionnée",
-                    icon: "fas fa-droplet", button: true, visible: true, onChange: () => openStateDialog()
+                    icon: "fa-solid fa-droplet", button: true, visible: true, onChange: () => openStateDialog()
                 };
             }
             controls.westmarch.tools.scwmHarvestConfig = {
-                name: "scwmHarvestConfig", title: "Récolte — Associer les créatures aux RollTables", icon: "fas fa-sitemap",
+                name: "scwmHarvestConfig", title: "Récolte — Associer les créatures aux RollTables", icon: "fa-solid fa-sitemap",
                 button: true, visible: true, onChange: () => openHarvestConfig()
             };
             controls.westmarch.tools.scwmHarvestClean = {
-                name: "scwmHarvestClean", title: "Récolte — Nettoyer les taches de sang de la scène", icon: "fas fa-broom",
+                name: "scwmHarvestClean", title: "Récolte — Nettoyer les taches de sang de la scène", icon: "fa-solid fa-broom",
                 button: true, visible: true, onChange: () => cleanBloodStains()
             };
         }
@@ -228,7 +228,9 @@ async function gmGenerate({ sceneId, tokenId, total }) {
 //  • Item : lien de document du résultat, sinon lien @UUID trouvé dans le texte.
 //  • « rien » : aucun item ET texte vide ou négatif (rien / nothing / - / aucun).
 async function parseResult(r) {
-    let text = (r.text ?? "").trim();
+    // Foundry v13/v14 : le « Result Name » est r.name (l'ancien r.text a disparu).
+    // On lit le nom en priorité, puis l'éventuelle description pour un lien @UUID.
+    let text = (r.name ?? r.text ?? "").trim();
     let qty = 1;
     const m = text.match(/^\s*(\d+d\d+(?:\s*[+-]\s*\d+)?|\d+)\s*(?:[x×*]\s*)?/i);
     if (m) {
@@ -237,7 +239,7 @@ async function parseResult(r) {
     }
     let item = await resultToItem(r);
     if (!item) {
-        const um = text.match(/@UUID\[([^\]]+)\]/);
+        const um = (text + " " + (r.description ?? "")).match(/@UUID\[([^\]]+)\]/);
         if (um) item = await fromUuid(um[1]).catch(() => null);
     }
     const cleaned = text.replace(/@UUID\[[^\]]+\]\{([^}]*)\}/g, "$1").replace(/@UUID\[[^\]]+\]/g, "").trim();
@@ -280,12 +282,12 @@ async function openLootWindow(sceneId, tokenId, harvesterId = null) {
 
     const DialogV2 = foundry.applications.api.DialogV2;
     const picked = await DialogV2.wait({
-        window: { title: `Récolter — ${tokenDoc.name}`, icon: "fas fa-hand-holding-medical" },
+        window: { title: `Récolter — ${tokenDoc.name}`, icon: "fa-solid fa-hand-holding-droplet" },
         position: { width: 420 },
         content: `<p style="margin:0 0 6px;font-size:.9em;">Choisissez ce que vous prenez. Ce qui reste demeure sur la dépouille pour les autres.</p>${rows}`,
         rejectClose: false,
         buttons: [
-            { action: "take", label: "Prendre", icon: "fas fa-hand-holding", default: true,
+            { action: "take", label: "Prendre", icon: "fa-solid fa-hand-holding", default: true,
               callback: (ev, btn) => {
                   const out = [];
                   btn.form.querySelectorAll('input[name="take"]:checked').forEach(cb => {
@@ -295,7 +297,7 @@ async function openLootWindow(sceneId, tokenId, harvesterId = null) {
                   });
                   return out;
               } },
-            { action: "close", label: "Laisser", icon: "fas fa-xmark", callback: () => null }
+            { action: "close", label: "Laisser", icon: "fa-solid fa-xmark", callback: () => null }
         ]
     }).catch(() => null);
 
@@ -447,7 +449,7 @@ async function cleanBloodStains() {
     const total = tileIds.length + drawIds.length;
     if (!total) { ui.notifications?.info("Aucune tache de sang sur cette scène."); return; }
     const ok = await foundry.applications.api.DialogV2.confirm({
-        window: { title: "Nettoyer les taches de sang", icon: "fas fa-broom" },
+        window: { title: "Nettoyer les taches de sang", icon: "fa-solid fa-broom" },
         content: `<p>Supprimer <strong>${total}</strong> tache(s) de sang de la scène « ${scene.name} » ?</p>`,
         rejectClose: false
     });
@@ -498,15 +500,15 @@ async function openStateDialog() {
     const cur = harvestState(actor, token.document);
     const DialogV2 = foundry.applications.api.DialogV2;
     const choice = await DialogV2.wait({
-        window: { title: `État de la dépouille — ${token.document.name}`, icon: "fas fa-droplet" },
+        window: { title: `État de la dépouille — ${token.document.name}`, icon: "fa-solid fa-droplet" },
         content: `<p>État actuel : <strong>${STATE_LABELS[cur]}</strong>${token.document.getFlag(MOD, "harvestState") ? "" : " (par défaut)"}.</p>
                   <p style="font-size:.85em;color:#999;">Fraîche = butin complet · Abîmée = butin réduit · Pourrie = rien à récolter.<br>Par défaut, les morts-vivants sont « pourris ».</p>`,
         rejectClose: false,
         buttons: [
-            { action: "fresh",   label: "Fraîche",  icon: "fas fa-leaf",     callback: () => "fresh" },
-            { action: "damaged", label: "Abîmée",   icon: "fas fa-bandage",  callback: () => "damaged" },
-            { action: "rotten",  label: "Pourrie",  icon: "fas fa-skull",    callback: () => "rotten" },
-            { action: "cancel",  label: "Annuler",  icon: "fas fa-xmark",    callback: () => null }
+            { action: "fresh",   label: "Fraîche",  icon: "fa-solid fa-leaf",     callback: () => "fresh" },
+            { action: "damaged", label: "Abîmée",   icon: "fa-solid fa-bandage",  callback: () => "damaged" },
+            { action: "rotten",  label: "Pourrie",  icon: "fa-solid fa-skull",    callback: () => "rotten" },
+            { action: "cancel",  label: "Annuler",  icon: "fa-solid fa-xmark",    callback: () => null }
         ]
     }).catch(() => null);
     if (!choice) return;
@@ -563,12 +565,12 @@ async function openHarvestConfig() {
     </div>`;
 
     await DialogV2.wait({
-        window: { title: "Récolte — Associations créature ↔ RollTable", icon: "fas fa-sitemap" },
+        window: { title: "Récolte — Associations créature ↔ RollTable", icon: "fa-solid fa-sitemap" },
         position: { width: 520 },
         content,
         rejectClose: false,
         buttons: [
-            { action: "save", label: "Enregistrer", icon: "fas fa-save", default: true,
+            { action: "save", label: "Enregistrer", icon: "fa-solid fa-save", default: true,
               callback: async (ev, btn) => {
                   const out = { byType: {}, byName: {} };
                   for (const k of Object.keys(types)) {
@@ -586,7 +588,7 @@ async function openHarvestConfig() {
                   await game.settings.set(MOD, "harvestTables", out);
                   ui.notifications?.info("Associations de récolte enregistrées.");
               } },
-            { action: "cancel", label: "Fermer", icon: "fas fa-xmark", callback: () => {} }
+            { action: "cancel", label: "Fermer", icon: "fa-solid fa-xmark", callback: () => {} }
         ]
     }).catch(() => {});
 }

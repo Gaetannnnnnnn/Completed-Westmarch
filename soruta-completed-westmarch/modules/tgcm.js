@@ -107,7 +107,7 @@ function _injectTgcmButton(hud, html) {
     const btn = document.createElement("div");
     btn.className = `control-icon tgcm-btn${isActive ? " active" : ""}`;
     btn.title = `Protégé TGCM${isActive ? " (actif)" : ""}`;
-    btn.innerHTML = `<i class="fas fa-shield-alt"></i>`;
+    btn.innerHTML = `<i class="fa-solid fa-shield-alt"></i>`;
 
     btn.addEventListener("click", async (e) => {
         e.preventDefault();

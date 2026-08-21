@@ -150,14 +150,14 @@ async function openTransformDialog(tokenDoc, forms) {
             {
                 action: "transform",
                 label: "Transformer",
-                icon: '<i class="fas fa-paw"></i>',
+                icon: '<i class="fa-solid fa-paw"></i>',
                 default: true,
                 callback: async () => {
                     const chosen = valid[selectedFormIndex];
                     if (chosen) await applyTransform(tokenDoc, chosen.actor);
                 }
             },
-            { action: "cancel", label: "Annuler", icon: '<i class="fas fa-times"></i>' }
+            { action: "cancel", label: "Annuler", icon: '<i class="fa-solid fa-times"></i>' }
         ]
     });
 }
@@ -191,7 +191,7 @@ export function PolymorphHooks() {
                 <div class="control-icon westmarch-poly-transform"
                     title="Transformer (Wild Shape / Polymorph)"
                     style="cursor:pointer;">
-                    <i class="fas fa-paw"></i>
+                    <i class="fa-solid fa-paw"></i>
                 </div>
             `);
         }
@@ -200,7 +200,7 @@ export function PolymorphHooks() {
                 <div class="control-icon westmarch-poly-revert"
                     title="Rétablir la forme originale"
                     style="cursor:pointer;">
-                    <i class="fas fa-user"></i>
+                    <i class="fa-solid fa-user"></i>
                 </div>
             `);
         }
@@ -265,7 +265,7 @@ export function PolymorphHooks() {
                     <button type="button" class="wm-poly-add-btn"
                         title="Ajouter cette forme"
                         style="height:28px; padding:0 10px; flex-shrink:0;">
-                        <i class="fas fa-plus"></i>
+                        <i class="fa-solid fa-plus"></i>
                     </button>
                 </div>
                 <div class="wm-poly-search-results" style="
@@ -298,7 +298,7 @@ export function PolymorphHooks() {
                         <div class="wm-poly-remove" data-index="${i}"
                             style="cursor:pointer; color:#c55; padding:2px 6px; border-radius:3px; flex-shrink:0;"
                             title="Supprimer cette forme">
-                            <i class="fas fa-trash" style="font-size:11px;"></i>
+                            <i class="fa-solid fa-trash" style="font-size:11px;"></i>
                         </div>
                     </div>
                 `);

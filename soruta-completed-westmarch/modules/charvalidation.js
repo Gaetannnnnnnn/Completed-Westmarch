@@ -298,7 +298,7 @@ function promptNewCharRequest() {
         </div>`,
         buttons: {
             send: {
-                icon: '<i class="fas fa-paper-plane"></i>', label: "Envoyer la demande",
+                icon: '<i class="fa-solid fa-paper-plane"></i>', label: "Envoyer la demande",
                 callback: async (html) => {
                     const root = html[0] ?? html;
                     const name = root.querySelector("[name=cv-name]")?.value.trim();
@@ -309,7 +309,7 @@ function promptNewCharRequest() {
                     ui.notifications?.info("Demande envoyée.");
                 }
             },
-            cancel: { icon: '<i class="fas fa-times"></i>', label: "Annuler" }
+            cancel: { icon: '<i class="fa-solid fa-times"></i>', label: "Annuler" }
         },
         default: "send"
     }).render(true);
@@ -338,24 +338,24 @@ export function openPlayerHub() {
         if (stock) {
             status = "🔒 en stock (non jouable)";
             const dis = atActiveLimit ? "disabled title=\"Limite de personnages actifs atteinte — mettez-en un en stock d'abord\"" : "";
-            btns = `<button type="button" class="scwm-cv-act" data-act="activate" data-id="${a.id}" ${dis}><i class="fas fa-lock-open"></i> Activer</button>`;
+            btns = `<button type="button" class="scwm-cv-act" data-act="activate" data-id="${a.id}" ${dis}><i class="fa-solid fa-lock-open"></i> Activer</button>`;
         } else {
             if (locked && lvlPending)      status = "verrouillé · ⬆️ montée en attente";
             else if (locked)             {
                 status = "🔒 validé & verrouillé";
                 // Bouton de montée de niveau uniquement si le PJ a atteint le seuil d'XP.
-                if (canLevelUp(a)) btns = `<button type="button" class="scwm-cv-act" data-act="levelup" data-id="${a.id}"><i class="fas fa-arrow-up-1-9"></i> Monter de niveau</button>`;
+                if (canLevelUp(a)) btns = `<button type="button" class="scwm-cv-act" data-act="levelup" data-id="${a.id}"><i class="fa-solid fa-arrow-up-1-9"></i> Monter de niveau</button>`;
             }
             else if (pending)              status = "⏳ en attente de validation";
-            else if (inFlow || validated) { status = "🛠️ en construction"; btns = `<button type="button" class="scwm-cv-act" data-act="submit" data-id="${a.id}"><i class="fas fa-paper-plane"></i> Soumettre</button>`; }
-            else                         { status = "🎭 jouable"; btns = `<button type="button" class="scwm-cv-act" data-act="submit" data-id="${a.id}" title="Soumettre pour validation & verrouillage"><i class="fas fa-paper-plane"></i> Soumettre</button>`; }
-            btns += `<button type="button" class="scwm-cv-act" data-act="stock" data-id="${a.id}" title="Mettre en stock"><i class="fas fa-box-archive"></i></button>`;
+            else if (inFlow || validated) { status = "🛠️ en construction"; btns = `<button type="button" class="scwm-cv-act" data-act="submit" data-id="${a.id}"><i class="fa-solid fa-paper-plane"></i> Soumettre</button>`; }
+            else                         { status = "🎭 jouable"; btns = `<button type="button" class="scwm-cv-act" data-act="submit" data-id="${a.id}" title="Soumettre pour validation & verrouillage"><i class="fa-solid fa-paper-plane"></i> Soumettre</button>`; }
+            btns += `<button type="button" class="scwm-cv-act" data-act="stock" data-id="${a.id}" title="Mettre en stock"><i class="fa-solid fa-box-archive"></i></button>`;
         }
 
         return `<div class="scwm-cv-charrow${stock ? " scwm-cv-stocked" : ""}">
             <div class="scwm-cv-charinfo"><strong>${esc(a.name)}</strong><br><span class="scwm-cv-charstatus">${status}</span></div>
             <div class="scwm-cv-charactions">
-                <button type="button" class="scwm-cv-act" data-act="open" data-id="${a.id}" title="Ouvrir la fiche"><i class="fas fa-user"></i></button>
+                <button type="button" class="scwm-cv-act" data-act="open" data-id="${a.id}" title="Ouvrir la fiche"><i class="fa-solid fa-user"></i></button>
                 ${btns}
             </div>
         </div>`;
@@ -366,11 +366,11 @@ export function openPlayerHub() {
     let createBlock;
     if (req) {
         createBlock = `<p>📝 Votre demande de création (« ${esc(req.name)} ») est en attente de validation.</p>
-           <div class="scwm-cv-actions"><button type="button" class="scwm-cv-act" data-act="cancel"><i class="fas fa-times"></i> Annuler la demande</button></div>`;
+           <div class="scwm-cv-actions"><button type="button" class="scwm-cv-act" data-act="cancel"><i class="fa-solid fa-times"></i> Annuler la demande</button></div>`;
     } else if (atTotalLimit) {
         createBlock = `<p class="scwm-cv-empty">Nombre maximum de personnages atteint (${limTotal}).</p>`;
     } else {
-        createBlock = `<div class="scwm-cv-actions"><button type="button" class="scwm-cv-act" data-act="newreq"><i class="fas fa-plus"></i> Demander un nouveau personnage</button></div>`;
+        createBlock = `<div class="scwm-cv-actions"><button type="button" class="scwm-cv-act" data-act="newreq"><i class="fa-solid fa-plus"></i> Demander un nouveau personnage</button></div>`;
     }
 
     const content = `<div class="scwm-cv-hub">
@@ -384,7 +384,7 @@ export function openPlayerHub() {
     const dlg = new Dialog({
         title: "Mes personnages — validation",
         content,
-        buttons: { close: { icon: '<i class="fas fa-times"></i>', label: "Fermer" } },
+        buttons: { close: { icon: '<i class="fa-solid fa-times"></i>', label: "Fermer" } },
         render: (html) => {
             const root = html[0] ?? html;
             const run = async (a, id) => {

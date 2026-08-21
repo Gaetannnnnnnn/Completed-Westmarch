@@ -53,7 +53,7 @@ async function openFolderPicker(folderType, title, excludeFolderId = null) {
                         ${hasKids ? "cursor:pointer;" : "visibility:hidden;"}">▶</span>
                     <span class="wm-fm-select" data-folder-id="${folder.id}" style="
                         display:flex; align-items:center; gap:6px; flex:1; cursor:pointer;">
-                        <i class="fas fa-folder" style="color:#c9a84c; font-size:11px; flex-shrink:0;"></i>
+                        <i class="fa-solid fa-folder" style="color:#c9a84c; font-size:11px; flex-shrink:0;"></i>
                         <span style="font-size:12px;">${folder.name}</span>
                     </span>
                 </div>
@@ -84,7 +84,7 @@ async function openFolderPicker(folderType, title, excludeFolderId = null) {
                             <span style="width:14px; flex-shrink:0;"></span>
                             <span class="wm-fm-select" data-folder-id="" style="
                                 display:flex; align-items:center; gap:6px; flex:1; cursor:pointer;">
-                                <i class="fas fa-layer-group" style="color:#777; font-size:11px; flex-shrink:0;"></i>
+                                <i class="fa-solid fa-layer-group" style="color:#777; font-size:11px; flex-shrink:0;"></i>
                                 <span style="font-size:12px; color:#999; font-style:italic;">Racine (sans dossier)</span>
                             </span>
                         </div>
@@ -155,8 +155,8 @@ async function openFolderPicker(folderType, title, excludeFolderId = null) {
             setTimeout(() => $c.find(".wm-fm-search").focus(), 60);
         },
         buttons: [
-            { action: "confirm", label: "Confirmer", icon: '<i class="fas fa-check"></i>', default: true, callback: () => {} },
-            { action: "cancel",  label: "Annuler",   icon: '<i class="fas fa-times"></i>', callback: () => { chosen = false; } },
+            { action: "confirm", label: "Confirmer", icon: '<i class="fa-solid fa-check"></i>', default: true, callback: () => {} },
+            { action: "cancel",  label: "Annuler",   icon: '<i class="fa-solid fa-times"></i>', callback: () => { chosen = false; } },
         ]
     });
 
@@ -178,7 +178,7 @@ export function FolderMoveHooks() {
             options.push(
                 {
                     name: "Déplacer vers…",
-                    icon: '<i class="fas fa-folder-open"></i>',
+                    icon: '<i class="fa-solid fa-folder-open"></i>',
                     callback: async (li) => {
                         try {
                             const el    = (li instanceof HTMLElement) ? li : li?.[0];
@@ -197,7 +197,7 @@ export function FolderMoveHooks() {
                 },
                 {
                     name: "Dupliquer vers…",
-                    icon: '<i class="fas fa-copy"></i>',
+                    icon: '<i class="fa-solid fa-copy"></i>',
                     callback: async (li) => {
                         try {
                             const el    = (li instanceof HTMLElement) ? li : li?.[0];
@@ -225,7 +225,7 @@ export function FolderMoveHooks() {
 
         options.push({
             name: "Déplacer vers…",
-            icon: '<i class="fas fa-folder-open"></i>',
+            icon: '<i class="fa-solid fa-folder-open"></i>',
             callback: async (li) => {
                 try {
                     // En v13 le callback reçoit le <header> interne du dossier,

@@ -652,7 +652,7 @@ const CATEGORIES = [
     { firstKey: "enableSourceControl", master: "enableSourceControl", icon: "fa-book-skull", title: "Contrôle des sources",
       desc: "Réglemente les livres/extensions D&D (Xanathar, Tal'Dorei, etc.) autorisés sur les fiches PJ, via deux listes blanches (joueurs / MJ). Le contenu d'une source non autorisée est bloqué avec un avertissement, quelle que soit la méthode d'ajout.",
       keys: ["enableSourceControl","sourceAllowPlayers","sourceAllowGm","sourceMatchField","sourceMatchExact","sourceBlockUnknown"] },
-    { firstKey: "enableHarvest", master: "enableHarvest", icon: "fa-hand-holding-medical", title: "Récolte (harvest)",
+    { firstKey: "enableHarvest", master: "enableHarvest", icon: "fa-hand-holding-droplet", title: "Récolte (harvest)",
       desc: "Récolte de matériaux sur les créatures mortes. Le module utilise des RollTables que vous créez et associez aux créatures (bouton « Associations » dans l'onglet WestMarch). Butin partagé sur la dépouille, pourriture avec le temps, tache de sang une fois vidée.",
       keys: ["enableHarvest","harvestDcBase","harvestDcPerCr","harvestBaseDraws","harvestBloodImage","harvestShowState"] },
     { firstKey: "enableXpBlock",         icon: "fa-server",          title: "Serveur",
@@ -802,10 +802,10 @@ async function openCategoryDialog(category) {
         buttons: [
             {
                 action: "save", default: true,
-                label: "Enregistrer", icon: '<i class="fas fa-save"></i>',
+                label: "Enregistrer", icon: '<i class="fa-solid fa-save"></i>',
                 callback: async () => await saveCategoryForm(category, document.getElementById(uid))
             },
-            { action: "close", label: "Fermer", icon: '<i class="fas fa-xmark"></i>', callback: () => {} }
+            { action: "close", label: "Fermer", icon: '<i class="fa-solid fa-xmark"></i>', callback: () => {} }
         ]
     });
 }
@@ -837,7 +837,7 @@ export function licenseBannerHtml() {
     <div style="display:flex;align-items:center;gap:8px;margin:0 0 10px;padding:7px 10px;
                 border:1px solid rgba(201,162,39,0.5);border-radius:5px;
                 background:linear-gradient(180deg,rgba(201,162,39,0.12),rgba(0,0,0,0.15));">
-        <i class="fas fa-shield-halved" style="color:${ACCENT};font-size:15px;"></i>
+        <i class="fa-solid fa-shield-halved" style="color:${ACCENT};font-size:15px;"></i>
         <div style="font-size:.78em;line-height:1.4;color:#d8cfa8;">
             <strong>Soruta — Completed Westmarch</strong> · v${version}<br>
             © 2026 Soruta — Tous droits réservés. Usage personnel autorisé ; toute
@@ -886,7 +886,7 @@ function settingControlHtml(key) {
         // Chemin d'image avec bouton « Parcourir » (FilePicker).
         control = `<div style="display:flex;gap:4px;">
             <input type="text" name="${key}" value="${escapeAttr(val ?? "")}" style="flex:1 1 auto;min-width:0;">
-            <button type="button" class="scwm-filepicker" data-target="${key}" data-fptype="image" title="Parcourir" style="flex:0 0 auto;width:34px;"><i class="fas fa-file-import"></i></button>
+            <button type="button" class="scwm-filepicker" data-target="${key}" data-fptype="image" title="Parcourir" style="flex:0 0 auto;width:34px;"><i class="fa-solid fa-file-import"></i></button>
         </div>`;
     } else {
         control = `<input type="text" name="${key}" value="${escapeAttr(val ?? "")}" style="width:100%;">`;

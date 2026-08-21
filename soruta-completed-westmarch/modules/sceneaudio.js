@@ -230,10 +230,10 @@ class SceneCuesApp extends foundry.applications.api.ApplicationV2 {
         return `
         <div class="scwm-cue-manager">
             <div class="scwm-cue-toolbar">
-                <button type="button" class="scwm-cue-add"><i class="fas fa-plus"></i> Nouveau cue</button>
-                <button type="button" class="scwm-cue-add-section"><i class="fas fa-folder-plus"></i> Section</button>
+                <button type="button" class="scwm-cue-add"><i class="fa-solid fa-plus"></i> Nouveau cue</button>
+                <button type="button" class="scwm-cue-add-section"><i class="fa-solid fa-folder-plus"></i> Section</button>
                 <span class="scwm-cue-toolbar-sep"></span>
-                <button type="button" class="scwm-cue-stopall"><i class="fas fa-stop"></i> Tout arrêter</button>
+                <button type="button" class="scwm-cue-stopall"><i class="fa-solid fa-stop"></i> Tout arrêter</button>
             </div>
             <div class="scwm-cue-list">${html}</div>
         </div>`;
@@ -245,12 +245,12 @@ class SceneCuesApp extends foundry.applications.api.ApplicationV2 {
         return `
         <div class="scwm-cue-section${s.collapsed ? " collapsed" : ""}" data-item-id="${s.id}">
             <button type="button" class="scwm-cue-sec-collapse" title="Replier / déplier"><i class="fas ${chevron}"></i></button>
-            <i class="fas fa-folder scwm-cue-sec-icon"></i>
+            <i class="fa-solid fa-folder scwm-cue-sec-icon"></i>
             <input type="text" class="scwm-cue-sec-title" name="sectitle" value="${esc(s.title ?? "")}" placeholder="Nom de la section"/>
             <div class="scwm-cue-move">
-                <button type="button" class="scwm-cue-up" title="Monter"><i class="fas fa-chevron-up"></i></button>
-                <button type="button" class="scwm-cue-down" title="Descendre"><i class="fas fa-chevron-down"></i></button>
-                <button type="button" class="scwm-cue-del" title="Supprimer la section"><i class="fas fa-trash"></i></button>
+                <button type="button" class="scwm-cue-up" title="Monter"><i class="fa-solid fa-chevron-up"></i></button>
+                <button type="button" class="scwm-cue-down" title="Descendre"><i class="fa-solid fa-chevron-down"></i></button>
+                <button type="button" class="scwm-cue-del" title="Supprimer la section"><i class="fa-solid fa-trash"></i></button>
             </div>
         </div>`;
     }
@@ -265,9 +265,9 @@ class SceneCuesApp extends foundry.applications.api.ApplicationV2 {
                 <label>Token lié</label>
                 <span class="scwm-cue-tokenname">${c.tokenName ? esc(c.tokenName) : "<em>aucun</em>"}</span>
                 <button type="button" class="scwm-cue-link" title="Lier au token sélectionné sur la scène">
-                    <i class="fas fa-link"></i> Lier au token sélectionné
+                    <i class="fa-solid fa-link"></i> Lier au token sélectionné
                 </button>
-                ${c.tokenId ? `<button type="button" class="scwm-cue-unlink" title="Délier"><i class="fas fa-unlink"></i></button>` : ""}
+                ${c.tokenId ? `<button type="button" class="scwm-cue-unlink" title="Délier"><i class="fa-solid fa-unlink"></i></button>` : ""}
             </div>`;
 
         const collapsed = !!c.collapsed;
@@ -278,8 +278,8 @@ class SceneCuesApp extends foundry.applications.api.ApplicationV2 {
                     <label>Fichier audio</label>
                     <div class="scwm-cue-file">
                         <input type="text" name="path" value="${esc(c.path)}" placeholder="ex. music/reveal.ogg"/>
-                        <button type="button" class="scwm-cue-playlists" title="Choisir depuis les playlists (monde &amp; compendiums)"><i class="fas fa-music"></i></button>
-                        <button type="button" class="scwm-cue-browse" title="Parcourir les fichiers"><i class="fas fa-folder-open"></i></button>
+                        <button type="button" class="scwm-cue-playlists" title="Choisir depuis les playlists (monde &amp; compendiums)"><i class="fa-solid fa-music"></i></button>
+                        <button type="button" class="scwm-cue-browse" title="Parcourir les fichiers"><i class="fa-solid fa-folder-open"></i></button>
                     </div>
                 </div>
                 <div class="scwm-cue-grid">
@@ -301,11 +301,11 @@ class SceneCuesApp extends foundry.applications.api.ApplicationV2 {
                 <button type="button" class="scwm-cue-collapse" title="Replier / déplier"><i class="fas ${chevron}"></i></button>
                 <input type="text" class="scwm-cue-title" name="name" value="${esc(c.name)}" placeholder="Nom du cue"/>
                 <div class="scwm-cue-head-actions">
-                    <button type="button" class="scwm-cue-up" title="Monter"><i class="fas fa-chevron-up"></i></button>
-                    <button type="button" class="scwm-cue-down" title="Descendre"><i class="fas fa-chevron-down"></i></button>
-                    <button type="button" class="scwm-cue-play" title="Jouer pour tous"><i class="fas fa-play"></i></button>
-                    <button type="button" class="scwm-cue-stop" title="Stop"><i class="fas fa-stop"></i></button>
-                    <button type="button" class="scwm-cue-del" title="Supprimer"><i class="fas fa-trash"></i></button>
+                    <button type="button" class="scwm-cue-up" title="Monter"><i class="fa-solid fa-chevron-up"></i></button>
+                    <button type="button" class="scwm-cue-down" title="Descendre"><i class="fa-solid fa-chevron-down"></i></button>
+                    <button type="button" class="scwm-cue-play" title="Jouer pour tous"><i class="fa-solid fa-play"></i></button>
+                    <button type="button" class="scwm-cue-stop" title="Stop"><i class="fa-solid fa-stop"></i></button>
+                    <button type="button" class="scwm-cue-del" title="Supprimer"><i class="fa-solid fa-trash"></i></button>
                 </div>
             </div>
             ${collapsed ? "" : body}
@@ -474,8 +474,8 @@ async function _openPlaylistBrowser(onPick) {
             return `<div class="scwm-pl-row">
                 <span class="scwm-pl-name">${esc(s.name)}</span>
                 <span class="scwm-pl-row-actions">
-                    <button type="button" class="scwm-pl-play" data-idx="${idx}" title="Écouter (moi uniquement)"><i class="fas fa-play"></i></button>
-                    <button type="button" class="scwm-pl-pick" data-idx="${idx}" title="Choisir ce son"><i class="fas fa-check"></i></button>
+                    <button type="button" class="scwm-pl-play" data-idx="${idx}" title="Écouter (moi uniquement)"><i class="fa-solid fa-play"></i></button>
+                    <button type="button" class="scwm-pl-pick" data-idx="${idx}" title="Choisir ce son"><i class="fa-solid fa-check"></i></button>
                 </span>
             </div>`;
         }).join("");
@@ -489,7 +489,7 @@ async function _openPlaylistBrowser(onPick) {
         <div class="scwm-pl-browser">
             <div class="scwm-pl-toolbar">
                 <span class="notes">Écoute locale (les joueurs n'entendent rien). « Choisir » remplit le fichier du cue.</span>
-                <button type="button" class="scwm-pl-stop"><i class="fas fa-stop"></i> Stop</button>
+                <button type="button" class="scwm-pl-stop"><i class="fa-solid fa-stop"></i> Stop</button>
             </div>
             ${groupsHtml}
         </div>`;
@@ -498,7 +498,7 @@ async function _openPlaylistBrowser(onPick) {
         title: "Playlists — écouter & choisir",
         content,
         buttons: {
-            close: { icon: '<i class="fas fa-times"></i>', label: "Fermer", callback: () => stopAllCuesLocal(150) }
+            close: { icon: '<i class="fa-solid fa-times"></i>', label: "Fermer", callback: () => stopAllCuesLocal(150) }
         },
         default: "close",
         render: (html) => {
@@ -532,7 +532,7 @@ function _injectHudButton(hud, html) {
     const btn = document.createElement("div");
     btn.className = `control-icon scwm-cue-btn${linked.length ? " active" : ""}`;
     btn.title = linked.length ? `Cues liés (${linked.length}) — clic pour jouer` : "Cues audio — aucun lié (ouvrir le gestionnaire)";
-    btn.innerHTML = `<i class="fas fa-clapperboard"></i>`;
+    btn.innerHTML = `<i class="fa-solid fa-clapperboard"></i>`;
     btn.addEventListener("click", () => _openTokenCuePicker(token));
 
     const col = root.querySelector(".col.left") ?? root.querySelector(".left") ?? root;
@@ -545,7 +545,7 @@ function _openTokenCuePicker(token) {
         <div class="scwm-cue-pick" data-cue-id="${c.id}">
             <span><i class="fas ${c.trigger === "reveal" ? "fa-eye" : "fa-play"}"></i> ${esc(c.name)}</span>
             <span class="scwm-cue-pick-actions">
-                <button type="button" class="scwm-cue-pick-play" data-cue-id="${c.id}"><i class="fas fa-play"></i> Jouer</button>
+                <button type="button" class="scwm-cue-pick-play" data-cue-id="${c.id}"><i class="fa-solid fa-play"></i> Jouer</button>
             </span>
         </div>`).join("") ||
         `<p>Aucun cue lié à ce token pour l'instant.</p>`;
@@ -556,8 +556,8 @@ function _openTokenCuePicker(token) {
         title: `Cues — ${token.name}`,
         content,
         buttons: {
-            manage: { icon: '<i class="fas fa-sliders"></i>', label: "Gérer les cues", callback: () => openSceneCues() },
-            close:  { icon: '<i class="fas fa-times"></i>', label: "Fermer" }
+            manage: { icon: '<i class="fa-solid fa-sliders"></i>', label: "Gérer les cues", callback: () => openSceneCues() },
+            close:  { icon: '<i class="fa-solid fa-times"></i>', label: "Fermer" }
         },
         default: "close",
         render: (html) => {

@@ -70,8 +70,8 @@ function renderConnStats({ loadMs, avgMs, activeModules, assetCount, docCount, s
     const box = document.createElement("div");
     box.id = "scwm-connstats";
     box.innerHTML = `
-        <a class="scwm-connstats-close" title="Fermer"><i class="fas fa-times"></i></a>
-        <div class="scwm-connstats-title"><i class="fas fa-plug"></i> Connexion</div>
+        <a class="scwm-connstats-close" title="Fermer"><i class="fa-solid fa-times"></i></a>
+        <div class="scwm-connstats-title"><i class="fa-solid fa-plug"></i> Connexion</div>
         <div class="scwm-connstats-row"><span>Temps de chargement</span><b>${fmtDuration(loadMs)}</b></div>
         <div class="scwm-connstats-row"><span>Modules actifs</span><b>${activeModules}</b></div>
         <div class="scwm-connstats-row"><span>Assets chargés</span><b>${assetCount}</b></div>

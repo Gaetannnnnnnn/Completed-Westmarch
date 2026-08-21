@@ -46,7 +46,7 @@ export function showTutorialSelector() {
         </div>
         <div class="tuto-section-list">${rows}</div>
         <p class="tuto-selector-warn" style="margin-top:10px;color:#e0a13a;font-size:12px;display:flex;gap:6px;align-items:flex-start;">
-            <i class="fas fa-triangle-exclamation" style="margin-top:2px;"></i>
+            <i class="fa-solid fa-triangle-exclamation" style="margin-top:2px;"></i>
             <span>Avant de commencer, <strong>fermez toutes les fiches et fenêtres ouvertes</strong> — le guide ouvre lui-même celles qu'il explique.</span>
         </p>
     </div>`;
@@ -56,7 +56,7 @@ export function showTutorialSelector() {
         content,
         buttons: {
             start: {
-                icon:     '<i class="fas fa-play"></i>',
+                icon:     '<i class="fa-solid fa-play"></i>',
                 label:    "Commencer",
                 callback: (html) => {
                     const selected = [...html.find('[name="tuto-section"]:checked')]
@@ -69,7 +69,7 @@ export function showTutorialSelector() {
                 }
             },
             close: {
-                icon:  '<i class="fas fa-times"></i>',
+                icon:  '<i class="fa-solid fa-times"></i>',
                 label: "Fermer"
             }
         },
@@ -96,7 +96,7 @@ export function showWelcome() {
     const content = `
     <div class="tuto-welcome-body">
         <div class="tuto-welcome-icon">
-            <i class="fas fa-scroll"></i>
+            <i class="fa-solid fa-scroll"></i>
         </div>
         <h2 class="tuto-welcome-title">${serverName}</h2>
         <p class="tuto-welcome-text">
@@ -104,7 +104,7 @@ export function showWelcome() {
             Souhaitez-vous faire un tour guidé de l'interface ?
         </p>
         <p class="tuto-welcome-warn" style="margin-top:8px;color:#e0a13a;font-size:12px;">
-            <i class="fas fa-triangle-exclamation"></i>
+            <i class="fa-solid fa-triangle-exclamation"></i>
             Fermez toutes les fiches et fenêtres ouvertes avant de commencer, pour le bon déroulement du guide.
         </p>
     </div>`;
@@ -114,7 +114,7 @@ export function showWelcome() {
         content,
         buttons: {
             start: {
-                icon:     '<i class="fas fa-play"></i>',
+                icon:     '<i class="fa-solid fa-play"></i>',
                 label:    "Commencer le tutoriel",
                 callback: () => startTutorial()
             }

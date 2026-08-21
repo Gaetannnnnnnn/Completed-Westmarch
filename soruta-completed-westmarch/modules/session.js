@@ -38,7 +38,7 @@ function getCloseBtnSingleton() {
     closeBtnSingleton = $(`
         <div class="westmarch-close-session-wrap">
             <button type="button" class="westmarch-close-session">
-                <i class="fas fa-book"></i> Clore la session
+                <i class="fa-solid fa-book"></i> Clore la session
             </button>
         </div>
     `);
@@ -301,11 +301,11 @@ function promptSessionClose(partyId) {
     };
 
     const dlg = new foundry.applications.api.DialogV2({
-        window: { title: "Clôture de session", icon: "fas fa-flag-checkered" },
+        window: { title: "Clôture de session", icon: "fa-solid fa-flag-checkered" },
         content,
         buttons: [
             {
-                action: "send", label: "Clôturer et envoyer", icon: "fas fa-paper-plane", default: true,
+                action: "send", label: "Clôturer et envoyer", icon: "fa-solid fa-paper-plane", default: true,
                 callback: async (event, button, dialog) => {
                     const root = dialog.element;
                     const notes = root.querySelector(".scwm-close-notes")?.value ?? "";
@@ -314,7 +314,7 @@ function promptSessionClose(partyId) {
                 }
             },
             {
-                action: "draft", label: "Enregistrer pour plus tard", icon: "fas fa-box-archive",
+                action: "draft", label: "Enregistrer pour plus tard", icon: "fa-solid fa-box-archive",
                 callback: async (event, button, dialog) => {
                     const root = dialog.element;
                     const notes = root.querySelector(".scwm-close-notes")?.value ?? "";

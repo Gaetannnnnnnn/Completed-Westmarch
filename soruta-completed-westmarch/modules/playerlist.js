@@ -31,7 +31,7 @@ export function PlayerListHooks() {
 
         const bar = document.createElement("div");
         bar.className = "scwm-player-search";
-        bar.innerHTML = `<i class="fas fa-search"></i>` +
+        bar.innerHTML = `<i class="fa-solid fa-search"></i>` +
             `<input type="text" placeholder="Rechercher un joueur…">`;
         // DANS la liste (le cadre du panneau est porté par .players-list),
         // en tête, épinglée (sticky) et pleine largeur opaque : les noms

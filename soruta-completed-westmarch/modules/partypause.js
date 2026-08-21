@@ -175,7 +175,7 @@ export function PartyPauseHooks() {
         controls.westmarch.tools.scwmForceResume = {
             name: "scwmForceResume",
             title: "Forcer la reprise (débloquer une pause globale)",
-            icon: "fas fa-play",
+            icon: "fa-solid fa-play",
             button: true,
             visible: true,
             onChange: () => forceGlobalUnpause()

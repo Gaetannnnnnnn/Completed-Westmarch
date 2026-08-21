@@ -116,7 +116,7 @@ function openFakeWarningDialog() {
         },
         buttons: {
             send: {
-                icon:  '<i class="fas fa-paper-plane"></i>',
+                icon:  '<i class="fa-solid fa-paper-plane"></i>',
                 label: "Envoyer",
                 callback: (html) => {
                     const $html   = $(html);
@@ -139,7 +139,7 @@ function openFakeWarningDialog() {
                 }
             },
             cancel: {
-                icon:  '<i class="fas fa-times"></i>',
+                icon:  '<i class="fa-solid fa-times"></i>',
                 label: "Annuler"
             }
         },

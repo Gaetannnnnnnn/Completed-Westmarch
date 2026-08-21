@@ -57,21 +57,21 @@ function openImportPopup(onConfirm) {
                 </div>
 
                 <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-                    <i class="fas fa-search" style="opacity:0.7;" title="Zoom du personnage"></i>
+                    <i class="fa-solid fa-search" style="opacity:0.7;" title="Zoom du personnage"></i>
                     <input type="range" class="westmarch-zoom-slider" min="20" max="400" value="100" style="flex:1;">
-                    <button type="button" class="westmarch-reset-frame" title="Réinitialiser le cadrage"><i class="fas fa-rotate-left"></i></button>
+                    <button type="button" class="westmarch-reset-frame" title="Réinitialiser le cadrage"><i class="fa-solid fa-rotate-left"></i></button>
                 </div>
 
                 <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
-                    <i class="fas fa-circle-notch" style="opacity:0.7;" title="Taille de la découpe"></i>
+                    <i class="fa-solid fa-circle-notch" style="opacity:0.7;" title="Taille de la découpe"></i>
                     <input type="range" class="westmarch-clip-slider" min="40" max="100" value="100" style="flex:1;">
                 </div>
 
                 <div style="margin-bottom:8px;">
                     <div style="font-weight:bold; margin-bottom:4px;">Image du personnage</div>
                     <div style="display:flex; gap:6px;">
-                        <button type="button" class="westmarch-pick-char-browse" style="flex:1;"><i class="fas fa-folder-open"></i> Parcourir</button>
-                        <button type="button" class="westmarch-pick-char-upload" style="flex:1;"><i class="fas fa-upload"></i> Importer (PC)</button>
+                        <button type="button" class="westmarch-pick-char-browse" style="flex:1;"><i class="fa-solid fa-folder-open"></i> Parcourir</button>
+                        <button type="button" class="westmarch-pick-char-upload" style="flex:1;"><i class="fa-solid fa-upload"></i> Importer (PC)</button>
                         <input type="file" class="westmarch-char-file-input" accept="image/*" style="display:none;">
                     </div>
                 </div>
@@ -79,8 +79,8 @@ function openImportPopup(onConfirm) {
                 <div style="margin-bottom:12px;">
                     <div style="font-weight:bold; margin-bottom:4px;">Bordure du token</div>
                     <div style="display:flex; gap:6px;">
-                        <button type="button" class="westmarch-pick-border-browse" style="flex:1;"><i class="fas fa-folder-open"></i> Parcourir</button>
-                        <button type="button" class="westmarch-pick-border-upload" style="flex:1;"><i class="fas fa-upload"></i> Importer (PC)</button>
+                        <button type="button" class="westmarch-pick-border-browse" style="flex:1;"><i class="fa-solid fa-folder-open"></i> Parcourir</button>
+                        <button type="button" class="westmarch-pick-border-upload" style="flex:1;"><i class="fa-solid fa-upload"></i> Importer (PC)</button>
                         <input type="file" class="westmarch-border-file-input" accept="image/*" style="display:none;">
                     </div>
                 </div>
@@ -309,7 +309,7 @@ export function TokenHooks() {
 
         const btn = $(`
             <div class="control-icon westmarch-next-image" title="Apparence suivante">
-                <i class="fas fa-chevron-right"></i>
+                <i class="fa-solid fa-chevron-right"></i>
             </div>
         `);
 
@@ -351,7 +351,7 @@ export function TokenHooks() {
 
         const btn = $(`
             <div class="control-icon westmarch-show-portrait" title="Voir le portrait">
-                <i class="fas fa-image"></i>
+                <i class="fa-solid fa-image"></i>
             </div>
         `);
 
@@ -415,7 +415,7 @@ export function TokenHooks() {
                 <div class="westmarch-image-list" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;"></div>
                 <div style="display: flex; gap: 6px;">
                     <button type="button" class="westmarch-add-image" style="flex:1;">
-                        <i class="fas fa-plus"></i> Importer un token
+                        <i class="fa-solid fa-plus"></i> Importer un token
                     </button>
                 </div>
             </fieldset>

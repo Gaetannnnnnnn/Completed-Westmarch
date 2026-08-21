@@ -583,7 +583,7 @@ async function pickCraftItem() {
         const dlg = new Dialog({
             title: `${pack.title ?? pack.metadata?.label ?? "Compendium"} — choisir un objet`,
             content,
-            buttons: { cancel: { icon: '<i class="fas fa-times"></i>', label: "Annuler", callback: () => finish(null) } },
+            buttons: { cancel: { icon: '<i class="fa-solid fa-times"></i>', label: "Annuler", callback: () => finish(null) } },
             default: "cancel",
             render: (html) => {
                 const root = html[0] ?? html;
@@ -665,7 +665,7 @@ function craftDeclFormHtml(id, craftType, craftName, price, scrollLevel, rarity,
     <label style="min-width:90px; white-space:nowrap;">Nom :</label>
     <input type="text" name="tm-craft-name-${id}" value="${craftName}" placeholder="Choisir un objet…" style="flex:1; cursor:pointer;" readonly title="Cliquez sur l'icône livre pour choisir un objet du compendium">
     <input type="hidden" name="tm-craft-uuid-${id}" value="${craftUuid ?? ""}">
-    <button type="button" class="tm-craft-pick-${id}" title="Choisir dans le compendium des objets craftables" style="flex:0 0 auto; width:30px;"><i class="fas fa-book"></i></button>
+    <button type="button" class="tm-craft-pick-${id}" title="Choisir dans le compendium des objets craftables" style="flex:0 0 auto; width:30px;"><i class="fa-solid fa-book"></i></button>
 </div>
 <div class="tm-craft-param-nonmagique-${id}" style="display:${craftType === "nonmagique" ? "flex" : "none"}; gap:6px; align-items:center;">
     <label style="min-width:90px; white-space:nowrap;">Prix d'achat :</label>
@@ -1012,7 +1012,7 @@ async function openDeclarationDialog(actor) {
             {
                 action: "declare",
                 label: "Déclarer le TM",
-                icon: '<i class="fas fa-check"></i>',
+                icon: '<i class="fa-solid fa-check"></i>',
                 default: true,
                 callback: async (event, button, dialog) => {
                     if (cartItems.length === 0) {
@@ -1030,7 +1030,7 @@ async function openDeclarationDialog(actor) {
             {
                 action: "cancel",
                 label: "Annuler",
-                icon: '<i class="fas fa-times"></i>'
+                icon: '<i class="fa-solid fa-times"></i>'
             }
         ]
     });
@@ -1237,9 +1237,9 @@ export async function openDowntimeDialog() {
             wireDowntime(rootEl);
         },
         buttons: [
-            { action: "apply", label: "Appliquer les gains", icon: '<i class="fas fa-coins"></i>', default: true,
+            { action: "apply", label: "Appliquer les gains", icon: '<i class="fa-solid fa-coins"></i>', default: true,
               callback: async () => { if (dialogHtml) await applyDowntimeFromRoot(dialogHtml); } },
-            { action: "cancel", label: "Annuler", icon: '<i class="fas fa-times"></i>' }
+            { action: "cancel", label: "Annuler", icon: '<i class="fa-solid fa-times"></i>' }
         ]
     });
 }

@@ -105,7 +105,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
     static DEFAULT_OPTIONS = {
         id:       "scwm-casier",
         classes:  ["scwm-casier"],
-        window:   { title: "Casier", icon: "fas fa-box-archive", resizable: true },
+        window:   { title: "Casier", icon: "fa-solid fa-box-archive", resizable: true },
         position: { width: 760, height: 560 }
     };
 
@@ -148,7 +148,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             sideList = drafts.length
                 ? drafts.map(d => `
                     <div class="scwm-casier-page ${d.id === this.#selectedId ? "active" : ""}" data-draft-id="${esc(d.id)}">
-                        <i class="fas fa-scroll"></i>
+                        <i class="fa-solid fa-scroll"></i>
                         <span class="scwm-casier-page-title">Rapport — ${esc(d.dateDisplay)}</span>
                     </div>`).join("")
                 : `<div class="scwm-casier-empty">Aucun rapport en attente.</div>`;
@@ -158,7 +158,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
         if (this.#tab === "dashboard")      detail = this.#dashboardDetail(drafts);
         else if (this.#tab === "reports") {
             const draft = drafts.find(d => d.id === this.#selectedId);
-            detail = draft ? this.#draftDetail(draft) : `<div class="scwm-casier-placeholder"><i class="fas fa-book-open"></i><p>Sélectionnez un rapport à finaliser dans le livret.</p></div>`;
+            detail = draft ? this.#draftDetail(draft) : `<div class="scwm-casier-placeholder"><i class="fa-solid fa-book-open"></i><p>Sélectionnez un rapport à finaliser dans le livret.</p></div>`;
         }
         else if (this.#tab === "expeditions") detail = this.#expeditionsDetail();
         else if (this.#tab === "downtime")    detail = this.#downtimeDetail(tmDeclared);
@@ -180,7 +180,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
         const exps = gmExpeditions();
         return `
             <div class="scwm-casier-detail scwm-casier-dashboard">
-                <h2><i class="fas fa-box-archive"></i> Casier de ${esc(game.user.name)}</h2>
+                <h2><i class="fa-solid fa-box-archive"></i> Casier de ${esc(game.user.name)}</h2>
                 <p class="scwm-casier-meta">Tableau de bord du meneur</p>
 
                 <div class="scwm-casier-stats">
@@ -197,14 +197,14 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
     // ---- Onglet Expéditions (du GM) ----
     #expeditionsDetail() {
         const exps = gmExpeditions();
-        if (!exps.length) return `<div class="scwm-casier-placeholder"><i class="fas fa-route"></i><p>Aucune expédition en cours.</p></div>`;
+        if (!exps.length) return `<div class="scwm-casier-placeholder"><i class="fa-solid fa-route"></i><p>Aucune expédition en cours.</p></div>`;
         return `
             <div class="scwm-casier-detail">
                 <h2>Expéditions en cours</h2>
                 ${exps.map(x => `
                     <div class="scwm-casier-exp-card ${x.current ? "current" : ""}">
                         <div class="scwm-casier-exp-head">
-                            <i class="fas fa-route"></i>
+                            <i class="fa-solid fa-route"></i>
                             <span class="scwm-casier-exp-name">${esc(x.name)}</span>
                             ${x.current ? `<span class="scwm-casier-exp-badge">En session</span>` : ""}
                             <span class="scwm-casier-date">${esc(formatDate(x.startDate))}</span>
@@ -218,10 +218,10 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
     #downtimeDetail() {
         return `
             <div class="scwm-casier-detail scwm-casier-downtime">
-                <h2><i class="fas fa-hourglass-half"></i> Temps morts</h2>
+                <h2><i class="fa-solid fa-hourglass-half"></i> Temps morts</h2>
                 <div class="scwm-tm-embed">${downtimeContentHtml(true)}</div>
                 <div class="scwm-casier-actions" style="margin-top:10px;">
-                    <button type="button" class="scwm-casier-apply-tm"><i class="fas fa-coins"></i> Appliquer les gains</button>
+                    <button type="button" class="scwm-casier-apply-tm"><i class="fa-solid fa-coins"></i> Appliquer les gains</button>
                 </div>
             </div>`;
     }
@@ -238,8 +238,8 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                     ${r.concept ? `<br><small>${esc(r.concept)}</small>` : ""}
                 </div>
                 <div class="scwm-cv-row-actions">
-                    <button type="button" class="scwm-cv-approve" data-user="${esc(r.userId)}"><i class="fas fa-check"></i> Créer &amp; assigner</button>
-                    <button type="button" class="scwm-cv-reject" data-user="${esc(r.userId)}"><i class="fas fa-times"></i> Refuser</button>
+                    <button type="button" class="scwm-cv-approve" data-user="${esc(r.userId)}"><i class="fa-solid fa-check"></i> Créer &amp; assigner</button>
+                    <button type="button" class="scwm-cv-reject" data-user="${esc(r.userId)}"><i class="fa-solid fa-times"></i> Refuser</button>
                 </div>
             </div>`).join("") : `<div class="scwm-casier-empty">Aucune demande de création.</div>`;
 
@@ -248,13 +248,13 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                 <div class="scwm-cv-info">
                     <strong>${esc(a.name)}</strong> — <em>${esc(a.ownerName)}</em>
                     ${a.kind === "levelup"
-                        ? `<span class="scwm-cv-tag scwm-cv-tag-levelup"><i class="fas fa-arrow-up-1-9"></i> Montée de niveau</span>`
-                        : `<span class="scwm-cv-tag scwm-cv-tag-creation"><i class="fas fa-user-plus"></i> Création</span>`}
+                        ? `<span class="scwm-cv-tag scwm-cv-tag-levelup"><i class="fa-solid fa-arrow-up-1-9"></i> Montée de niveau</span>`
+                        : `<span class="scwm-cv-tag scwm-cv-tag-creation"><i class="fa-solid fa-user-plus"></i> Création</span>`}
                 </div>
                 <div class="scwm-cv-row-actions">
-                    <button type="button" class="scwm-cv-openactor" data-actor="${esc(a.id)}" title="Ouvrir la fiche"><i class="fas fa-user"></i></button>
-                    <button type="button" class="scwm-cv-validate" data-actor="${esc(a.id)}"><i class="fas fa-lock"></i> Valider &amp; verrouiller</button>
-                    <button type="button" class="scwm-cv-return" data-actor="${esc(a.id)}"><i class="fas fa-rotate-left"></i> Renvoyer</button>
+                    <button type="button" class="scwm-cv-openactor" data-actor="${esc(a.id)}" title="Ouvrir la fiche"><i class="fa-solid fa-user"></i></button>
+                    <button type="button" class="scwm-cv-validate" data-actor="${esc(a.id)}"><i class="fa-solid fa-lock"></i> Valider &amp; verrouiller</button>
+                    <button type="button" class="scwm-cv-return" data-actor="${esc(a.id)}"><i class="fa-solid fa-rotate-left"></i> Renvoyer</button>
                 </div>
             </div>`).join("") : `<div class="scwm-casier-empty">Aucune fiche à valider.</div>`;
 
@@ -265,14 +265,14 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                     <strong>${esc(a.name)}</strong> — <em>${esc(a.ownerName)}</em>
                 </div>
                 <div class="scwm-cv-row-actions">
-                    <button type="button" class="scwm-cv-openactor" data-actor="${esc(a.id)}" title="Ouvrir la fiche"><i class="fas fa-user"></i></button>
-                    <button type="button" class="scwm-cv-grantlvl" data-actor="${esc(a.id)}"><i class="fas fa-unlock"></i> Autoriser la montée</button>
+                    <button type="button" class="scwm-cv-openactor" data-actor="${esc(a.id)}" title="Ouvrir la fiche"><i class="fa-solid fa-user"></i></button>
+                    <button type="button" class="scwm-cv-grantlvl" data-actor="${esc(a.id)}"><i class="fa-solid fa-unlock"></i> Autoriser la montée</button>
                 </div>
             </div>`).join("") : `<div class="scwm-casier-empty">Aucune demande de montée de niveau.</div>`;
 
         return `
             <div class="scwm-casier-detail scwm-casier-validation">
-                <h2><i class="fas fa-id-card"></i> Validation des personnages</h2>
+                <h2><i class="fa-solid fa-id-card"></i> Validation des personnages</h2>
                 <div class="scwm-casier-cv-section">
                     <h3>Demandes de création</h3>
                     ${reqRows}
@@ -294,14 +294,14 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
         if (this.#viewGmId) return this.#gmDashboardDetail(this.#viewGmId);
 
         const gms = gmTracking();
-        if (!gms.length) return `<div class="scwm-casier-placeholder"><i class="fas fa-users-gear"></i><p>Aucun GM.</p></div>`;
+        if (!gms.length) return `<div class="scwm-casier-placeholder"><i class="fa-solid fa-users-gear"></i><p>Aucun GM.</p></div>`;
         return `
             <div class="scwm-casier-detail">
                 <h2>Suivi des GM</h2>
                 ${gms.map(gm => `
                     <div class="scwm-casier-gm-card ${gm.count ? "active" : ""}">
                         <div class="scwm-casier-gm-head">
-                            <i class="fas fa-user-shield"></i>
+                            <i class="fa-solid fa-user-shield"></i>
                             <span class="scwm-casier-gm-name scwm-casier-gm-open" data-gm="${esc(gm.id)}" title="Voir le dashboard de ${esc(gm.name)}">${esc(gm.name)}</span>
                             <span class="scwm-casier-gm-badge">${gm.count} expédition${gm.count > 1 ? "s" : ""}</span>
                         </div>
@@ -334,8 +334,8 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                 : `<div class="scwm-casier-empty">Aucune présentation renseignée.</div>`);
         return `
             <div class="scwm-casier-detail scwm-casier-dashboard">
-                <button type="button" class="scwm-casier-gm-back"><i class="fas fa-arrow-left"></i> Retour au suivi des GM</button>
-                <h2><i class="fas fa-box-archive"></i> Casier de ${esc(name)}</h2>
+                <button type="button" class="scwm-casier-gm-back"><i class="fa-solid fa-arrow-left"></i> Retour au suivi des GM</button>
+                <h2><i class="fa-solid fa-box-archive"></i> Casier de ${esc(name)}</h2>
                 <p class="scwm-casier-meta">Tableau de bord du meneur${isSelf ? "" : " — lecture seule"}</p>
 
                 <div class="scwm-casier-stats">
@@ -376,8 +376,8 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                 <textarea class="scwm-casier-notes" rows="7" placeholder="Rédigez ou complétez le compte-rendu…">${esc(d.notes ?? "")}</textarea>
 
                 <div class="scwm-casier-actions">
-                    <button type="button" class="scwm-casier-send"><i class="fas fa-paper-plane"></i> Clôturer &amp; envoyer sur Discord</button>
-                    <button type="button" class="scwm-casier-delete"><i class="fas fa-trash"></i> Supprimer</button>
+                    <button type="button" class="scwm-casier-send"><i class="fa-solid fa-paper-plane"></i> Clôturer &amp; envoyer sur Discord</button>
+                    <button type="button" class="scwm-casier-delete"><i class="fa-solid fa-trash"></i> Supprimer</button>
                 </div>
             </div>`;
     }
@@ -515,8 +515,8 @@ export function CasierHooks() {
                 speaker: { alias: "Casier" },
                 whisper: [game.user.id],
                 content: `<div class="scwm-casier-alert">
-                    <p><i class="fas fa-box-archive"></i> Vous avez <strong>${n}</strong> rapport(s) de session en attente de finalisation.</p>
-                    <button type="button" class="scwm-casier-open"><i class="fas fa-up-right-from-square"></i> Ouvrir le Casier</button>
+                    <p><i class="fa-solid fa-box-archive"></i> Vous avez <strong>${n}</strong> rapport(s) de session en attente de finalisation.</p>
+                    <button type="button" class="scwm-casier-open"><i class="fa-solid fa-up-right-from-square"></i> Ouvrir le Casier</button>
                 </div>`
             });
         }, 1500);

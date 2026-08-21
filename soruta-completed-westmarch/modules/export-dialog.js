@@ -38,7 +38,7 @@ export function ExportDialogHooks() {
 
         const entry = {
             name:      "SIDEBAR.Export",
-            icon:      '<i class="fas fa-file-export"></i>',
+            icon:      '<i class="fa-solid fa-file-export"></i>',
             condition: (li) => {
                 const actor = _getActor(li);
                 return actor?.isOwner ?? false;
@@ -98,7 +98,7 @@ async function _showDialog(actor) {
         const content = `
         <form class="tko-export-form">
             <p class="tko-export-intro">
-                <i class="fas fa-info-circle"></i>
+                <i class="fa-solid fa-info-circle"></i>
                 Cet acteur contient des données liées aux modules du serveur
                 (expéditions, relations, bestiaire…).
                 Choisissez le format d'export.
@@ -108,7 +108,7 @@ async function _showDialog(actor) {
                 <input type="radio" name="export-mode" value="current" checked>
                 <div class="tko-export-opt-body">
                     <span class="tko-export-opt-title">
-                        <i class="fas fa-layer-group"></i> Fiche actuelle
+                        <i class="fa-solid fa-layer-group"></i> Fiche actuelle
                     </span>
                     <span class="tko-export-opt-desc">
                         Inclut toutes les données (expéditions, notes, flags modules).
@@ -121,7 +121,7 @@ async function _showDialog(actor) {
                 <input type="radio" name="export-mode" value="original">
                 <div class="tko-export-opt-body">
                     <span class="tko-export-opt-title">
-                        <i class="fas fa-dice-d20"></i> Fiche originale dnd5e
+                        <i class="fa-solid fa-dice-d20"></i> Fiche originale dnd5e
                     </span>
                     <span class="tko-export-opt-desc">
                         Réinitialise la fiche au format dnd5e standard et supprime
@@ -137,7 +137,7 @@ async function _showDialog(actor) {
             content,
             buttons: {
                 export: {
-                    icon:  '<i class="fas fa-file-export"></i>',
+                    icon:  '<i class="fa-solid fa-file-export"></i>',
                     label: "Exporter",
                     callback: (html) => {
                         // v13 : html peut être un HTMLElement ou un jQuery selon le contexte.
@@ -149,7 +149,7 @@ async function _showDialog(actor) {
                     }
                 },
                 cancel: {
-                    icon:  '<i class="fas fa-times"></i>',
+                    icon:  '<i class="fa-solid fa-times"></i>',
                     label: "Annuler",
                     callback: () => resolve(null)
                 }

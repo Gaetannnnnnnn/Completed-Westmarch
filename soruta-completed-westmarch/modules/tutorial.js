@@ -419,7 +419,7 @@ const STEPS_BY_FEATURE = {
             beforeShow: _expandWestmarch,
             target:     "[data-tool='tutoriel']",
             title:      "Bouton Tutoriel",
-            text:       "Ce bouton <i class='fas fa-circle-question'></i> relance ce tutoriel à tout moment. Accessible à <strong>tous les joueurs</strong>. Appuyez sur <kbd>Echap</kbd> pour fermer à tout moment.",
+            text:       "Ce bouton <i class='fa-solid fa-circle-question'></i> relance ce tutoriel à tout moment. Accessible à <strong>tous les joueurs</strong>. Appuyez sur <kbd>Echap</kbd> pour fermer à tout moment.",
             position:   "right"
         },
     ],
@@ -546,7 +546,7 @@ const STEPS_BY_FEATURE = {
             beforeShow: _toSheet("gmnotes"),
             target:     "nav.tabs [data-tab='gmnotes'], .tabs [data-tab='gmnotes']",
             title:      "Onglet Note GM",
-            textGM:     "Sur chaque fiche de personnage, l'onglet <strong>Note GM</strong> <i class='fas fa-user-secret'></i> n'est visible que par vous — il n'existe même pas côté joueur. Idéal pour vos secrets et rappels sur un PJ.",
+            textGM:     "Sur chaque fiche de personnage, l'onglet <strong>Note GM</strong> <i class='fa-solid fa-user-secret'></i> n'est visible que par vous — il n'existe même pas côté joueur. Idéal pour vos secrets et rappels sur un PJ.",
             position:   "bottom",
             gmOnly:     true
         },
@@ -582,7 +582,7 @@ const STEPS_BY_FEATURE = {
             beforeShow: _expandWestmarch,
             target:     "[data-tool='charValidation']",
             title:      "Le bouton « Mes personnages »",
-            text:       "Tout se passe depuis le bouton <i class='fas fa-id-card'></i> de la barre WestMarch : il ouvre <strong>« Mes personnages »</strong>, d'où vous demandez, suivez et soumettez vos personnages.",
+            text:       "Tout se passe depuis le bouton <i class='fa-solid fa-id-card'></i> de la barre WestMarch : il ouvre <strong>« Mes personnages »</strong>, d'où vous demandez, suivez et soumettez vos personnages.",
             position:   "right",
             playerOnly: true
         },
@@ -591,7 +591,7 @@ const STEPS_BY_FEATURE = {
             beforeShow: _openMonPerso,
             target:     ".scwm-cv-hub",
             title:      "Demander & gérer",
-            text:       "« <strong>Demander un nouveau personnage</strong> » envoie une demande au MJ (dans la limite autorisée). Une fois le perso créé et construit, cliquez <strong>Soumettre</strong> : le MJ le valide et le verrouille. En haut, un compteur indique vos personnages <strong>actifs</strong> ; au-delà de la limite, les autres passent <strong>en stock</strong> <i class='fas fa-lock'></i> — vous les activez / mettez en stock selon vos places. Le bouton <strong>Monter de niveau</strong> n'apparaît que lorsque le PJ a assez d'XP.",
+            text:       "« <strong>Demander un nouveau personnage</strong> » envoie une demande au MJ (dans la limite autorisée). Une fois le perso créé et construit, cliquez <strong>Soumettre</strong> : le MJ le valide et le verrouille. En haut, un compteur indique vos personnages <strong>actifs</strong> ; au-delà de la limite, les autres passent <strong>en stock</strong> <i class='fa-solid fa-lock'></i> — vous les activez / mettez en stock selon vos places. Le bouton <strong>Monter de niveau</strong> n'apparaît que lorsque le PJ a assez d'XP.",
             position:   "left",
             playerOnly: true
         },
@@ -619,8 +619,8 @@ const STEPS_BY_FEATURE = {
             beforeShow: _toSheet("bestiary"),
             target:     ".bst-delete",
             title:      "Retirer une entrée",
-            text:       "L'icône <i class='fas fa-trash'></i> à droite d'une entrée retire définitivement cette créature de votre bestiaire. Une confirmation est demandée avant la suppression.",
-            textGM:     "L'icône <i class='fas fa-trash'></i> retire la créature du bestiaire du joueur. Elle pourra être ré-ajoutée automatiquement si le joueur la recroise en scène.",
+            text:       "L'icône <i class='fa-solid fa-trash'></i> à droite d'une entrée retire définitivement cette créature de votre bestiaire. Une confirmation est demandée avant la suppression.",
+            textGM:     "L'icône <i class='fa-solid fa-trash'></i> retire la créature du bestiaire du joueur. Elle pourra être ré-ajoutée automatiquement si le joueur la recroise en scène.",
             position:   "left"
         },
     ],
@@ -647,16 +647,16 @@ const STEPS_BY_FEATURE = {
             beforeShow: _toSheet("relations"),
             target:     ".rel-delete",
             title:      "Supprimer une relation",
-            text:       "L'icône <i class='fas fa-trash'></i> à droite d'une relation la supprime. Elle pourra être recréée automatiquement si vous recroisez ce personnage en scène.",
-            textGM:     "L'icône <i class='fas fa-trash'></i> supprime la relation du joueur. Elle sera recréée automatiquement si le joueur recroise ce personnage en scène.",
+            text:       "L'icône <i class='fa-solid fa-trash'></i> à droite d'une relation la supprime. Elle pourra être recréée automatiquement si vous recroisez ce personnage en scène.",
+            textGM:     "L'icône <i class='fa-solid fa-trash'></i> supprime la relation du joueur. Elle sera recréée automatiquement si le joueur recroise ce personnage en scène.",
             position:   "left"
         },
         {
             beforeShow: _toSheet("relations"),
             target:     ".scwm-exclude-btn",
             title:      "Bloquer l'ajout automatique",
-            text:       "Le bouton <i class='fas fa-ban'></i> dans l'en-tête de la fiche <strong>empêche ce personnage d'être ajouté automatiquement</strong> aux Relations et au Bestiaire. Il ne touche pas aux listes déjà existantes. Cliquez à nouveau pour réactiver.",
-            textGM:     "Le bouton <i class='fas fa-ban'></i> dans l'en-tête <strong>bloque les ajouts automatiques futurs</strong> (Relations & Bestiaire) sans rien retirer des listes existantes. Devient rouge quand actif ; cliquez à nouveau pour réactiver. S'applique à n'importe quelle fiche PJ ou PNJ.",
+            text:       "Le bouton <i class='fa-solid fa-ban'></i> dans l'en-tête de la fiche <strong>empêche ce personnage d'être ajouté automatiquement</strong> aux Relations et au Bestiaire. Il ne touche pas aux listes déjà existantes. Cliquez à nouveau pour réactiver.",
+            textGM:     "Le bouton <i class='fa-solid fa-ban'></i> dans l'en-tête <strong>bloque les ajouts automatiques futurs</strong> (Relations & Bestiaire) sans rien retirer des listes existantes. Devient rouge quand actif ; cliquez à nouveau pour réactiver. S'applique à n'importe quelle fiche PJ ou PNJ.",
             position:   "bottom",
             gmOnly:     true
         },
@@ -664,8 +664,8 @@ const STEPS_BY_FEATURE = {
             beforeShow: _toSheet("relations"),
             target:     ".scwm-removeall-btn",
             title:      "Retirer de chez tous les joueurs",
-            text:       "Le bouton <i class='fas fa-users-slash'></i> <strong>retire ce personnage des Relations et du Bestiaire de tous les joueurs</strong>, d'un coup. Une confirmation est demandée. Sans blocage, il pourra revenir s'il est recroisé.",
-            textGM:     "Le bouton <i class='fas fa-users-slash'></i> <strong>nettoie immédiatement</strong> ce personnage des listes de <strong>tous les joueurs</strong> (Relations & Bestiaire), avec confirmation. Indépendant du blocage <i class='fas fa-ban'></i> : combinez les deux pour retirer ET empêcher tout retour automatique.",
+            text:       "Le bouton <i class='fa-solid fa-users-slash'></i> <strong>retire ce personnage des Relations et du Bestiaire de tous les joueurs</strong>, d'un coup. Une confirmation est demandée. Sans blocage, il pourra revenir s'il est recroisé.",
+            textGM:     "Le bouton <i class='fa-solid fa-users-slash'></i> <strong>nettoie immédiatement</strong> ce personnage des listes de <strong>tous les joueurs</strong> (Relations & Bestiaire), avec confirmation. Indépendant du blocage <i class='fa-solid fa-ban'></i> : combinez les deux pour retirer ET empêcher tout retour automatique.",
             position:   "bottom",
             gmOnly:     true
         },
@@ -673,7 +673,7 @@ const STEPS_BY_FEATURE = {
             beforeShow: _toSheet("relations"),
             target:     ".scwm-reveal-btn",
             title:      "Révéler à la party",
-            textGM:     "Le bouton <i class='fas fa-eye'></i> <strong>révèle</strong> ce personnage à toute la party d'un coup : son vrai nom apparaît dans les Relations et le Bestiaire de chaque joueur, même s'il était anonyme.",
+            textGM:     "Le bouton <i class='fa-solid fa-eye'></i> <strong>révèle</strong> ce personnage à toute la party d'un coup : son vrai nom apparaît dans les Relations et le Bestiaire de chaque joueur, même s'il était anonyme.",
             position:   "bottom",
             gmOnly:     true
         },
@@ -681,7 +681,7 @@ const STEPS_BY_FEATURE = {
             beforeShow: _toSheet("relations"),
             target:     ".scwm-anon-btn",
             title:      "Rendre anonyme",
-            textGM:     "Le bouton <i class='fas fa-eye-slash'></i> rend ce personnage <strong>anonyme</strong> : dans les Relations et le Bestiaire des joueurs, il s'affiche « Inconnu » tant qu'il n'est pas révélé. Devient rouge quand actif ; recliquez pour lever l'anonymat.",
+            textGM:     "Le bouton <i class='fa-solid fa-eye-slash'></i> rend ce personnage <strong>anonyme</strong> : dans les Relations et le Bestiaire des joueurs, il s'affiche « Inconnu » tant qu'il n'est pas révélé. Devient rouge quand actif ; recliquez pour lever l'anonymat.",
             position:   "bottom",
             gmOnly:     true
         },
@@ -721,8 +721,8 @@ const STEPS_BY_FEATURE = {
             beforeShow: _toSheet("carnet-journal"),
             target:     ".carnet-drag-handle",
             title:      "Réordonner les notes",
-            text:       "La <strong>poignée <i class='fas fa-grip-vertical'></i></strong> à gauche de chaque note ou section permet de la faire glisser pour changer son ordre. Attrapez-la et déposez la note à l'endroit souhaité — la ligne dorée indique où elle va s'insérer.",
-            textGM:     "La <strong>poignée <i class='fas fa-grip-vertical'></i></strong> à gauche permet de déplacer les notes et les sections par glisser-déposer. L'ordre est sauvegardé automatiquement sur la fiche du joueur.",
+            text:       "La <strong>poignée <i class='fa-solid fa-grip-vertical'></i></strong> à gauche de chaque note ou section permet de la faire glisser pour changer son ordre. Attrapez-la et déposez la note à l'endroit souhaité — la ligne dorée indique où elle va s'insérer.",
+            textGM:     "La <strong>poignée <i class='fa-solid fa-grip-vertical'></i></strong> à gauche permet de déplacer les notes et les sections par glisser-déposer. L'ordre est sauvegardé automatiquement sur la fiche du joueur.",
             position:   "right"
         },
         // ── Replier une note ─────────────────────────────────────
@@ -730,7 +730,7 @@ const STEPS_BY_FEATURE = {
             beforeShow: _toSheet("carnet-journal"),
             target:     ".carnet-toggle-note",
             title:      "Replier une note",
-            text:       "Cliquez le <strong>chevron <i class='fas fa-chevron-down'></i></strong> à gauche du titre pour replier ou déplier une note individuellement. Pratique quand le carnet commence à s'allonger.",
+            text:       "Cliquez le <strong>chevron <i class='fa-solid fa-chevron-down'></i></strong> à gauche du titre pour replier ou déplier une note individuellement. Pratique quand le carnet commence à s'allonger.",
             position:   "right"
         },
         // ── Éditeur de texte ─────────────────────────────────────
@@ -747,7 +747,7 @@ const STEPS_BY_FEATURE = {
             beforeShow: _toSheet("carnet-journal"),
             target:     ".carnet-link-exp",
             title:      "Lier une note à une expédition",
-            text:       "Le lien <i class='fas fa-link'></i> <strong>Lier</strong> associe une note à une expédition précise. Une fois liée, le nom de l'expédition apparaît dans la note, et un lien <i class='fas fa-calendar-alt'></i> permet de sauter directement à l'expédition dans l'onglet Expéditions. Pour délier, cliquez <i class='fas fa-unlink'></i>.",
+            text:       "Le lien <i class='fa-solid fa-link'></i> <strong>Lier</strong> associe une note à une expédition précise. Une fois liée, le nom de l'expédition apparaît dans la note, et un lien <i class='fa-solid fa-calendar-alt'></i> permet de sauter directement à l'expédition dans l'onglet Expéditions. Pour délier, cliquez <i class='fa-solid fa-unlink'></i>.",
             position:   "left"
         },
         // ── Onglet Expéditions ───────────────────────────────────
@@ -756,7 +756,7 @@ const STEPS_BY_FEATURE = {
             target:     "nav.tabs [data-tab='carnet-downtime'], .tabs .item[data-tab='carnet-downtime']",
             title:      "Onglet Expéditions",
             text:       "L'onglet <strong>Expéditions</strong> liste toutes vos sessions de jeu avec leur date de début, de fin et leur durée en jours calculée automatiquement. Cliquez sur le nom d'une expédition pour naviguer vers les notes qui lui sont liées dans le Carnet.",
-            textGM:     "L'onglet <strong>Expéditions</strong> liste les sessions avec dates et durée. Les dates sont enregistrées via le bouton <i class='fas fa-calendar-plus'></i> dans la barre WestMarch. Depuis ici vous pouvez aussi renommer une expédition ou la supprimer.",
+            textGM:     "L'onglet <strong>Expéditions</strong> liste les sessions avec dates et durée. Les dates sont enregistrées via le bouton <i class='fa-solid fa-calendar-plus'></i> dans la barre WestMarch. Depuis ici vous pouvez aussi renommer une expédition ou la supprimer.",
             position:   "bottom"
         },
         // ── Bouton GM Date Expédition ────────────────────────────
@@ -781,7 +781,7 @@ const STEPS_BY_FEATURE = {
             beforeShow: async () => { ui.players?.render?.(); await new Promise(r => setTimeout(r, 300)); },
             target:     ".westmarch-close-session",
             title:      "Clore la session",
-            textGM:     "Sous la liste des joueurs, le bouton <i class='fas fa-book'></i> <strong>Clore la session</strong> ouvre la fenêtre de clôture : attribution d'XP à la party (un champ « pour tous » qui remplit tous les PJ, puis un champ par PJ), un champ de <strong>notes</strong>, et deux issues — <strong>Clôturer &amp; envoyer</strong> le rapport sur Discord, ou <strong>Enregistrer pour plus tard</strong> pour le retrouver dans votre Casier. C'est justement ce Casier qu'on va voir maintenant.",
+            textGM:     "Sous la liste des joueurs, le bouton <i class='fa-solid fa-book'></i> <strong>Clore la session</strong> ouvre la fenêtre de clôture : attribution d'XP à la party (un champ « pour tous » qui remplit tous les PJ, puis un champ par PJ), un champ de <strong>notes</strong>, et deux issues — <strong>Clôturer &amp; envoyer</strong> le rapport sur Discord, ou <strong>Enregistrer pour plus tard</strong> pour le retrouver dans votre Casier. C'est justement ce Casier qu'on va voir maintenant.",
             position:   "top",
             gmOnly:     true
         },
@@ -793,7 +793,7 @@ const STEPS_BY_FEATURE = {
             beforeShow: () => _openCasier("dashboard"),
             target:     ".scwm-casier-dashboard",
             title:      "Le Casier du MJ",
-            textGM:     "Le bouton <i class='fas fa-box-archive'></i> <strong>Casier</strong> dans la barre WestMarch ouvre votre tableau de bord de meneur. L'onglet <strong>Dashboard</strong> résume vos rapports à finaliser, l'état de votre party et le nombre d'expéditions en cours.",
+            textGM:     "Le bouton <i class='fa-solid fa-box-archive'></i> <strong>Casier</strong> dans la barre WestMarch ouvre votre tableau de bord de meneur. L'onglet <strong>Dashboard</strong> résume vos rapports à finaliser, l'état de votre party et le nombre d'expéditions en cours.",
             position:   "left"
         },
         {
@@ -875,7 +875,7 @@ const STEPS_BY_FEATURE = {
             beforeShow: _expandWestmarch,
             target:     "[data-tool='scwmLightZone']",
             title:      "Bouton « Éclairer une zone » (villes)",
-            text:       "Cet outil <i class='fas fa-city'></i> te permet de marquer des zones <strong>toujours éclairées pour tout le monde</strong> — typiquement les villes et lieux connus de tous, indépendamment de l'exploration.<br><br>"
+            text:       "Cet outil <i class='fa-solid fa-city'></i> te permet de marquer des zones <strong>toujours éclairées pour tout le monde</strong> — typiquement les villes et lieux connus de tous, indépendamment de l'exploration.<br><br>"
                       + "Active-le, puis sur la carte : <strong>clic gauche</strong> éclaire une case, <strong>clic droit</strong> la masque. Ces zones apparaissent pour tous les personnages, en plus de leur propre exploration. Pense à désactiver l'outil quand tu as fini.",
             position:   "right",
             gmOnly:     true
@@ -884,7 +884,7 @@ const STEPS_BY_FEATURE = {
             beforeShow: _expandWestmarch,
             target:     "[data-tool='scwmFogReset']",
             title:      "Bouton « Réinitialiser le brouillard »",
-            text:       "Cet outil <i class='fas fa-eraser'></i> ouvre une fenêtre pour effacer le brouillard exploré.<br><br>"
+            text:       "Cet outil <i class='fa-solid fa-eraser'></i> ouvre une fenêtre pour effacer le brouillard exploré.<br><br>"
                       + "Tu peux réinitialiser <strong>un seul personnage</strong> (choisi dans la liste) ou <strong>tout le monde</strong>. La réinitialisation totale est protégée par plusieurs avertissements et une confirmation à <strong>taper</strong>, car elle est <strong>irréversible</strong> : les zones effacées ne se récupèrent pas, chaque joueur reverra sa carte noire jusqu'à ré-exploration.",
             position:   "right",
             gmOnly:     true
@@ -897,7 +897,7 @@ const STEPS_BY_FEATURE = {
             beforeShow: _expandWestmarch,
             target:     "[data-tool='sceneCues']",
             title:      "Cues audio — le bouton",
-            textGM:     "Le bouton <i class='fas fa-clapperboard'></i> <strong>Cues audio</strong> dans la barre WestMarch ouvre le gestionnaire de mise en scène : des sons préparés que vous déclenchez au bon moment, uniquement pour votre party.",
+            textGM:     "Le bouton <i class='fa-solid fa-clapperboard'></i> <strong>Cues audio</strong> dans la barre WestMarch ouvre le gestionnaire de mise en scène : des sons préparés que vous déclenchez au bon moment, uniquement pour votre party.",
             position:   "right",
             gmOnly:     true
         },
@@ -913,7 +913,7 @@ const STEPS_BY_FEATURE = {
             beforeShow: _openCues,
             target:     ".scwm-cue-trigger, .scwm-cue-card",
             title:      "Le déclencheur",
-            textGM:     "Chaque cue a un <strong>déclencheur</strong> : <em>Manuel</em> (bouton ▶), <em>Révélation du token lié</em> (le son part quand vous retirez l'invisibilité GM du token), ou <em>Début de combat</em>. Reliez un cue au token sélectionné avec « Lier au token ». Depuis le HUD du token, le bouton <i class='fas fa-clapperboard'></i> rejoue les cues liés.",
+            textGM:     "Chaque cue a un <strong>déclencheur</strong> : <em>Manuel</em> (bouton ▶), <em>Révélation du token lié</em> (le son part quand vous retirez l'invisibilité GM du token), ou <em>Début de combat</em>. Reliez un cue au token sélectionné avec « Lier au token ». Depuis le HUD du token, le bouton <i class='fa-solid fa-clapperboard'></i> rejoue les cues liés.",
             position:   "left",
             gmOnly:     true
         },
@@ -949,7 +949,7 @@ const STEPS_BY_FEATURE = {
             },
             target:     ".westmarch-tm-declare",
             title:      "Le bouton Temps mort",
-            text:       "Le sablier <i class='fas fa-hourglass-half'></i> dans l'en-tête de votre fiche indique l'état de votre temps mort entre deux sessions. <span style='color:#888'>Gris</span> = rien déclaré. <span style='color:#e67e22'>Orange</span> = activité ajoutée mais pas encore soumise. <span style='color:#2ecc71'>Vert</span> = déclaration envoyée au GM. Cliquez-le pour ouvrir le formulaire.",
+            text:       "Le sablier <i class='fa-solid fa-hourglass-half'></i> dans l'en-tête de votre fiche indique l'état de votre temps mort entre deux sessions. <span style='color:#888'>Gris</span> = rien déclaré. <span style='color:#e67e22'>Orange</span> = activité ajoutée mais pas encore soumise. <span style='color:#2ecc71'>Vert</span> = déclaration envoyée au GM. Cliquez-le pour ouvrir le formulaire.",
             position:   "bottom",
             playerOnly: true
         },
@@ -991,7 +991,7 @@ const STEPS_BY_FEATURE = {
         {
             target:   null,
             title:    "Voir le portrait",
-            text:     "<strong>Clic droit</strong> sur un token → HUD → bouton portrait <i class='fas fa-image'></i> : affiche en grand l'image de la fiche du personnage.",
+            text:     "<strong>Clic droit</strong> sur un token → HUD → bouton portrait <i class='fa-solid fa-image'></i> : affiche en grand l'image de la fiche du personnage.",
             position: "center"
         },
         // ── Accéder au Prototype Token ────────────────────────────
@@ -1013,7 +1013,7 @@ const STEPS_BY_FEATURE = {
             beforeShow: _openProtoTokenAppearance,
             target:     ".tuto-proto-token",
             title:      "Cycle d'apparences",
-            text:       "La fenêtre ouverte est le <strong>Prototype Token</strong>, onglet <strong>Apparence</strong>. La section <strong>Cycle d'apparences</strong> permet d'ajouter plusieurs images alternatives pour le token. En jeu, le bouton <i class='fas fa-images'></i> dans le HUD (clic droit sur le token) bascule entre ces images — utile pour les tenues, les états visuels ou les formes mineures.",
+            text:       "La fenêtre ouverte est le <strong>Prototype Token</strong>, onglet <strong>Apparence</strong>. La section <strong>Cycle d'apparences</strong> permet d'ajouter plusieurs images alternatives pour le token. En jeu, le bouton <i class='fa-solid fa-images'></i> dans le HUD (clic droit sur le token) bascule entre ces images — utile pour les tenues, les états visuels ou les formes mineures.",
             position:   "left",
             gmOnly:     true
         },
@@ -1022,7 +1022,7 @@ const STEPS_BY_FEATURE = {
             beforeShow: _openProtoTokenAppearance,
             target:     ".tuto-proto-token",
             title:      "Wild Shape / Polymorph",
-            text:       "La section <strong>Wild Shape / Polymorph</strong> du même onglet configure des formes de transformation complètes. Le bouton <i class='fas fa-dragon'></i> dans le HUD (clic droit sur le token) applique la transformation en un clic — et la rétablit en re-cliquant. Accessible au GM et aux propriétaires du token.",
+            text:       "La section <strong>Wild Shape / Polymorph</strong> du même onglet configure des formes de transformation complètes. Le bouton <i class='fa-solid fa-dragon'></i> dans le HUD (clic droit sur le token) applique la transformation en un clic — et la rétablit en re-cliquant. Accessible au GM et aux propriétaires du token.",
             position:   "left",
             gmOnly:     true
         },
@@ -1034,7 +1034,7 @@ const STEPS_BY_FEATURE = {
             beforeShow: _expandWestmarch,
             target:     "[data-tool='fakeWarning']",
             title:      "Faux message de maintenance",
-            text:       "Ce bouton <i class='fas fa-triangle-exclamation'></i> envoie une fausse notification jaune à un joueur précis — pour lui faire croire qu'un problème technique a été résolu.",
+            text:       "Ce bouton <i class='fa-solid fa-triangle-exclamation'></i> envoie une fausse notification jaune à un joueur précis — pour lui faire croire qu'un problème technique a été résolu.",
             position:   "right",
             gmOnly:     true
         },
@@ -1042,7 +1042,7 @@ const STEPS_BY_FEATURE = {
             beforeShow: _openChatTab,
             target:     "[data-wm-action='clearParty']",
             title:      "Vider les messages de ma party",
-            text:       "Ce bouton <i class='fas fa-users-slash'></i> supprime uniquement les messages du chat dont l'auteur appartient à <strong>votre party</strong>. Les messages des autres GMs et de leurs joueurs ne sont pas touchés. Une confirmation est demandée avant la suppression.",
+            text:       "Ce bouton <i class='fa-solid fa-users-slash'></i> supprime uniquement les messages du chat dont l'auteur appartient à <strong>votre party</strong>. Les messages des autres GMs et de leurs joueurs ne sont pas touchés. Une confirmation est demandée avant la suppression.",
             position:   "top",
             gmOnly:     true
         },
@@ -1050,14 +1050,14 @@ const STEPS_BY_FEATURE = {
             beforeShow: _openChatTab,
             target:     "[data-wm-action='importParty']",
             title:      "Importer des messages de chat",
-            text:       "Ce bouton <i class='fas fa-file-import'></i> permet de réimporter un export de chat Foundry (<code>.txt</code>) ou JSON. Les messages sont recréés dans le chat en conservant leur timestamp d'origine — ils apparaîtront dans le bon ordre chronologique. Pratique pour restaurer un historique après un clear accidentel.",
+            text:       "Ce bouton <i class='fa-solid fa-file-import'></i> permet de réimporter un export de chat Foundry (<code>.txt</code>) ou JSON. Les messages sont recréés dans le chat en conservant leur timestamp d'origine — ils apparaîtront dans le bon ordre chronologique. Pratique pour restaurer un historique après un clear accidentel.",
             position:   "top",
             gmOnly:     true
         },
         {
             target:   null,
             title:    "Protection TGCM",
-            text:     "Le bouton <i class='fas fa-shield-halved'></i> dans le HUD d'un token (GM uniquement) le protège de la mort. Un token TGCM ne peut jamais tomber à 0 PV — tout dégât fatal le laisse à 1 PV.",
+            text:     "Le bouton <i class='fa-solid fa-shield-halved'></i> dans le HUD d'un token (GM uniquement) le protège de la mort. Un token TGCM ne peut jamais tomber à 0 PV — tout dégât fatal le laisse à 1 PV.",
             position: "center",
             gmOnly:   true
         },
@@ -1078,7 +1078,7 @@ const STEPS_BY_FEATURE = {
         {
             target:   null,
             title:    "Exporter un personnage",
-            text:     "Faites un <strong>clic droit</strong> sur n'importe quel acteur dans la sidebar et choisissez <strong>Exporter</strong>. Une fenêtre vous propose deux formats : <br><br><i class='fas fa-layer-group'></i> <strong>Fiche actuelle</strong> — export complet avec toutes les données (expéditions, relations, bestiaire, flags modules). À réimporter uniquement sur un serveur avec les mêmes modules.<br><br><i class='fas fa-dice-d20'></i> <strong>Fiche originale dnd5e</strong> — réinitialise la fiche au format dnd5e standard et supprime toutes les données propres au serveur. Compatible partout.",
+            text:     "Faites un <strong>clic droit</strong> sur n'importe quel acteur dans la sidebar et choisissez <strong>Exporter</strong>. Une fenêtre vous propose deux formats : <br><br><i class='fa-solid fa-layer-group'></i> <strong>Fiche actuelle</strong> — export complet avec toutes les données (expéditions, relations, bestiaire, flags modules). À réimporter uniquement sur un serveur avec les mêmes modules.<br><br><i class='fa-solid fa-dice-d20'></i> <strong>Fiche originale dnd5e</strong> — réinitialise la fiche au format dnd5e standard et supprime toutes les données propres au serveur. Compatible partout.",
             position: "center",
             gmOnly:   true
         },
@@ -1155,13 +1155,13 @@ function _promptHideWelcome() {
                   <p style="opacity:.7;font-size:12px;">Vous pourrez toujours relancer le guide via le bouton « ? » dans la barre WestMarch.</p>`,
         buttons: {
             hide: {
-                icon: '<i class="fas fa-eye-slash"></i>', label: "Ne plus afficher",
+                icon: '<i class="fa-solid fa-eye-slash"></i>', label: "Ne plus afficher",
                 callback: () => {
                     game.settings.set(MODULE, "hideWelcome", true);
                     ui.notifications.info("[Tutoriel] La fenêtre d'accueil ne s'affichera plus. Bouton « ? » dans la barre WestMarch pour relancer le guide.");
                 }
             },
-            keep: { icon: '<i class="fas fa-check"></i>', label: "Garder l'accueil", callback: () => {} }
+            keep: { icon: '<i class="fa-solid fa-check"></i>', label: "Garder l'accueil", callback: () => {} }
         },
         default: "hide"
     }).render(true);
@@ -1301,17 +1301,17 @@ async function _showStep(idx) {
     bubble.innerHTML = `
         <div class="tuto-bubble-header">
             <button class="tuto-cat-btn tuto-cat-prev" title="${catPrevTip}"${catPrevDis}>
-                <i class="fas fa-angle-left"></i> Retour
+                <i class="fa-solid fa-angle-left"></i> Retour
             </button>
             <span class="tuto-step-counter">
                 <span class="tuto-step-dots">${_renderDots(idx, _steps.length)}</span>
                 ${idx + 1} / ${_steps.length}
             </span>
             <button class="tuto-cat-btn tuto-cat-next" title="${catNextTip}"${catNextDis}>
-                Suivant <i class="fas fa-angle-right"></i>
+                Suivant <i class="fa-solid fa-angle-right"></i>
             </button>
             <button class="tuto-close-btn" title="Fermer le tutoriel (Echap)">
-                <i class="fas fa-times"></i>
+                <i class="fa-solid fa-times"></i>
             </button>
         </div>
         <div class="tuto-bubble-body">
@@ -1320,12 +1320,12 @@ async function _showStep(idx) {
         </div>
         <div class="tuto-bubble-footer">
             <button class="tuto-btn tuto-prev"${isFirst ? " disabled" : ""}>
-                <i class="fas fa-chevron-left"></i> Précédent
+                <i class="fa-solid fa-chevron-left"></i> Précédent
             </button>
             <button class="tuto-btn tuto-next primary">
                 ${isLast
-                    ? '<i class="fas fa-check"></i> Terminer'
-                    : 'Suivant <i class="fas fa-chevron-right"></i>'}
+                    ? '<i class="fa-solid fa-check"></i> Terminer'
+                    : 'Suivant <i class="fa-solid fa-chevron-right"></i>'}
             </button>
         </div>`;
 

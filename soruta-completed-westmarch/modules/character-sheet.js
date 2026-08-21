@@ -22,15 +22,15 @@ function buildGmNotesHtml(actor) {
     const notes = actor.getFlag(MOD, "gmNotes") ?? "";
     return `<div class="scwm-gmnotes">
         <div class="scwm-gmnotes-header">
-            <i class="fas fa-user-secret"></i>
+            <i class="fa-solid fa-user-secret"></i>
             <span class="scwm-gmnotes-title">Notes du MJ</span>
-            <span class="scwm-gmnotes-badge"><i class="fas fa-lock"></i> Privé</span>
+            <span class="scwm-gmnotes-badge"><i class="fa-solid fa-lock"></i> Privé</span>
         </div>
         <p class="scwm-gmnotes-sub">Visibles et modifiables uniquement par les MJ — le joueur ne les voit jamais.</p>
         <div class="scwm-gmnotes-paper">
             <textarea class="scwm-gmnotes-input" placeholder="Écrivez ici vos notes sur ${_escNotes(actor.name)} : secrets, projets, dettes, rappels…">${_escNotes(notes)}</textarea>
         </div>
-        <p class="scwm-gmnotes-foot"><i class="fas fa-cloud-arrow-up"></i> Sauvegarde automatique quand vous cliquez ailleurs.</p>
+        <p class="scwm-gmnotes-foot"><i class="fa-solid fa-cloud-arrow-up"></i> Sauvegarde automatique quand vous cliquez ailleurs.</p>
     </div>`;
 }
 function wireGmNotes(actor, htmlElement) {
@@ -93,13 +93,13 @@ export function setupCharacterSheet() {
             };
 
             static TABS = [
-                ...(gmNotesOn ? [{ tab: "gmnotes", group: "primary", label: "Note GM", icon: "fas fa-user-secret" }] : []),
+                ...(gmNotesOn ? [{ tab: "gmnotes", group: "primary", label: "Note GM", icon: "fa-solid fa-user-secret" }] : []),
                 ...super.TABS,
-                ...(relOn    ? [{ tab: "relations",       group: "primary", label: "Relations",    icon: "fas fa-heart" }] : []),
-                ...(bestOn   ? [{ tab: "bestiary",        group: "primary", label: "Bestiaire",    icon: "fas fa-dragon" }] : []),
+                ...(relOn    ? [{ tab: "relations",       group: "primary", label: "Relations",    icon: "fa-solid fa-heart" }] : []),
+                ...(bestOn   ? [{ tab: "bestiary",        group: "primary", label: "Bestiaire",    icon: "fa-solid fa-dragon" }] : []),
                 ...(carnetOn ? [
-                    { tab: "carnet-journal",  group: "primary", label: "Carnet",      icon: "fas fa-book-open" },
-                    { tab: "carnet-downtime", group: "primary", label: "Expéditions", icon: "fas fa-hourglass-half" }
+                    { tab: "carnet-journal",  group: "primary", label: "Carnet",      icon: "fa-solid fa-book-open" },
+                    { tab: "carnet-downtime", group: "primary", label: "Expéditions", icon: "fa-solid fa-hourglass-half" }
                 ] : [])
             ];
 

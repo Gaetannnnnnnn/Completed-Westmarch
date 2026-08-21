@@ -133,15 +133,15 @@ export function buildRowHtml(r, actor, canEdit) {
             <span class="rel-name">${name}</span>
             ${levelSelector(r.level ?? 0, canEdit)}
             <div class="rel-btns">
-                ${game.user.isGM && target ? `<a class="rel-open-sheet" data-target-id="${r.targetId}" title="Ouvrir la fiche"><i class="fas fa-external-link-alt"></i></a>` : ""}
-                <a class="rel-toggle" title="Notes"><i class="fas fa-chevron-${open ? "up" : "down"}"></i></a>
-                ${canEdit ? `<a class="rel-delete" title="Supprimer"><i class="fas fa-trash"></i></a>` : ""}
+                ${game.user.isGM && target ? `<a class="rel-open-sheet" data-target-id="${r.targetId}" title="Ouvrir la fiche"><i class="fa-solid fa-external-link-alt"></i></a>` : ""}
+                <a class="rel-toggle" title="Notes"><i class="fa-solid fa-chevron-${open ? "up" : "down"}"></i></a>
+                ${canEdit ? `<a class="rel-delete" title="Supprimer"><i class="fa-solid fa-trash"></i></a>` : ""}
             </div>
         </div>
         <div class="rel-notes"${open ? "" : ' style="display:none;"'}>
             ${canEdit ? `
             <div class="rel-lastpos-row">
-                <label class="rel-field-label"><i class="fas fa-map-marker-alt"></i> Dernière position</label>
+                <label class="rel-field-label"><i class="fa-solid fa-map-marker-alt"></i> Dernière position</label>
                 <input class="rel-lastpos-input" type="text" data-rel-id="${r.id}"
                     value="${r.lastPosition ?? ""}" placeholder="Scène, lieu…">
             </div>
@@ -149,7 +149,7 @@ export function buildRowHtml(r, actor, canEdit) {
                 placeholder="Notes sur cette relation…">${r.note ?? ""}</textarea>
             ` : `
             <div class="rel-lastpos-row rel-readonly">
-                <i class="fas fa-map-marker-alt"></i>
+                <i class="fa-solid fa-map-marker-alt"></i>
                 <span>${r.lastPosition || "<em>Position inconnue</em>"}</span>
             </div>
             <p class="rel-note-ro">${r.note || "<em>Aucune note.</em>"}</p>
@@ -160,7 +160,7 @@ export function buildRowHtml(r, actor, canEdit) {
 
 export function emptyStateHtml() {
     return `<div class="rel-empty">
-        <i class="fas fa-heart-broken"></i>
+        <i class="fa-solid fa-heart-broken"></i>
         <span>Aucune relation enregistrée.</span>
     </div>`;
 }
@@ -219,21 +219,21 @@ export function buildTabHtml(actor) {
 
         <div style="${S.titleBar}">
             <span style="${S.title}">
-                <i class="fas fa-heart" style="color:#e0a13a;font-size:15px;filter:drop-shadow(0 1px 1px rgba(0,0,0,0.5));"></i>
+                <i class="fa-solid fa-heart" style="color:#e0a13a;font-size:15px;filter:drop-shadow(0 1px 1px rgba(0,0,0,0.5));"></i>
                 Relations
             </span>
             ${isGM ? `<a class="rel-add-btn">
-                <i class="fas fa-plus" style="font-size:10px;"></i> Ajouter
+                <i class="fa-solid fa-plus" style="font-size:10px;"></i> Ajouter
             </a>` : ""}
         </div>
 
         <div style="${S.searchBar}">
             <div class="rel-search-wrap" style="${S.wrap}">
-                <i class="fas fa-search" style="${S.srchIcon}"></i>
+                <i class="fa-solid fa-search" style="${S.srchIcon}"></i>
                 <input class="rel-search-input" type="text"
                     placeholder="Rechercher une relation…" style="${S.srchInput}">
                 <a class="rel-search-clear" style="${S.clear}" title="Effacer">
-                    <i class="fas fa-times"></i>
+                    <i class="fa-solid fa-times"></i>
                 </a>
             </div>
         </div>
@@ -294,7 +294,7 @@ function buildPickerHtml(pj, uid) {
         return `
         <div class="rel-picker-section">
             <div class="rel-picker-section-hdr" data-key="${key}">
-                <i class="fas fa-chevron-down"></i>
+                <i class="fa-solid fa-chevron-down"></i>
                 <span>${title}</span>
                 <small>(${list.length})</small>
             </div>
@@ -399,7 +399,7 @@ async function openAddDialog(actor) {
         buttons: [
             {
                 action: "confirm", default: true,
-                label: "Ajouter", icon: '<i class="fas fa-check"></i>',
+                label: "Ajouter", icon: '<i class="fa-solid fa-check"></i>',
                 callback: () => {
                     const d  = document.getElementById(uid);
                     const el = d?.querySelector(".rel-picker-actor.selected");
@@ -416,7 +416,7 @@ async function openAddDialog(actor) {
                     };
                 }
             },
-            { action: "cancel", label: "Annuler", icon: '<i class="fas fa-times"></i>', callback: () => {} }
+            { action: "cancel", label: "Annuler", icon: '<i class="fa-solid fa-times"></i>', callback: () => {} }
         ]
     });
 
@@ -475,7 +475,7 @@ async function openEditDialog(actor, rel) {
         buttons: [
             {
                 action: "confirm", default: true,
-                label: "Modifier", icon: '<i class="fas fa-check"></i>',
+                label: "Modifier", icon: '<i class="fa-solid fa-check"></i>',
                 callback: () => {
                     const d = document.getElementById(uid);
                     if (!d) return;
@@ -486,7 +486,7 @@ async function openEditDialog(actor, rel) {
                     };
                 }
             },
-            { action: "cancel", label: "Annuler", icon: '<i class="fas fa-times"></i>', callback: () => {} }
+            { action: "cancel", label: "Annuler", icon: '<i class="fa-solid fa-times"></i>', callback: () => {} }
         ]
     });
 
@@ -630,7 +630,7 @@ export function wireTab(actor, $html) {
         if (q && $tab.find(".rel-row").length && !visible) {
             $tab.find(".rel-list").append(
                 `<div class="rel-no-results rel-empty">
-                    <i class="fas fa-search"></i>
+                    <i class="fa-solid fa-search"></i>
                     <span>Aucune relation trouvée.</span>
                 </div>`
             );

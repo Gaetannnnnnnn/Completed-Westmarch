@@ -556,10 +556,6 @@ export function registerSettings() {
     game.settings.register(MOD, "harvestBloodImage", S(
         "Récolte — Image de la tache de sang",
         "Chemin d'image posée à la place du token quand la dépouille est entièrement récoltée. Laisser vide pour utiliser au hasard une des taches de sang fournies avec le module."));
-    game.settings.register(MOD, "harvestShowState", B(
-        "Récolte — Afficher l'état de la dépouille",
-        "Affiche l'état (Fraîche / Abîmée / Pourrie) au survol d'un token de créature morte. Si désactivé, retire aussi le bouton MJ de réglage de l'état.",
-        true));
     // Associations créature → RollTable. { byType: {beast: id…}, byName: {"Loup": id…} }
     game.settings.register(MOD, "harvestTables", {
         scope: "world", config: false, type: Object, default: { byType: {}, byName: {} }
@@ -654,7 +650,7 @@ const CATEGORIES = [
       keys: ["enableSourceControl","sourceAllowPlayers","sourceAllowGm","sourceMatchField","sourceMatchExact","sourceBlockUnknown"] },
     { firstKey: "enableHarvest", master: "enableHarvest", icon: "fa-hand-holding-droplet", title: "Récolte (harvest)",
       desc: "Récolte de matériaux sur les créatures mortes. Le module utilise des RollTables que vous créez et associez aux créatures (bouton « Associations » dans l'onglet WestMarch). Butin partagé sur la dépouille, pourriture avec le temps, tache de sang une fois vidée.",
-      keys: ["enableHarvest","harvestDcBase","harvestDcPerCr","harvestBaseDraws","harvestBloodImage","harvestShowState"] },
+      keys: ["enableHarvest","harvestDcBase","harvestDcPerCr","harvestBaseDraws","harvestBloodImage"] },
     { firstKey: "enableXpBlock",         icon: "fa-server",          title: "Serveur",
       desc: "Personnalisations du serveur : blocage XP / Level Up, logs Discord, webhooks.",
       keys: ["enableXpBlock","enableGmNotes","hidePlayerStarTab","enableDiscordLog","discordLogWebhookUrl","downtimeWebhookUrl","tmWebhookUrl"] },

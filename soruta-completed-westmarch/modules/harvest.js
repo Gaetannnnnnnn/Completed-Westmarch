@@ -34,22 +34,27 @@ export function HarvestHooks() {
     CONFIG.queries["westmarch.harvestGenerate"] = gmGenerate;
     CONFIG.queries["westmarch.harvestTake"]     = gmTake;
 
-    // Boutons : Récolter (tous) + Associations & État de dépouille (MJ).
+    // Le déclencheur de récolte est un bouton FLOTTANT dessiné au-dessus d'une
+    // créature MORTE, sur le canvas. Visible et cliquable par TOUS les joueurs,
+    // sans possession du token (à la différence du HUD). Voir ensureHarvestIcon.
+    Hooks.on("refreshToken", (token) => ensureHarvestIcon(token));
+    Hooks.on("drawToken", (token) => ensureHarvestIcon(token));
+    // Réagit aux changements de PV (mort/vivant) et au blocage de récolte.
+    Hooks.on("updateActor", (actor) => {
+        for (const t of actor.getActiveTokens?.() ?? []) ensureHarvestIcon(t);
+    });
+    // Visible seulement au survol du token (ou du bouton lui-même).
+    Hooks.on("hoverToken", (token, hovered) => {
+        const g = token?._scwmHarvestIcon;
+        if (g && !g.destroyed) g.visible = hovered || token._scwmHarvestOver === true;
+    });
+
+    // Boutons de la barre : Associations & nettoyage (MJ uniquement).
     Hooks.on("getSceneControlButtons", (controls) => {
         if (!controls.westmarch) {
             controls.westmarch = { name: "westmarch", title: "WestMarch", icon: "fa-solid fa-hammer", layer: "tokens", tools: {} };
         }
-        controls.westmarch.tools.scwmHarvest = {
-            name: "scwmHarvest", title: "Récolter la créature ciblée", icon: "fa-solid fa-hand-holding-droplet",
-            button: true, visible: true, onChange: () => harvestTargeted()
-        };
         if (game.user.isGM) {
-            if (game.settings.get(MOD, "harvestShowState")) {
-                controls.westmarch.tools.scwmHarvestState = {
-                    name: "scwmHarvestState", title: "Récolte — Régler l'état de la dépouille sélectionnée",
-                    icon: "fa-solid fa-droplet", button: true, visible: true, onChange: () => openStateDialog()
-                };
-            }
             controls.westmarch.tools.scwmHarvestConfig = {
                 name: "scwmHarvestConfig", title: "Récolte — Associer les créatures aux RollTables", icon: "fa-solid fa-sitemap",
                 button: true, visible: true, onChange: () => openHarvestConfig()
@@ -61,8 +66,8 @@ export function HarvestHooks() {
         }
     });
 
-    // État de pourriture au survol du token.
-    Hooks.on("hoverToken", (token, hovered) => drawRotLabel(token, hovered));
+    // Bouton d'en-tête (fiche PNJ, MJ) : bloquer/débloquer la récolte de la créature.
+    Hooks.on("renderApplicationV2", (app, element) => injectHarvestBlockButton(app, element));
 
     // Champ « Qté » (formule) injecté dans chaque ligne d'une RollTable (MJ).
     // IMPORTANT : on N'enveloppe PAS d'un test game.user.isGM ici — HarvestHooks
@@ -104,31 +109,22 @@ async function resolveTable(actor) {
     return game.tables.get(id) ?? await fromUuid(id).catch(() => null);
 }
 
-// État MANUEL de la dépouille. Défaut : fraîche — sauf morts-vivants → pourrie.
-// États : "fresh" (butin complet), "damaged" (butin réduit), "rotten" (rien).
-const STATE_LABELS = { fresh: "Fraîche", damaged: "Abîmée", rotten: "Pourrie" };
-const STATE_COLORS = { fresh: "#8fd19e", damaged: "#e0a13a", rotten: "#e58f8f" };
-
-function harvestState(actor, tokenDoc) {
-    const explicit = tokenDoc?.getFlag(MOD, "harvestState");
-    if (explicit) return explicit;
-    return typeOf(actor) === "undead" ? "damaged" : "fresh";   // défaut selon le type
-}
+// Récolte bloquée par le MJ sur cette créature (bouton d'en-tête de fiche).
+const isHarvestBlocked = (actor) => actor?.getFlag(MOD, "harvestBlocked") === true;
 
 // ============================================================
 // Récolte — côté joueur (déclencheur)
 // ============================================================
-async function harvestTargeted(harvesterOverride = null) {
+async function harvestTargeted(harvesterOverride = null, targetToken = null) {
     if (!enabled()) return;
-    const target = [...(game.user.targets ?? [])][0];
+    const target = targetToken ?? [...(game.user.targets ?? [])][0];
     if (!target) { ui.notifications?.warn("Ciblez d'abord une créature (touche T) avant de récolter."); return; }
     const tokenDoc = target.document;
     const actor = target.actor;
     if (!actor || actor.type !== "npc") { ui.notifications?.warn("Cette cible n'est pas une créature récoltable."); return; }
     if (!isDead(actor)) { ui.notifications?.warn(`${actor.name} n'est pas morte.`); return; }
 
-    const state = harvestState(actor, tokenDoc);
-    if (state === "rotten") { ui.notifications?.warn(`${actor.name} est pourrie : plus rien à récolter.`); return; }
+    if (isHarvestBlocked(actor)) { ui.notifications?.info(`Il n'y a rien à récolter sur ${actor.name}.`); return; }
 
     const harvester = (harvesterOverride instanceof Actor ? harvesterOverride : null) ?? harvesterActor();
 
@@ -185,16 +181,13 @@ async function gmGenerate({ sceneId, tokenId, total }) {
         const actor = tokenDoc?.actor;
         if (!tokenDoc || !actor) return { ok: false, msg: "Dépouille introuvable." };
         if (tokenDoc.getFlag(MOD, "harvestGenerated")) return { ok: true };
-
-        const state = harvestState(actor, tokenDoc);
-        if (state === "rotten") return { ok: false, msg: "Dépouille pourrie : rien à récolter." };
+        if (isHarvestBlocked(actor)) return { ok: true, empty: true };
 
         const table = await resolveTable(actor);
         if (!table) return { ok: false, msg: "Aucune table associée." };
 
         const dc = Math.round((sc("harvestDcBase") || 10) + crOf(actor) * (sc("harvestDcPerCr") || 0));
         let draws = (total >= dc) ? (sc("harvestBaseDraws") || 2) + Math.floor((total - dc) / 5) : 1;
-        if (state === "damaged") draws = Math.max(1, Math.floor(draws / 2));   // abîmée = butin réduit
         draws = Math.max(1, draws);
 
         // La table peut avoir des résultats marqués « tirés » (DRAW RESULT manuel,
@@ -543,58 +536,77 @@ async function cleanBloodStains() {
 }
 
 // ============================================================
-// État de la dépouille au survol
+// Bouton FLOTTANT de récolte au-dessus d'une créature morte (canvas PIXI)
+// Cliquable par tous les joueurs, sans possession du token.
 // ============================================================
-const _rotLabels = new Map();
+function ensureHarvestIcon(token) {
+    try {
+        if (!token || !token.actor) return;
+        const actor = token.actor;
+        const show = enabled() && actor.type === "npc" && isDead(actor) && !isHarvestBlocked(actor);
+        const existing = token._scwmHarvestIcon;
+        const alive = existing && !existing.destroyed && existing.parent;
 
-function drawRotLabel(token, hovered) {
-    const prev = _rotLabels.get(token.id);
-    if (prev) { try { prev.destroy(); } catch (e) {} _rotLabels.delete(token.id); }
-    if (!hovered || !enabled()) return;
-    if (!game.settings.get(MOD, "harvestShowState")) return;
-    const actor = token.actor;
-    if (!actor || actor.type !== "npc" || !isDead(actor)) return;
+        if (!show) { if (alive) { try { existing.destroy(); } catch (e) {} } token._scwmHarvestIcon = null; return; }
+        if (alive) { existing.position.set(token.w / 2, -24); return; }   // déjà présent : repositionne
 
-    const state = harvestState(actor, token.document);
-    const text = STATE_LABELS[state] ?? state;
-    const color = STATE_COLORS[state] ?? "#ffffff";
+        const label = new PIXI.Text("⚒ Récolter", {
+            fontFamily: "Signika, sans-serif", fontSize: 16, fontWeight: "bold",
+            fill: "#ffffff", stroke: "#000000", strokeThickness: 3
+        });
+        label.anchor.set(0.5);
+        const padX = 9, padY = 4, w = label.width + padX * 2, h = label.height + padY * 2;
+        const bg = new PIXI.Graphics();
+        bg.beginFill(0x7a1414, 0.92); bg.lineStyle(2, 0x000000, 0.6);
+        bg.drawRoundedRect(-w / 2, -h / 2, w, h, 8); bg.endFill();
 
-    const style = new PIXI.TextStyle({ fontFamily: "Signika, sans-serif", fontSize: 22, fill: color, stroke: "#000000", strokeThickness: 4 });
-    const label = new PIXI.Text(text, style);
-    label.anchor.set(0.5, 1);
-    label.position.set(token.w / 2, -4);
-    label.eventMode = "none";
-    token.addChild(label);
-    _rotLabels.set(token.id, label);
+        const g = new PIXI.Container();
+        g.addChild(bg); g.addChild(label);
+        g.position.set(token.w / 2, -24);      // au-dessus du token, centré
+        g.eventMode = "static";
+        g.cursor = "pointer";
+        g.visible = !!token.hover;             // caché tant que le token n'est pas survolé
+        g.on("pointerdown", (e) => { e.stopPropagation(); harvestTargeted(null, token); });
+        g.on("pointerover", () => { token._scwmHarvestOver = true; g.visible = true; });
+        g.on("pointerout",  () => { token._scwmHarvestOver = false; if (!token.hover) g.visible = false; });
+
+        token.addChild(g);
+        token._scwmHarvestIcon = g;
+    } catch (e) { console.warn(`[${MOD}] ensureHarvestIcon:`, e); }
 }
 
 // ============================================================
-// MJ : régler l'état de la dépouille sélectionnée
+// Bouton d'en-tête (fiche PNJ, MJ) : bloquer/débloquer la récolte
 // ============================================================
-async function openStateDialog() {
-    if (!game.user.isGM) return;
-    const token = canvas.tokens?.controlled?.[0] ?? [...(game.user.targets ?? [])][0];
-    if (!token) { ui.notifications?.warn("Sélectionnez (ou ciblez) le token de la dépouille."); return; }
-    const actor = token.actor;
-    if (!actor || actor.type !== "npc") { ui.notifications?.warn("Ce n'est pas une créature."); return; }
+function injectHarvestBlockButton(app, element) {
+    try {
+        if (!enabled() || !game.user?.isGM) return;
+        const actor = app?.document;
+        if (!actor || !(actor instanceof Actor) || actor.type !== "npc") return;
+        const root = (element instanceof HTMLElement) ? element : element?.[0];
+        const header = root?.querySelector(".window-header");
+        if (!header || header.querySelector(".scwm-harvest-block-btn")) return;
 
-    const cur = harvestState(actor, token.document);
-    const DialogV2 = foundry.applications.api.DialogV2;
-    const choice = await DialogV2.wait({
-        window: { title: `État de la dépouille — ${token.document.name}`, icon: "fa-solid fa-droplet" },
-        content: `<p>État actuel : <strong>${STATE_LABELS[cur]}</strong>${token.document.getFlag(MOD, "harvestState") ? "" : " (par défaut)"}.</p>
-                  <p style="font-size:.85em;color:#999;">Fraîche = butin complet · Abîmée = butin réduit · Pourrie = rien à récolter.<br>Par défaut, les morts-vivants sont « pourris ».</p>`,
-        rejectClose: false,
-        buttons: [
-            { action: "fresh",   label: "Fraîche",  icon: "fa-solid fa-leaf",     callback: () => "fresh" },
-            { action: "damaged", label: "Abîmée",   icon: "fa-solid fa-bandage",  callback: () => "damaged" },
-            { action: "rotten",  label: "Pourrie",  icon: "fa-solid fa-skull",    callback: () => "rotten" },
-            { action: "cancel",  label: "Annuler",  icon: "fa-solid fa-xmark",    callback: () => null }
-        ]
-    }).catch(() => null);
-    if (!choice) return;
-    await token.document.setFlag(MOD, "harvestState", choice);
-    ui.notifications?.info(`Dépouille réglée sur « ${STATE_LABELS[choice]} ».`);
+        const isBlocked = () => actor.getFlag(MOD, "harvestBlocked") === true;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.classList.add("header-control", "icon", "fa-solid", "fa-sack-xmark", "scwm-harvest-block-btn");
+        const refresh = () => {
+            btn.style.color = isBlocked() ? "#e74c3c" : "";
+            btn.dataset.tooltip = isBlocked()
+                ? "Récolte bloquée (rien à looter) — cliquer pour réactiver"
+                : "Bloquer la récolte (rien à looter sur cette créature)";
+        };
+        refresh();
+        btn.addEventListener("click", async () => {
+            await actor.setFlag(MOD, "harvestBlocked", !isBlocked());
+            refresh();
+        });
+
+        const title = header.querySelector(".window-title");
+        if (title) title.insertAdjacentElement("afterend", btn);
+        else header.insertBefore(btn, header.querySelector(".close"));
+    } catch (e) { console.warn(`[${MOD}] injectHarvestBlockButton:`, e); }
 }
 
 // ============================================================

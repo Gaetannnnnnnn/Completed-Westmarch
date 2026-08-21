@@ -230,11 +230,65 @@ export async function validateActor(actorId) {
         [`flags.${MOD}.validated`]: true,
         [`flags.${MOD}.pendingValidation`]: false,
         [`flags.${MOD}.pendingLevelUp`]: false,
-        [`flags.${MOD}.levelUpGranted`]: false
+        [`flags.${MOD}.levelUpGranted`]: false,
+        [`flags.${MOD}.-=levelUpSnapshot`]: null   // nettoie l'instantané de level-up
     });
     const uid = actor.getFlag(MOD, "createdFor");
     if (uid) ChatMessage.create({ whisper: [uid], speaker: { alias: "Validation" }, content: `🔒 <strong>${actor.name}</strong> est validé et verrouillé. Vous pouvez jouer normalement ; les changements de construction passeront par le MJ.` });
     ui.notifications?.info(`${actor.name} validé et verrouillé.`);
+}
+
+// ---- Suivi des modifications de montée de niveau ----------------------------
+// Instantané de la CONSTRUCTION d'une fiche, pour comparer avant/après level-up.
+function buildSnapshot(actor) {
+    const items = actor.items ?? [];
+    const abilities = {}, skills = {};
+    for (const [k, v] of Object.entries(actor.system?.abilities ?? {})) abilities[k] = v.value;
+    for (const [k, v] of Object.entries(actor.system?.skills ?? {})) skills[k] = v.value;
+    return {
+        level: actor.system?.details?.level ?? null,
+        hp: actor.system?.attributes?.hp?.max ?? null,
+        classes: items.filter(i => i.type === "class").map(i => `${i.name} ${i.system?.levels ?? "?"}`),
+        subclasses: items.filter(i => i.type === "subclass").map(i => i.name),
+        feats: items.filter(i => i.type === "feat").map(i => i.name),
+        spells: items.filter(i => i.type === "spell").map(i => i.name),
+        abilities, skills
+    };
+}
+const _abilLabel  = (k) => game.i18n?.localize(CONFIG.DND5E?.abilities?.[k]?.label ?? "") || k.toUpperCase();
+const _skillLabel = (k) => game.i18n?.localize(CONFIG.DND5E?.skills?.[k]?.label ?? "") || k;
+
+// Liste lisible des différences entre deux instantanés (before → after).
+function buildDiff(b, a) {
+    const out = [];
+    if (b.level !== a.level) out.push(`Niveau : ${b.level} → ${a.level}`);
+    if (b.hp !== a.hp) out.push(`PV max : ${b.hp} → ${a.hp}`);
+    a.classes.filter(x => !b.classes.includes(x)).forEach(x => out.push(`Classe : ${x}`));
+    a.subclasses.filter(x => !b.subclasses.includes(x)).forEach(x => out.push(`Sous-classe : ${x}`));
+    for (const k of Object.keys(a.abilities)) {
+        if ((b.abilities[k] ?? null) !== a.abilities[k]) out.push(`${_abilLabel(k)} : ${b.abilities[k]} → ${a.abilities[k]}`);
+    }
+    const nf = a.feats.filter(x => !b.feats.includes(x));
+    if (nf.length) out.push(`Aptitudes ajoutées : ${nf.join(", ")}`);
+    const rf = b.feats.filter(x => !a.feats.includes(x));
+    if (rf.length) out.push(`Aptitudes retirées : ${rf.join(", ")}`);
+    const ns = a.spells.filter(x => !b.spells.includes(x));
+    if (ns.length) out.push(`Sorts ajoutés : ${ns.join(", ")}`);
+    const sk = Object.keys(a.skills).filter(k => (b.skills[k] ?? 0) !== a.skills[k]).map(_skillLabel);
+    if (sk.length) out.push(`Maîtrises modifiées : ${sk.join(", ")}`);
+    return out;
+}
+
+// Poste au MJ la liste des modifications d'une montée de niveau.
+function postLevelUpDiff(actor, changes) {
+    const body = changes.length
+        ? `<ul style="margin:4px 0 0;padding-left:18px;">${changes.map(c => `<li>${esc(c)}</li>`).join("")}</ul>`
+        : "<em>Aucune modification de construction détectée.</em>";
+    ChatMessage.create({
+        whisper: gmIds(),
+        speaker: { alias: "Montée de niveau" },
+        content: `⬆️ <strong>${esc(actor.name)}</strong> — modifications apportées à la fiche :${body}`
+    });
 }
 
 // Demandes de montée de niveau en attente (badge « Level up »).
@@ -254,7 +308,9 @@ export async function grantLevelUp(actorId) {
     await actor.update({
         [`flags.${MOD}.levelUpGranted`]: true,
         [`flags.${MOD}.locked`]: false,
-        [`flags.${MOD}.pendingLevelUp`]: false
+        [`flags.${MOD}.pendingLevelUp`]: false,
+        // Instantané AVANT montée de niveau → sert à lister les modifications.
+        [`flags.${MOD}.levelUpSnapshot`]: buildSnapshot(actor)
     });
     const uid = actor.getFlag(MOD, "createdFor");
     if (uid) ChatMessage.create({ whisper: [uid], speaker: { alias: "Validation" }, content: `⬆️ Montée de niveau autorisée pour <strong>${actor.name}</strong>. Effectuez-la (assistant / Plutonium), puis re-soumettez la fiche pour re-validation.` });
@@ -407,11 +463,22 @@ export function openPlayerHub() {
                 else if (a === "submit" && ac) {
                     await ac.setFlag(MOD, "pendingValidation", true);
                     ChatMessage.create({ whisper: gmIds(), speaker: { alias: "Validation" }, content: `📩 <strong>${esc(game.user.name)}</strong> soumet <strong>${esc(ac.name)}</strong> pour validation.` });
+                    // Si c'est une re-soumission après montée de niveau : liste des modifs au MJ.
+                    const snap = ac.getFlag(MOD, "levelUpSnapshot");
+                    if (snap) postLevelUpDiff(ac, buildDiff(snap, buildSnapshot(ac)));
                     ui.notifications?.info("Fiche soumise pour validation.");
                 } else if (a === "levelup" && ac) {
-                    await ac.setFlag(MOD, "pendingLevelUp", true);
-                    ChatMessage.create({ whisper: gmIds(), speaker: { alias: "Validation" }, content: `⬆️ <strong>${esc(game.user.name)}</strong> demande une <strong>montée de niveau</strong> pour <strong>${esc(ac.name)}</strong>.` });
-                    ui.notifications?.info("Demande de montée de niveau envoyée.");
+                    // Auto-déverrouillage : le joueur monte de niveau lui-même. Les
+                    // modifications sont tracées (liste au MJ à la re-soumission),
+                    // donc plus besoin d'un accord préalable du MJ.
+                    await ac.update({
+                        [`flags.${MOD}.levelUpGranted`]: true,
+                        [`flags.${MOD}.locked`]: false,
+                        [`flags.${MOD}.pendingLevelUp`]: false,
+                        [`flags.${MOD}.levelUpSnapshot`]: buildSnapshot(ac)
+                    });
+                    ChatMessage.create({ whisper: gmIds(), speaker: { alias: "Validation" }, content: `⬆️ <strong>${esc(game.user.name)}</strong> effectue une <strong>montée de niveau</strong> pour <strong>${esc(ac.name)}</strong> (déverrouillage auto ; les modifications seront listées à la re-soumission).` });
+                    ui.notifications?.info("Fiche déverrouillée pour la montée de niveau. Effectuez-la, puis re-soumettez-la pour re-verrouiller.");
                 }
                 dlg.close();
             };
@@ -460,7 +527,15 @@ export function CharValidationHooks() {
     Hooks.on("preUpdateActor", (actor, changes, options, userId) => {
         if (game.user.isGM || userId !== game.user.id) return;
         if (!enabled() || !isLocked(actor)) return;
-        if (BLOCKED_ACTOR_PATHS.some(p => foundry.utils.hasProperty(changes, p))) {
+        // On ne bloque que si une valeur de CONSTRUCTION change RÉELLEMENT. Comparer
+        // à la valeur actuelle évite de rejeter une soumission qui renvoie des champs
+        // inchangés (ex. l'enregistrement de la BIOGRAPHIE peut inclure caracs/maîtrises
+        // inchangées) → la bio et tout le reste du jeu restent éditables.
+        const flat = foundry.utils.flattenObject(changes);
+        const constructionChanged = Object.keys(flat).some(k =>
+            BLOCKED_ACTOR_PATHS.some(p => k === p || k.startsWith(p + ".")) &&
+            !foundry.utils.objectsEqual(flat[k], foundry.utils.getProperty(actor, k)));
+        if (constructionChanged) {
             ui.notifications?.warn("Fiche validée : caractéristiques et maîtrises verrouillées. Demandez une modification au MJ.");
             setTimeout(() => actor.sheet?.render(false), 30);   // reverte l'affichage optimiste
             return false;

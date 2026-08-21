@@ -52,7 +52,9 @@ export function getPendingActors() {
             name: a.name,
             ownerName: game.users.get(a.getFlag(MOD, "createdFor"))?.name ?? "—",
             // Déjà validé une fois → c'est une montée de niveau / respec ; sinon création.
-            kind: a.getFlag(MOD, "validated") === true ? "levelup" : "creation"
+            kind: a.getFlag(MOD, "validated") === true ? "levelup" : "creation",
+            // Liste des modifications apportées lors de la montée de niveau (dépliant).
+            changes: a.getFlag(MOD, "levelUpChanges") ?? []
         }));
 }
 export function myCharActor() {
@@ -231,7 +233,8 @@ export async function validateActor(actorId) {
         [`flags.${MOD}.pendingValidation`]: false,
         [`flags.${MOD}.pendingLevelUp`]: false,
         [`flags.${MOD}.levelUpGranted`]: false,
-        [`flags.${MOD}.-=levelUpSnapshot`]: null   // nettoie l'instantané de level-up
+        [`flags.${MOD}.-=levelUpSnapshot`]: null,   // nettoie l'instantané de level-up
+        [`flags.${MOD}.-=levelUpChanges`]: null     // nettoie la liste des modifs
     });
     const uid = actor.getFlag(MOD, "createdFor");
     if (uid) ChatMessage.create({ whisper: [uid], speaker: { alias: "Validation" }, content: `🔒 <strong>${actor.name}</strong> est validé et verrouillé. Vous pouvez jouer normalement ; les changements de construction passeront par le MJ.` });
@@ -463,9 +466,14 @@ export function openPlayerHub() {
                 else if (a === "submit" && ac) {
                     await ac.setFlag(MOD, "pendingValidation", true);
                     ChatMessage.create({ whisper: gmIds(), speaker: { alias: "Validation" }, content: `📩 <strong>${esc(game.user.name)}</strong> soumet <strong>${esc(ac.name)}</strong> pour validation.` });
-                    // Si c'est une re-soumission après montée de niveau : liste des modifs au MJ.
+                    // Si c'est une re-soumission après montée de niveau : liste des modifs
+                    // (chuchotée au MJ + stockée pour le dépliant du Casier).
                     const snap = ac.getFlag(MOD, "levelUpSnapshot");
-                    if (snap) postLevelUpDiff(ac, buildDiff(snap, buildSnapshot(ac)));
+                    if (snap) {
+                        const changes = buildDiff(snap, buildSnapshot(ac));
+                        postLevelUpDiff(ac, changes);
+                        await ac.setFlag(MOD, "levelUpChanges", changes);
+                    }
                     ui.notifications?.info("Fiche soumise pour validation.");
                 } else if (a === "levelup" && ac) {
                     // Auto-déverrouillage : le joueur monte de niveau lui-même. Les

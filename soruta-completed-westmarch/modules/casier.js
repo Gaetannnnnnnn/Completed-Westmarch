@@ -243,20 +243,29 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                 </div>
             </div>`).join("") : `<div class="scwm-casier-empty">Aucune demande de création.</div>`;
 
-        const pendRows = pend.length ? pend.map(a => `
+        const pendRows = pend.length ? pend.map(a => {
+            // Dépliant des modifications de montée de niveau (si présentes).
+            const changes = Array.isArray(a.changes) ? a.changes : [];
+            const changesBlock = (a.kind === "levelup" && changes.length) ? `
+                <details class="scwm-cv-changes" style="margin-top:6px;">
+                    <summary style="cursor:pointer;opacity:.85;font-size:.9em;"><i class="fa-solid fa-list-check"></i> Modifications de la fiche (${changes.length})</summary>
+                    <ul style="margin:4px 0 0;padding-left:18px;font-size:.85em;opacity:.9;">${changes.map(c => `<li>${esc(c)}</li>`).join("")}</ul>
+                </details>` : "";
+            return `
             <div class="scwm-casier-cv-row" data-cv-actor="${esc(a.id)}">
                 <div class="scwm-cv-info">
                     <strong>${esc(a.name)}</strong> — <em>${esc(a.ownerName)}</em>
                     ${a.kind === "levelup"
                         ? `<span class="scwm-cv-tag scwm-cv-tag-levelup"><i class="fa-solid fa-arrow-up-1-9"></i> Montée de niveau</span>`
                         : `<span class="scwm-cv-tag scwm-cv-tag-creation"><i class="fa-solid fa-user-plus"></i> Création</span>`}
+                    ${changesBlock}
                 </div>
                 <div class="scwm-cv-row-actions">
                     <button type="button" class="scwm-cv-openactor" data-actor="${esc(a.id)}" title="Ouvrir la fiche"><i class="fa-solid fa-user"></i></button>
                     <button type="button" class="scwm-cv-validate" data-actor="${esc(a.id)}"><i class="fa-solid fa-lock"></i> Valider &amp; verrouiller</button>
                     <button type="button" class="scwm-cv-return" data-actor="${esc(a.id)}"><i class="fa-solid fa-rotate-left"></i> Renvoyer</button>
                 </div>
-            </div>`).join("") : `<div class="scwm-casier-empty">Aucune fiche à valider.</div>`;
+            </div>`; }).join("") : `<div class="scwm-casier-empty">Aucune fiche à valider.</div>`;
 
         return `
             <div class="scwm-casier-detail scwm-casier-validation">

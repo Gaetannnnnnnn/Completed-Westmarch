@@ -555,7 +555,7 @@ export function registerSettings() {
         "Récolte — Tirages de base", "Nombre de tirages sur la RollTable en cas de réussite normale. +1 par tranche de 5 au-dessus de la DC ; échec = 1 tirage. Une dépouille « abîmée » réduit ce nombre de moitié.", 2));
     game.settings.register(MOD, "harvestBloodImage", S(
         "Récolte — Image de la tache de sang",
-        "Chemin d'image posée à la place du token quand la dépouille est entièrement récoltée. Laisser vide pour une tache générée."));
+        "Chemin d'image posée à la place du token quand la dépouille est entièrement récoltée. Laisser vide pour utiliser au hasard une des taches de sang fournies avec le module."));
     game.settings.register(MOD, "harvestShowState", B(
         "Récolte — Afficher l'état de la dépouille",
         "Affiche l'état (Fraîche / Abîmée / Pourrie) au survol d'un token de créature morte. Si désactivé, retire aussi le bouton MJ de réglage de l'état.",

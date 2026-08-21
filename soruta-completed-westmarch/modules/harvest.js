@@ -296,14 +296,28 @@ async function gmTake({ sceneId, tokenId, taken, harvesterActorId }) {
     } catch (e) { console.warn(`[${MOD}] harvestTake:`, e); return { ok: false, msg: "Erreur de prise." }; }
 }
 
+// Images de sang fournies avec le module (posées au hasard si aucune image
+// personnalisée n'est réglée).
+const BUNDLED_BLOOD = [
+    `modules/${MOD}/assets/blood/blood1.png`,
+    `modules/${MOD}/assets/blood/blood2.png`
+];
+
 async function placeBloodStain(tokenDoc) {
     try {
         const scene = tokenDoc.parent;
-        const img = sc("harvestBloodImage");
+        // Image personnalisée si réglée, sinon une des images fournies au hasard.
+        const custom = sc("harvestBloodImage");
+        const img = custom || BUNDLED_BLOOD[Math.floor(Math.random() * BUNDLED_BLOOD.length)];
         const w = tokenDoc.width * scene.grid.sizeX, h = tokenDoc.height * scene.grid.sizeY;
         if (img) {
+            // Taille un peu débordante + rotation aléatoire pour varier le rendu.
+            const scale = 1.15 + Math.random() * 0.35;
+            const tw = w * scale, th = h * scale;
             await scene.createEmbeddedDocuments("Tile", [{
-                texture: { src: img }, x: tokenDoc.x, y: tokenDoc.y, width: w, height: h,
+                texture: { src: img },
+                x: tokenDoc.x + w / 2 - tw / 2, y: tokenDoc.y + h / 2 - th / 2,
+                width: tw, height: th, rotation: Math.floor(Math.random() * 360),
                 sort: -100, flags: { [MOD]: { bloodStain: true } }
             }]);
         } else {

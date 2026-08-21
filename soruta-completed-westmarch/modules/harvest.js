@@ -211,9 +211,17 @@ async function gmGenerate({ sceneId, tokenId, total }) {
         if (state === "damaged") draws = Math.max(1, Math.floor(draws / 2));   // abîmée = butin réduit
         draws = Math.max(1, draws);
 
+        // La table peut avoir des résultats marqués « tirés » (DRAW RESULT manuel,
+        // ou tirage sans remise) : roll() lèverait alors « no available results ».
+        // On réinitialise cet état pour que la récolte pioche toujours. Best-effort
+        // (échoue silencieusement sur une table de compendium verrouillée).
+        try { if (table.results.some(r => r.drawn)) await table.resetResults(); } catch (e) {}
+
         const loot = [];
         for (let i = 0; i < draws; i++) {
-            const { results } = await table.roll();
+            let results = [];
+            try { ({ results } = await table.roll()); }
+            catch (e) { console.warn(`[${MOD}] table.roll:`, e); continue; }
             for (const r of (results ?? [])) {
                 const p = await parseResult(r);
                 if (p.isNothing || p.qty <= 0) continue;          // « rien » : on n'ajoute pas de ligne
@@ -262,10 +270,13 @@ async function parseResult(r) {
         if (um) item = await fromUuid(um[1]).catch(() => null);
     }
     const cleaned = text.replace(/@UUID\[[^\]]+\]\{([^}]*)\}/g, "$1").replace(/@UUID\[[^\]]+\]/g, "").trim();
-    const isNothing = !item && (cleaned === "" || /^(rien|néant|nothing|none|aucun|-|x)\.?$/i.test(cleaned));
+    // « rien » = aucun item, aucune Qté saisie, ET nom vide ou négatif. Dès qu'une
+    // Qté est configurée sur le résultat, le MJ veut du butin : jamais « rien ».
+    const isNothing = !item && !flagFormula
+        && (cleaned === "" || /^(rien|néant|nothing|none|aucun|-|x)\.?$/i.test(cleaned));
     return {
         item, qty,
-        name: item?.name ?? (cleaned || "Objet"),
+        name: item?.name ?? (cleaned || r.name || r.text || "Butin"),
         img: item?.img ?? r.icon ?? r.img ?? "icons/svg/item-bag.svg",
         isNothing
     };
@@ -450,21 +461,25 @@ async function placeBloodStain(tokenDoc) {
         const custom = sc("harvestBloodImage");
         const img = custom || BUNDLED_BLOOD[Math.floor(Math.random() * BUNDLED_BLOOD.length)];
 
-        // Centre et taille RÉELS du token en pixels. On privilégie l'objet
-        // canvas (t.center / t.w / t.h) : il gère les grilles hexagonales, la
-        // mise à l'échelle et l'ancrage, là où largeur × sizeX se décale.
+        // Centre = centre du token. Taille = taille VISUELLE de l'image du token,
+        // c.-à-d. empreinte × échelle de texture (les PNJ ont souvent une empreinte
+        // 1-2 cases mais une image agrandie ; sans l'échelle, la tache est trop
+        // petite et paraît décalée vers un coin).
+        const sx = Math.abs(tokenDoc.texture?.scaleX ?? 1) || 1;
+        const sy = Math.abs(tokenDoc.texture?.scaleY ?? 1) || 1;
         const t = tokenDoc.object;
         let cx, cy, w, h;
         if (t && Number.isFinite(t.center?.x)) {
-            cx = t.center.x; cy = t.center.y; w = t.w; h = t.h;
+            cx = t.center.x; cy = t.center.y; w = t.w * sx; h = t.h * sy;
         } else {
-            w = tokenDoc.width * scene.grid.sizeX; h = tokenDoc.height * scene.grid.sizeY;
-            cx = tokenDoc.x + w / 2; cy = tokenDoc.y + h / 2;
+            w = tokenDoc.width * scene.grid.sizeX * sx; h = tokenDoc.height * scene.grid.sizeY * sy;
+            cx = tokenDoc.x + (tokenDoc.width * scene.grid.sizeX) / 2;
+            cy = tokenDoc.y + (tokenDoc.height * scene.grid.sizeY) / 2;
         }
 
         if (img) {
-            // Centrée sous le token, taille un peu débordante + rotation aléatoire.
-            const scale = 1.1 + Math.random() * 0.2;
+            // Centrée sur le token, à sa taille visuelle + rotation aléatoire.
+            const scale = 0.95 + Math.random() * 0.15;
             const tw = w * scale, th = h * scale;
             await scene.createEmbeddedDocuments("Tile", [{
                 texture: { src: img },

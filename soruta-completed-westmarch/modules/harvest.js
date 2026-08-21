@@ -66,8 +66,11 @@ export function HarvestHooks() {
 
     // Champ « Qté » (formule) injecté dans chaque ligne d'une RollTable, côté MJ.
     if (game.user.isGM) {
-        Hooks.on("renderRollTableConfig", injectHarvestQtyFields);
-        Hooks.on("renderRollTableSheet", injectHarvestQtyFields);
+        // dnd5e remplace la fenêtre par RollTableSheet5e → hook renderRollTableSheet5e.
+        // On couvre aussi les variantes core (selon système/version).
+        for (const h of ["renderRollTableSheet5e", "renderRollTableSheet", "renderRollTableConfig"]) {
+            Hooks.on(h, injectHarvestQtyFields);
+        }
     }
 
     // Tache de sang posée sous le token AU MOMENT DE LA MORT (PV → 0), une seule

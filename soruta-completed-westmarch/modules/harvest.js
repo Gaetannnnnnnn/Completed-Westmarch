@@ -64,6 +64,12 @@ export function HarvestHooks() {
     // État de pourriture au survol du token.
     Hooks.on("hoverToken", (token, hovered) => drawRotLabel(token, hovered));
 
+    // Champ « Qté » (formule) injecté dans chaque ligne d'une RollTable, côté MJ.
+    if (game.user.isGM) {
+        Hooks.on("renderRollTableConfig", injectHarvestQtyFields);
+        Hooks.on("renderRollTableSheet", injectHarvestQtyFields);
+    }
+
     // Tache de sang posée sous le token AU MOMENT DE LA MORT (PV → 0), une seule
     // fois par token. Le GM actif s'en charge pour éviter les doublons.
     Hooks.on("updateActor", (actor, changes) => {
@@ -97,13 +103,16 @@ function getTokenDoc(sceneId, tokenId) {
 }
 
 // Résout la RollTable associée : flag sur l'acteur → nom → type.
-function resolveTable(actor) {
+// La valeur stockée est un UUID (table de compendium) ou un id de monde ;
+// on gère les deux (fromUuid couvre le compendium, game.tables.get le monde).
+async function resolveTable(actor) {
     const maps = sc("harvestTables") ?? { byType: {}, byName: {} };
     const perActor = actor.getFlag?.(MOD, "harvestTableId");
     const byName = maps.byName?.[actor.name];
     const byType = maps.byType?.[typeOf(actor)];
     const id = perActor || byName || byType;
-    return id ? game.tables.get(id) : null;
+    if (!id) return null;
+    return game.tables.get(id) ?? await fromUuid(id).catch(() => null);
 }
 
 // État MANUEL de la dépouille. Défaut : fraîche — sauf morts-vivants → pourrie.
@@ -137,7 +146,7 @@ async function harvestTargeted(harvesterOverride = null) {
     // Déjà récoltée (butin généré) → on ouvre directement la fenêtre.
     if (tokenDoc.getFlag(MOD, "harvestGenerated")) { openLootWindow(tokenDoc.parent.id, tokenDoc.id, harvester?.id ?? null); return; }
 
-    if (!resolveTable(actor)) {
+    if (!await resolveTable(actor)) {
         ui.notifications?.warn(`Aucune table de récolte associée à ${actor.name} (le MJ doit l'associer).`);
         return;
     }
@@ -191,7 +200,7 @@ async function gmGenerate({ sceneId, tokenId, total }) {
         const state = harvestState(actor, tokenDoc);
         if (state === "rotten") return { ok: false, msg: "Dépouille pourrie : rien à récolter." };
 
-        const table = resolveTable(actor);
+        const table = await resolveTable(actor);
         if (!table) return { ok: false, msg: "Aucune table associée." };
 
         const dc = Math.round((sc("harvestDcBase") || 10) + crOf(actor) * (sc("harvestDcPerCr") || 0));
@@ -232,10 +241,17 @@ async function parseResult(r) {
     // On lit le nom en priorité, puis l'éventuelle description pour un lien @UUID.
     let text = (r.name ?? r.text ?? "").trim();
     let qty = 1;
-    const m = text.match(/^\s*(\d+d\d+(?:\s*[+-]\s*\d+)?|\d+)\s*(?:[x×*]\s*)?/i);
-    if (m) {
-        try { qty = Math.max(0, Math.round((await new Roll(m[1]).evaluate()).total)); } catch { qty = 1; }
-        text = text.slice(m[0].length).trim();
+    // Priorité : formule saisie dans le champ « Qté » de la ligne (flag du résultat).
+    const flagFormula = (r.getFlag?.(MOD, "harvestQty") ?? "").toString().trim();
+    if (flagFormula) {
+        try { qty = Math.max(0, Math.round((await new Roll(flagFormula).evaluate()).total)); } catch { qty = 1; }
+    } else {
+        // Sinon : formule en tête du nom (ex. « 1d4 Dent »).
+        const m = text.match(/^\s*(\d+d\d+(?:\s*[+-]\s*\d+)?|\d+)\s*(?:[x×*]\s*)?/i);
+        if (m) {
+            try { qty = Math.max(0, Math.round((await new Roll(m[1]).evaluate()).total)); } catch { qty = 1; }
+            text = text.slice(m[0].length).trim();
+        }
     }
     let item = await resultToItem(r);
     if (!item) {
@@ -250,6 +266,39 @@ async function parseResult(r) {
         img: item?.img ?? r.icon ?? r.img ?? "icons/svg/item-bag.svg",
         isNothing
     };
+}
+
+// Injecte un champ « Qté » (formule de récolte) dans chaque ligne de la fenêtre
+// de configuration d'une RollTable. La valeur est enregistrée sur le résultat
+// (flag harvestQty) et lue en priorité par parseResult.
+function injectHarvestQtyFields(app, html) {
+    try {
+        const root = (html instanceof HTMLElement) ? html : (html?.[0] ?? html?.element ?? null);
+        const table = app?.document ?? app?.object;
+        if (!root || !table?.results) return;
+        root.querySelectorAll("[data-result-id]").forEach(row => {
+            if (row.querySelector(".scwm-qty")) return;
+            const result = table.results.get(row.dataset.resultId);
+            if (!result) return;
+            const val = foundry.utils.escapeHTML?.(result.getFlag(MOD, "harvestQty") ?? "") ?? (result.getFlag(MOD, "harvestQty") ?? "");
+
+            const isRow = row.tagName === "TR";
+            const holder = document.createElement(isRow ? "td" : "span");
+            holder.className = "scwm-qty";
+            holder.style.cssText = "display:inline-flex;align-items:center;gap:4px;white-space:nowrap;";
+            holder.innerHTML = `<span style="opacity:.7;font-size:.85em;">Qté récolte</span>
+                <input type="text" value="${val}" placeholder="1d4" style="width:60px;" title="Formule de quantité récoltée (ex. 1d4, 2). Vide = 1.">`;
+            const input = holder.querySelector("input");
+            input.addEventListener("change", () => result.setFlag(MOD, "harvestQty", input.value.trim()));
+
+            // On place le champ juste avant la colonne « Weight » (poids) de la ligne.
+            const weight = row.querySelector('input[name*="weight"]');
+            const anchor = isRow ? weight?.closest("td") : (weight?.closest("div,label,span") ?? weight);
+            if (anchor && anchor.parentElement === row) row.insertBefore(holder, anchor);
+            else if (anchor?.parentElement) anchor.parentElement.insertBefore(holder, anchor);
+            else row.appendChild(holder);
+        });
+    } catch (e) { console.warn(`[${MOD}] injectHarvestQtyFields:`, e); }
 }
 
 async function resultToItem(result) {
@@ -325,6 +374,7 @@ async function gmTake({ sceneId, tokenId, taken, harvesterActorId }) {
         const harvester = harvesterActorId ? game.actors.get(harvesterActorId) : null;
 
         const toCreate = [];
+        const takenList = [];
         for (const t of (taken ?? [])) {
             const entry = loot[t.index];
             if (!entry) continue;
@@ -334,9 +384,13 @@ async function gmTake({ sceneId, tokenId, taken, harvesterActorId }) {
                 const item = await fromUuid(entry.uuid);
                 if (item) { const obj = item.toObject(); if ("quantity" in (obj.system ?? {})) obj.system.quantity = q; toCreate.push(obj); }
             }
+            takenList.push({ name: entry.name, img: entry.img, qty: q });
             entry.qty -= q;
         }
         if (harvester && toCreate.length) await harvester.createEmbeddedDocuments("Item", toCreate);
+
+        // Message CHUCHOTÉ AUX MJ (aveugle) : trace de ce qui a été récolté.
+        if (takenList.length) postHarvestLootWhisper(harvester, tokenDoc.name, takenList);
 
         const remaining = loot.filter(l => l.qty > 0);
         if (remaining.length) {
@@ -349,6 +403,32 @@ async function gmTake({ sceneId, tokenId, taken, harvesterActorId }) {
         await tokenDoc.delete();
         return { ok: true, emptied: true };
     } catch (e) { console.warn(`[${MOD}] harvestTake:`, e); return { ok: false, msg: "Erreur de prise." }; }
+}
+
+// Message de butin CHUCHOTÉ aux MJ (aveugle) : qui a récolté quoi sur quelle
+// dépouille. Créé côté MJ (dans gmTake), donc les joueurs ne le voient pas.
+async function postHarvestLootWhisper(harvester, carcassName, takenList) {
+    try {
+        const who = harvester?.name ?? "Quelqu'un";
+        const rows = takenList.map(l =>
+            `<li style="display:flex;align-items:center;gap:6px;margin:2px 0;">
+                <img src="${l.img}" width="20" height="20" style="border:none;flex:0 0 auto;">
+                <span>${l.name}</span><span style="opacity:.7;">×${l.qty}</span>
+            </li>`).join("");
+        const content =
+            `<div class="scwm-harvest-loot">
+                <p style="margin:0 0 4px;"><i class="fa-solid fa-hand-holding-droplet"></i> <strong>${who}</strong> récolte sur <em>${carcassName}</em> :</p>
+                <ul style="list-style:none;margin:0;padding:0;">${rows}</ul>
+            </div>`;
+        const gmIds = ChatMessage.getWhisperRecipients("GM").map(u => u.id);
+        await ChatMessage.create({
+            content,
+            whisper: gmIds,
+            blind: true,
+            speaker: harvester ? ChatMessage.getSpeaker({ actor: harvester }) : {},
+            flags: { [MOD]: { harvestLootLog: true } }
+        });
+    } catch (e) { console.warn(`[${MOD}] postHarvestLootWhisper:`, e); }
 }
 
 // Images de sang fournies avec le module (posées au hasard si aucune image
@@ -525,9 +605,23 @@ async function openHarvestConfig() {
     const maps = foundry.utils.deepClone(sc("harvestTables") ?? { byType: {}, byName: {} });
     maps.byType ??= {}; maps.byName ??= {};
 
-    const tables = [...game.tables].sort((a, b) => a.name.localeCompare(b.name));
+    // Tables du MONDE + tables de COMPENDIUM. On stocke l'UUID (uniforme) ;
+    // la sélection reste compatible avec d'anciennes valeurs (id de monde nu).
+    const tables = [...game.tables].map(t => ({ uuid: t.uuid, id: t.id, name: t.name, group: "Monde" }));
+    for (const pack of game.packs) {
+        if ((pack.metadata?.type ?? pack.documentName) !== "RollTable") continue;
+        try {
+            const idx = await pack.getIndex();
+            for (const e of idx) tables.push({ uuid: e.uuid, id: e._id, name: e.name, group: pack.metadata?.label ?? "Compendium" });
+        } catch (e) { /* pack illisible, on ignore */ }
+    }
+    tables.sort((a, b) => (a.group + a.name).localeCompare(b.group + b.name));
     const tableOptions = (sel) => `<option value="">— aucune —</option>` +
-        tables.map(t => `<option value="${t.id}" ${t.id === sel ? "selected" : ""}>${t.name}</option>`).join("");
+        tables.map(t => {
+            const on = (t.uuid === sel || t.id === sel) ? "selected" : "";
+            const prefix = t.group === "Monde" ? "" : `[${t.group}] `;
+            return `<option value="${t.uuid}" ${on}>${prefix}${t.name}</option>`;
+        }).join("");
 
     const types = CONFIG.DND5E?.creatureTypes ?? {};
     const typeRows = Object.entries(types).map(([k, v]) => {

@@ -63,6 +63,23 @@ export function HarvestHooks() {
 
     // État de pourriture au survol du token.
     Hooks.on("hoverToken", (token, hovered) => drawRotLabel(token, hovered));
+
+    // Tache de sang posée sous le token AU MOMENT DE LA MORT (PV → 0), une seule
+    // fois par token. Le GM actif s'en charge pour éviter les doublons.
+    Hooks.on("updateActor", (actor, changes) => {
+        if (!enabled() || !game.user.isGM) return;
+        const activeGM = game.users.activeGM;
+        if (activeGM && activeGM.id !== game.user.id) return;
+        if (actor?.type !== "npc") return;
+        const newHp = foundry.utils.getProperty(changes, "system.attributes.hp.value");
+        if (newHp === undefined || newHp > 0) return;
+        for (const token of actor.getActiveTokens(true)) {
+            const td = token.document;
+            if (td.getFlag(MOD, "bloodPlaced")) continue;
+            td.setFlag(MOD, "bloodPlaced", true);
+            placeBloodStain(td);
+        }
+    });
 }
 
 // ============================================================
@@ -289,8 +306,9 @@ async function gmTake({ sceneId, tokenId, taken, harvesterActorId }) {
             await tokenDoc.update({ [`flags.${MOD}.harvestLoot`]: remaining });
             return { ok: true, emptied: false };
         }
-        // Dépouille vidée → tache de sang + suppression.
-        await placeBloodStain(tokenDoc);
+        // Dépouille vidée → suppression du token. La tache a normalement déjà
+        // été posée à la mort ; on ne la pose ici que si ce n'est pas le cas.
+        if (!tokenDoc.getFlag(MOD, "bloodPlaced")) await placeBloodStain(tokenDoc);
         await tokenDoc.delete();
         return { ok: true, emptied: true };
     } catch (e) { console.warn(`[${MOD}] harvestTake:`, e); return { ok: false, msg: "Erreur de prise." }; }
@@ -311,8 +329,8 @@ async function placeBloodStain(tokenDoc) {
         const img = custom || BUNDLED_BLOOD[Math.floor(Math.random() * BUNDLED_BLOOD.length)];
         const w = tokenDoc.width * scene.grid.sizeX, h = tokenDoc.height * scene.grid.sizeY;
         if (img) {
-            // Taille un peu débordante + rotation aléatoire pour varier le rendu.
-            const scale = 1.15 + Math.random() * 0.35;
+            // Centrée sous le token, taille un peu débordante + rotation aléatoire.
+            const scale = 1.1 + Math.random() * 0.2;
             const tw = w * scale, th = h * scale;
             await scene.createEmbeddedDocuments("Tile", [{
                 texture: { src: img },

@@ -20,6 +20,7 @@ import {
     getPendingActors, validateActor, returnActor,
     getLevelUpRequests, grantLevelUp
 } from "./charvalidation.js";
+import { downtimeContentHtml, wireDowntime, applyDowntimeFromRoot } from "./tm.js";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -122,12 +123,17 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
         const drafts = myDrafts();
 
         const cvEnabled = game.settings.get(MOD, "enableCharValidation");
-        const cvCount = cvEnabled ? (getCreationRequests().length + getPendingActors().length + getLevelUpRequests().length) : 0;
+        const cvCount = cvEnabled ? (getCreationRequests().length + getPendingActors().length) : 0;
+        const tmEnabled = game.settings.get(MOD, "tmEnabled");
+        const tmDeclared = tmEnabled
+            ? (game.actors?.filter(a => a.type === "character" && a.hasPlayerOwner && a.getFlag(MOD, "tm")?.declared).length ?? 0)
+            : 0;
 
         const TABS = [
             { key: "dashboard",   icon: "fa-gauge-high", label: "Dashboard" },
             { key: "reports",     icon: "fa-scroll",     label: `Rapports${drafts.length ? ` (${drafts.length})` : ""}` },
             { key: "expeditions", icon: "fa-route",      label: "Expéditions" },
+            ...(tmEnabled ? [{ key: "downtime", icon: "fa-hourglass-half", label: `Temps morts${tmDeclared ? ` (${tmDeclared})` : ""}` }] : []),
             { key: "gms",         icon: "fa-users-gear", label: "Suivi des GM" },
             ...(cvEnabled ? [{ key: "validation", icon: "fa-id-card", label: `Validation${cvCount ? ` (${cvCount})` : ""}` }] : [])
         ];
@@ -155,6 +161,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             detail = draft ? this.#draftDetail(draft) : `<div class="scwm-casier-placeholder"><i class="fa-solid fa-book-open"></i><p>Sélectionnez un rapport à finaliser dans le livret.</p></div>`;
         }
         else if (this.#tab === "expeditions") detail = this.#expeditionsDetail();
+        else if (this.#tab === "downtime")    detail = this.#downtimeDetail();
         else if (this.#tab === "validation")  detail = this.#validationDetail();
         else                                  detail = this.#gmsDetail();
 
@@ -207,6 +214,18 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             </div>`;
     }
 
+    // ---- Onglet Temps morts (panneau embarqué) ----
+    #downtimeDetail() {
+        return `
+            <div class="scwm-casier-detail scwm-casier-downtime">
+                <h2><i class="fa-solid fa-hourglass-half"></i> Temps morts</h2>
+                <div class="scwm-tm-embed">${downtimeContentHtml(true)}</div>
+                <div class="scwm-casier-actions" style="margin-top:10px;">
+                    <button type="button" class="scwm-casier-apply-tm"><i class="fa-solid fa-coins"></i> Appliquer les gains</button>
+                </div>
+            </div>`;
+    }
+
     // ---- Onglet Validation des personnages ----
     #validationDetail() {
         const reqs = getCreationRequests();
@@ -239,18 +258,6 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                 </div>
             </div>`).join("") : `<div class="scwm-casier-empty">Aucune fiche à valider.</div>`;
 
-        const lvl = getLevelUpRequests();
-        const lvlRows = lvl.length ? lvl.map(a => `
-            <div class="scwm-casier-cv-row" data-cv-actor="${esc(a.id)}">
-                <div class="scwm-cv-info">
-                    <strong>${esc(a.name)}</strong> — <em>${esc(a.ownerName)}</em>
-                </div>
-                <div class="scwm-cv-row-actions">
-                    <button type="button" class="scwm-cv-openactor" data-actor="${esc(a.id)}" title="Ouvrir la fiche"><i class="fa-solid fa-user"></i></button>
-                    <button type="button" class="scwm-cv-grantlvl" data-actor="${esc(a.id)}"><i class="fa-solid fa-unlock"></i> Autoriser la montée</button>
-                </div>
-            </div>`).join("") : `<div class="scwm-casier-empty">Aucune demande de montée de niveau.</div>`;
-
         return `
             <div class="scwm-casier-detail scwm-casier-validation">
                 <h2><i class="fa-solid fa-id-card"></i> Validation des personnages</h2>
@@ -261,10 +268,6 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                 <div class="scwm-casier-cv-section">
                     <h3>Fiches à valider</h3>
                     ${pendRows}
-                </div>
-                <div class="scwm-casier-cv-section">
-                    <h3>Montées de niveau</h3>
-                    ${lvlRows}
                 </div>
             </div>`;
     }
@@ -390,6 +393,15 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
         root.querySelectorAll(".scwm-cv-return").forEach(b => b.addEventListener("click", async () => { await returnActor(b.dataset.actor); this.render(); refreshCasierBadge(); }));
         root.querySelectorAll(".scwm-cv-grantlvl").forEach(b => b.addEventListener("click", async () => { await grantLevelUp(b.dataset.actor); this.render(); refreshCasierBadge(); }));
         root.querySelectorAll(".scwm-cv-openactor").forEach(b => b.addEventListener("click", () => game.actors.get(b.dataset.actor)?.sheet.render(true)));
+
+        // Onglet Temps morts embarqué : câblage + application des gains.
+        if (this.#tab === "downtime") {
+            wireDowntime(root);
+            root.querySelector(".scwm-casier-apply-tm")?.addEventListener("click", async () => {
+                await applyDowntimeFromRoot(root);
+                this.render();
+            });
+        }
 
         // Présentation du dashboard : sauvegarde à la perte de focus.
         const pres = root.querySelector(".scwm-casier-presentation");

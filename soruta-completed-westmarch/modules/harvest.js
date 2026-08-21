@@ -73,23 +73,9 @@ export function HarvestHooks() {
         Hooks.on(h, injectHarvestQtyFields);
     }
 
-    // Tache de sang posée sous le token AU MOMENT DE LA MORT (PV → 0), une seule
-    // fois par token. Le GM actif s'en charge pour éviter les doublons.
-    Hooks.on("updateActor", (actor, changes) => {
-        if (!enabled() || !game.user.isGM) return;
-        const activeGM = game.users.activeGM;
-        if (activeGM && activeGM.id !== game.user.id) return;
-        if (actor?.type !== "npc") return;
-        const newHp = foundry.utils.getProperty(changes, "system.attributes.hp.value");
-        if (newHp === undefined || newHp > 0) return;
-        // Tokens de CET acteur sur la scène courante (liés ou non).
-        for (const token of actor.getActiveTokens()) {
-            const td = token.document;
-            if (td.getFlag(MOD, "bloodPlaced")) continue;
-            td.setFlag(MOD, "bloodPlaced", true);
-            placeBloodStain(td);
-        }
-    });
+    // NB : la tache de sang est posée quand la dépouille est ENTIÈREMENT récoltée
+    // (le token disparaît alors), pas à la mort — sinon elle serait cachée sous
+    // le corps. Voir gmTake().
 }
 
 // ============================================================
@@ -413,9 +399,9 @@ async function gmTake({ sceneId, tokenId, taken, harvesterActorId }) {
             await tokenDoc.update({ [`flags.${MOD}.harvestLoot`]: remaining });
             return { ok: true, emptied: false };
         }
-        // Dépouille vidée → suppression du token. La tache a normalement déjà
-        // été posée à la mort ; on ne la pose ici que si ce n'est pas le cas.
-        if (!tokenDoc.getFlag(MOD, "bloodPlaced")) await placeBloodStain(tokenDoc);
+        // Dépouille vidée → tache de sang à sa position exacte, PUIS suppression
+        // du token (la tache apparaît là où était le corps, plus rien dessus).
+        await placeBloodStain(tokenDoc);
         await tokenDoc.delete();
         return { ok: true, emptied: true };
     } catch (e) { console.warn(`[${MOD}] harvestTake:`, e); return { ok: false, msg: "Erreur de prise." }; }

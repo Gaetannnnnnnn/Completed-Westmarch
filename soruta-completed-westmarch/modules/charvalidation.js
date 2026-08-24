@@ -175,6 +175,59 @@ async function ensurePlayerPJFolder(user) {
     return f;
 }
 
+// Crée (une seule fois) un sous-dossier au nom du MJ dans un dossier parent
+// (même nom dans Acteurs, Journaux et Scènes), configuré dans les réglages.
+async function ensureGmFolders(user) {
+    if (!game.user.isGM) return;
+    if (!user?.isGM) return;
+    const parentName = (game.settings.get(MOD, "gmAutoFolderParent") ?? "").trim();
+    if (!parentName) return;
+    const name = user.name ?? "MJ";
+    for (const type of ["Actor", "JournalEntry", "Scene"]) {
+        let parent = game.folders?.find(f => f.type === type && f.name === parentName && !f.folder);
+        if (!parent) {
+            try { parent = await Folder.create({ name: parentName, type }); }
+            catch (e) { console.warn(`[${MOD}] Dossier parent MJ (${type}) :`, e); continue; }
+        }
+        const exists = game.folders?.find(f =>
+            f.type === type && f.name === name && (f.folder?.id ?? null) === (parent.id ?? null));
+        if (!exists) {
+            try { await Folder.create({ name, type, folder: parent.id }); }
+            catch (e) { console.warn(`[${MOD}] Sous-dossier MJ (${type}) :`, e); }
+        }
+    }
+}
+
+// Dossier Acteurs du MJ (parent configuré → sous-dossier à son nom), créé au besoin.
+async function gmActorSubfolder(user) {
+    const parentName = (game.settings.get(MOD, "gmAutoFolderParent") ?? "").trim();
+    if (!parentName) return null;
+    let parent = game.folders?.find(f => f.type === "Actor" && f.name === parentName && !f.folder);
+    if (!parent) parent = await Folder.create({ name: parentName, type: "Actor" });
+    const name = user.name ?? "MJ";
+    let sub = game.folders?.find(f => f.type === "Actor" && f.name === name && (f.folder?.id ?? null) === parent.id);
+    if (!sub) sub = await Folder.create({ name, type: "Actor", folder: parent.id });
+    return sub;
+}
+
+// À l'import d'une créature depuis un compendium (arrivée à la racine des Acteurs),
+// la ranger dans un dossier « Créatures » du dossier Acteurs du MJ qui importe.
+async function placeImportedCreature(actor, userId) {
+    if (!game.user.isGM || userId !== game.user.id) return;
+    if (actor.type !== "npc" || actor.pack) return;              // PNJ du monde uniquement
+    if (actor.folder) return;                                    // déjà rangé
+    const src = actor._stats?.compendiumSource ?? actor.getFlag?.("core", "sourceId") ?? "";
+    if (!(typeof src === "string" && src.startsWith("Compendium."))) return;   // import compendium seulement
+    try {
+        const gmSub = await gmActorSubfolder(game.user);
+        if (!gmSub) return;
+        let dest = game.folders?.find(f =>
+            f.type === "Actor" && f.name === "Import" && (f.folder?.id ?? null) === gmSub.id);
+        if (!dest) dest = await Folder.create({ name: "Import", type: "Actor", folder: gmSub.id });
+        await actor.update({ folder: dest.id });
+    } catch (e) { console.warn(`[${MOD}] Rangement créature importée :`, e); }
+}
+
 // Si l'acteur est rangé dans un sous-dossier « au nom d'un joueur » situé dans
 // l'arbre du Dossier des PJ, retourne l'utilisateur correspondant (sinon null).
 function findPlayerForActorFolder(actor) {
@@ -353,7 +406,6 @@ function promptNewCharRequest() {
         title: "Demander un nouveau personnage",
         content: `<div class="scwm-cv-hub">
             <div class="form-group"><label>Nom</label><input type="text" name="cv-name" placeholder="Nom du personnage"/></div>
-            <div class="form-group"><label>Concept</label><textarea name="cv-concept" rows="3" placeholder="Classe visée, idée générale, historique…"></textarea></div>
         </div>`,
         buttons: {
             send: {
@@ -362,8 +414,7 @@ function promptNewCharRequest() {
                     const root = html[0] ?? html;
                     const name = root.querySelector("[name=cv-name]")?.value.trim();
                     if (!name) { ui.notifications?.warn("Indiquez un nom."); return; }
-                    const concept = root.querySelector("[name=cv-concept]")?.value.trim() ?? "";
-                    await game.user.setFlag(MOD, "charRequest", { name, concept, dateISO: new Date().toISOString() });
+                    await game.user.setFlag(MOD, "charRequest", { name, dateISO: new Date().toISOString() });
                     ChatMessage.create({ whisper: gmIds(), speaker: { alias: "Validation" }, content: `📝 <strong>${esc(game.user.name)}</strong> demande la création d'un personnage : « ${esc(name)} ».` });
                     ui.notifications?.info("Demande envoyée.");
                 }
@@ -506,12 +557,20 @@ export function CharValidationHooks() {
     // ---- Sous-dossier auto au nom du joueur (Dossier des PJ) ----
     // À la connexion d'un joueur, le GM crée son sous-dossier s'il n'existe pas.
     Hooks.on("userConnected", (user, connected) => {
-        if (connected) ensurePlayerPJFolder(user);
+        if (!connected) return;
+        if (user.isGM) ensureGmFolders(user);
+        else ensurePlayerPJFolder(user);
     });
-    // Passe initiale : couvre les joueurs déjà connectés quand le GM arrive.
+    // Passe initiale : couvre les joueurs/MJ déjà connectés quand le GM arrive,
+    // et crée les dossiers du MJ courant à sa propre connexion.
     Hooks.once("ready", () => {
         if (!game.user.isGM) return;
-        for (const u of (game.users ?? [])) if (!u.isGM && u.active) ensurePlayerPJFolder(u);
+        ensureGmFolders(game.user);
+        for (const u of (game.users ?? [])) {
+            if (!u.active) continue;
+            if (u.isGM) ensureGmFolders(u);
+            else ensurePlayerPJFolder(u);
+        }
     });
 
     // Bouton dans la barre WestMarch pour les JOUEURS.
@@ -606,6 +665,8 @@ export function CharValidationHooks() {
     });
     // Nouvelle fiche créée.
     Hooks.on("createActor", async (actor, options, userId) => {
+        // Rangement des créatures importées de compendium (indépendant du reste).
+        placeImportedCreature(actor, userId);
         // Déjà rattachée à un joueur (ex. validation d'une demande) → juste rafraîchir.
         if (actor?.getFlag?.(MOD, "createdFor")) { ui.actors?.render(); return; }
         // PJ créé DIRECTEMENT par le GM dans le sous-dossier d'un joueur :

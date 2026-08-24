@@ -870,6 +870,10 @@ function settingControlHtml(key) {
         control = `<select name="${key}" style="width:100%;">${opts}</select>`;
     } else if (cfg.type === Number) {
         control = `<input type="number" name="${key}" value="${val ?? 0}" step="any" style="width:100%;">`;
+    } else if (key === "gmAutoFolderParent") {
+        // Nom de dossier saisi librement (PAS un sélecteur : le même nom sert
+        // dans Acteurs, Journaux et Scènes).
+        control = `<input type="text" name="${key}" value="${escapeAttr(val ?? "")}" placeholder="Nom du dossier parent (ex. Game Master)" style="width:100%;">`;
     } else if (key.includes("Folder")) {
         control = `<select name="${key}" style="width:100%;">${folderOptionsHtml(val)}</select>`;
     } else if (key.includes("Pack")) {

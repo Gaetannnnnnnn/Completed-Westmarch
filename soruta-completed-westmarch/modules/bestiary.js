@@ -116,6 +116,33 @@ async function ensureCreatureIndex() {
     }
 }
 
+// Source COMPENDIUM d'un acteur : { pack, id } ou null. Permet de garder le lien
+// même si l'acteur du monde est supprimé (le bestiaire reste correct).
+function compendiumSourceOf(actor) {
+    if (!actor) return null;
+    const packId = commonPackCreatures();
+    if (actor.pack && actor.id) return { pack: actor.pack, id: actor.id };   // déjà dans un compendium
+    const src = actor._stats?.compendiumSource ?? actor.getFlag?.("core", "sourceId") ?? "";
+    if (typeof src === "string") {
+        const m = src.match(/^Compendium\.(.+)\.Actor\.([^.]+)$/);
+        if (m) return { pack: m[1], id: m[2] };
+    }
+    if (packId) {   // repli : match par nom dans le compendium configuré
+        const e = game.packs.get(packId)?.index?.find?.(x => x.name === actor.name);
+        if (e) return { pack: packId, id: e._id };
+    }
+    return null;
+}
+
+// Résout (SYNCHRONE, via l'index déjà chargé) l'entrée compendium d'une entrée
+// de bestiaire → { name, img, uuid } ou null.
+function compendiumIndexEntry(entry) {
+    if (!entry?.sourcePack || !entry?.sourceId) return null;
+    const idx = game.packs.get(entry.sourcePack)?.index?.get?.(entry.sourceId);
+    if (!idx) return null;
+    return { name: idx.name, img: idx.img, uuid: `Compendium.${entry.sourcePack}.Actor.${entry.sourceId}` };
+}
+
 // Retourne true si le token est une créature du compendium configuré.
 function isCreatureToken(token) {
     const actor = token.actor;
@@ -143,9 +170,11 @@ function emptyStateHtml() {
 
 function buildRowHtml(entry, actor, canEdit) {
     const target   = game.actors.get(entry.targetId);
+    // Si l'acteur du monde n'existe plus, on retombe sur le COMPENDIUM (lien stable).
+    const src      = target ? null : compendiumIndexEntry(entry);
     const revealed = entry.revealed ?? true;
-    const img      = target?.img  ?? entry.targetImg  ?? "icons/svg/mystery-man.svg";
-    const name     = revealed ? (target?.name ?? entry.targetName ?? "Inconnue") : "Inconnue";
+    const img      = target?.img  ?? src?.img  ?? entry.targetImg  ?? "icons/svg/mystery-man.svg";
+    const name     = revealed ? (target?.name ?? src?.name ?? entry.targetName ?? "Inconnue") : "Inconnue";
     const open   = _expanded.has(entry.id);
 
     return `
@@ -155,7 +184,7 @@ function buildRowHtml(entry, actor, canEdit) {
             <span class="bst-name">${name}</span>
             ${hostilitySelector(entry.hostility ?? 0, canEdit)}
             <div class="bst-btns">
-                ${game.user.isGM && target ? `<a class="bst-open-sheet" data-target-id="${entry.targetId}" title="Ouvrir la fiche"><i class="fa-solid fa-external-link-alt"></i></a>` : ""}
+                ${game.user.isGM && (target || src) ? `<a class="bst-open-sheet" data-target-id="${entry.targetId}" data-source-uuid="${target ? "" : (src?.uuid ?? "")}" title="Ouvrir la fiche"><i class="fa-solid fa-external-link-alt"></i></a>` : ""}
                 <a class="bst-toggle" title="Notes"><i class="fa-solid fa-chevron-${open ? "up" : "down"}"></i></a>
                 ${canEdit ? `<a class="bst-delete" title="Retirer du bestiaire"><i class="fa-solid fa-trash"></i></a>` : ""}
             </div>
@@ -298,10 +327,13 @@ async function openAddDialog(actor) {
                     if (!selectedId) return;
                     // Acteur monde ou acteur compendium (retrouvé via l'index du dialog)
                     const target = game.actors.get(selectedId) ?? creaturesById.get(selectedId);
+                    const s = compendiumSourceOf(target);
                     result = {
                         targetId:   selectedId,
                         targetName: target?.name ?? "Inconnue",
                         targetImg:  target?.img  ?? "",
+                        sourcePack: s?.pack ?? null,
+                        sourceId:   s?.id ?? null,
                         hostility:  0,
                         note:       "",
                         firstScene: game.scenes.current?.name ?? "",
@@ -386,11 +418,15 @@ export function wireTab(actor, $html) {
         await beastUpdate(actor, id, { hostility: h });
     });
 
-    // Ouvrir la fiche de la créature (GM uniquement)
-    $tab.on("click", ".bst-open-sheet", function (e) {
+    // Ouvrir la fiche de la créature (GM uniquement). Acteur du monde si présent,
+    // sinon la fiche du COMPENDIUM (lien stable après suppression du monde).
+    $tab.on("click", ".bst-open-sheet", async function (e) {
         e.stopPropagation();
-        const targetId = $(this).data("target-id");
-        game.actors.get(String(targetId))?.sheet?.render(true);
+        const targetId = String($(this).data("target-id") ?? "");
+        const world = game.actors.get(targetId);
+        if (world) { world.sheet?.render(true); return; }
+        const uuid = String($(this).data("source-uuid") ?? "");
+        if (uuid) { try { (await fromUuid(uuid))?.sheet?.render(true); } catch (err) {} }
     });
 
     // Supprimer avec confirmation
@@ -498,16 +534,21 @@ async function scanVisibleTokens() {
 
         if (!toAdd.length) return;
 
-        const newEntries = toAdd.map(t => ({
-            id:         foundry.utils.randomID(12),
-            targetId:   t.actor.id,
-            targetName: t.actor.name,
-            targetImg:  t.actor.img ?? "",
-            hostility:  0,
-            note:       "",
-            firstScene: sceneName,
-            revealed:   !(t.actor.getFlag(MOD, "anonymous") ?? false),
-        }));
+        const newEntries = toAdd.map(t => {
+            const s = compendiumSourceOf(t.actor);
+            return {
+                id:         foundry.utils.randomID(12),
+                targetId:   t.actor.id,
+                targetName: t.actor.name,
+                targetImg:  t.actor.img ?? "",
+                sourcePack: s?.pack ?? null,
+                sourceId:   s?.id ?? null,
+                hostility:  0,
+                note:       "",
+                firstScene: sceneName,
+                revealed:   !(t.actor.getFlag(MOD, "anonymous") ?? false),
+            };
+        });
 
         await myActor.update(
             { [`flags.${MOD}.bestiaryList`]: [...beastList(myActor), ...newEntries] },
@@ -655,6 +696,34 @@ export function BestiaryHooks() {
             header.insertBefore(btnRemove, btnReveal);
             header.insertBefore(btnBlock,  btnRemove);
         }
+    });
+
+    // Migration : rattache les entrées de bestiaire existantes au COMPENDIUM
+    // (via l'acteur du monde s'il existe, sinon par nom), pour garder le lien
+    // même après suppression de la créature du monde.
+    Hooks.once("ready", async () => {
+        if (!game.user.isGM || !game.settings.get(MOD, "bestiaryEnabled")) return;
+        try {
+            await ensureCreatureIndex();
+            const packId = commonPackCreatures();
+            const packIdx = packId ? game.packs.get(packId)?.index : null;
+            for (const actor of game.actors ?? []) {
+                if (actor.type !== "character") continue;
+                const list = beastList(actor);
+                if (!list.length) continue;
+                let changed = false;
+                const next = list.map(e => {
+                    if (e.sourcePack && e.sourceId) return e;
+                    const world = game.actors.get(e.targetId);
+                    const s = world ? compendiumSourceOf(world) : null;
+                    if (s) { changed = true; return { ...e, sourcePack: s.pack, sourceId: s.id }; }
+                    const idxE = packIdx?.find?.(x => x.name === (world?.name ?? e.targetName));
+                    if (idxE) { changed = true; return { ...e, sourcePack: packId, sourceId: idxE._id }; }
+                    return e;
+                });
+                if (changed) await actor.update({ [`flags.${MOD}.bestiaryList`]: next }, { render: false });
+            }
+        } catch (e) { console.warn("[Bestiaire] Migration source compendium :", e); }
     });
 
     // Répondre aux hooks (appels depuis les boutons, quel que soit le module émetteur)

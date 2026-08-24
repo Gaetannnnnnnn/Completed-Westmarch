@@ -18,12 +18,26 @@
 
 import { MOD } from "./const.js";
 
-const DEMO_VERSION = 8;
+const DEMO_VERSION = 9;
 const rid = () => foundry.utils.randomID();
 
 export function getTutorialActor() {
     return game.actors?.find(a => a.getFlag(MOD, "tutorialDemo") === true) ?? null;
 }
+
+// La fiche du TUTORIEL s'ouvre toujours sur l'onglet « Détails » (engrenage),
+// uniquement pour cette fiche. On force le tab au 1er rendu après ouverture
+// (réinitialisé à la fermeture) pour ne pas bloquer la navigation ensuite.
+Hooks.on("renderApplicationV2", (app) => {
+    try {
+        const actor = app?.document;
+        if (!(actor instanceof Actor) || actor.getFlag(MOD, "tutorialDemo") !== true) return;
+        if (app._scwmTutoTabForced) return;
+        app._scwmTutoTabForced = true;
+        setTimeout(() => { try { app.changeTab?.("details", "primary"); } catch (e) {} }, 0);
+    } catch (e) {}
+});
+Hooks.on("closeApplicationV2", (app) => { if (app) app._scwmTutoTabForced = false; });
 
 // ---- Accès temporaire pendant le tutoriel -------------------
 // La fiche démo est en "Aucun" par défaut. Pendant le tutoriel, l'utilisateur
@@ -156,9 +170,8 @@ async function createDemoActor() {
         }
     }
 
-    // Image forcée sur celle de l'ancienne fiche démo (icône du cœur → marche
-    // partout, aucun fichier à livrer).
-    const IMG = "icons/environment/people/commoner.webp";
+    // Image de la fiche tutoriel (patate qui dab, livrée avec le module).
+    const IMG = `modules/${MOD}/assets/tutoriel.png`;
     data.name = data.name || "Tutoriel";
     data.type = "character";
     data.img  = IMG;

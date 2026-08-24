@@ -51,7 +51,7 @@ export function MapHooks() {
         if (!game.user.isGM || !enabled()) return;
         if (!("x" in changes || "y" in changes)) return;
         if (tokenDoc.parent?.id !== sceneId() || tokenDoc.actor?.type !== "group") return;
-        await revealForGroupMove(tokenDoc);
+        await revealForGroupMove(tokenDoc, changes);
     });
 
     // ---- Rendu du calque (tous les clients) ----
@@ -156,10 +156,10 @@ async function onPaintPointerDown(ev) {
 // ============================================================
 // Case (offset hex) OCCUPÉE par le token : on part du centre de sa boîte englobante
 // (toujours à l'intérieur de la case) puis on demande à la grille la case exacte.
-function tokenHex(tokenDoc) {
+function tokenHex(tokenDoc, x = tokenDoc.x, y = tokenDoc.y) {
     const sx = canvas.grid.sizeX ?? canvas.grid.size;
     const sy = canvas.grid.sizeY ?? canvas.grid.size;
-    const bc = { x: tokenDoc.x + (tokenDoc.width ?? 1) * sx / 2, y: tokenDoc.y + (tokenDoc.height ?? 1) * sy / 2 };
+    const bc = { x: x + (tokenDoc.width ?? 1) * sx / 2, y: y + (tokenDoc.height ?? 1) * sy / 2 };
     return canvas.grid.getOffset(bc);
 }
 // Centre EXACT (aligné grille) d'une case, pour l'échantillonnage du trajet.
@@ -216,8 +216,12 @@ function revealedHexKeys(fromCenter, toCenter, radius) {
 // ============================================================
 // Révélation (MJ)
 // ============================================================
-async function revealForGroupMove(tokenDoc) {
-    const toOff = tokenHex(tokenDoc);                          // case d'arrivée (où il EST)
+async function revealForGroupMove(tokenDoc, changes = {}) {
+    // IMPORTANT : au moment de updateToken, tokenDoc.x/y peut encore refléter
+    // l'ANCIENNE position (animation) → on prend la position d'arrivée dans `changes`.
+    const nx = Number.isFinite(changes.x) ? changes.x : tokenDoc.x;
+    const ny = Number.isFinite(changes.y) ? changes.y : tokenDoc.y;
+    const toOff = tokenHex(tokenDoc, nx, ny);                  // case d'arrivée (où il VA)
     const fromOff = _prevHex.get(tokenDoc.id) ?? toOff;        // case de départ
     _prevHex.delete(tokenDoc.id);
 

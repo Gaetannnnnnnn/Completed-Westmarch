@@ -428,13 +428,19 @@ async function _createExpDialog(members) {
 async function _closeExpDialog(members) {
     const currentDate = getCurrentDate();
 
-    // Résumé des expéditions ouvertes
+    // Cases à cocher : un PJ par expédition en cours (cochés par défaut).
+    // Seuls les PJ cochés verront leur expédition clôturée.
     const openListHtml = members
         .map(actor => {
             const open = getExpeditions(actor).find(e => e.startDate && !e.endDate);
             return open
-                ? `<li>${actor.name} — <em>${open.name || "Expédition sans nom"}</em>`
-                  + ` (début : ${formatDate(open.startDate)})</li>`
+                ? `<li style="list-style:none;margin:2px 0;">
+                       <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+                           <input type="checkbox" class="scwm-exp-member" value="${actor.id}" checked>
+                           <span>${actor.name} — <em>${open.name || "Expédition sans nom"}</em>
+                                 (début : ${formatDate(open.startDate)})</span>
+                       </label>
+                   </li>`
                 : null;
         })
         .filter(Boolean)
@@ -444,19 +450,22 @@ async function _closeExpDialog(members) {
         <div style="padding:8px 10px;border-radius:5px;
                     border:1px solid rgba(231,76,60,0.3);background:rgba(231,76,60,0.06);">
             <p style="margin:0 0 6px;font-size:11px;color:#aaa;font-weight:600;">
-                <i class="fa-solid fa-clock"></i> Expéditions en cours :
+                <i class="fa-solid fa-clock"></i> Cochez les PJ qui arrêtent l'expédition :
             </p>
-            <ul style="margin:0;padding-left:18px;font-size:12px;">${openListHtml}</ul>
+            <ul style="margin:0;padding-left:2px;font-size:12px;">${openListHtml}</ul>
         </div>
         <p style="margin:0;font-size:11px;color:#aaa;padding:0 2px;">
             <i class="fa-solid fa-flag-checkered"></i>
-            Clôture les expéditions en cours pour chaque PJ de la party.
+            Les PJ non cochés continuent leur expédition.
         </p>`;
 
     const { html: content } = _dateDialogContent(currentDate, extraHtml);
 
     let resolvedDate = null;
+    let selectedIds  = null;   // PJ cochés → seuls ceux-là s'arrêtent
     const DialogClass = foundry.applications.api?.DialogV2 ?? globalThis.DialogV2;
+    const readSelected = (root) =>
+        [...(root ?? document).querySelectorAll(".scwm-exp-member:checked")].map(c => c.value);
 
     if (DialogClass?.wait) {
         const action = await DialogClass.wait({
@@ -471,14 +480,14 @@ async function _closeExpDialog(members) {
                     label:    "Clôturer",
                     icon:     '<i class="fa-solid fa-flag-checkered"></i>',
                     default:  true,
-                    callback: () => { resolvedDate = _readDateFromDom(currentDate); }
+                    callback: (ev, btn) => { resolvedDate = _readDateFromDom(currentDate); selectedIds = readSelected(btn?.form); }
                 },
                 { action: "cancel", label: "Annuler", icon: '<i class="fa-solid fa-times"></i>' }
             ]
         });
         if (action !== "confirm" || !resolvedDate) return;
     } else {
-        resolvedDate = await new Promise(resolve => {
+        const res = await new Promise(resolve => {
             new Dialog({
                 title:   "Clôturer l'expédition en cours",
                 content,
@@ -487,7 +496,7 @@ async function _closeExpDialog(members) {
                         icon:  '<i class="fa-solid fa-flag-checkered"></i>',
                         label: "Clôturer",
                         callback: (html) => {
-                            try   { resolve(_readDateFromJQuery(html, currentDate)); }
+                            try   { resolve({ date: _readDateFromJQuery(html, currentDate), ids: readSelected(html?.[0] ?? html) }); }
                             catch { resolve(null); }
                         }
                     },
@@ -496,12 +505,14 @@ async function _closeExpDialog(members) {
                 default: "confirm"
             }, { width: 360 }).render(true);
         });
-        if (!resolvedDate) return;
+        if (!res?.date) return;
+        resolvedDate = res.date; selectedIds = res.ids;
     }
 
-    // Clôturer toutes les expéditions ouvertes de chaque membre
+    // Clôturer uniquement les expéditions des PJ COCHÉS.
     let closedCount = 0;
     for (const actor of members) {
+        if (Array.isArray(selectedIds) && !selectedIds.includes(actor.id)) continue;   // non coché → continue
         const exps = getExpeditions(actor);
         if (!exps.some(e => e.startDate && !e.endDate)) continue;
         const updated = exps.map(e =>

@@ -49,6 +49,8 @@ function renderChatMessageHTML(message, html, messageData) {
     if(!isPartyMember(message.author)) {
         $(html).hide();
     }
+    // Onglets IC / Autre / OOC désactivés → on n'applique aucun filtre par type.
+    if (!game.settings.get(MOD, "enableChatTabs")) return;
     switch(tabSelected) {
         case "IC":
             if(message.style != CONST.CHAT_MESSAGE_STYLES.IC) {
@@ -73,7 +75,7 @@ function renderChatMessageHTML(message, html, messageData) {
 
 async function renderChatLog(log, html, data) {
     // Éviter la duplication des tabs si renderChatLog fire plusieurs fois
-    if (partyFeatureEnabled("enableChatFilter") && !document.querySelector('.tabbed-controls')) {
+    if (partyFeatureEnabled("enableChatFilter") && game.settings.get(MOD, "enableChatTabs") && !document.querySelector('.tabbed-controls')) {
         const _rt = foundry.applications?.handlebars?.renderTemplate ?? renderTemplate;
         const htmlContent = await _rt("modules/soruta-completed-westmarch/templates/chat/tabbedchatlog-nav.hbs", {
             activetab: tabSelected

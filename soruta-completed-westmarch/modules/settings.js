@@ -9,6 +9,7 @@
 import { MOD, TUTO_TOGGLES, TM_DEFAULT_SCROLL, TM_DEFAULT_MAGIC, TM_DEFAULT_ROLL, ACTIVATION_CODE } from "./const.js";
 import { applyHotbarVisibility } from "./hotbar.js";
 import { applyPartyPause } from "./partypause.js";
+import { CompanionProfilesMenu } from "./companions.js";
 
 // ============================================================
 // Ressources communes — accès centralisé (avec repli sur les anciennes clés
@@ -361,6 +362,15 @@ export function registerSettings() {
     // dans companions.js ; ce réglage ne stocke que les modifications du MJ).
     game.settings.register(MOD, "companionProfiles", {
         scope: "world", config: false, type: Object, default: {}
+    });
+    // Bouton dans les réglages du module → éditeur JSON des profils de compagnons.
+    game.settings.registerMenu(MOD, "companionProfilesMenu", {
+        name:  "Profils de compagnons",
+        label: "Éditer les profils de compagnons",
+        hint:  "Ajouter ou surcharger les profils de formules des compagnons évolutifs (JSON).",
+        icon:  "fa-solid fa-dna",
+        type:  CompanionProfilesMenu,
+        restricted: true
     });
     game.settings.register(MOD, "enableFolderMove", B(
         "Déplacer/Dupliquer vers… (sidebar)",

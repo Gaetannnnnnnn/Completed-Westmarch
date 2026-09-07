@@ -349,20 +349,24 @@ async function openCompanionDialog(companion) {
               callback: async () => { await companion.unsetFlag(MOD, LINK); ui.notifications?.info("Compagnon délié."); } },
             { action: "resync", label: "Resync (forcé)", icon: "fa-solid fa-rotate",
               callback: async () => { const r = await applyResync(companion, { force: true }); ui.notifications?.[r.ok ? "info" : "warn"](r.msg ?? `Resynchronisé (niveau ${r.level}).`); } },
-            { action: "profiles", label: "Éditer les profils", icon: "fa-solid fa-sliders",
-              callback: () => openProfilesEditor() },
             { action: "cancel", label: "Fermer", icon: "fa-solid fa-xmark", callback: () => {} },
         ],
     }).catch(() => {});
 }
 
 // Éditeur JSON des profils ajoutés/surchargés par le MJ (réglage world).
-async function openProfilesEditor() {
+export async function openProfilesEditor() {
     const DialogV2 = foundry.applications.api.DialogV2;
     const current = game.settings.get(MOD, "companionProfiles") ?? {};
+    const defaultsJson = foundry.utils.escapeHTML(JSON.stringify(DEFAULT_PROFILES, null, 2));
     const content = `
-        <p style="font-size:.85em;color:#999;">Profils ajoutés/surchargés (JSON). Les profils par défaut livrés avec le module ne sont pas listés ici mais restent actifs ; un profil de même identifiant les surcharge.</p>
-        <textarea name="json" rows="16" style="width:100%;font-family:monospace;">${foundry.utils.escapeHTML(JSON.stringify(current, null, 2))}</textarea>`;
+        <details open style="margin-bottom:8px;">
+            <summary style="cursor:pointer;font-weight:600;">Profils par défaut (livrés avec le module — lecture seule)</summary>
+            <p style="font-size:.8em;color:#999;margin:4px 0;">Toujours actifs. Copie-en un dans la zone ci-dessous et modifie-le pour le surcharger, ou crée un nouvel identifiant.</p>
+            <pre style="max-height:180px;overflow:auto;background:rgba(0,0,0,.25);padding:6px;border-radius:5px;font-size:.8em;">${defaultsJson}</pre>
+        </details>
+        <p style="font-size:.85em;color:#999;margin:0 0 4px;">Tes profils ajoutés/surchargés (JSON) — un identifiant identique à un profil par défaut le remplace :</p>
+        <textarea name="json" rows="12" style="width:100%;font-family:monospace;">${foundry.utils.escapeHTML(JSON.stringify(current, null, 2))}</textarea>`;
     await DialogV2.wait({
         window: { title: "Profils de compagnons", icon: "fa-solid fa-sliders" },
         position: { width: 560 },
@@ -380,4 +384,15 @@ async function openProfilesEditor() {
             { action: "cancel", label: "Annuler", icon: "fa-solid fa-xmark", callback: () => {} },
         ],
     }).catch(() => {});
+}
+
+// ------------------------------------------------------------
+// Menu de réglages : bouton « Éditer les profils » dans les settings du module.
+// ------------------------------------------------------------
+const _FormBase = foundry.appv1?.api?.FormApplication ?? globalThis.FormApplication
+    ?? foundry.applications.api.ApplicationV2;
+export class CompanionProfilesMenu extends _FormBase {
+    render() { try { openProfilesEditor(); } catch (e) { console.warn(`[${MOD}] menu profils :`, e); } try { this.close?.(); } catch (e) {} return this; }
+    async _updateObject() {}
+    getData() { return {}; }
 }

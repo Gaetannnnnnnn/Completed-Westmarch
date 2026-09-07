@@ -467,6 +467,25 @@ export function refreshCasierBadge() {
     try { ui.controls?.render?.(); } catch (e) {}
 }
 
+// Fenêtre (lecture seule) des présentations des MJ — accessible aux joueurs.
+export function openGmPresentations() {
+    const gms = (game.users ?? []).filter(u => u.isGM);
+    const cards = gms.map(gm => {
+        const pres = getPresentation(gm.id);
+        return `<div style="border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:8px 10px;margin:0 0 8px;">
+            <div style="font-weight:700;margin-bottom:4px;"><i class="fa-solid fa-user-shield"></i> ${esc(gm.name)}</div>
+            <div style="font-size:.92em;opacity:.9;">${pres ? esc(pres).replace(/\n/g, "<br>") : "<em>Aucune présentation.</em>"}</div>
+        </div>`;
+    }).join("") || "<p>Aucun MJ.</p>";
+    foundry.applications.api.DialogV2.wait({
+        window:   { title: "Présentations des MJ", icon: "fa-solid fa-user-shield" },
+        position: { width: 480 },
+        content:  `<div style="max-height:60vh;overflow:auto;">${cards}</div>`,
+        rejectClose: false,
+        buttons: [{ action: "close", label: "Fermer", icon: "fa-solid fa-xmark", default: true }]
+    }).catch(() => {});
+}
+
 export function CasierHooks() {
     Hooks.on("getSceneControlButtons", (controls) => {
         if (!game.user.isGM) return;
@@ -479,6 +498,22 @@ export function CasierHooks() {
             icon:     "fa-solid fa-box-archive",
             button:   true,
             onChange: () => openCasier(),
+            visible:  true
+        };
+    });
+
+    // Bouton JOUEUR : voir les présentations des MJ (lecture seule).
+    Hooks.on("getSceneControlButtons", (controls) => {
+        if (game.user.isGM) return;   // le MJ a déjà le Casier complet
+        if (!controls.westmarch) {
+            controls.westmarch = { name: "westmarch", title: "WestMarch", icon: "fa-solid fa-hammer", layer: "tokens", tools: {} };
+        }
+        controls.westmarch.tools.gmPresentations = {
+            name:     "gmPresentations",
+            title:    "Présentations des MJ",
+            icon:     "fa-solid fa-user-shield",
+            button:   true,
+            onChange: () => openGmPresentations(),
             visible:  true
         };
     });

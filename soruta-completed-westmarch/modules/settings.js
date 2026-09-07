@@ -353,6 +353,15 @@ export function registerSettings() {
     game.settings.register(MOD, "enableTgcm", B(
         "Protégé TGCM (token immunisé à la mort)",
         "Bouton bouclier dans le HUD (GM). Un token protégé ne tombe jamais à 0 PV (reste à 1 PV)."));
+    game.settings.register(MOD, "enableCompanions", B(
+        "Compagnons évolutifs",
+        "Resynchronise les stats d'une créature liée (compagnon, invocation) sur le niveau de son maître, via des profils de formules. Complète l'activité « Summon » du système (ne la remplace pas).",
+        false, { requiresReload: true }));
+    // Surcharges/ajouts de profils par le MJ (les profils par défaut sont livrés
+    // dans companions.js ; ce réglage ne stocke que les modifications du MJ).
+    game.settings.register(MOD, "companionProfiles", {
+        scope: "world", config: false, type: Object, default: {}
+    });
     game.settings.register(MOD, "enableFolderMove", B(
         "Déplacer/Dupliquer vers… (sidebar)",
         "Ajoute 'Déplacer vers…' et 'Dupliquer vers…' dans le menu contextuel des scènes, acteurs, objets et journaux."));
@@ -390,6 +399,10 @@ export function registerSettings() {
     game.settings.register(MOD, "enableTemplateSnap", B(
         "Snap des templates AoE au dixième de pied",
         "Pendant le placement d'un template, la taille s'incrémente par paliers de 0,1 ft. Nécessite lib-wrapper pour le snap live."));
+    game.settings.register(MOD, "enableFollowTemplates", B(
+        "Gabarits qui suivent le token",
+        "À la création d'un gabarit AoE alors qu'un token est sélectionné, le gabarit s'attache à ce token et suit ses déplacements (l'écart initial est conservé ; la rotation n'est pas suivie). Le gabarit est supprimé si le token l'est. Le suivi n'agit que si un MJ est connecté.",
+        false));
     game.settings.register(MOD, "enableMejShopFix", B(
         "Correctifs boutiques Monk's Enhanced Journal",
         "Bouton 'Groupe uniquement' dans 'Show to Players' de MEJ, et fix des objets cachés visibles côté joueur."));
@@ -666,7 +679,7 @@ const CATEGORIES = [
       keys: ["tmEnabled","tmSkillBase","tmAddAbilityMod","tmBonusMaitrise","tmBonusExpertise","tmBonusTools","tmRollMinDays","tmReliableTalent","tmSkillFormula","tmCraftNonMagicCostDiv","tmCraftNonMagicDaysPerGp","tmCraftNonMagicCostFormula","tmCraftNonMagicDaysFormula","tmSingleUseFactor","tmScrollTable","tmMagicTable","tmRollTable"] },
     { firstKey: "enableTokenAppearance", icon: "fa-toolbox",         title: "Toolkit",
       desc: "Apparences de tokens, transformations, tailles Large, TGCM, utilitaires GM, templates AoE, boutiques MEJ et réapprovisionnement.",
-      keys: ["enableTokenAppearance","enableTokenPortraitButton","enableRageSize","enableLargeForm","enablePolymorph","enableTgcm","enableFolderMove","enableToolAbilityFix","enableHideHotbar","enableHideHotbarGM","enableConnStats","enablePlayerListCompact","enableTemplateSnap","enableMejShopFix","enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
+      keys: ["enableTokenAppearance","enableTokenPortraitButton","enableRageSize","enableLargeForm","enablePolymorph","enableTgcm","enableCompanions","enableFolderMove","enableToolAbilityFix","enableHideHotbar","enableHideHotbarGM","enableConnStats","enablePlayerListCompact","enableTemplateSnap","enableFollowTemplates","enableMejShopFix","enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
     { firstKey: "relationsEnabled", master: "relationsEnabled",      icon: "fa-heart",           title: "Fiche PJ — Relations",
       desc: "Onglet Relations : liens entre personnages, détection automatique des rencontres, anonymisation.",
       keys: ["relationsEnabled","relationsAnonymization"] },

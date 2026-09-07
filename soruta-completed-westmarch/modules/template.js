@@ -43,6 +43,54 @@ function _snapToTenth(distance) {
 
 export function TemplateHooks() {
 
+    // ── Gabarits qui SUIVENT le token (suivi de position) ────────────────
+    // À la création, si un token est sélectionné, on attache le gabarit à lui
+    // (offset conservé). Ses déplacements réécrivent la position du gabarit.
+    const _driverIsMe = () => {
+        const driver = game.users.find(u => u.isGM && u.active);
+        return driver && driver.id === game.user.id;
+    };
+
+    Hooks.on("preCreateMeasuredTemplate", (doc) => {
+        if (!game.settings.get(_MODULE, "enableFollowTemplates")) return;
+        const token = canvas.tokens?.controlled?.[0];
+        if (!token) return;
+        doc.updateSource({ [`flags.${_MODULE}.attached`]: {
+            tokenId: token.id,
+            dx: doc.x - token.center.x,
+            dy: doc.y - token.center.y
+        }});
+    });
+
+    Hooks.on("updateToken", async (tokenDoc, changes) => {
+        if (!game.settings.get(_MODULE, "enableFollowTemplates")) return;
+        if (!("x" in changes || "y" in changes)) return;
+        if (!_driverIsMe()) return;                       // un seul client écrit
+        const scene = tokenDoc.parent;
+        if (!scene) return;
+        // Position d'arrivée (dans `changes` : tokenDoc.x peut encore être l'ancienne).
+        const nx = Number.isFinite(changes.x) ? changes.x : tokenDoc.x;
+        const ny = Number.isFinite(changes.y) ? changes.y : tokenDoc.y;
+        const gs = scene.grid.size;
+        const cx = nx + (tokenDoc.width ?? 1) * gs / 2;
+        const cy = ny + (tokenDoc.height ?? 1) * gs / 2;
+        const updates = scene.templates
+            .filter(t => t.getFlag(_MODULE, "attached")?.tokenId === tokenDoc.id)
+            .map(t => { const f = t.getFlag(_MODULE, "attached"); return { _id: t.id, x: cx + f.dx, y: cy + f.dy }; });
+        if (updates.length) await scene.updateEmbeddedDocuments("MeasuredTemplate", updates);
+    });
+
+    // Nettoyage : le token supprimé emporte ses gabarits attachés.
+    Hooks.on("deleteToken", async (tokenDoc) => {
+        if (!_driverIsMe()) return;
+        const scene = tokenDoc.parent;
+        if (!scene) return;
+        const ids = scene.templates
+            .filter(t => t.getFlag(_MODULE, "attached")?.tokenId === tokenDoc.id)
+            .map(t => t.id);
+        if (ids.length) await scene.deleteEmbeddedDocuments("MeasuredTemplate", ids);
+    });
+
     // ── 1. Snap à la création ─────────────────────────────────────────────
     // Déclenché quand la souris est relâchée et que Foundry s'apprête à
     // persister le nouveau MeasuredTemplateDocument en base.

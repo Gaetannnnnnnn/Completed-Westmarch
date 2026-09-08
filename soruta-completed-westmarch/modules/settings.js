@@ -665,7 +665,9 @@ function registerCategoryToggles() {
 const TWEAK_TREE = {
     "Classes": { icon: "fa-hat-wizard", children: {
         "Barbare": { children: {
-            "Voie du Géant": { key: "enableRageSize" },
+            "Voie du Géant": { children: {
+                "Taille Large pendant la Rage": { key: "enableRageSize" }
+            } },
             "Voie de la Bête": { children: {
                 "Form of the Beast (armes naturelles)": { key: "enableFormOfTheBeast" }
             } }

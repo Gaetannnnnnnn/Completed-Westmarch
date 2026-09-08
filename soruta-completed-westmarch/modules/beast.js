@@ -29,7 +29,7 @@ function hasFormOfTheBeast(actor) {
 // Définition des 3 armes naturelles
 // ------------------------------------------------------------
 const BEAST_DEFS = {
-    bite:  { name: "Morsure (Form of the Beast)", img: "icons/creatures/abilities/mouth-teeth-sharp-red.webp", dice: 8, type: "piercing", reach: 5 },
+    bite:  { name: "Morsure (Form of the Beast)", img: "icons/svg/terror.svg", dice: 8, type: "piercing", reach: 5 },
     claws: { name: "Griffes (Form of the Beast)", img: "icons/creatures/claws/claw-curved-jagged-gray.webp",   dice: 6, type: "slashing", reach: 5 },
     tail:  { name: "Queue (Form of the Beast)",   img: "icons/creatures/abilities/tail-swipe-green.webp",       dice: 8, type: "piercing", reach: 10 },
 };

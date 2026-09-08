@@ -306,8 +306,9 @@ async function openCompanionDialog(companion) {
     const curMaster = link.masterUuid ? await fromUuid(link.masterUuid).catch(() => null) : null;
     const masterOpts = `<option value="">— aucun —</option>` + masters.map(m =>
         `<option value="${m.uuid}" ${curMaster?.uuid === m.uuid ? "selected" : ""}>${m.name}</option>`).join("");
-    const profileOpts = Object.entries(profiles).map(([id, p]) =>
-        `<option value="${id}" ${link.profile === id ? "selected" : ""}>${p.label ?? id}</option>`).join("");
+    const profileOpts = Object.entries(profiles)
+        .sort((a, b) => (a[1].label ?? a[0]).localeCompare(b[1].label ?? b[0], "fr", { sensitivity: "base" }))
+        .map(([id, p]) => `<option value="${id}" ${link.profile === id ? "selected" : ""}>${p.label ?? id}</option>`).join("");
 
     const content = `
     <div style="display:flex;flex-direction:column;gap:8px;">

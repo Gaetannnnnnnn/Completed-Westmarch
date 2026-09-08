@@ -9,7 +9,7 @@
 import { MOD, TUTO_TOGGLES, TM_DEFAULT_SCROLL, TM_DEFAULT_MAGIC, TM_DEFAULT_ROLL, ACTIVATION_CODE } from "./const.js";
 import { applyHotbarVisibility } from "./hotbar.js";
 import { applyPartyPause } from "./partypause.js";
-import { CompanionProfilesMenu } from "./companions.js";
+import { openProfilesEditor } from "./companions.js";
 
 // ============================================================
 // Ressources communes — accès centralisé (avec repli sur les anciennes clés
@@ -348,6 +348,10 @@ export function registerSettings() {
     game.settings.register(MOD, "enableLargeForm", B(
         "Taille Large — Goliath (Large Form)",
         "Goliaths avec 'Large Form' : utiliser la feature bascule le token en 2x2 (Large) et inversement."));
+    game.settings.register(MOD, "enableFormOfTheBeast", B(
+        "Armes naturelles — Voie de la Bête (Form of the Beast)",
+        "Barbares dont une feature a l'identifiant 'form-of-the-beast' : le module crée 3 armes naturelles (Morsure, Griffes, Queue) avec jets d'attaque/dégâts, et les retire si la feature disparaît.",
+        false, { requiresReload: true }));
     game.settings.register(MOD, "enablePolymorph", B(
         "Transformation de token (Wild Shape / Polymorph)",
         "Configurer des formes sur un acteur (onglet Apparence). Un bouton dans le HUD transforme le token et le rétablit."));
@@ -362,15 +366,6 @@ export function registerSettings() {
     // dans companions.js ; ce réglage ne stocke que les modifications du MJ).
     game.settings.register(MOD, "companionProfiles", {
         scope: "world", config: false, type: Object, default: {}
-    });
-    // Bouton dans les réglages du module → éditeur JSON des profils de compagnons.
-    game.settings.registerMenu(MOD, "companionProfilesMenu", {
-        name:  "Profils de compagnons",
-        label: "Éditer les profils de compagnons",
-        hint:  "Ajouter ou surcharger les profils de formules des compagnons évolutifs (JSON).",
-        icon:  "fa-solid fa-dna",
-        type:  CompanionProfilesMenu,
-        restricted: true
     });
     game.settings.register(MOD, "enableFolderMove", B(
         "Déplacer/Dupliquer vers… (sidebar)",
@@ -670,7 +665,10 @@ function registerCategoryToggles() {
 const TWEAK_TREE = {
     "Classes": { icon: "fa-hat-wizard", children: {
         "Barbare": { children: {
-            "Voie du Géant": { key: "enableRageSize" }
+            "Voie du Géant": { key: "enableRageSize" },
+            "Voie de la Bête": { children: {
+                "Form of the Beast (armes naturelles)": { key: "enableFormOfTheBeast" }
+            } }
         } }
     } },
     "Espèces": { icon: "fa-dna", children: {
@@ -714,6 +712,9 @@ const CATEGORIES = [
     { firstKey: "tweakTree", icon: "fa-sitemap", title: "Modifications ciblées",
       desc: "Active/désactive les modifications propres à une classe, sous-classe, espèce, sort, feature ou background. Chaque branche est dépliable.",
       tree: TWEAK_TREE, keys: collectTweakKeys() },
+    { firstKey: "companionProfiles", icon: "fa-dna", title: "Profils de compagnons",
+      desc: "Ajouter ou surcharger les profils de formules des compagnons évolutifs (JSON).",
+      open: () => openProfilesEditor(), keys: [] },
     { firstKey: "activationCode", icon: "fa-shield-halved", title: "À propos & protection",
       desc: "Informations de licence et protection du module. Le code d'activation se saisit au démarrage ; tu peux le modifier ici une fois le module activé.",
       keys: ["activationCode"] },
@@ -865,7 +866,7 @@ function makeLauncher(category) {
             id:     `scwm-menu-${category.firstKey}`,
             window: { title: category.title }
         };
-        async render() { openCategoryDialog(category); return this; }
+        async render() { (category.open ?? (() => openCategoryDialog(category)))(); return this; }
         async close()  { return this; }
     };
 }

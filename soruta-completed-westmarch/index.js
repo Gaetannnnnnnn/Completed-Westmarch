@@ -24,6 +24,7 @@ import { SceneAudioHooks }     from "./modules/sceneaudio.js";
 // --- Phase 3 : Toolkit ---
 import { RageHooks }         from "./modules/rage.js";
 import { GoliathHooks }      from "./modules/goliath.js";
+import { BeastHooks }        from "./modules/beast.js";
 import { PolymorphHooks }    from "./modules/polymorph.js";
 import { TokenHooks }        from "./modules/token.js";
 import { ItemHooks }         from "./modules/items.js";
@@ -135,6 +136,7 @@ Hooks.on("init", () => {
     // --- Phase 3 : Toolkit ---
     RageHooks();
     GoliathHooks();
+    BeastHooks();
     PolymorphHooks();
     TokenHooks();
     ItemHooks();

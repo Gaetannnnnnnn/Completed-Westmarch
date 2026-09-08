@@ -662,7 +662,58 @@ function registerCategoryToggles() {
 // Catégories (ordre = ordre d'enregistrement des settings).
 // firstKey = clé devant laquelle insérer l'en-tête de catégorie.
 // ============================================================
+// ============================================================
+// Arborescence des modifications ciblées (par classe / espèce / …).
+// Chaque FEUILLE porte une clé de réglage booléen (key). Un nœud SANS key mais
+// AVEC children est une branche dépliable. Extensible : ajoute des entrées.
+// ============================================================
+const TWEAK_TREE = {
+    "Classes": { icon: "fa-hat-wizard", children: {
+        "Barbare": { children: {
+            "Voie du Géant": { key: "enableRageSize" }
+        } }
+    } },
+    "Espèces": { icon: "fa-dna", children: {
+        "Goliath": { key: "enableLargeForm" }
+    } },
+    "Sorts":       { icon: "fa-wand-magic-sparkles", children: {} },
+    "Features":    { icon: "fa-star",                children: {} },
+    "Backgrounds": { icon: "fa-scroll",              children: {} },
+};
+
+// Toutes les clés de réglage (feuilles) de l'arbre, à plat.
+function collectTweakKeys(nodes = TWEAK_TREE) {
+    const out = [];
+    for (const node of Object.values(nodes)) {
+        if (node.key) out.push(node.key);
+        if (node.children) out.push(...collectTweakKeys(node.children));
+    }
+    return out;
+}
+
+// Rendu HTML récursif de l'arbre (details/summary dépliables, cases pour feuilles).
+function renderTweakTree(nodes, depth = 0) {
+    return Object.entries(nodes).map(([label, node]) => {
+        const pad = depth * 16;
+        if (node.key) {
+            const on = !!game.settings.get(MOD, node.key);
+            return `<label class="scwm-set" data-key="${node.key}" style="display:flex;align-items:center;gap:8px;padding:3px 0 3px ${pad}px;font-weight:400;cursor:pointer;">
+                <input type="checkbox" name="${node.key}" ${on ? "checked" : ""} style="width:16px;height:16px;flex-shrink:0;">
+                <span>${label}</span></label>`;
+        }
+        const inner = renderTweakTree(node.children ?? {}, depth + 1);
+        const body = inner.trim() ? inner
+            : `<p style="margin:2px 0 4px ${pad + 16}px;color:#777;font-size:.85em;font-style:italic;">— aucune entrée —</p>`;
+        return `<details style="margin:2px 0 2px ${pad}px;" ${depth < 1 ? "open" : ""}>
+            <summary style="cursor:pointer;font-weight:600;padding:2px 0;">${node.icon ? `<i class="fa-solid ${node.icon}"></i> ` : ""}${label}</summary>
+            ${body}</details>`;
+    }).join("");
+}
+
 const CATEGORIES = [
+    { firstKey: "tweakTree", icon: "fa-sitemap", title: "Modifications ciblées",
+      desc: "Active/désactive les modifications propres à une classe, sous-classe, espèce, sort, feature ou background. Chaque branche est dépliable.",
+      tree: TWEAK_TREE, keys: collectTweakKeys() },
     { firstKey: "activationCode", icon: "fa-shield-halved", title: "À propos & protection",
       desc: "Informations de licence et protection du module. Le code d'activation se saisit au démarrage ; tu peux le modifier ici une fois le module activé.",
       keys: ["activationCode"] },
@@ -689,7 +740,7 @@ const CATEGORIES = [
       keys: ["tmEnabled","tmSkillBase","tmAddAbilityMod","tmBonusMaitrise","tmBonusExpertise","tmBonusTools","tmRollMinDays","tmReliableTalent","tmSkillFormula","tmCraftNonMagicCostDiv","tmCraftNonMagicDaysPerGp","tmCraftNonMagicCostFormula","tmCraftNonMagicDaysFormula","tmSingleUseFactor","tmScrollTable","tmMagicTable","tmRollTable"] },
     { firstKey: "enableTokenAppearance", icon: "fa-toolbox",         title: "Toolkit",
       desc: "Apparences de tokens, transformations, tailles Large, TGCM, utilitaires GM, templates AoE, boutiques MEJ et réapprovisionnement.",
-      keys: ["enableTokenAppearance","enableTokenPortraitButton","enableRageSize","enableLargeForm","enablePolymorph","enableTgcm","enableCompanions","enableFolderMove","enableToolAbilityFix","enableHideHotbar","enableHideHotbarGM","enableConnStats","enablePlayerListCompact","enableTemplateSnap","enableFollowTemplates","enableMejShopFix","enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
+      keys: ["enableTokenAppearance","enableTokenPortraitButton","enablePolymorph","enableTgcm","enableCompanions","enableFolderMove","enableToolAbilityFix","enableHideHotbar","enableHideHotbarGM","enableConnStats","enablePlayerListCompact","enableTemplateSnap","enableFollowTemplates","enableMejShopFix","enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
     { firstKey: "relationsEnabled", master: "relationsEnabled",      icon: "fa-heart",           title: "Fiche PJ — Relations",
       desc: "Onglet Relations : liens entre personnages, détection automatique des rencontres, anonymisation.",
       keys: ["relationsEnabled","relationsAnonymization"] },
@@ -786,7 +837,9 @@ function readTableFromForm(key, root) {
 // ============================================================
 
 function registerCategoryMenus() {
-    for (const cat of CATEGORIES) {
+    // Ordre alphabétique des catégories (l'affichage suit l'ordre d'enregistrement).
+    const sorted = [...CATEGORIES].sort((a, b) => a.title.localeCompare(b.title, "fr", { sensitivity: "base" }));
+    for (const cat of sorted) {
         try {
             game.settings.registerMenu(MOD, `menu-${cat.firstKey}`, {
                 name:       cat.title,
@@ -852,7 +905,7 @@ function buildCategoryForm(category, uid) {
         ${licenseBannerHtml()}
         ${category.desc ? `<p style="margin:0 0 8px;font-size:.85em;color:#aaa;font-style:italic;">${category.desc}</p>` : ""}
         ${toggleBar}
-        ${category.keys.map(settingControlHtml).join("")}
+        ${category.tree ? renderTweakTree(category.tree) : category.keys.map(settingControlHtml).join("")}
     </div>`;
 }
 

@@ -53,8 +53,15 @@ export function TemplateHooks() {
 
     Hooks.on("preCreateMeasuredTemplate", (doc) => {
         if (!game.settings.get(_MODULE, "enableFollowTemplates")) return;
-        const token = canvas.tokens?.controlled?.[0];
+        // 1) Token SOUS le point d'origine du gabarit → on recentre pile dessus.
+        let token = canvas.tokens?.placeables?.find(t => t.bounds?.contains?.(doc.x, doc.y));
+        const onToken = !!token;
+        // 2) Sinon, token CIBLÉ (T) — reste ciblé même en passant sur la couche
+        //    Régions (ce qui désélectionne les tokens) — puis token sélectionné.
+        if (!token) token = [...(game.user.targets ?? [])][0] ?? canvas.tokens?.controlled?.[0];
         if (!token) return;
+        // Le gabarit démarre sur le token → on le place pile au centre du token.
+        if (onToken) doc.updateSource({ x: token.center.x, y: token.center.y });
         doc.updateSource({ [`flags.${_MODULE}.attached`]: {
             tokenId: token.id,
             dx: doc.x - token.center.x,

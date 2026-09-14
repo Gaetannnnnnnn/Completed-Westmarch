@@ -1483,14 +1483,20 @@ function _wireToolbar(editor) {
         });
     });
 
-    // Sélecteur de taille
+    // Sélecteur de taille — enrobage MANUEL en <span style="font-size">.
+    // On n'utilise PAS execCommand('fontSize') : sous Chromium/Electron (Foundry),
+    // quand la sélection couvre toute la note, il pouvait vider le contenu
+    // (bug de perte de contenu à la sauvegarde). L'enrobage manuel ne supprime rien.
+    const SIZE_EM = { "2": "0.85em", "3": "1em", "4": "1.35em", "5": "1.7em" };
     const sizeSelect = document.querySelector('.carnet-tb-size');
     if (sizeSelect) {
         sizeSelect.addEventListener('change', function () {
             const val = this.value;
             this.value = '';
             if (!val || !editor) return;
-            // Restaure la sélection dans l'éditeur avant d'appliquer la commande.
+            const em = SIZE_EM[val] ?? "1em";
+
+            // Restaure la sélection mémorisée (perdue au focus du <select>).
             editor.focus();
             const sel = window.getSelection();
             if (_savedRange && editor.contains(_savedRange.commonAncestorContainer)) {
@@ -1498,12 +1504,28 @@ function _wireToolbar(editor) {
                 sel?.addRange(_savedRange);
             }
             _savedRange = null;
-            // SÉCURITÉ : n'applique la taille QUE si la sélection est réellement
-            // dans l'éditeur. Sinon execCommand agirait hors éditeur et pouvait
-            // vider la note (bug de perte de contenu à la sauvegarde).
-            const r = sel?.rangeCount ? sel.getRangeAt(0) : null;
-            if (!r || !editor.contains(r.commonAncestorContainer)) return;
-            document.execCommand('fontSize', false, val);
+
+            // Rien à faire s'il n'y a pas de sélection réelle DANS l'éditeur.
+            const range = sel?.rangeCount ? sel.getRangeAt(0) : null;
+            if (!range || range.collapsed) return;
+            if (!editor.contains(range.commonAncestorContainer)) return;
+
+            // Enrobe le contenu sélectionné dans un span dimensionné.
+            try {
+                const span = document.createElement("span");
+                span.style.fontSize = em;
+                span.appendChild(range.extractContents());
+                range.insertNode(span);
+                // Re-sélectionne le contenu enrobé.
+                sel.removeAllRanges();
+                const nr = document.createRange();
+                nr.selectNodeContents(span);
+                sel.addRange(nr);
+                // Notifie l'éditeur (met à jour la capture de contenu pour la sauvegarde).
+                editor.dispatchEvent(new Event("input", { bubbles: true }));
+            } catch (e) {
+                console.warn(`[carnet] application de la taille :`, e);
+            }
             setTimeout(updateState, 10);
         });
     }

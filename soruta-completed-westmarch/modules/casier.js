@@ -78,6 +78,55 @@ async function setPresentation(gmId, text) {
     await game.settings.set(MOD, "casierProfiles", p);
 }
 
+// Valeur numérique comparable d'une date d'expédition (objet calendrier ou nombre).
+function dateVal(d) {
+    if (d == null) return 0;
+    if (typeof d === "number") return d;
+    if (typeof d === "object") return (d.year ?? 0) * 10000 + (d.month ?? 0) * 100 + (d.day ?? 0);
+    return 0;
+}
+
+// Nom du joueur derrière un PJ (createdFor → propriétaire non-MJ → nom du PJ).
+function playerOf(actor) {
+    const uid = actor.getFlag(MOD, "createdFor");
+    const u = uid ? game.users.get(uid) : null;
+    if (u) return u.name;
+    const owner = game.users.find(x => !x.isGM && actor.testUserPermission?.(x, "OWNER"));
+    return owner?.name ?? actor.name;
+}
+
+// Expéditions CLÔTURÉES distinctes (regroupées par nom + début + MJ), avec les
+// PJ participants. Base de l'assiduité (jamais les connexions).
+function closedExpeditions() {
+    const map = new Map();
+    for (const actor of game.actors ?? []) {
+        if (actor.type !== "character") continue;
+        for (const e of getExpeditions(actor)) {
+            if (!e.startDate || !e.endDate) continue;   // seulement clôturées
+            const key = `${e.name || "?"}|${JSON.stringify(e.startDate)}|${e.gmId || ""}`;
+            if (!map.has(key)) map.set(key, { name: e.name || "Expédition sans nom", startDate: e.startDate, endDate: e.endDate, gmId: e.gmId || null, participants: new Set() });
+            map.get(key).participants.add(actor.id);
+        }
+    }
+    return [...map.values()]
+        .map(x => ({ ...x, participants: [...x.participants] }))
+        .sort((a, b) => dateVal(b.endDate) - dateVal(a.endDate));
+}
+
+// Barres horizontales (graphique CSS, sans librairie).
+function barChart(rows, color) {
+    if (!rows.length) return `<p class="scwm-casier-empty">Aucune donnée.</p>`;
+    const max = Math.max(1, ...rows.map(r => r.value));
+    return rows.map(r => `
+        <div style="display:flex;align-items:center;gap:8px;margin:3px 0;">
+            <span style="flex:0 0 150px;text-align:right;font-size:.85em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(r.label)}</span>
+            <div style="flex:1;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;">
+                <div style="width:${(r.value / max * 100).toFixed(1)}%;background:${color};height:15px;border-radius:3px;min-width:2px;"></div>
+            </div>
+            <span style="flex:0 0 28px;font-size:.85em;font-weight:600;">${r.value}</span>
+        </div>`).join("");
+}
+
 // Suivi de tous les GM : leurs expéditions EN COURS (taguées gmId), le nom de
 // chacune et les joueurs qui y participent.
 function gmTracking() {
@@ -135,6 +184,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             { key: "expeditions", icon: "fa-route",      label: "Expéditions" },
             ...(tmEnabled ? [{ key: "downtime", icon: "fa-hourglass-half", label: `Temps morts${tmDeclared ? ` (${tmDeclared})` : ""}` }] : []),
             { key: "gms",         icon: "fa-users-gear", label: "Suivi des GM" },
+            { key: "attendance",  icon: "fa-chart-column", label: "Assiduité" },
             ...(cvEnabled ? [{ key: "validation", icon: "fa-id-card", label: `Validation${cvCount ? ` (${cvCount})` : ""}` }] : [])
         ];
         const tabsHtml = TABS.map(t => `
@@ -162,6 +212,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
         }
         else if (this.#tab === "expeditions") detail = this.#expeditionsDetail();
         else if (this.#tab === "downtime")    detail = this.#downtimeDetail();
+        else if (this.#tab === "attendance")  detail = this.#attendanceDetail();
         else if (this.#tab === "validation")  detail = this.#validationDetail();
         else                                  detail = this.#gmsDetail();
 
@@ -307,6 +358,80 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                                 </li>`).join("")}</ul>`
                             : `<div class="scwm-casier-gm-line" style="opacity:.6;">Aucune expédition en cours.</div>`}
                     </div>`).join("")}
+            </div>`;
+    }
+
+    // ---- Onglet Assiduité (basé sur les expéditions CLÔTURÉES) ----
+    #attendanceDetail() {
+        const list = closedExpeditions();
+        if (!list.length) {
+            return `<div class="scwm-casier-placeholder"><i class="fa-solid fa-chart-column"></i>
+                <p>Aucune expédition clôturée pour l'instant. L'assiduité se calcule sur les expéditions terminées.</p></div>`;
+        }
+
+        // Agrégats joueurs & MJ.
+        const players = new Map();   // nom joueur -> { count, last }
+        const gms     = new Map();   // nom MJ     -> { count, parts, last }
+        for (const e of list) {
+            const gmName = e.gmId ? (game.users.get(e.gmId)?.name ?? "MJ inconnu") : "— (sans MJ)";
+            if (!gms.has(gmName)) gms.set(gmName, { count: 0, parts: 0, last: 0 });
+            const g = gms.get(gmName); g.count++; g.parts += e.participants.length; g.last = Math.max(g.last, dateVal(e.endDate));
+
+            const pn = new Set(e.participants.map(id => { const a = game.actors.get(id); return a ? playerOf(a) : null; }).filter(Boolean));
+            for (const name of pn) {
+                if (!players.has(name)) players.set(name, { count: 0, last: 0 });
+                const p = players.get(name); p.count++; p.last = Math.max(p.last, dateVal(e.endDate));
+            }
+        }
+
+        const playerRows = [...players.entries()].map(([label, p]) => ({ label, value: p.count })).sort((a, b) => b.value - a.value);
+        const gmRows     = [...gms.entries()].map(([label, g]) => ({ label, value: g.count, parts: g.parts })).sort((a, b) => b.value - a.value);
+
+        const totalExp = list.length;
+        const totalPlayers = players.size;
+        const totalGms = [...gms.keys()].filter(k => !k.startsWith("—")).length;
+
+        // Tableau des expéditions (40 plus récentes).
+        const expRows = list.slice(0, 40).map(e => `
+            <tr>
+                <td>${esc(e.name)}</td>
+                <td>${esc(formatDate(e.endDate))}</td>
+                <td>${esc(e.gmId ? (game.users.get(e.gmId)?.name ?? "?") : "—")}</td>
+                <td style="font-size:.85em;">${e.participants.map(id => esc(game.actors.get(id)?.name ?? "?")).join(", ") || "—"}</td>
+            </tr>`).join("");
+
+        const card = (n, l) => `<div style="flex:1;background:var(--scwm-panel,rgba(255,255,255,.05));border-radius:8px;padding:8px 10px;text-align:center;">
+            <div style="font-size:1.5em;font-weight:700;">${n}</div><div style="font-size:.8em;opacity:.7;">${l}</div></div>`;
+
+        return `
+            <div class="scwm-casier-detail scwm-casier-attendance" style="overflow:auto;">
+                <h2><i class="fa-solid fa-chart-column"></i> Assiduité</h2>
+                <div style="display:flex;gap:10px;margin:0 0 14px;">
+                    ${card(totalExp, "expéditions clôturées")}
+                    ${card(totalPlayers, "joueurs actifs")}
+                    ${card(totalGms, "MJ actifs")}
+                </div>
+
+                <div class="scwm-casier-cv-section">
+                    <h3>Expéditions par joueur</h3>
+                    ${barChart(playerRows, "#8fd19e")}
+                </div>
+
+                <div class="scwm-casier-cv-section">
+                    <h3>Expéditions menées par MJ</h3>
+                    ${barChart(gmRows, "#c9a227")}
+                    <div style="font-size:.8em;opacity:.7;margin-top:4px;">${gmRows.map(g => `${esc(g.label)} : ${g.parts} participation(s)`).join(" · ")}</div>
+                </div>
+
+                <div class="scwm-casier-cv-section">
+                    <h3>Expéditions clôturées (récentes)</h3>
+                    <table style="width:100%;border-collapse:collapse;font-size:.9em;">
+                        <thead><tr style="text-align:left;border-bottom:1px solid rgba(255,255,255,.15);">
+                            <th style="padding:3px 4px;">Expédition</th><th style="padding:3px 4px;">Fin</th><th style="padding:3px 4px;">MJ</th><th style="padding:3px 4px;">Participants</th>
+                        </tr></thead>
+                        <tbody>${expRows}</tbody>
+                    </table>
+                </div>
             </div>`;
     }
 

@@ -46,6 +46,7 @@ import { ScenesHooks }    from "./modules/scenes.js";
 import { DocumentHooks }  from "./modules/document.js";
 import { JournalHooks }   from "./modules/journal.js";
 import { SessionHooks }   from "./modules/session.js";
+import { NoteLinkHooks }  from "./modules/notelink.js";
 import { CasierHooks }    from "./modules/casier.js";
 import { CharValidationHooks } from "./modules/charvalidation.js";
 import { SourceControlHooks } from "./modules/sourcecontrol.js";
@@ -158,6 +159,7 @@ Hooks.on("init", () => {
     DocumentHooks();
     JournalHooks();
     SessionHooks();
+    NoteLinkHooks();
     CasierHooks();
     CharValidationHooks();
     SourceControlHooks();

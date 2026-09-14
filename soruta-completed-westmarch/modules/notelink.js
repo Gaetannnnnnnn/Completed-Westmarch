@@ -11,6 +11,7 @@
 // ============================================================
 
 import { MOD } from "./const.js";
+import { getExpeditions } from "./carnet.js";
 
 const enabled = () => game.settings.get(MOD, "enableNoteLink");
 const OWN = () => CONST.DOCUMENT_OWNERSHIP_LEVELS;
@@ -18,51 +19,93 @@ const OWN = () => CONST.DOCUMENT_OWNERSHIP_LEVELS;
 function getGroups() { const g = game.settings.get(MOD, "noteLinkGroups"); return Array.isArray(g) ? g : []; }
 async function setGroups(g) { await game.settings.set(MOD, "noteLinkGroups", g); }
 
-// Groupe de carnet commun d'un joueur (ou null).
+// Le groupe est lié aux PJ (acteurs). L'accès au JOURNAL, lui, est donné aux
+// utilisateurs propriétaires de ces PJ (l'ownership Foundry est par utilisateur).
+export function noteGroupOfActor(actorId) {
+    return getGroups().find(gr => Array.isArray(gr.members) && gr.members.includes(actorId)) ?? null;
+}
+// Le carnet commun du PJ ASSIGNÉ de l'utilisateur (ou null).
 export function noteGroupOfUser(userId) {
-    return getGroups().find(gr => Array.isArray(gr.members) && gr.members.includes(userId)) ?? null;
+    const a = game.users.get(userId)?.character;
+    return a ? noteGroupOfActor(a.id) : null;
 }
 
-// Joueurs (non-MJ) actuellement dans la party du MJ courant.
-function partyMembers() {
-    return (game.users ?? []).filter(u => !u.isGM && u.getFlag(MOD, "partyId") === game.user.id);
+// PJ (assignés) des joueurs présents dans la party du MJ courant.
+function partyActors() {
+    const map = new Map();
+    for (const u of (game.users ?? [])) {
+        if (u.isGM || u.getFlag(MOD, "partyId") !== game.user.id) continue;
+        const a = u.character;
+        if (a) map.set(a.id, a);
+    }
+    return [...map.values()];
+}
+// Utilisateurs (non-MJ) propriétaires d'un PJ.
+function ownerUserIds(actor) {
+    return (game.users ?? []).filter(u => !u.isGM && actor.testUserPermission?.(u, "OWNER")).map(u => u.id);
 }
 
-// Retire des membres de leurs groupes existants + révoque leur accès au journal.
-async function detachMembers(memberIds) {
+// Retire des PJ de leurs groupes + révoque l'accès au journal de leurs propriétaires.
+async function detachActors(actorIds) {
     const groups = getGroups();
     for (const gr of groups) {
-        const kept = gr.members.filter(id => !memberIds.includes(id));
-        if (kept.length === gr.members.length) continue;
-        gr.members = kept;
+        const removed = gr.members.filter(id => actorIds.includes(id));
+        if (!removed.length) continue;
+        gr.members = gr.members.filter(id => !actorIds.includes(id));
         const j = game.journal.get(gr.journalId);
         if (j) {
             const own = foundry.utils.deepClone(j.ownership ?? {});
-            for (const id of memberIds) if (id in own) own[id] = OWN().NONE;
+            const uids = new Set();
+            for (const aid of removed) { const a = game.actors.get(aid); if (a) ownerUserIds(a).forEach(u => uids.add(u)); }
+            for (const uid of uids) if (uid in own) own[uid] = OWN().NONE;
             try { await j.update({ ownership: own }); } catch (e) { console.warn(`[${MOD}] révocation accès carnet :`, e); }
         }
     }
-    // On garde les groupes vides hors liste (le journal, lui, reste).
     await setGroups(groups.filter(gr => gr.members.length > 0));
 }
 
-// MJ : lie les notes des joueurs de la party → crée un carnet commun.
+// Nom de l'expédition EN COURS menée par ce MJ pour ces PJ (ou null).
+function currentExpeditionName(actors) {
+    for (const a of actors) {
+        for (const e of (getExpeditions(a) ?? [])) {
+            if (e.startDate && !e.endDate && e.gmId === game.user.id) return e.name || null;
+        }
+    }
+    return null;
+}
+
+// Dossier « Carnet commun » (Journaux), créé au besoin.
+async function commonNoteFolder() {
+    let f = game.folders?.find(x => x.type === "JournalEntry" && x.name === "Carnet commun" && !x.folder);
+    if (!f) { try { f = await Folder.create({ name: "Carnet commun", type: "JournalEntry" }); } catch (e) { return null; } }
+    return f;
+}
+
+// MJ : lie les notes (PJ) des joueurs de la party → crée un carnet commun.
 async function linkParty() {
     if (!game.user.isGM || !enabled()) return;
-    const members = partyMembers();
-    if (members.length < 1) { ui.notifications?.warn("Aucun joueur dans votre party à lier."); return; }
-    const memberIds = members.map(u => u.id);
+    const actors = partyActors();
+    if (actors.length < 1) { ui.notifications?.warn("Aucun PJ de joueur dans votre party à lier."); return; }
+    const actorIds = actors.map(a => a.id);
 
-    // Un seul groupe par joueur : on détache d'abord ces membres de leurs groupes.
-    await detachMembers(memberIds);
+    // Un seul groupe par PJ : on détache d'abord ces PJ de leurs groupes.
+    await detachActors(actorIds);
 
+    // Accès donné aux UTILISATEURS propriétaires de ces PJ.
     const ownership = { default: OWN().NONE };
-    for (const id of memberIds) ownership[id] = OWN().OWNER;
-    const names = members.map(u => u.name).join(", ");
+    const userIds = new Set();
+    for (const a of actors) ownerUserIds(a).forEach(u => userIds.add(u));
+    for (const uid of userIds) ownership[uid] = OWN().OWNER;
+
+    // Nom du carnet = expédition en cours, sinon les noms des PJ en repli.
+    const expName = currentExpeditionName(actors);
+    const title = expName ? `Carnet commun — ${expName}` : `Carnet commun — ${actors.map(a => a.name).join(", ")}`;
+    const folder = await commonNoteFolder();
     let journal;
     try {
         journal = await JournalEntry.create({
-            name: `Carnet commun — ${names}`,
+            name: title,
+            folder: folder?.id ?? null,
             ownership,
             pages: [{ name: "Notes", type: "text", text: { content: "<p></p>", format: CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML } }],
             flags: { [MOD]: { noteLinkGroup: true } }
@@ -70,14 +113,14 @@ async function linkParty() {
     } catch (e) { console.warn(`[${MOD}] création carnet commun :`, e); ui.notifications?.error("Échec de la création du carnet commun."); return; }
 
     const groups = getGroups();
-    groups.push({ id: foundry.utils.randomID(), journalId: journal.id, members: memberIds });
+    groups.push({ id: foundry.utils.randomID(), journalId: journal.id, members: actorIds });
     await setGroups(groups);
 
     ChatMessage.create({
-        whisper: memberIds, speaker: { alias: "Carnet commun" },
-        content: `📓 Vos notes sont liées : un <strong>carnet commun</strong> a été créé pour votre groupe. Ouvrez-le depuis vos Journaux ou le bouton « Carnet commun » de l'onglet WestMarch.`
+        whisper: [...userIds], speaker: { alias: "Carnet commun" },
+        content: `📓 Vos notes sont liées : un <strong>carnet commun</strong> a été créé pour votre groupe. Ouvrez-le depuis vos Journaux (dossier « Carnet commun ») ou le bouton « Carnet commun » de l'onglet WestMarch.`
     });
-    ui.notifications?.info(`Carnet commun créé pour ${members.length} joueur(s).`);
+    ui.notifications?.info(`Carnet commun créé pour ${actors.length} PJ.`);
 }
 
 // Ouvre le carnet commun du joueur courant.
@@ -96,7 +139,7 @@ async function openManageGroups() {
         const groups = getGroups();
         if (!groups.length) return `<p style="opacity:.7;">Aucun carnet commun.</p>`;
         return groups.map(gr => {
-            const names = gr.members.map(id => game.users.get(id)?.name ?? "?").join(", ");
+            const names = gr.members.map(id => game.actors.get(id)?.name ?? "?").join(", ");
             return `<div style="display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,.1);padding:5px 0;">
                 <span style="flex:1;">${names || "(vide)"}</span>
                 <button type="button" class="nl-open" data-j="${gr.journalId}"><i class="fa-solid fa-book-open"></i></button>
@@ -104,22 +147,36 @@ async function openManageGroups() {
             </div>`;
         }).join("");
     };
+    const wire = (root) => {
+        if (!root) return;
+        root.querySelector?.(".nl-link")?.addEventListener("click", async () => {
+            await linkParty();
+            const list = root.querySelector(".nl-list");
+            if (list) { list.innerHTML = rows(); wire(root); }
+        });
+        root.querySelectorAll?.(".nl-open").forEach(b => b.addEventListener("click", () => game.journal.get(b.dataset.j)?.sheet.render(true)));
+        root.querySelectorAll?.(".nl-dissolve").forEach(b => b.addEventListener("click", async () => {
+            const gr = getGroups().find(g => g.id === b.dataset.id);
+            if (!gr) return;
+            await detachActors([...gr.members]);
+            const list = root.querySelector(".nl-list");
+            if (list) { list.innerHTML = rows(); wire(root); }
+            ui.notifications?.info("Groupe délié (le carnet est conservé).");
+        }));
+    };
     await DialogV2.wait({
         window: { title: "Carnets communs", icon: "fa-solid fa-users-rectangle" },
-        position: { width: 460 },
-        content: `<div class="nl-list">${rows()}</div><p style="font-size:.8em;opacity:.7;margin-top:8px;">« Délier » retire l'accès des joueurs ; le carnet (les notes) reste conservé dans les Journaux.</p>`,
+        position: { width: 480 },
+        content: `
+            <div style="margin:0 0 8px;">
+                <button type="button" class="nl-link" style="width:100%;"><i class="fa-solid fa-link"></i> Lier la party actuelle</button>
+                <p style="font-size:.78em;opacity:.7;margin:4px 2px 0;">Crée un carnet commun pour les joueurs présents dans ta party. Ceux déjà liés ailleurs rejoignent ce nouveau groupe.</p>
+            </div>
+            <hr>
+            <div class="nl-list">${rows()}</div>
+            <p style="font-size:.78em;opacity:.7;margin-top:8px;">« Délier » retire l'accès des joueurs ; le carnet (les notes) reste conservé dans les Journaux.</p>`,
         rejectClose: false,
-        render: (ev, dlg) => {
-            const root = dlg?.element ?? ev?.target?.closest?.(".application") ?? document;
-            root.querySelectorAll?.(".nl-open").forEach(b => b.addEventListener("click", () => game.journal.get(b.dataset.j)?.sheet.render(true)));
-            root.querySelectorAll?.(".nl-dissolve").forEach(b => b.addEventListener("click", async () => {
-                const gr = getGroups().find(g => g.id === b.dataset.id);
-                if (!gr) return;
-                await detachMembers([...gr.members]);
-                b.closest("div")?.remove();
-                ui.notifications?.info("Groupe délié (le carnet est conservé).");
-            }));
-        },
+        render: (ev, dlg) => wire(dlg?.element ?? ev?.target?.closest?.(".application") ?? document),
         buttons: [{ action: "close", label: "Fermer", icon: "fa-solid fa-xmark", default: true }]
     }).catch(() => {});
 }
@@ -133,11 +190,7 @@ export function NoteLinkHooks() {
         }
         if (game.user.isGM) {
             controls.westmarch.tools.scwmNoteLink = {
-                name: "scwmNoteLink", title: "Lier les notes de la party (carnet commun)", icon: "fa-solid fa-link",
-                button: true, visible: true, onChange: () => linkParty()
-            };
-            controls.westmarch.tools.scwmNoteLinkManage = {
-                name: "scwmNoteLinkManage", title: "Gérer / délier les carnets communs", icon: "fa-solid fa-users-rectangle",
+                name: "scwmNoteLink", title: "Carnets communs (lier / délier / gérer)", icon: "fa-solid fa-users-rectangle",
                 button: true, visible: true, onChange: () => openManageGroups()
             };
         } else {

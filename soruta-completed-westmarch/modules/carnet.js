@@ -1489,15 +1489,20 @@ function _wireToolbar(editor) {
         sizeSelect.addEventListener('change', function () {
             const val = this.value;
             this.value = '';
-            if (!val) return;
-            // Restaure la sélection dans l'éditeur avant d'appliquer la commande
-            editor?.focus();
-            if (_savedRange) {
-                const sel = window.getSelection();
+            if (!val || !editor) return;
+            // Restaure la sélection dans l'éditeur avant d'appliquer la commande.
+            editor.focus();
+            const sel = window.getSelection();
+            if (_savedRange && editor.contains(_savedRange.commonAncestorContainer)) {
                 sel?.removeAllRanges();
                 sel?.addRange(_savedRange);
-                _savedRange = null;
             }
+            _savedRange = null;
+            // SÉCURITÉ : n'applique la taille QUE si la sélection est réellement
+            // dans l'éditeur. Sinon execCommand agirait hors éditeur et pouvait
+            // vider la note (bug de perte de contenu à la sauvegarde).
+            const r = sel?.rangeCount ? sel.getRangeAt(0) : null;
+            if (!r || !editor.contains(r.commonAncestorContainer)) return;
             document.execCommand('fontSize', false, val);
             setTimeout(updateState, 10);
         });

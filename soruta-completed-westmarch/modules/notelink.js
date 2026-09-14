@@ -74,10 +74,15 @@ function currentExpeditionName(actors) {
     return null;
 }
 
-// Dossier « Carnet commun » (Journaux), créé au besoin.
+// Dossier « Carnet commun » (Journaux), créé au besoin, couleur dédiée.
+const COMMON_FOLDER_COLOR = "#c803e2";
 async function commonNoteFolder() {
     let f = game.folders?.find(x => x.type === "JournalEntry" && x.name === "Carnet commun" && !x.folder);
-    if (!f) { try { f = await Folder.create({ name: "Carnet commun", type: "JournalEntry" }); } catch (e) { return null; } }
+    if (!f) {
+        try { f = await Folder.create({ name: "Carnet commun", type: "JournalEntry", color: COMMON_FOLDER_COLOR }); } catch (e) { return null; }
+    } else if (f.color !== COMMON_FOLDER_COLOR) {
+        try { await f.update({ color: COMMON_FOLDER_COLOR }); } catch (e) {}
+    }
     return f;
 }
 

@@ -1411,16 +1411,19 @@ function _buildToolbar() {
     }).join("");
 
     const sizeSelect = `${sep}
-        <select class="carnet-tb-size" title="Taille du texte sélectionné"
-                style="height:26px;padding:0 5px;border-radius:3px;
-                       border:1px solid rgba(255,255,255,0.12);background:rgba(0,0,0,0.35);
-                       color:#ccc;font-size:11px;cursor:pointer;outline:none;">
-            <option value="">Taille…</option>
-            <option value="2">Petite</option>
-            <option value="3">Normale</option>
-            <option value="4">Grande</option>
-            <option value="5">Très grande</option>
-        </select>`;
+        <input type="number" class="carnet-tb-size"
+               title="Taille du texte sélectionné (en points, comme sur Word)"
+               min="6" max="96" step="1" placeholder="Taille" list="carnet-size-list"
+               style="width:66px;height:26px;padding:0 6px;border-radius:3px;
+                      border:1px solid rgba(255,255,255,0.12);background:rgba(0,0,0,0.35);
+                      color:#ccc;font-size:11px;cursor:text;outline:none;">
+        <datalist id="carnet-size-list">
+            <option value="8"></option><option value="9"></option><option value="10"></option>
+            <option value="11"></option><option value="12"></option><option value="14"></option>
+            <option value="16"></option><option value="18"></option><option value="20"></option>
+            <option value="24"></option><option value="28"></option><option value="36"></option>
+            <option value="48"></option>
+        </datalist>`;
 
     return `<div class="carnet-editor-toolbar"
          style="display:flex;flex-wrap:wrap;align-items:center;gap:3px;
@@ -1483,50 +1486,54 @@ function _wireToolbar(editor) {
         });
     });
 
-    // Sélecteur de taille — enrobage MANUEL en <span style="font-size">.
-    // On n'utilise PAS execCommand('fontSize') : sous Chromium/Electron (Foundry),
-    // quand la sélection couvre toute la note, il pouvait vider le contenu
-    // (bug de perte de contenu à la sauvegarde). L'enrobage manuel ne supprime rien.
-    const SIZE_EM = { "2": "0.85em", "3": "1em", "4": "1.35em", "5": "1.7em" };
-    const sizeSelect = document.querySelector('.carnet-tb-size');
-    if (sizeSelect) {
-        sizeSelect.addEventListener('change', function () {
-            const val = this.value;
-            this.value = '';
-            if (!val || !editor) return;
-            const em = SIZE_EM[val] ?? "1em";
+    // Taille du texte — champ numérique en POINTS (comme Word), enrobage MANUEL
+    // en <span style="font-size:Npt">. On n'utilise PAS execCommand('fontSize') :
+    // sous Chromium/Electron (Foundry), quand la sélection couvrait toute la note,
+    // il pouvait vider le contenu (bug de perte à la sauvegarde). L'enrobage manuel
+    // ne supprime rien.
+    const sizeInput = document.querySelector('.carnet-tb-size');
+    const applySize = () => {
+        if (!sizeInput || !editor) return;
+        let num = parseInt(sizeInput.value, 10);
+        if (!Number.isFinite(num)) return;
+        num = Math.max(6, Math.min(96, num));   // borne 6–96 pt
 
-            // Restaure la sélection mémorisée (perdue au focus du <select>).
-            editor.focus();
-            const sel = window.getSelection();
-            if (_savedRange && editor.contains(_savedRange.commonAncestorContainer)) {
-                sel?.removeAllRanges();
-                sel?.addRange(_savedRange);
-            }
-            _savedRange = null;
+        // Restaure la sélection mémorisée (perdue au focus du champ).
+        editor.focus();
+        const sel = window.getSelection();
+        if (_savedRange && editor.contains(_savedRange.commonAncestorContainer)) {
+            sel?.removeAllRanges();
+            sel?.addRange(_savedRange);
+        }
+        _savedRange = null;
 
-            // Rien à faire s'il n'y a pas de sélection réelle DANS l'éditeur.
-            const range = sel?.rangeCount ? sel.getRangeAt(0) : null;
-            if (!range || range.collapsed) return;
-            if (!editor.contains(range.commonAncestorContainer)) return;
+        // Rien à faire s'il n'y a pas de sélection réelle DANS l'éditeur.
+        const range = sel?.rangeCount ? sel.getRangeAt(0) : null;
+        if (!range || range.collapsed) return;
+        if (!editor.contains(range.commonAncestorContainer)) return;
 
-            // Enrobe le contenu sélectionné dans un span dimensionné.
-            try {
-                const span = document.createElement("span");
-                span.style.fontSize = em;
-                span.appendChild(range.extractContents());
-                range.insertNode(span);
-                // Re-sélectionne le contenu enrobé.
-                sel.removeAllRanges();
-                const nr = document.createRange();
-                nr.selectNodeContents(span);
-                sel.addRange(nr);
-                // Notifie l'éditeur (met à jour la capture de contenu pour la sauvegarde).
-                editor.dispatchEvent(new Event("input", { bubbles: true }));
-            } catch (e) {
-                console.warn(`[carnet] application de la taille :`, e);
-            }
-            setTimeout(updateState, 10);
+        // Enrobe le contenu sélectionné dans un span dimensionné.
+        try {
+            const span = document.createElement("span");
+            span.style.fontSize = num + "pt";
+            span.appendChild(range.extractContents());
+            range.insertNode(span);
+            // Re-sélectionne le contenu enrobé.
+            sel.removeAllRanges();
+            const nr = document.createRange();
+            nr.selectNodeContents(span);
+            sel.addRange(nr);
+            // Notifie l'éditeur (met à jour la capture de contenu pour la sauvegarde).
+            editor.dispatchEvent(new Event("input", { bubbles: true }));
+        } catch (e) {
+            console.warn(`[carnet] application de la taille :`, e);
+        }
+        setTimeout(updateState, 10);
+    };
+    if (sizeInput) {
+        sizeInput.addEventListener('change', applySize);
+        sizeInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter') { e.preventDefault(); applySize(); }
         });
     }
 

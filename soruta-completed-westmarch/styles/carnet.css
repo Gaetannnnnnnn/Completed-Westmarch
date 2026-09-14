@@ -719,7 +719,7 @@
 #carnet-note-editor .ProseMirror,
 .carnet-note-content {
     font-family: "Perry Gothic", "Signika", sans-serif;
-    font-size: 18px;
+    font-size: 14px;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -819,8 +819,8 @@
     background: rgba(90,60,25,0.4); border-radius: 4px;
 }
 
-/* Taille de plume plus grande dans le grimoire (l'inline 13px est écrasé) */
-.carnet-grimoire #carnet-note-editor { font-size: 20px !important; line-height: 1.9 !important; }
+/* Taille de plume dans le grimoire (l'inline 13px est écrasé) */
+.carnet-grimoire #carnet-note-editor { font-size: 15px !important; line-height: 1.7 !important; }
 
 /* Éditeur grimoire : la zone d'écriture remplit toute la hauteur du dialog
    (évite le grand vide de parchemin sous les boutons).
@@ -883,7 +883,7 @@
     box-shadow: 0 2px 6px rgba(0,0,0,0.5), inset 0 0 34px rgba(60,38,12,0.36) !important;
 }
 /* Texte de la note : police plus petite, plus lisible sur vélin */
-.carnet-note-card .carnet-note-content { font-size: 14px !important; line-height: 1.55 !important; }
+.carnet-note-card .carnet-note-content { font-size: 13px !important; line-height: 1.55 !important; }
 /* Encre sépia sur le parchemin */
 .carnet-note-card .carnet-note-title-input,
 .carnet-note-card .carnet-note-title-label { color: #4a2f10 !important; }

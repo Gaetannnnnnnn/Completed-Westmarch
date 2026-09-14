@@ -526,6 +526,26 @@ export async function deleteSessionDraft(id) {
     await game.settings.set(MOD, "sessionDrafts", getSessionDrafts().filter(x => x.id !== id));
 }
 
+// ---- Journal des sessions clôturées (assiduité) ------------
+export function getSessionLog() {
+    const l = game.settings.get(MOD, "sessionLog");
+    return Array.isArray(l) ? l : [];
+}
+async function appendSessionLog(data) {
+    try {
+        const entry = {
+            id:      data.id ?? foundry.utils.randomID(),
+            gmId:    data.gmId ?? game.user.id,
+            gmName:  data.gmName ?? game.user.name,
+            dateISO: data.dateISO ?? new Date().toISOString(),
+            players: (data.players ?? []).map(p => ({ actorId: p.actorId, name: p.name })),
+        };
+        const log = getSessionLog();
+        log.push(entry);
+        await game.settings.set(MOD, "sessionLog", log);
+    } catch (e) { console.warn("[WestMarch] Journal de session :", e); }
+}
+
 // ============================================================
 // SECTION : Clôture de la session
 // - "Clôturer et envoyer" → rapport Discord immédiat.
@@ -552,6 +572,9 @@ async function closeSession(playerListApp) {
 
     // Données du rapport construites AVANT le reset de sessionData.
     const reportData = buildReportData(partyId, xpBeforeById, res.notes);
+
+    // Journalise la session clôturée (assiduité) — envoyée OU brouillon.
+    await appendSessionLog(reportData);
 
     if (res.action === "send") {
         const ok = await sendSessionReport(reportData);

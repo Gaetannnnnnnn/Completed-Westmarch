@@ -173,6 +173,11 @@ export function registerSettings() {
     game.settings.register(MOD, "sessionDrafts", {
         scope: "world", config: false, type: Array, default: []
     });
+    // Journal des sessions clôturées (assiduité) : { id, gmId, gmName, dateISO,
+    // players:[{actorId,name}] }. Alimenté à chaque clôture. Non affiché.
+    game.settings.register(MOD, "sessionLog", {
+        scope: "world", config: false, type: Array, default: []
+    });
     // Profils de Casier par GM (présentation du dashboard, etc.). Non affiché.
     game.settings.register(MOD, "casierProfiles", {
         scope: "world", config: false, type: Object, default: {}

@@ -13,7 +13,7 @@
 import { MOD } from "./const.js";
 import { getExpeditions, formatDate } from "./carnet.js";
 import {
-    getSessionDrafts, saveSessionDraft, deleteSessionDraft, sendSessionReport
+    getSessionDrafts, saveSessionDraft, deleteSessionDraft, sendSessionReport, getSessionLog
 } from "./session.js";
 import {
     getCreationRequests, approveCreation, rejectCreation,
@@ -104,8 +104,10 @@ function closedExpeditions() {
         for (const e of getExpeditions(actor)) {
             if (!e.startDate || !e.endDate) continue;   // seulement clôturées
             const key = `${e.name || "?"}|${JSON.stringify(e.startDate)}|${e.gmId || ""}`;
-            if (!map.has(key)) map.set(key, { name: e.name || "Expédition sans nom", startDate: e.startDate, endDate: e.endDate, gmId: e.gmId || null, participants: new Set() });
-            map.get(key).participants.add(actor.id);
+            if (!map.has(key)) map.set(key, { name: e.name || "Expédition sans nom", startDate: e.startDate, endDate: e.endDate, gmId: e.gmId || null, endReal: e.endReal ?? null, participants: new Set() });
+            const g = map.get(key);
+            g.participants.add(actor.id);
+            if (e.endReal && (!g.endReal || e.endReal > g.endReal)) g.endReal = e.endReal;   // date réelle la plus récente
         }
     }
     return [...map.values()]
@@ -113,7 +115,17 @@ function closedExpeditions() {
         .sort((a, b) => dateVal(b.endDate) - dateVal(a.endDate));
 }
 
-// Barres horizontales (graphique CSS, sans librairie).
+// Date IRL lisible + ancienneté (« il y a X j ») pour juger de l'activité.
+function realDateLabel(iso) {
+    if (!iso) return "jamais";
+    const d = new Date(iso);
+    if (isNaN(d)) return "—";
+    const days = Math.floor((Date.now() - d.getTime()) / 86400000);
+    const ago = days <= 0 ? "aujourd'hui" : days === 1 ? "hier" : `il y a ${days} j`;
+    return `${d.toLocaleDateString("fr-FR")} (${ago})`;
+}
+
+// Barres horizontales (graphique CSS, sans librairie). r.extra = texte à droite.
 function barChart(rows, color) {
     if (!rows.length) return `<p class="scwm-casier-empty">Aucune donnée.</p>`;
     const max = Math.max(1, ...rows.map(r => r.value));
@@ -124,6 +136,7 @@ function barChart(rows, color) {
                 <div style="width:${(r.value / max * 100).toFixed(1)}%;background:${color};height:15px;border-radius:3px;min-width:2px;"></div>
             </div>
             <span style="flex:0 0 28px;font-size:.85em;font-weight:600;">${r.value}</span>
+            ${r.extra ? `<span style="flex:0 0 150px;font-size:.78em;opacity:.75;white-space:nowrap;">${esc(r.extra)}</span>` : ""}
         </div>`).join("");
 }
 
@@ -361,43 +374,48 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             </div>`;
     }
 
-    // ---- Onglet Assiduité (basé sur les expéditions CLÔTURÉES) ----
+    // ---- Onglet Assiduité (basé sur les SESSIONS clôturées) ----
     #attendanceDetail() {
-        const list = closedExpeditions();
+        const list = [...getSessionLog()].sort((a, b) => (b.dateISO || "").localeCompare(a.dateISO || ""));
         if (!list.length) {
             return `<div class="scwm-casier-placeholder"><i class="fa-solid fa-chart-column"></i>
-                <p>Aucune expédition clôturée pour l'instant. L'assiduité se calcule sur les expéditions terminées.</p></div>`;
+                <p>Aucune session clôturée pour l'instant. L'assiduité se calcule sur les sessions terminées (bouton « Clôturer la session »).</p></div>`;
         }
 
-        // Agrégats joueurs & MJ.
-        const players = new Map();   // nom joueur -> { count, last }
-        const gms     = new Map();   // nom MJ     -> { count, parts, last }
-        for (const e of list) {
-            const gmName = e.gmId ? (game.users.get(e.gmId)?.name ?? "MJ inconnu") : "— (sans MJ)";
-            if (!gms.has(gmName)) gms.set(gmName, { count: 0, parts: 0, last: 0 });
-            const g = gms.get(gmName); g.count++; g.parts += e.participants.length; g.last = Math.max(g.last, dateVal(e.endDate));
+        // Agrégats joueurs & MJ. lastReal = date IRL de la dernière session.
+        const players = new Map();   // nom joueur -> { count, lastReal }
+        const gms     = new Map();   // nom MJ     -> { count, parts, lastReal }
+        const maxReal = (a, b) => (!a ? b : (!b ? a : (a > b ? a : b)));
+        for (const s of list) {
+            const gmName = s.gmName || (s.gmId ? (game.users.get(s.gmId)?.name ?? "MJ inconnu") : "MJ inconnu");
+            if (!gms.has(gmName)) gms.set(gmName, { count: 0, parts: 0, lastReal: null });
+            const g = gms.get(gmName); g.count++; g.parts += (s.players?.length ?? 0); g.lastReal = maxReal(g.lastReal, s.dateISO);
 
-            const pn = new Set(e.participants.map(id => { const a = game.actors.get(id); return a ? playerOf(a) : null; }).filter(Boolean));
-            for (const name of pn) {
-                if (!players.has(name)) players.set(name, { count: 0, last: 0 });
-                const p = players.get(name); p.count++; p.last = Math.max(p.last, dateVal(e.endDate));
+            const names = new Set((s.players ?? []).map(p => {
+                const a = game.actors.get(p.actorId); return a ? playerOf(a) : (p.name ?? null);
+            }).filter(Boolean));
+            for (const name of names) {
+                if (!players.has(name)) players.set(name, { count: 0, lastReal: null });
+                const p = players.get(name); p.count++; p.lastReal = maxReal(p.lastReal, s.dateISO);
             }
         }
 
-        const playerRows = [...players.entries()].map(([label, p]) => ({ label, value: p.count })).sort((a, b) => b.value - a.value);
-        const gmRows     = [...gms.entries()].map(([label, g]) => ({ label, value: g.count, parts: g.parts })).sort((a, b) => b.value - a.value);
+        const playerRows = [...players.entries()].map(([label, p]) => ({ label, value: p.count, extra: realDateLabel(p.lastReal) })).sort((a, b) => b.value - a.value);
+        const gmRows     = [...gms.entries()].map(([label, g]) => ({ label, value: g.count, parts: g.parts, extra: realDateLabel(g.lastReal) })).sort((a, b) => b.value - a.value);
 
-        const totalExp = list.length;
-        const totalPlayers = players.size;
-        const totalGms = [...gms.keys()].filter(k => !k.startsWith("—")).length;
+        // « Actifs » = ont clôturé une session dans le dernier TRIMESTRE (90 j).
+        const ACTIVE_DAYS = 90;
+        const isRecent = (iso) => iso && (Date.now() - new Date(iso).getTime()) <= ACTIVE_DAYS * 86400000;
+        const totalSessions = list.length;
+        const totalPlayers = [...players.values()].filter(p => isRecent(p.lastReal)).length;
+        const totalGms = [...gms.values()].filter(g => isRecent(g.lastReal)).length;
 
-        // Tableau des expéditions (40 plus récentes).
-        const expRows = list.slice(0, 40).map(e => `
+        // Tableau des sessions (40 plus récentes).
+        const sessRows = list.slice(0, 40).map(s => `
             <tr>
-                <td>${esc(e.name)}</td>
-                <td>${esc(formatDate(e.endDate))}</td>
-                <td>${esc(e.gmId ? (game.users.get(e.gmId)?.name ?? "?") : "—")}</td>
-                <td style="font-size:.85em;">${e.participants.map(id => esc(game.actors.get(id)?.name ?? "?")).join(", ") || "—"}</td>
+                <td style="font-size:.85em;">${esc(s.dateISO ? new Date(s.dateISO).toLocaleDateString("fr-FR") : "—")}</td>
+                <td>${esc(s.gmName ?? (s.gmId ? (game.users.get(s.gmId)?.name ?? "?") : "?"))}</td>
+                <td style="font-size:.85em;">${(s.players ?? []).map(p => esc(p.name ?? "?")).join(", ") || "—"}</td>
             </tr>`).join("");
 
         const card = (n, l) => `<div style="flex:1;background:var(--scwm-panel,rgba(255,255,255,.05));border-radius:8px;padding:8px 10px;text-align:center;">
@@ -407,29 +425,29 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             <div class="scwm-casier-detail scwm-casier-attendance" style="overflow:auto;">
                 <h2><i class="fa-solid fa-chart-column"></i> Assiduité</h2>
                 <div style="display:flex;gap:10px;margin:0 0 14px;">
-                    ${card(totalExp, "expéditions clôturées")}
-                    ${card(totalPlayers, "joueurs actifs")}
-                    ${card(totalGms, "MJ actifs")}
+                    ${card(totalSessions, "sessions clôturées")}
+                    ${card(totalPlayers, "joueurs actifs (trimestre)")}
+                    ${card(totalGms, "MJ actifs (trimestre)")}
                 </div>
 
                 <div class="scwm-casier-cv-section">
-                    <h3>Expéditions par joueur</h3>
+                    <h3>Sessions par joueur <span style="font-weight:400;font-size:.75em;opacity:.7;">(nombre · dernière session)</span></h3>
                     ${barChart(playerRows, "#8fd19e")}
                 </div>
 
                 <div class="scwm-casier-cv-section">
-                    <h3>Expéditions menées par MJ</h3>
+                    <h3>Sessions menées par MJ <span style="font-weight:400;font-size:.75em;opacity:.7;">(nombre · dernière session)</span></h3>
                     ${barChart(gmRows, "#c9a227")}
                     <div style="font-size:.8em;opacity:.7;margin-top:4px;">${gmRows.map(g => `${esc(g.label)} : ${g.parts} participation(s)`).join(" · ")}</div>
                 </div>
 
                 <div class="scwm-casier-cv-section">
-                    <h3>Expéditions clôturées (récentes)</h3>
+                    <h3>Sessions clôturées (récentes)</h3>
                     <table style="width:100%;border-collapse:collapse;font-size:.9em;">
                         <thead><tr style="text-align:left;border-bottom:1px solid rgba(255,255,255,.15);">
-                            <th style="padding:3px 4px;">Expédition</th><th style="padding:3px 4px;">Fin</th><th style="padding:3px 4px;">MJ</th><th style="padding:3px 4px;">Participants</th>
+                            <th style="padding:3px 4px;">Date</th><th style="padding:3px 4px;">MJ</th><th style="padding:3px 4px;">Participants</th>
                         </tr></thead>
-                        <tbody>${expRows}</tbody>
+                        <tbody>${sessRows}</tbody>
                     </table>
                 </div>
             </div>`;

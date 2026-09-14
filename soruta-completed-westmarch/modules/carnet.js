@@ -515,8 +515,9 @@ async function _closeExpDialog(members) {
         if (Array.isArray(selectedIds) && !selectedIds.includes(actor.id)) continue;   // non coché → continue
         const exps = getExpeditions(actor);
         if (!exps.some(e => e.startDate && !e.endDate)) continue;
+        const nowReal = new Date().toISOString();   // date RÉELLE de clôture (assiduité)
         const updated = exps.map(e =>
-            (e.startDate && !e.endDate) ? { ...e, endDate: resolvedDate } : e
+            (e.startDate && !e.endDate) ? { ...e, endDate: resolvedDate, endReal: nowReal } : e
         );
         await actor.setFlag(MODULE, "expeditions", updated);
         closedCount++;

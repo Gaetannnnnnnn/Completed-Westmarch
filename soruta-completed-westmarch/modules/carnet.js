@@ -29,6 +29,7 @@ export async function addExpedition(actor, startDate = null, name = "Nouvelle ex
         name:      name || "Nouvelle expédition",
         startDate: startDate ?? null,
         endDate:   null,
+        startReal: new Date().toISOString(),   // date RÉELLE d'ouverture (compte des sessions)
         // GM qui a lancé l'expédition (pour le Casier). game.user est le GM
         // qui déclenche le bouton "Date Expédition".
         gmId:      game.user?.id ?? null

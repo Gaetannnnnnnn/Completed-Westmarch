@@ -531,6 +531,15 @@ export function getSessionLog() {
     const l = game.settings.get(MOD, "sessionLog");
     return Array.isArray(l) ? l : [];
 }
+
+// Nombre de sessions d'une expédition : sessions du MÊME MJ clôturées entre
+// l'ouverture (startReal) et la clôture (endReal) réelles de l'expédition — ou
+// jusqu'à maintenant si elle est encore en cours. null si dates indisponibles.
+export function expeditionSessionCount(exp) {
+    if (!exp?.gmId || !exp?.startReal) return null;
+    const end = exp.endReal ?? new Date().toISOString();
+    return getSessionLog().filter(s => s.gmId === exp.gmId && s.dateISO >= exp.startReal && s.dateISO <= end).length;
+}
 async function appendSessionLog(data) {
     try {
         const entry = {

@@ -12,6 +12,7 @@
 // ============================================================
 
 import { MOD } from "./const.js";
+import { expeditionSessionCount } from "./session.js";
 const MODULE = MOD;
 
 // ================================================================
@@ -810,6 +811,11 @@ export function buildDowntimeHtml(actor) {
                     <div class="carnet-date-block duration">
                         <span class="carnet-date-label"><i class="fa-solid fa-hourglass-half"></i> Durée</span>
                         <span class="carnet-duration-value">${duration}</span>
+                    </div>` : ""}
+                    ${expeditionSessionCount(exp) != null ? `
+                    <div class="carnet-date-block">
+                        <span class="carnet-date-label"><i class="fa-solid fa-dice-d20"></i> Sessions</span>
+                        <span class="carnet-duration-value">${expeditionSessionCount(exp)}</span>
                     </div>` : ""}
                 </div>
 

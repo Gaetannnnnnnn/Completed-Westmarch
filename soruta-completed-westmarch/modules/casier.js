@@ -13,7 +13,7 @@
 import { MOD } from "./const.js";
 import { getExpeditions, formatDate } from "./carnet.js";
 import {
-    getSessionDrafts, saveSessionDraft, deleteSessionDraft, sendSessionReport, getSessionLog
+    getSessionDrafts, saveSessionDraft, deleteSessionDraft, sendSessionReport, getSessionLog, expeditionSessionCount
 } from "./session.js";
 import {
     getCreationRequests, approveCreation, rejectCreation,
@@ -52,13 +52,14 @@ function gmExpeditions(gmId = game.user.id) {
             // Uniquement les expéditions dont CE GM est le MJ (tag gmId).
             if (e.gmId !== gmId) continue;
             const key = `${e.name || "Expédition"}|${JSON.stringify(e.startDate)}`;
-            if (!groups.has(key)) groups.set(key, { name: e.name || "Expédition sans nom", startDate: e.startDate, participants: [] });
+            if (!groups.has(key)) groups.set(key, { name: e.name || "Expédition sans nom", startDate: e.startDate, gmId: e.gmId, startReal: e.startReal ?? null, endReal: null, participants: [] });
             groups.get(key).participants.push({ id: actor.id, name: actor.name });
         }
     }
 
     const out = [...groups.values()].map(g => ({
         ...g,
+        sessions: expeditionSessionCount(g),
         // "En session" = l'expédition dont des participants sont dans la party
         // actuelle du GM (la session qu'il mène en ce moment).
         current: partyCharIds.size > 0 && g.participants.some(p => partyCharIds.has(p.id))
@@ -153,13 +154,14 @@ function gmTracking() {
             if (!byGm.has(e.gmId)) byGm.set(e.gmId, new Map());
             const groups = byGm.get(e.gmId);
             const key = `${e.name || "Expédition"}|${JSON.stringify(e.startDate)}`;
-            if (!groups.has(key)) groups.set(key, { name: e.name || "Expédition sans nom", startDate: e.startDate, participants: [] });
+            if (!groups.has(key)) groups.set(key, { name: e.name || "Expédition sans nom", startDate: e.startDate, gmId: e.gmId, startReal: e.startReal ?? null, endReal: null, participants: [] });
             groups.get(key).participants.push(actor.name);
         }
     }
 
     return (game.users ?? []).filter(u => u.isGM).map(gm => {
-        const exps = byGm.has(gm.id) ? [...byGm.get(gm.id).values()] : [];
+        const exps = (byGm.has(gm.id) ? [...byGm.get(gm.id).values()] : [])
+            .map(x => ({ ...x, sessions: expeditionSessionCount(x) }));
         return { id: gm.id, name: gm.name, count: exps.length, exps };
     });
 }
@@ -273,6 +275,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                             <span class="scwm-casier-exp-name">${esc(x.name)}</span>
                             ${x.current ? `<span class="scwm-casier-exp-badge">En session</span>` : ""}
                             <span class="scwm-casier-date">${esc(formatDate(x.startDate))}</span>
+                            ${x.sessions != null ? `<span class="scwm-casier-date" style="opacity:.7;">· ${x.sessions} session${x.sessions > 1 ? "s" : ""}</span>` : ""}
                         </div>
                         ${x.participants.length ? `<div class="scwm-casier-exp-parts">${x.participants.map(p => esc(p.name)).join(", ")}</div>` : ""}
                     </div>`).join("")}
@@ -368,6 +371,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                                 <li>
                                     <strong>${esc(e.name)}</strong>
                                     <span class="scwm-casier-date">(${esc(formatDate(e.startDate))})</span>
+                                    ${e.sessions != null ? `<span class="scwm-casier-date" style="opacity:.7;">· ${e.sessions} session${e.sessions > 1 ? "s" : ""}</span>` : ""}
                                     <div class="scwm-casier-gm-parts">${e.participants.length ? e.participants.map(esc).join(", ") : "Aucun joueur"}</div>
                                 </li>`).join("")}</ul>`
                             : `<div class="scwm-casier-gm-line" style="opacity:.6;">Aucune expédition en cours.</div>`}
@@ -395,12 +399,6 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                 keepMax(sessPlayerLast, a ? playerOf(a) : (p.name ?? "?"), s.dateISO);
             }
         }
-        // Nombre de sessions d'une expédition = sessions du MJ dans [ouverture, clôture] réelles.
-        const sessionsInExp = (e) => {
-            if (!e.gmId || !e.startReal || !e.endReal) return null;
-            return sessions.filter(s => s.gmId === e.gmId && s.dateISO >= e.startReal && s.dateISO <= e.endReal).length;
-        };
-
         if (!list.length) {
             return `<div class="scwm-casier-placeholder"><i class="fa-solid fa-chart-column"></i>
                 <p>Aucune expédition clôturée pour l'instant. L'assiduité se calcule sur les expéditions terminées.</p></div>`;
@@ -431,7 +429,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
 
         // Tableau des expéditions (40 plus récentes) avec (N sessions).
         const expRows = list.slice(0, 40).map(e => {
-            const ns = sessionsInExp(e);
+            const ns = expeditionSessionCount(e);
             return `
             <tr>
                 <td>${esc(e.name)}${ns != null ? ` <span style="opacity:.65;">(${ns} session${ns > 1 ? "s" : ""})</span>` : ""}</td>

@@ -410,8 +410,8 @@ export function registerSettings() {
         "Snap des templates AoE au dixième de pied",
         "Pendant le placement d'un template, la taille s'incrémente par paliers de 0,1 ft. Nécessite lib-wrapper pour le snap live."));
     game.settings.register(MOD, "enableFollowTemplates", B(
-        "Gabarits qui suivent le token",
-        "À la création d'un gabarit AoE alors qu'un token est sélectionné, le gabarit s'attache à ce token et suit ses déplacements (l'écart initial est conservé ; la rotation n'est pas suivie). Le gabarit est supprimé si le token l'est. Le suivi n'agit que si un MJ est connecté.",
+        "Zones (gabarits / régions) qui suivent le token",
+        "Si tu poses une zone AoE en démarrant SUR un token, elle s'y attache et suit ses déplacements (recentrée sur lui ; rotation non suivie). Gère les gabarits de mesure ET les Régions (Foundry v14). La zone est supprimée si le token l'est. Le suivi n'agit que si un MJ est connecté.",
         false));
     game.settings.register(MOD, "enableMejShopFix", B(
         "Correctifs boutiques Monk's Enhanced Journal",

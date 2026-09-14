@@ -41,6 +41,38 @@ function _snapToTenth(distance) {
     return Math.round(distance * 10) / 10;
 }
 
+// --- Géométrie des Régions (Foundry v14) : centre + translation des formes ---
+const _plain = (s) => (typeof s?.toObject === "function") ? s.toObject() : foundry.utils.deepClone(s);
+
+// Boîte englobante → centre de l'ensemble des formes d'une région. null si vide.
+function _shapesCenter(shapes) {
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const raw of (shapes ?? [])) {
+        const o = _plain(raw);
+        let x0, y0, x1, y1;
+        if (o.type === "rectangle") { x0 = o.x; y0 = o.y; x1 = o.x + (o.width ?? 0); y1 = o.y + (o.height ?? 0); }
+        else if (o.type === "circle") { x0 = o.x - o.radius; y0 = o.y - o.radius; x1 = o.x + o.radius; y1 = o.y + o.radius; }
+        else if (o.type === "ellipse") { x0 = o.x - (o.radiusX ?? 0); y0 = o.y - (o.radiusY ?? 0); x1 = o.x + (o.radiusX ?? 0); y1 = o.y + (o.radiusY ?? 0); }
+        else if (o.type === "polygon") {
+            const p = o.points ?? [];
+            for (let i = 0; i < p.length; i += 2) { x0 = Math.min(x0 ?? Infinity, p[i]); x1 = Math.max(x1 ?? -Infinity, p[i]); y0 = Math.min(y0 ?? Infinity, p[i + 1]); y1 = Math.max(y1 ?? -Infinity, p[i + 1]); }
+        } else continue;
+        minX = Math.min(minX, x0); minY = Math.min(minY, y0); maxX = Math.max(maxX, x1); maxY = Math.max(maxY, y1);
+    }
+    if (!isFinite(minX)) return null;
+    return { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
+}
+
+// Décale toutes les formes d'une région de (dx, dy). Retourne un tableau simple.
+function _translateShapes(shapes, dx, dy) {
+    return (shapes ?? []).map(raw => {
+        const o = _plain(raw);
+        if (o.type === "polygon") o.points = (o.points ?? []).map((v, i) => (i % 2 === 0 ? v + dx : v + dy));
+        else { o.x = (o.x ?? 0) + dx; o.y = (o.y ?? 0) + dy; }
+        return o;
+    });
+}
+
 export function TemplateHooks() {
 
     // ── Gabarits qui SUIVENT le token (suivi de position) ────────────────
@@ -90,6 +122,46 @@ export function TemplateHooks() {
             .filter(t => t.getFlag(_MODULE, "attached")?.tokenId === tokenDoc.id)
             .map(t => t.id);
         if (ids.length) await scene.deleteEmbeddedDocuments("MeasuredTemplate", ids);
+        // Régions attachées (v14 : les zones AoE sont des Régions, pas des gabarits).
+        const rids = [...(scene.regions ?? [])]
+            .filter(r => r.getFlag(_MODULE, "attached")?.tokenId === tokenDoc.id)
+            .map(r => r.id);
+        if (rids.length) await scene.deleteEmbeddedDocuments("Region", rids);
+    });
+
+    // ── RÉGIONS qui suivent le token (Foundry v14 : les zones AoE sont des Régions) ──
+    Hooks.on("preCreateRegion", (doc) => {
+        if (!game.settings.get(_MODULE, "enableFollowTemplates")) return;
+        const shapes = doc.shapes ?? [];
+        const c = _shapesCenter(shapes);
+        if (!c) return;
+        // Attache UNIQUEMENT si le centre de la zone est SUR un token (sinon libre).
+        const token = canvas.tokens?.placeables?.find(t => t.bounds?.contains?.(c.x, c.y));
+        if (!token) return;
+        // Recentre les formes pile sur le token, puis marque l'attache.
+        const dx = token.center.x - c.x, dy = token.center.y - c.y;
+        doc.updateSource({ shapes: _translateShapes(shapes, dx, dy), [`flags.${_MODULE}.attached`]: { tokenId: token.id } });
+    });
+
+    Hooks.on("updateToken", async (tokenDoc, changes) => {
+        if (!game.settings.get(_MODULE, "enableFollowTemplates")) return;
+        if (!("x" in changes || "y" in changes)) return;
+        if (!_driverIsMe()) return;
+        const scene = tokenDoc.parent;
+        if (!scene?.regions) return;
+        const nx = Number.isFinite(changes.x) ? changes.x : tokenDoc.x;
+        const ny = Number.isFinite(changes.y) ? changes.y : tokenDoc.y;
+        const gs = scene.grid.size;
+        const cx = nx + (tokenDoc.width ?? 1) * gs / 2;
+        const cy = ny + (tokenDoc.height ?? 1) * gs / 2;
+        const updates = [];
+        for (const region of scene.regions) {
+            if (region.getFlag(_MODULE, "attached")?.tokenId !== tokenDoc.id) continue;
+            const c = _shapesCenter(region.shapes);
+            if (!c) continue;
+            updates.push({ _id: region.id, shapes: _translateShapes(region.shapes, cx - c.x, cy - c.y) });
+        }
+        if (updates.length) await scene.updateEmbeddedDocuments("Region", updates);
     });
 
     // ── 1. Snap à la création ─────────────────────────────────────────────

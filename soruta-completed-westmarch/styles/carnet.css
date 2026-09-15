@@ -745,21 +745,16 @@
 }
 
 /* Corps : le parchemin — texture image « parchemin.png » étirée en fond,
-   lignes réglées par-dessus (calées sur l'interligne), fallback dégradé. */
+   fallback dégradé. (Les lignes réglées sont sur l'éditeur, cf. plus bas,
+   pour rester alignées au texte malgré la hauteur de la barre d'outils.) */
 .carnet-grimoire .window-content {
     background-color: #e9dcbe !important;
     background-image:
-        /* lignes réglées (interligne ≈ 26px pour la plume 15px/1.7) */
-        repeating-linear-gradient(to bottom,
-            transparent 0 25px,
-            rgba(90,60,25,0.16) 25px 26px),
-        /* la texture parchemin fournie */
         url("../assets/parchemin.png"),
-        /* fallback si l'image manque */
         linear-gradient(160deg, #efe4c7 0%, #e6d6b0 55%, #d8c49c 100%) !important;
-    background-repeat: repeat, no-repeat, no-repeat !important;
-    background-position: 0 42px, center top, center !important;
-    background-size: auto, 100% 100%, cover !important;
+    background-repeat: no-repeat, no-repeat !important;
+    background-position: center top, center !important;
+    background-size: 100% 100%, cover !important;
     box-shadow: none !important;
     color: #3a2a15 !important;
 }
@@ -784,7 +779,15 @@
 /* La page d'écriture : transparente pour laisser voir le parchemin,
    encre sépia, marges de page, léger relief d'encre. */
 .carnet-grimoire #carnet-note-editor {
-    background: transparent !important;
+    /* Lignes réglées peintes SUR l'éditeur : offset = padding-top (40px),
+       pas de la barre d'outils → alignées sous chaque ligne de texte. */
+    background-image:
+        repeating-linear-gradient(to bottom,
+            transparent 0 25px,
+            rgba(90,60,25,0.18) 25px 26px) !important;
+    background-repeat: repeat !important;
+    background-position: 0 40px !important;   /* = padding-top, cale la 1re ligne */
+    background-size: 100% 26px !important;     /* = interligne exact ci-dessous */
     color: #38270f !important;
     caret-color: #38270f !important;
     /* marges généreuses : le texte reste dans la zone crème centrale,
@@ -826,8 +829,9 @@
     background: rgba(90,60,25,0.4); border-radius: 4px;
 }
 
-/* Taille de plume dans le grimoire (l'inline 13px est écrasé) */
-.carnet-grimoire #carnet-note-editor { font-size: 15px !important; line-height: 1.7 !important; }
+/* Taille de plume dans le grimoire (l'inline 13px est écrasé).
+   Interligne EXACT 26px = pas des lignes réglées (voir background ci-dessus). */
+.carnet-grimoire #carnet-note-editor { font-size: 15px !important; line-height: 26px !important; }
 
 /* Éditeur grimoire : la zone d'écriture remplit toute la hauteur du dialog
    (évite le grand vide de parchemin sous les boutons).
@@ -873,18 +877,20 @@
     position: relative;
     background-color: #cdaf7d !important;
     background-image:
+        /* voile brun pour assombrir la texture (sinon trop clair, boutons illisibles) */
+        linear-gradient(rgba(96,66,28,0.34), rgba(96,66,28,0.34)),
         /* texture parchemin recadrée sur le corps (le rouleau est hors cadre) */
         url("../assets/parchemin.png"),
         /* fallback vélin bruni si l'image manque */
-        linear-gradient(150deg, #d8c091 0%, #cbad78 52%, #b8985f 100%) !important;
-    background-repeat: no-repeat, no-repeat !important;
-    background-position: center 58%, center !important;
-    background-size: cover, cover !important;
-    color: #33240f !important;
-    border: 1px solid #a8895a !important;
-    border-left: 4px solid #7a5a2c !important;
+        linear-gradient(150deg, #cdb076 0%, #bf9f63 52%, #ac8b4f 100%) !important;
+    background-repeat: no-repeat, no-repeat, no-repeat !important;
+    background-position: center, center 58%, center !important;
+    background-size: cover, cover, cover !important;
+    color: #2a1c08 !important;
+    border: 1px solid #9a7c4d !important;
+    border-left: 4px solid #6a4c22 !important;
     border-radius: 3px 7px 4px 8px !important;      /* coins légèrement irréguliers */
-    box-shadow: 0 1px 3px rgba(0,0,0,0.45), inset 0 0 34px rgba(60,38,12,0.22) !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.5), inset 0 0 40px rgba(50,32,10,0.4) !important;
     overflow: hidden;
 }
 .carnet-note-card:hover {
@@ -905,11 +911,17 @@
 .carnet-note-card .carnet-note-display a  { color: #7a3410 !important; }
 .carnet-note-card .carnet-note-placeholder { color: rgba(90,58,22,0.6) !important; }
 .carnet-note-card .carnet-toggle-note,
-.carnet-note-card .carnet-toggle-note i { color: #7a5a2a !important; }
+.carnet-note-card .carnet-toggle-note i { color: #4a3212 !important; }
 .carnet-note-card .carnet-drag-handle,
-.carnet-note-card .carnet-drag-handle i { color: rgba(90,58,22,0.45) !important; }
+.carnet-note-card .carnet-drag-handle i { color: rgba(50,32,10,0.6) !important; }
 .carnet-note-card .carnet-del-note,
-.carnet-note-card .carnet-del-note i { color: rgba(120,40,30,0.6) !important; }
+.carnet-note-card .carnet-del-note i { color: #7c2412 !important; }
+.carnet-note-card .carnet-del-note:hover i { color: #a2331a !important; }
+/* Lien / autres icônes d'entête de carte (ex. « Lier ») */
+.carnet-note-card a,
+.carnet-note-card a i,
+.carnet-note-card [class*="link"],
+.carnet-note-card [class*="link"] i { color: #4a3212 !important; }
 /* Bouton « Modifier » assorti */
 .carnet-note-card .carnet-edit-note {
     background: rgba(90,60,25,0.10) !important;

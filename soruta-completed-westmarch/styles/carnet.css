@@ -829,9 +829,9 @@
     background: rgba(90,60,25,0.4); border-radius: 4px;
 }
 
-/* Taille de plume dans le grimoire (l'inline 13px est écrasé).
+/* Taille de plume dans le grimoire (l'inline 13px est écrasé). Défaut 12 pt.
    Interligne EXACT 26px = pas des lignes réglées (voir background ci-dessus). */
-.carnet-grimoire #carnet-note-editor { font-size: 15px !important; line-height: 26px !important; }
+.carnet-grimoire #carnet-note-editor { font-size: 12pt !important; line-height: 26px !important; }
 
 /* Éditeur grimoire : la zone d'écriture remplit toute la hauteur du dialog
    (évite le grand vide de parchemin sous les boutons).
@@ -877,20 +877,18 @@
     position: relative;
     background-color: #cdaf7d !important;
     background-image:
-        /* voile brun pour assombrir la texture (sinon trop clair, boutons illisibles) */
-        linear-gradient(rgba(96,66,28,0.34), rgba(96,66,28,0.34)),
         /* texture parchemin recadrée sur le corps (le rouleau est hors cadre) */
         url("../assets/parchemin.png"),
-        /* fallback vélin bruni si l'image manque */
-        linear-gradient(150deg, #cdb076 0%, #bf9f63 52%, #ac8b4f 100%) !important;
-    background-repeat: no-repeat, no-repeat, no-repeat !important;
-    background-position: center, center 58%, center !important;
-    background-size: cover, cover, cover !important;
-    color: #2a1c08 !important;
-    border: 1px solid #9a7c4d !important;
-    border-left: 4px solid #6a4c22 !important;
+        /* fallback parchemin miel, chaud et lumineux, si l'image manque */
+        linear-gradient(150deg, #f2e2b8 0%, #ead39a 55%, #e0c583 100%) !important;
+    background-repeat: no-repeat, no-repeat !important;
+    background-position: center 58%, center !important;
+    background-size: cover, cover !important;
+    color: #33240d !important;
+    border: 1px solid #c8a86e !important;
+    border-left: 4px solid #9a7638 !important;
     border-radius: 3px 7px 4px 8px !important;      /* coins légèrement irréguliers */
-    box-shadow: 0 1px 3px rgba(0,0,0,0.5), inset 0 0 40px rgba(50,32,10,0.4) !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.35), inset 0 0 22px rgba(120,86,38,0.14) !important;
     overflow: hidden;
 }
 .carnet-note-card:hover {

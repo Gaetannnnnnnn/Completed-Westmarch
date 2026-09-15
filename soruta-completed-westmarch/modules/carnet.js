@@ -1411,7 +1411,7 @@ function _buildToolbar() {
     }).join("");
 
     const sizeSelect = `${sep}
-        <input type="number" class="carnet-tb-size"
+        <input type="number" class="carnet-tb-size" value="12"
                title="Taille du texte sélectionné (en points, comme sur Word)"
                min="6" max="96" step="1" placeholder="Taille" list="carnet-size-list"
                style="width:66px;height:26px;padding:0 6px;border-radius:3px;

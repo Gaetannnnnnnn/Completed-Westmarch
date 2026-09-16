@@ -262,6 +262,10 @@ export function registerSettings() {
     game.settings.register(MOD, "enableXpBlock", B(
         "Blocage de l'XP et du Level Up",
         "Empêche les joueurs de modifier leur XP et masque le bouton Level Up. Les GM ne sont pas affectés."));
+    game.settings.register(MOD, "enableFakeWarning", B(
+        "Faux message de maintenance (farce GM)",
+        "Ajoute un bouton GM dans la barre WestMarch pour envoyer un faux avertissement jaune (« Mise à jour effectuée… ») à un joueur. Décochez pour retirer complètement le bouton.",
+        true));
     game.settings.register(MOD, "enableGmNotes", B(
         "Note GM sur les fiches PJ",
         "Ajoute un onglet « Note GM » sur les fiches de personnage, visible et modifiable uniquement par les GM. Les joueurs ne voient pas l'onglet. Nécessite un rechargement.",
@@ -750,7 +754,7 @@ const CATEGORIES = [
       keys: ["enableHarvest","harvestDcBase","harvestDcPerCr","harvestBaseDraws","harvestBloodImage"] },
     { firstKey: "enableXpBlock",         icon: "fa-server",          title: "Serveur",
       desc: "Personnalisations du serveur : blocage XP / Level Up, logs Discord, webhooks.",
-      keys: ["enableXpBlock","enableGmNotes","hidePlayerStarTab","enableDiscordLog","discordLogWebhookUrl","downtimeWebhookUrl","tmWebhookUrl"] },
+      keys: ["enableXpBlock","enableFakeWarning","enableGmNotes","hidePlayerStarTab","enableDiscordLog","discordLogWebhookUrl","downtimeWebhookUrl","tmWebhookUrl"] },
     { firstKey: "tmSkillBase", master: "tmEnabled", icon: "fa-hourglass-half",  title: "Temps morts",
       desc: "Règles configurables des temps morts : valeurs, formules (gain de compétence, artisanat) et tables (parchemins, objets magiques). Chaque serveur peut avoir ses propres règles.",
       keys: ["tmEnabled","tmSkillBase","tmAddAbilityMod","tmBonusMaitrise","tmBonusExpertise","tmBonusTools","tmRollMinDays","tmReliableTalent","tmSkillFormula","tmCraftNonMagicCostDiv","tmCraftNonMagicDaysPerGp","tmCraftNonMagicCostFormula","tmCraftNonMagicDaysFormula","tmSingleUseFactor","tmScrollTable","tmMagicTable","tmRollTable"] },

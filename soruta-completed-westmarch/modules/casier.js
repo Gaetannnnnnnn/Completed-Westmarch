@@ -96,6 +96,94 @@ function playerOf(actor) {
     return owner?.name ?? actor.name;
 }
 
+// ============================================================
+// Registre des PJ (vue type tableur — inspirée de l'Excel « PJ Ashara »)
+// Colonnes déduites automatiquement des fiches Foundry.
+// ============================================================
+
+// Classes du perso : [{ name, sub, lvl }] triées par niveau décroissant.
+function charClassList(actor) {
+    const classItems = actor.items.filter(i => i.type === "class");
+    const subItems   = actor.items.filter(i => i.type === "subclass");
+    const findSub = (ci) => {
+        const ident = ci.system?.identifier;
+        let s = ident ? subItems.find(x => x.system?.classIdentifier === ident) : null;
+        if (!s && classItems.length === 1 && subItems.length === 1) s = subItems[0];
+        return s?.name ?? "";
+    };
+    return classItems
+        .map(ci => ({ name: ci.name, sub: findSub(ci), lvl: ci.system?.levels ?? 0 }))
+        .sort((a, b) => (b.lvl || 0) - (a.lvl || 0));
+}
+
+// Espèce / race : item « race » en priorité, sinon le champ details.race.
+function charRace(actor) {
+    const r = actor.items.find(i => i.type === "race");
+    if (r) return r.name;
+    const d = actor.system?.details?.race;
+    if (typeof d === "string" && d.trim()) return d.trim();
+    if (d?.name) return d.name;
+    return "—";
+}
+
+// Une ligne par PJ de joueur (exclut les PNJ et les fiches sans propriétaire joueur).
+function rosterRows() {
+    const rows = [];
+    for (const a of game.actors ?? []) {
+        if (a.type !== "character" || !a.hasPlayerOwner) continue;
+        const classes = charClassList(a);
+        const total = a.system?.details?.level ?? classes.reduce((s, c) => s + (c.lvl || 0), 0);
+        rows.push({
+            id: a.id, joueur: playerOf(a), perso: a.name,
+            classes, multi: classes.length > 1, race: charRace(a), total
+        });
+    }
+    return rows;
+}
+
+// Libellé « Fighter (Eldritch Knight) 3 / Wizard (Evocation) 2 ».
+function classesLabel(classes) {
+    return classes.length
+        ? classes.map(c => `${c.name}${c.sub ? ` (${c.sub})` : ""} ${c.lvl}`).join(" / ")
+        : "—";
+}
+
+// Comptages type « Statistiques » du tableur.
+function rosterStats(rows) {
+    const byClass = {}, bySub = {}, byRace = {}, byPlayer = {}, byLevel = {};
+    let multiCount = 0;
+    for (const r of rows) {
+        if (r.multi) multiCount++;
+        byPlayer[r.joueur] = (byPlayer[r.joueur] || 0) + 1;
+        byLevel[r.total]   = (byLevel[r.total] || 0) + 1;
+        byRace[r.race]     = (byRace[r.race] || 0) + 1;
+        for (const c of r.classes) {
+            byClass[c.name] = (byClass[c.name] || 0) + 1;
+            if (c.sub) bySub[`${c.name} — ${c.sub}`] = (bySub[`${c.name} — ${c.sub}`] || 0) + 1;
+        }
+    }
+    return { byClass, bySub, byRace, byPlayer, byLevel, multiCount,
+             nbPerso: rows.length, nbJoueurs: Object.keys(byPlayer).length };
+}
+
+// Vue « Disponibilités » : un joueur → ses PJ + nb d'expéditions en cours.
+function disposRows() {
+    const byPlayer = new Map();
+    for (const a of game.actors ?? []) {
+        if (a.type !== "character" || !a.hasPlayerOwner) continue;
+        const p = playerOf(a);
+        if (!byPlayer.has(p)) byPlayer.set(p, { joueur: p, pjs: [], open: new Set() });
+        const g = byPlayer.get(p);
+        g.pjs.push(a.name);
+        for (const e of getExpeditions(a)) {
+            if (e.startDate && !e.endDate) g.open.add(`${e.name}|${JSON.stringify(e.startDate)}|${e.gmId || ""}`);
+        }
+    }
+    return [...byPlayer.values()]
+        .map(x => ({ joueur: x.joueur, pjs: x.pjs, nb: x.pjs.length, open: x.open.size }))
+        .sort((a, b) => a.joueur.localeCompare(b.joueur, "fr", { sensitivity: "base" }));
+}
+
 // Expéditions CLÔTURÉES distinctes (regroupées par nom + début + MJ), avec les
 // PJ participants. Base de l'assiduité (jamais les connexions).
 function closedExpeditions() {
@@ -199,6 +287,9 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             { key: "reports",     icon: "fa-scroll",     label: `Rapports${drafts.length ? ` (${drafts.length})` : ""}` },
             { key: "expeditions", icon: "fa-route",      label: "Expéditions" },
             ...(tmEnabled ? [{ key: "downtime", icon: "fa-hourglass-half", label: `Temps morts${tmDeclared ? ` (${tmDeclared})` : ""}` }] : []),
+            { key: "registre",    icon: "fa-address-book",  label: "Registre" },
+            { key: "stats",       icon: "fa-chart-pie",     label: "Statistiques" },
+            { key: "dispos",      icon: "fa-user-check",    label: "Disponibilités" },
             { key: "gms",         icon: "fa-users-gear", label: "Suivi des GM" },
             { key: "attendance",  icon: "fa-chart-column", label: "Assiduité" },
             ...(cvEnabled ? [{ key: "validation", icon: "fa-id-card", label: `Validation${cvCount ? ` (${cvCount})` : ""}` }] : [])
@@ -228,6 +319,9 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
         }
         else if (this.#tab === "expeditions") detail = this.#expeditionsDetail();
         else if (this.#tab === "downtime")    detail = this.#downtimeDetail();
+        else if (this.#tab === "registre")    detail = this.#registreDetail();
+        else if (this.#tab === "stats")       detail = this.#statsDetail();
+        else if (this.#tab === "dispos")      detail = this.#disposDetail();
         else if (this.#tab === "attendance")  detail = this.#attendanceDetail();
         else if (this.#tab === "validation")  detail = this.#validationDetail();
         else                                  detail = this.#gmsDetail();
@@ -540,6 +634,100 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             </div>`;
     }
 
+    // ---- Onglet Registre des personnages ----
+    #registreDetail() {
+        const rows = rosterRows()
+            .sort((a, b) => a.joueur.localeCompare(b.joueur, "fr", { sensitivity: "base" })
+                         || a.perso.localeCompare(b.perso, "fr", { sensitivity: "base" }));
+        const body = rows.map(r => `
+            <tr class="scwm-reg-row" data-actor="${r.id}"
+                data-joueur="${esc(r.joueur)}" data-perso="${esc(r.perso)}"
+                data-classe="${esc(r.classes[0]?.name ?? "")}" data-race="${esc(r.race)}"
+                data-total="${r.total}">
+                <td>${esc(r.joueur)}</td>
+                <td>${esc(r.perso)}</td>
+                <td>${esc(classesLabel(r.classes))}</td>
+                <td>${esc(r.race)}</td>
+                <td style="text-align:center;">${r.total}</td>
+                <td style="text-align:center;">${r.multi ? "✔" : ""}</td>
+            </tr>`).join("");
+        return `
+            <div class="scwm-casier-detail">
+                <h2><i class="fa-solid fa-address-book"></i> Registre des personnages</h2>
+                <div class="scwm-reg-toolbar">
+                    <input type="text" class="scwm-reg-filter" placeholder="Filtrer (joueur, perso, classe, espèce)…">
+                    <span class="scwm-reg-count">${rows.length} PJ</span>
+                    <button type="button" class="scwm-reg-csv"><i class="fa-solid fa-file-csv"></i> Export CSV</button>
+                </div>
+                <table class="scwm-reg-table">
+                    <thead><tr>
+                        <th class="scwm-reg-sort" data-col="0" data-type="txt">Joueur</th>
+                        <th class="scwm-reg-sort" data-col="1" data-type="txt">Perso</th>
+                        <th class="scwm-reg-sort" data-col="2" data-type="txt">Classe(s)</th>
+                        <th class="scwm-reg-sort" data-col="3" data-type="txt">Espèce</th>
+                        <th class="scwm-reg-sort" data-col="4" data-type="num">Niv</th>
+                        <th>Multi</th>
+                    </tr></thead>
+                    <tbody>${body || `<tr><td colspan="6" style="opacity:.6;">Aucun PJ.</td></tr>`}</tbody>
+                </table>
+            </div>`;
+    }
+
+    // ---- Onglet Statistiques ----
+    #statsDetail() {
+        const st = rosterStats(rosterRows());
+        const countTable = (title, obj, numericKey = false) => {
+            const entries = Object.entries(obj);
+            entries.sort((a, b) => numericKey ? (Number(a[0]) - Number(b[0]))
+                                              : (b[1] - a[1] || a[0].localeCompare(b[0], "fr", { sensitivity: "base" })));
+            return `<div class="scwm-stat-block">
+                <h3>${title}</h3>
+                <table class="scwm-reg-table"><tbody>
+                    ${entries.map(([k, v]) => `<tr><td>${esc(String(k))}</td><td style="text-align:right;">${v}</td></tr>`).join("")
+                        || `<tr><td style="opacity:.6;">—</td></tr>`}
+                </tbody></table>
+            </div>`;
+        };
+        return `
+            <div class="scwm-casier-detail">
+                <h2><i class="fa-solid fa-chart-pie"></i> Statistiques</h2>
+                <div class="scwm-casier-stats">
+                    <div class="scwm-casier-stat"><b>${st.nbJoueurs}</b><span>Joueur(s)</span></div>
+                    <div class="scwm-casier-stat"><b>${st.nbPerso}</b><span>Personnage(s)</span></div>
+                    <div class="scwm-casier-stat"><b>${st.multiCount}</b><span>Multiclassé(s)</span></div>
+                </div>
+                <div class="scwm-stat-grid">
+                    ${countTable("Par classe", st.byClass)}
+                    ${countTable("Par sous-classe", st.bySub)}
+                    ${countTable("Par espèce", st.byRace)}
+                    ${countTable("Par joueur", st.byPlayer)}
+                    ${countTable("Distribution des niveaux", st.byLevel, true)}
+                </div>
+            </div>`;
+    }
+
+    // ---- Onglet Disponibilités ----
+    #disposDetail() {
+        const rows = disposRows();
+        const body = rows.map(r => `
+            <tr>
+                <td>${esc(r.joueur)}</td>
+                <td>${esc(r.pjs.join(", ")) || "—"}</td>
+                <td style="text-align:center;">${r.nb}</td>
+                <td style="text-align:center;">${r.open || ""}</td>
+            </tr>`).join("");
+        return `
+            <div class="scwm-casier-detail">
+                <h2><i class="fa-solid fa-user-check"></i> Disponibilités des joueurs</h2>
+                <table class="scwm-reg-table">
+                    <thead><tr>
+                        <th>Joueur</th><th>PJ</th><th>Nb PJ</th><th>Expé. en cours</th>
+                    </tr></thead>
+                    <tbody>${body || `<tr><td colspan="4" style="opacity:.6;">Aucun joueur.</td></tr>`}</tbody>
+                </table>
+            </div>`;
+    }
+
     // ---- Écouteurs ----
     #wire(root) {
         root.querySelectorAll(".scwm-casier-tab").forEach(btn =>
@@ -559,6 +747,65 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                 this.#selectedId = pg.dataset.draftId;
                 this.render();
             }));
+
+        // ---- Onglet Registre : filtre / tri / export CSV (100% client) ----
+        const regTable = root.querySelector(".scwm-reg-table");
+        if (regTable) {
+            const tbody = regTable.querySelector("tbody");
+            const allRows = () => Array.from(tbody.querySelectorAll("tr.scwm-reg-row"));
+
+            // Filtre live (masque les lignes, met à jour le compteur).
+            const filter = root.querySelector(".scwm-reg-filter");
+            const count  = root.querySelector(".scwm-reg-count");
+            const applyFilter = () => {
+                const q = (filter?.value || "").toLowerCase().trim();
+                let shown = 0;
+                for (const tr of allRows()) {
+                    const hit = !q || tr.textContent.toLowerCase().includes(q);
+                    tr.style.display = hit ? "" : "none";
+                    if (hit) shown++;
+                }
+                if (count) count.textContent = `${shown} PJ`;
+            };
+            filter?.addEventListener("input", applyFilter);
+
+            // Tri au clic sur l'en-tête (alterne asc/desc).
+            let sortDir = {};
+            root.querySelectorAll(".scwm-reg-sort").forEach(th => th.addEventListener("click", () => {
+                const col  = Number(th.dataset.col);
+                const num  = th.dataset.type === "num";
+                const dir  = sortDir[col] = -(sortDir[col] || 1);   // bascule
+                const rows = allRows().sort((a, b) => {
+                    const va = a.children[col]?.textContent.trim() ?? "";
+                    const vb = b.children[col]?.textContent.trim() ?? "";
+                    const c  = num ? (parseFloat(va) || 0) - (parseFloat(vb) || 0)
+                                   : va.localeCompare(vb, "fr", { sensitivity: "base" });
+                    return c * dir;
+                });
+                rows.forEach(r => tbody.appendChild(r));
+                root.querySelectorAll(".scwm-reg-sort").forEach(h => h.dataset.arrow = "");
+                th.dataset.arrow = dir > 0 ? " ▲" : " ▼";
+            }));
+
+            // Export CSV (lignes visibles, dans l'ordre courant).
+            root.querySelector(".scwm-reg-csv")?.addEventListener("click", () => {
+                const header = ["Joueur", "Perso", "Classe(s)", "Espèce", "Niveau total", "Multiclasse"];
+                const esc = (s) => `"${String(s).replace(/"/g, '""')}"`;
+                const lines = [header.map(esc).join(";")];
+                for (const tr of allRows()) {
+                    if (tr.style.display === "none") continue;
+                    const c = tr.children;
+                    lines.push([c[0], c[1], c[2], c[3], c[4], c[5]]
+                        .map(td => esc(td?.textContent.trim() ?? "")).join(";"));
+                }
+                const blob = new Blob(["﻿" + lines.join("\r\n")], { type: "text/csv;charset=utf-8;" });
+                const url  = URL.createObjectURL(blob);
+                const a    = document.createElement("a");
+                a.href = url; a.download = "registre-pj.csv";
+                document.body.appendChild(a); a.click(); a.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+            });
+        }
 
         // ---- Onglet Validation ----
         root.querySelectorAll(".scwm-cv-approve").forEach(b => b.addEventListener("click", async () => { await approveCreation(b.dataset.user); this.render(); refreshCasierBadge(); }));

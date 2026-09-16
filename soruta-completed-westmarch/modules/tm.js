@@ -251,6 +251,37 @@ function skillRowHtml(idPrefix, selectedSkillId) {
 </div>`;
 }
 
+// Noms d'outils connus du perso (items de type "tool"), pour proposer des
+// suggestions dans le champ « Outil utilisé ». Best-effort, jamais bloquant.
+function getActorToolNames(actor) {
+    try {
+        return (actor?.items ?? [])
+            .filter(i => i.type === "tool")
+            .map(i => i.name)
+            .filter(Boolean);
+    } catch (e) { return []; }
+}
+
+// Ligne « Outil utilisé » — masquée par défaut, révélée quand « Tools » est coché.
+// On demande QUEL outil est employé (au lieu d'afficher la compétence).
+function toolRowHtml(idPrefix, actor) {
+    const tools   = getActorToolNames(actor);
+    const listId  = `tm-tools-datalist-${idPrefix}`;
+    const options = tools.map(n => `<option value="${n.replace(/"/g, "&quot;")}"></option>`).join("");
+    return `
+<div class="tm-tool-row-${idPrefix}" style="display:none; flex-direction:column; gap:2px;">
+    <div style="display:flex; gap:6px; align-items:center;">
+        <label style="min-width:90px; white-space:nowrap;">Outil utilisé :</label>
+        <input type="text" name="tm-tool-${idPrefix}" list="${listId}"
+               placeholder="ex. Outils de forgeron" style="flex:1;">
+        <datalist id="${listId}">${options}</datalist>
+    </div>
+    <div style="font-size:0.82em; color:#888; margin-left:96px; margin-top:-1px;">
+        La compétence choisie ci-dessus ne sert alors qu'à la caractéristique associée.
+    </div>
+</div>`;
+}
+
 function profRowHtml(idPrefix, hasMaitrise, hasExpertise, hasTools) {
     const profBlocked  = hasTools;
     const toolsBlocked = hasMaitrise || hasExpertise;
@@ -386,6 +417,9 @@ function wireControls(html, actor, idPrefix) {
         html.find(`[name="tm-tools-${idPrefix}"]`)
             .prop("disabled", toolsBlocked)
             .closest("label").css("opacity", toolsBlocked ? "0.4" : "1");
+
+        // Révèle le champ « Outil utilisé » uniquement quand Tools est actif.
+        html.find(`.tm-tool-row-${idPrefix}`).css("display", hasTools ? "flex" : "none");
     }
 
     // Changement de compétence → caractéristique + maîtrise/expertise auto
@@ -894,6 +928,7 @@ async function openDeclarationDialog(actor) {
         <div class="tm-section-gain-decl" style="display:flex; flex-direction:column; gap:8px;">
             ${skillRowHtml("decl", firstSkill)}
             ${profRowHtml("decl", false, false, false)}
+            ${toolRowHtml("decl", actor)}
             ${dateAndRollHtml("decl", today.day, today.month, today.year, today.day, today.month, today.year, false)}
             ${previewHtml("decl")}
         </div>
@@ -978,6 +1013,7 @@ async function openDeclarationDialog(actor) {
                     const hasMaitrise  = $html.find('[name="tm-maitrise-decl"]').prop("checked");
                     const hasExpertise = $html.find('[name="tm-expertise-decl"]').prop("checked");
                     const hasTools     = $html.find('[name="tm-tools-decl"]').prop("checked");
+                    const toolName     = ($html.find('[name="tm-tool-decl"]').val() ?? "").trim();
                     const doRoll       = $html.find('[name="tm-roll-decl"]').prop("checked");
                     const bonusRoll    = ($html.find('[name="tm-bonus-decl"]').val() ?? "").trim();
                     const bonusSrc     = ($html.find('[name="tm-bonus-src-decl"]').val() ?? "").trim();
@@ -990,13 +1026,15 @@ async function openDeclarationDialog(actor) {
                     const days           = getDaysFromDates(sDay, sMonth, sYear, eDay, eMonth, eYear);
                     const dateRangeLabel = `${sDay} ${getMonthName(sMonth)} → ${eDay} ${getMonthName(eMonth)}`;
                     const sc             = CONFIG.DND5E.skills[skillId];
-                    const choiceLabel    = game.i18n.localize(sc?.label ?? skillId);
+                    const skillLabel     = game.i18n.localize(sc?.label ?? skillId);
+                    // Si outil : le libellé de l'activité est le nom de l'outil, pas la compétence.
+                    const choiceLabel    = (hasTools && toolName) ? `🛠️ ${toolName}` : skillLabel;
                     const abilityId      = sc?.ability ?? "int";
 
                     cartItems.push({
                         type: "gain",
                         skillId, choiceLabel, abilityId,
-                        hasMaitrise, hasExpertise, hasTools, doRoll,
+                        hasMaitrise, hasExpertise, hasTools, toolName, doRoll,
                         bonusRoll, bonusSrc,
                         startDay: sDay, startMonth: sMonth, startYear: sYear,
                         endDay: eDay, endMonth: eMonth, endYear: eYear,
@@ -1350,8 +1388,15 @@ async function applyDowntimeGains($html, actors) {
                 const eYear  = item.endYear    ?? 1;
                 const days   = item.days ?? getDaysFromDates(sDay, sMonth, sYear, eDay, eMonth, eYear);
 
-                const activityName = game.i18n.localize(CONFIG.DND5E.skills[skillId]?.label ?? skillId);
-                const profStr      = hasTools ? " [Tools]" : hasExpertise ? " [Expertise]" : hasMaitrise ? " [Maîtrise]" : "";
+                const toolName     = (item.toolName ?? "").trim();
+                // Si outil : on affiche le NOM de l'outil à la place de la compétence.
+                const activityName = (hasTools && toolName)
+                    ? toolName
+                    : game.i18n.localize(CONFIG.DND5E.skills[skillId]?.label ?? skillId);
+                const profStr      = (hasTools && toolName) ? " (outil)"
+                                   : hasTools     ? " [Tools]"
+                                   : hasExpertise ? " [Expertise]"
+                                   : hasMaitrise  ? " [Maîtrise]" : "";
                 const dailyRate    = calcDailyRate(actor, skillId, hasMaitrise, hasExpertise, hasTools);
                 const dateLabel    = item.dateRangeLabel ?? `${sDay} ${getMonthName(sMonth)} → ${eDay} ${getMonthName(eMonth)}`;
                 let total = dailyRate * days, rollResult = null;

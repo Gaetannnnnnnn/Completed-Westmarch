@@ -695,7 +695,14 @@ export function buildJournalHtml(actor) {
         </div>`;
     });
 
-    return `<div class="carnet-body">${addBar}${rendered.join("")}</div>`;
+    const toolsBar = `
+        <div class="carnet-tools-bar">
+            <input type="text" class="carnet-search" placeholder="Rechercher dans les notes…">
+            <button type="button" class="carnet-expand-all" title="Tout déplier"><i class="fa-solid fa-angles-down"></i></button>
+            <button type="button" class="carnet-collapse-all" title="Tout replier"><i class="fa-solid fa-angles-up"></i></button>
+        </div>`;
+
+    return `<div class="carnet-body">${addBar}${toolsBar}${rendered.join("")}</div>`;
 }
 
 // ================================================================
@@ -1068,6 +1075,44 @@ export function wireJournalTab(actor, element, sheet) {
         });
     });
 
+    // ── Recherche dans les notes (filtre client) ─────────────────
+    const search = element.querySelector('.carnet-search');
+    search?.addEventListener('input', () => {
+        const q = search.value.toLowerCase().trim();
+        element.querySelectorAll('.carnet-note-card').forEach(card => {
+            const title = card.querySelector('.carnet-note-title-input')?.value
+                       ?? card.querySelector('.carnet-note-title-label')?.textContent ?? '';
+            const content = card.querySelector('.carnet-note-display')?.textContent ?? '';
+            const hit = !q || (title + ' ' + content).toLowerCase().includes(q);
+            card.style.display = hit ? '' : 'none';
+        });
+    });
+
+    // ── Tout déplier / tout replier ──────────────────────────────
+    const setAllCollapsed = (collapsed) => {
+        const col = _getCollapse(actor.id);
+        element.querySelectorAll('.carnet-note-card').forEach(card => {
+            const noteId = card.dataset.noteId;
+            const body   = card.querySelector('.carnet-note-body');
+            const btn    = card.querySelector('.carnet-toggle-note');
+            const icon   = btn?.querySelector('i');
+            if (collapsed) {
+                col.notes.add(noteId);
+                if (body) body.style.display = 'none';
+                if (btn) btn.title = 'Déplier';
+                icon?.classList.replace('fa-chevron-down', 'fa-chevron-right');
+            } else {
+                col.notes.delete(noteId);
+                if (body) body.style.display = '';
+                if (btn) btn.title = 'Replier';
+                icon?.classList.replace('fa-chevron-right', 'fa-chevron-down');
+            }
+        });
+        _saveCollapse(actor.id);
+    };
+    element.querySelector('.carnet-expand-all')?.addEventListener('click', () => setAllCollapsed(false));
+    element.querySelector('.carnet-collapse-all')?.addEventListener('click', () => setAllCollapsed(true));
+
     // ── Délier / lier une expédition ─────────────────────────────
     element.querySelectorAll('.carnet-unlink-note').forEach(btn => {
         btn.addEventListener('click', async (e) => {
@@ -1376,6 +1421,23 @@ async function _linkNoteToExpDialog(actor, noteId, sheet) {
 // ÉDITEUR NOTES — contenteditable + barre d'outils (v1.1.6)
 // ================================================================
 
+// Petite boîte de dialogue pour saisir une URL de lien.
+async function _promptUrl() {
+    const DialogV2 = foundry.applications.api?.DialogV2;
+    if (!DialogV2?.wait) { try { return (window.prompt("URL du lien :") || "").trim(); } catch { return ""; } }
+    const result = await DialogV2.wait({
+        window: { title: "Insérer un lien", icon: "fa-solid fa-link" },
+        content: `<input type="text" name="u" placeholder="https://…" style="width:100%;" autofocus>`,
+        rejectClose: false,
+        buttons: [
+            { action: "ok", label: "Insérer", icon: "fa-solid fa-check", default: true,
+              callback: (ev, btn) => (btn.form?.elements?.u?.value || "").trim() },
+            { action: "cancel", label: "Annuler", icon: "fa-solid fa-times" }
+        ]
+    }).catch(() => null);
+    return (typeof result === "string" && result !== "cancel") ? result : "";
+}
+
 const _TOOLBAR_BTNS = [
     { cmd: "bold",                label: "<strong>G</strong>", title: "Gras (Ctrl+B)" },
     { cmd: "italic",              label: "<em>I</em>",         title: "Italique (Ctrl+I)" },
@@ -1425,11 +1487,29 @@ function _buildToolbar() {
             <option value="48"></option>
         </datalist>`;
 
+    const colorPick = `${sep}
+        <label title="Couleur du texte" style="display:inline-flex;align-items:center;gap:3px;cursor:pointer;
+                     height:26px;padding:0 4px;border-radius:3px;
+                     border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);color:#ccc;">
+            <i class="fa-solid fa-palette" style="font-size:12px;"></i>
+            <input type="color" class="carnet-tb-color" value="#c9a227"
+                   style="width:20px;height:18px;border:none;background:none;padding:0;cursor:pointer;">
+        </label>`;
+
+    const linkBtn = `
+        <button type="button" class="carnet-tb-link" title="Insérer / modifier un lien"
+                style="min-width:26px;height:26px;padding:0 5px;border-radius:3px;
+                       border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);
+                       color:#ccc;font-size:12px;cursor:pointer;line-height:1;
+                       display:inline-flex;align-items:center;justify-content:center;">
+            <i class="fa-solid fa-link"></i>
+        </button>`;
+
     return `<div class="carnet-editor-toolbar"
          style="display:flex;flex-wrap:wrap;align-items:center;gap:3px;
                 padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.1);
                 background:rgba(0,0,0,0.2);flex-shrink:0;">
-        ${btns}${sizeSelect}
+        ${btns}${sizeSelect}${colorPick}${linkBtn}
     </div>`;
 }
 
@@ -1537,6 +1617,54 @@ function _wireToolbar(editor) {
         });
     }
 
+    // Récupère la sélection courante DANS l'éditeur (ou la sélection mémorisée).
+    const currentEditorRange = () => {
+        const sel = window.getSelection();
+        let range = sel?.rangeCount ? sel.getRangeAt(0) : null;
+        if ((!range || range.collapsed) && _savedRange) range = _savedRange;
+        if (!range || range.collapsed) return null;
+        if (!editor.contains(range.commonAncestorContainer)) return null;
+        return range;
+    };
+
+    // Couleur du texte — enrobage manuel <span style="color:…"> (appliqué au « change »).
+    const colorInput = document.querySelector('.carnet-tb-color');
+    colorInput?.addEventListener('change', () => {
+        const range = currentEditorRange();
+        _savedRange = null;
+        if (!range) { ui.notifications?.info("Sélectionnez d'abord le texte à colorer."); return; }
+        try {
+            const span = document.createElement('span');
+            span.style.color = colorInput.value;
+            span.appendChild(range.extractContents());
+            range.insertNode(span);
+            const sel = window.getSelection();
+            sel?.removeAllRanges();
+            const nr = document.createRange(); nr.selectNodeContents(span); sel?.addRange(nr);
+            editor.dispatchEvent(new Event('input', { bubbles: true }));
+        } catch (e) { console.warn('[carnet] couleur :', e); }
+        setTimeout(updateState, 10);
+    });
+
+    // Lien — garde le focus/sélection (mousedown preventDefault), puis demande l'URL.
+    const linkBtn = document.querySelector('.carnet-tb-link');
+    linkBtn?.addEventListener('mousedown', e => e.preventDefault());
+    linkBtn?.addEventListener('click', async () => {
+        const range = currentEditorRange();
+        if (!range) { ui.notifications?.info("Sélectionnez d'abord le texte à lier."); return; }
+        const saved = range.cloneRange();
+        const url = await _promptUrl();
+        if (!url) return;
+        try {
+            const a = document.createElement('a');
+            a.href = url; a.target = '_blank'; a.rel = 'noopener';
+            a.appendChild(saved.extractContents());
+            saved.insertNode(a);
+            editor.dispatchEvent(new Event('input', { bubbles: true }));
+        } catch (e) { console.warn('[carnet] lien :', e); }
+        setTimeout(updateState, 10);
+    });
+
     // Mise à jour de l'état à chaque changement de sélection, frappe ou clic
     document.addEventListener('selectionchange', updateState);
     editor?.addEventListener('keyup', updateState);
@@ -1613,7 +1741,19 @@ async function initNoteEditor(actor, _container, noteId) {
                 _wireToolbar(editor);
                 // Capture le contenu à chaque frappe — évite le bug où le callback
                 // du bouton s'exécute après la fermeture du dialog (element retiré du DOM)
-                editor?.addEventListener('input', () => { savedContent = editor.innerHTML; });
+                // + SAUVEGARDE AUTO (débounce) : plus aucune perte même si on ferme via ✕.
+                let _autoTimer = null;
+                editor?.addEventListener('input', () => {
+                    savedContent = editor.innerHTML;
+                    clearTimeout(_autoTimer);
+                    _autoTimer = setTimeout(async () => {
+                        try {
+                            const upd = getCarnetNotes(actor).map(n =>
+                                n.id === noteId ? { ...n, content: savedContent } : n);
+                            await actor.setFlag(MODULE, "carnetNotes", upd);
+                        } catch (e) { console.warn('[carnet] autosave :', e); }
+                    }, 900);
+                });
                 setTimeout(() => {
                     if (!editor) return;
                     editor.focus();

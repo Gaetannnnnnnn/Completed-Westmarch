@@ -19,6 +19,7 @@ export function FakeWarningHooks() {
     // (ex. "tokens"), dont la clé exacte peut varier selon la version.
     Hooks.on("getSceneControlButtons", (controls) => {
         if (!game.user.isGM) return;
+        if (!game.settings.get(MOD, "enableFakeWarning")) return;   // réglage OFF → pas de bouton
 
         // En Foundry v13, le name du groupe DOIT correspondre à la clé dans
         // l'objet controls. onChange (et non onClick) est le bon callback pour

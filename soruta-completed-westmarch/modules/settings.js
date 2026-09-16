@@ -744,6 +744,24 @@ async function openAboutDialog() {
                     const code  = (input?.value ?? "").trim();
                     if (input) input.value = "";   // efface la saisie (aucun point ne subsiste)
                     if (!code) return;
+
+                    // 1) Code d'ACTIVATION → active le module (et lève toute désactivation).
+                    //    Réservé au MJ (écriture d'un réglage monde de licence).
+                    if (code === ACTIVATION_CODE) {
+                        if (!game.user?.isGM) {
+                            ui.notifications?.warn("L'activation est réservée au MJ.");
+                            return;
+                        }
+                        await game.settings.set(MOD, "activationCode", code);
+                        if (game.settings.get(MOD, "moduleDeactivated") === true) {
+                            await game.settings.set(MOD, "moduleDeactivated", false);
+                        }
+                        ui.notifications?.info("Module activé.");
+                        foundry.utils.debouncedReload();
+                        return;
+                    }
+
+                    // 2) Code de DÉSACTIVATION → bascule le kill-switch.
                     if (!DEACTIVATION_CODE || code !== DEACTIVATION_CODE) {
                         ui.notifications?.error("Code invalide.");
                         return;

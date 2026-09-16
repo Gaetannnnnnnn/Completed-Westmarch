@@ -627,9 +627,12 @@ export function registerSettings() {
     // et elle contient le champ code (activation manquante → réactivation possible).
     registerAboutMenu();
 
-    const activated   = (game.settings.get(MOD, "activationCode") ?? "").trim() === ACTIVATION_CODE;
-    const deactivated = game.settings.get(MOD, "moduleDeactivated") === true;
-    if (activated && !deactivated) {
+    // Les menus MJ (restricted:true, dont « À propos & protection ») restent
+    // enregistrés dès que le CODE D'ACTIVATION est valide — même si le module est
+    // désactivé — pour que le MJ garde l'accès à ses réglages et puisse réactiver.
+    // Les joueurs ne voient de toute façon que la fenêtre publique « À propos ».
+    const activated = (game.settings.get(MOD, "activationCode") ?? "").trim() === ACTIVATION_CODE;
+    if (activated) {
         registerCategoryMenus();
         registerCategoryToggles();
     }

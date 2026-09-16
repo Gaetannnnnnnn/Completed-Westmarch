@@ -613,7 +613,10 @@ export function registerSettings() {
     // true = module désactivé (voir le gate dans index.js). Réglage monde :
     // seul le MJ peut l'écrire, même si le champ code est visible par tous.
     game.settings.register(MOD, "moduleDeactivated", {
-        scope: "world", config: false, type: Boolean, default: false, requiresReload: false
+        scope: "world", config: false, type: Boolean, default: false, requiresReload: false,
+        name: "Module désactivé",
+        hint: "Coché = toutes les fonctions du module sont désactivées sur ce serveur (le module reste installé, la fenêtre « À propos » reste accessible). Décochez pour réactiver. Se pilote aussi par code depuis « À propos ». Le changement recharge automatiquement les clients.",
+        onChange: () => foundry.utils.debouncedReload()
     });
 
     // ============================================================
@@ -680,9 +683,42 @@ async function openAboutDialog() {
                 <div><strong>Auteur :</strong> ${author}</div>
                 <div><strong>Droits :</strong> © 2026 Soruta — Tous droits réservés.</div>
                 <div style="opacity:.75;margin-top:4px;">
-                    Ce module et son contenu sont protégés. Toute redistribution, revente
-                    ou réutilisation sans autorisation de l'auteur est interdite.
+                    Ce module et son contenu (code, textes, ressources) sont une œuvre de
+                    l'esprit protégée par le droit d'auteur. Toute redistribution, revente,
+                    modification ou réutilisation sans autorisation écrite de l'auteur est interdite.
                 </div>
+                <details style="margin-top:6px;">
+                    <summary style="cursor:pointer;color:#c9a227;font-weight:600;">
+                        Cadre légal &amp; sanctions encourues
+                    </summary>
+                    <div style="font-size:11px;line-height:1.55;opacity:.9;margin-top:4px;
+                                max-height:180px;overflow-y:auto;padding-right:4px;">
+                        <p style="margin:0 0 5px;">
+                            France — <em>Code de la propriété intellectuelle</em> (CPI) :
+                        </p>
+                        <ul style="margin:0 0 5px;padding-left:16px;">
+                            <li><strong>Art. L122-4</strong> — Toute reproduction ou représentation,
+                                intégrale ou partielle, faite sans le consentement de l'auteur
+                                (y compris adaptation, traduction ou transformation) est illicite.</li>
+                            <li><strong>Art. L335-3</strong> — La reproduction, la représentation ou
+                                la diffusion d'une œuvre en violation des droits de l'auteur
+                                constitue un délit de contrefaçon ; cela vise aussi la violation
+                                des droits sur un logiciel (art. L122-6).</li>
+                            <li><strong>Art. L335-2</strong> — La contrefaçon est punie de
+                                <strong>3 ans d'emprisonnement et 300 000 € d'amende</strong> ;
+                                portés à <strong>7 ans et 750 000 €</strong> lorsqu'elle est
+                                commise en bande organisée.</li>
+                            <li><strong>Art. L331-1-3</strong> — S'y ajoutent des
+                                <strong>dommages-intérêts</strong> réparant le préjudice subi
+                                (manque à gagner, bénéfices réalisés par le contrefacteur,
+                                préjudice moral).</li>
+                        </ul>
+                        <p style="margin:0;opacity:.7;font-style:italic;">
+                            Mention informative — le droit applicable peut varier selon le pays
+                            et évoluer dans le temps.
+                        </p>
+                    </div>
+                </details>
             </div>
             <hr style="border:none;border-top:1px solid rgba(255,255,255,.12);margin:2px 0;">
             <label style="font-size:12px;display:block;">
@@ -704,7 +740,9 @@ async function openAboutDialog() {
             {
                 action: "validate", label: "Valider", icon: '<i class="fa-solid fa-check"></i>', default: true,
                 callback: async (ev, btn) => {
-                    const code = (btn.form?.elements?.["scwm-about-code"]?.value ?? "").trim();
+                    const input = btn.form?.elements?.["scwm-about-code"];
+                    const code  = (input?.value ?? "").trim();
+                    if (input) input.value = "";   // efface la saisie (aucun point ne subsiste)
                     if (!code) return;
                     if (!DEACTIVATION_CODE || code !== DEACTIVATION_CODE) {
                         ui.notifications?.error("Code invalide.");
@@ -856,9 +894,6 @@ const CATEGORIES = [
     { firstKey: "companionProfiles", icon: "fa-dna", title: "Profils de compagnons",
       desc: "Ajouter ou surcharger les profils de formules des compagnons évolutifs (JSON).",
       open: () => openProfilesEditor(), keys: [] },
-    { firstKey: "activationCode", icon: "fa-shield-halved", title: "À propos & protection",
-      desc: "Informations de licence et protection du module. Le code d'activation se saisit au démarrage ; tu peux le modifier ici une fois le module activé.",
-      keys: ["activationCode"] },
     { firstKey: "commonFolderPJ", icon: "fa-folder-tree", title: "Dossiers & Compendiums",
       desc: "Dossiers et compendiums communs, renseignés une seule fois ici et utilisés par toutes les fonctions (Relations, Bestiaire, Création de personnages, Temps morts).",
       keys: ["commonFolderPJ","autoPlayerFolder","gmAutoFolderParent","commonFolderPNJ","commonFolderNewChars","commonPackPNJ","commonPackCemetery","commonPackCreatures","commonPackCraft"] },

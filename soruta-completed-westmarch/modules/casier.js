@@ -184,6 +184,22 @@ function disposRows() {
         .sort((a, b) => a.joueur.localeCompare(b.joueur, "fr", { sensitivity: "base" }));
 }
 
+// Activité des joueurs (réutilise la logique d'assiduité : trimestre = 90 j).
+const ACTIVE_DAYS = 90;
+function playerLastSessionMap() {
+    const m = new Map();   // nom joueur -> ISO de la dernière session
+    for (const s of getSessionLog()) {
+        for (const p of (s.players ?? [])) {
+            const a = game.actors.get(p.actorId);
+            const name = a ? playerOf(a) : (p.name ?? "?");
+            const cur = m.get(name);
+            if (s.dateISO && (!cur || s.dateISO > cur)) m.set(name, s.dateISO);
+        }
+    }
+    return m;
+}
+const isPlayerActive = (iso) => !!iso && (Date.now() - new Date(iso).getTime()) <= ACTIVE_DAYS * 86400000;
+
 // Expéditions CLÔTURÉES distinctes (regroupées par nom + début + MJ), avec les
 // PJ participants. Base de l'assiduité (jamais les connexions).
 function closedExpeditions() {
@@ -636,21 +652,28 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
 
     // ---- Onglet Registre des personnages ----
     #registreDetail() {
+        const lastMap = playerLastSessionMap();
         const rows = rosterRows()
             .sort((a, b) => a.joueur.localeCompare(b.joueur, "fr", { sensitivity: "base" })
                          || a.perso.localeCompare(b.perso, "fr", { sensitivity: "base" }));
-        const body = rows.map(r => `
-            <tr class="scwm-reg-row" data-actor="${r.id}"
+        const body = rows.map(r => {
+            const iso = lastMap.get(r.joueur);
+            const inactive = !isPlayerActive(iso);
+            const title = inactive ? `Joueur inactif — dernière session : ${realDateLabel(iso)}` : "";
+            return `
+            <tr class="scwm-reg-row scwm-reg-clickable${inactive ? " scwm-reg-inactive" : ""}"
+                data-actor="${r.id}" title="${esc(title)}"
                 data-joueur="${esc(r.joueur)}" data-perso="${esc(r.perso)}"
                 data-classe="${esc(r.classes[0]?.name ?? "")}" data-race="${esc(r.race)}"
                 data-total="${r.total}">
-                <td>${esc(r.joueur)}</td>
+                <td>${esc(r.joueur)}${inactive ? ' <i class="fa-solid fa-moon" title="Inactif ce trimestre"></i>' : ""}</td>
                 <td>${esc(r.perso)}</td>
                 <td>${esc(classesLabel(r.classes))}</td>
                 <td>${esc(r.race)}</td>
                 <td style="text-align:center;">${r.total}</td>
                 <td style="text-align:center;">${r.multi ? "✔" : ""}</td>
-            </tr>`).join("");
+            </tr>`;
+        }).join("");
         return `
             <div class="scwm-casier-detail">
                 <h2><i class="fa-solid fa-address-book"></i> Registre des personnages</h2>
@@ -659,6 +682,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                     <span class="scwm-reg-count">${rows.length} PJ</span>
                     <button type="button" class="scwm-reg-csv"><i class="fa-solid fa-file-csv"></i> Export CSV</button>
                 </div>
+                <p class="scwm-reg-legend"><i class="fa-solid fa-moon"></i> joueur inactif (aucune session depuis ${ACTIVE_DAYS} j) · clic sur une ligne = ouvrir la fiche</p>
                 <table class="scwm-reg-table">
                     <thead><tr>
                         <th class="scwm-reg-sort" data-col="0" data-type="txt">Joueur</th>
@@ -708,22 +732,30 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
 
     // ---- Onglet Disponibilités ----
     #disposDetail() {
+        const lastMap = playerLastSessionMap();
         const rows = disposRows();
-        const body = rows.map(r => `
-            <tr>
-                <td>${esc(r.joueur)}</td>
+        const body = rows.map(r => {
+            const iso = lastMap.get(r.joueur);
+            const inactive = !isPlayerActive(iso);
+            return `
+            <tr class="${inactive ? "scwm-reg-inactive" : ""}"
+                title="${inactive ? esc(`Joueur inactif — dernière session : ${realDateLabel(iso)}`) : ""}">
+                <td>${esc(r.joueur)}${inactive ? ' <i class="fa-solid fa-moon" title="Inactif ce trimestre"></i>' : ""}</td>
                 <td>${esc(r.pjs.join(", ")) || "—"}</td>
                 <td style="text-align:center;">${r.nb}</td>
                 <td style="text-align:center;">${r.open || ""}</td>
-            </tr>`).join("");
+                <td style="white-space:nowrap;">${esc(realDateLabel(iso))}</td>
+            </tr>`;
+        }).join("");
         return `
             <div class="scwm-casier-detail">
                 <h2><i class="fa-solid fa-user-check"></i> Disponibilités des joueurs</h2>
+                <p class="scwm-reg-legend"><i class="fa-solid fa-moon"></i> joueur inactif (aucune session depuis ${ACTIVE_DAYS} j)</p>
                 <table class="scwm-reg-table">
                     <thead><tr>
-                        <th>Joueur</th><th>PJ</th><th>Nb PJ</th><th>Expé. en cours</th>
+                        <th>Joueur</th><th>PJ</th><th>Nb PJ</th><th>Expé. en cours</th><th>Dernière session</th>
                     </tr></thead>
-                    <tbody>${body || `<tr><td colspan="4" style="opacity:.6;">Aucun joueur.</td></tr>`}</tbody>
+                    <tbody>${body || `<tr><td colspan="5" style="opacity:.6;">Aucun joueur.</td></tr>`}</tbody>
                 </table>
             </div>`;
     }
@@ -753,6 +785,10 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
         if (regTable) {
             const tbody = regTable.querySelector("tbody");
             const allRows = () => Array.from(tbody.querySelectorAll("tr.scwm-reg-row"));
+
+            // Clic sur une ligne → ouvre la fiche du PJ.
+            root.querySelectorAll("tr.scwm-reg-clickable").forEach(tr =>
+                tr.addEventListener("click", () => game.actors.get(tr.dataset.actor)?.sheet.render(true)));
 
             // Filtre live (masque les lignes, met à jour le compteur).
             const filter = root.querySelector(".scwm-reg-filter");

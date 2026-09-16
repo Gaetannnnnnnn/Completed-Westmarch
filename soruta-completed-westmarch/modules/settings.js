@@ -6,7 +6,7 @@
 // © 2026 Soruta.
 // ============================================================
 
-import { MOD, TUTO_TOGGLES, TM_DEFAULT_SCROLL, TM_DEFAULT_MAGIC, TM_DEFAULT_ROLL, ACTIVATION_CODE } from "./const.js";
+import { MOD, TUTO_TOGGLES, TM_DEFAULT_SCROLL, TM_DEFAULT_MAGIC, TM_DEFAULT_ROLL, ACTIVATION_CODE, DEACTIVATION_CODE } from "./const.js";
 import { applyHotbarVisibility } from "./hotbar.js";
 import { applyPartyPause } from "./partypause.js";
 import { openProfilesEditor } from "./companions.js";
@@ -609,16 +609,135 @@ export function registerSettings() {
         scope: "world", config: false, type: Number, default: 0
     });
 
+    // ---- Kill-switch de désactivation (piloté depuis la fenêtre « À propos »).
+    // true = module désactivé (voir le gate dans index.js). Réglage monde :
+    // seul le MJ peut l'écrire, même si le champ code est visible par tous.
+    game.settings.register(MOD, "moduleDeactivated", {
+        scope: "world", config: false, type: Boolean, default: false, requiresReload: false
+    });
+
     // ============================================================
     // MENUS PAR CATÉGORIE (boutons "Configurer" dans la config du module)
     // Visibles UNIQUEMENT si le module est activé (bon code saisi). Tant que le
     // code n'est pas entré, aucun réglage n'est accessible — la seule entrée est
     // la fenêtre de code au démarrage (voir index.js).
     // ============================================================
-    if ((game.settings.get(MOD, "activationCode") ?? "").trim() === ACTIVATION_CODE) {
+    // Fenêtre « À propos » — TOUJOURS enregistrée et visible par TOUS (joueurs
+    // inclus), même module non activé/désactivé : c'est la seule entrée publique,
+    // et elle contient le champ code (activation manquante → réactivation possible).
+    registerAboutMenu();
+
+    const activated   = (game.settings.get(MOD, "activationCode") ?? "").trim() === ACTIVATION_CODE;
+    const deactivated = game.settings.get(MOD, "moduleDeactivated") === true;
+    if (activated && !deactivated) {
         registerCategoryMenus();
         registerCategoryToggles();
     }
+}
+
+// ============================================================
+// Fenêtre « À propos » (publique) + kill-switch par code
+// ============================================================
+function registerAboutMenu() {
+    try {
+        game.settings.registerMenu(MOD, "menu-about", {
+            name:  "À propos",
+            label: "Ouvrir",
+            hint:  "Informations sur le module, auteur et droits.",
+            icon:  "fas fa-circle-info",
+            type:  makeLauncher({ firstKey: "about", title: "À propos", icon: "fa-circle-info", open: () => openAboutDialog() }),
+            restricted: false   // visible par tout le monde (joueurs inclus)
+        });
+    } catch (e) {
+        console.warn(`[${MOD}] registerMenu « À propos » échec :`, e);
+    }
+}
+
+async function openAboutDialog() {
+    const mod     = game.modules.get(MOD);
+    const version = mod?.version ?? "?";
+    const author  = "Soruta (Discord : s0ruta)";
+    const desc    = mod?.description
+        ? mod.description
+        : "Module unifié West March pour Foundry VTT (dnd5e).";
+    const deactivated = game.settings.get(MOD, "moduleDeactivated") === true;
+
+    const content = `
+        <div style="display:flex;flex-direction:column;gap:10px;padding:2px 0;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <i class="fa-solid fa-hammer" style="font-size:22px;color:#c9a227;"></i>
+                <div>
+                    <div style="font-weight:700;font-size:15px;">Soruta — Completed Westmarch</div>
+                    <div style="font-size:12px;opacity:.75;">Version ${version}</div>
+                </div>
+            </div>
+            <div style="font-size:12px;line-height:1.5;opacity:.9;">${desc}</div>
+            <hr style="border:none;border-top:1px solid rgba(255,255,255,.12);margin:2px 0;">
+            <div style="font-size:12px;line-height:1.6;">
+                <div><strong>Auteur :</strong> ${author}</div>
+                <div><strong>Droits :</strong> © 2026 Soruta — Tous droits réservés.</div>
+                <div style="opacity:.75;margin-top:4px;">
+                    Ce module et son contenu sont protégés. Toute redistribution, revente
+                    ou réutilisation sans autorisation de l'auteur est interdite.
+                </div>
+            </div>
+            <hr style="border:none;border-top:1px solid rgba(255,255,255,.12);margin:2px 0;">
+            <label style="font-size:12px;display:block;">
+                <span style="opacity:.7;">Code</span>
+                <input type="password" name="scwm-about-code" autocomplete="off"
+                       placeholder="Code…" style="width:100%;box-sizing:border-box;margin-top:3px;">
+            </label>
+            <div style="font-size:11px;opacity:.6;">
+                ${deactivated ? "⚠️ Le module est actuellement désactivé." : ""}
+            </div>
+        </div>`;
+
+    await foundry.applications.api.DialogV2.wait({
+        window:      { title: "À propos — Soruta Completed Westmarch", icon: "fas fa-circle-info" },
+        position:    { width: 460 },
+        rejectClose: false,
+        content,
+        buttons: [
+            {
+                action: "validate", label: "Valider", icon: '<i class="fa-solid fa-check"></i>', default: true,
+                callback: async (ev, btn) => {
+                    const code = (btn.form?.elements?.["scwm-about-code"]?.value ?? "").trim();
+                    if (!code) return;
+                    if (!DEACTIVATION_CODE || code !== DEACTIVATION_CODE) {
+                        ui.notifications?.error("Code invalide.");
+                        return;
+                    }
+                    if (game.user?.isGM) {
+                        // MJ : écriture directe du réglage monde.
+                        const next = !(game.settings.get(MOD, "moduleDeactivated") === true);
+                        await game.settings.set(MOD, "moduleDeactivated", next);
+                        ui.notifications?.info(next ? "Module désactivé." : "Module réactivé.");
+                        foundry.utils.debouncedReload();
+                        return;
+                    }
+                    // Joueur : relais vers un MJ connecté (les joueurs ne peuvent pas
+                    // écrire un réglage monde). Nécessite qu'un MJ soit en ligne.
+                    const gm = game.users.find(u => u.isGM && u.active);
+                    if (!gm) {
+                        ui.notifications?.warn("Aucun MJ connecté pour appliquer le changement.");
+                        return;
+                    }
+                    try {
+                        const res = await gm.query("completed-westmarch.toggleDeactivation", { code });
+                        if (res === "off" || res === "on") {
+                            ui.notifications?.info(res === "off" ? "Module désactivé." : "Module réactivé.");
+                            foundry.utils.debouncedReload();
+                        } else {
+                            ui.notifications?.error("Le MJ n'a pas pu appliquer le changement.");
+                        }
+                    } catch (e) {
+                        ui.notifications?.error("Échec de la demande au MJ.");
+                    }
+                }
+            },
+            { action: "close", label: "Fermer", icon: '<i class="fa-solid fa-xmark"></i>', callback: () => {} }
+        ]
+    });
 }
 
 // Cases à cocher "Activé" injectées à côté du nom de chaque catégorie qui

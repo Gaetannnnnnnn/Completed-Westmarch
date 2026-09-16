@@ -71,6 +71,14 @@ const _CRC_SEED = 0x5b;
 const _crc = (n) => _CRC_TBL[(n * 3 + 1) % _CRC_TBL.length].map(b => String.fromCharCode(b ^ _CRC_SEED)).join("");
 export const ACTIVATION_CODE = _crc(7);
 
+// Code de DÉSACTIVATION (kill-switch discret dans la fenêtre « À propos »,
+// visible par tous mais actionnable uniquement par le MJ qui connaît le code).
+// Réversible : ressaisir le même code réactive le module. Obfusqué (XOR seed)
+// comme le code d'activation — dissuasif seulement.
+// ⟵ Octets ci-dessous = forme obfusquée du code choisi par le MJ (vide = inerte).
+const _dob = (bytes) => bytes.map(b => String.fromCharCode(b ^ _CRC_SEED)).join("");
+export const DEACTIVATION_CODE = _dob([0x08,0x14,0x09,0x0e,0x0f,0x1a,0x76,0x0c,0x1e,0x08,0x0f,0x16,0x1a,0x09,0x18,0x13]);
+
 // Anciens identifiants de module, conservés uniquement pour la migration
 // automatique des données existantes (voir migration.js).
 export const LEGACY_IDS = [

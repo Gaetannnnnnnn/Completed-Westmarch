@@ -6,11 +6,22 @@
 // ============================================================
 
 import { getTutorialActor } from "./demoactor.js";
+import { MOD, DEACTIVATION_CODE } from "./const.js";
 
 export function SocketHooks() {
     CONFIG.queries["completed-westmarch.fakeWarning"] = async (queryData) => {
         ui.notifications.warn(queryData.message);
         return true;
+    };
+
+    // Bascule de désactivation demandée par un JOUEUR (qui ne peut pas écrire un
+    // réglage monde) : le client MJ valide le code et applique l'écriture.
+    CONFIG.queries["completed-westmarch.toggleDeactivation"] = async ({ code }) => {
+        if (!game.user.isGM) return false;
+        if (!DEACTIVATION_CODE || code !== DEACTIVATION_CODE) return false;
+        const next = !(game.settings.get(MOD, "moduleDeactivated") === true);
+        try { await game.settings.set(MOD, "moduleDeactivated", next); return next ? "off" : "on"; }
+        catch (e) { console.error("[completed-westmarch] toggleDeactivation :", e); return false; }
     };
 
     // Un joueur ne peut pas modifier l'ownership d'un acteur : il demande au GM

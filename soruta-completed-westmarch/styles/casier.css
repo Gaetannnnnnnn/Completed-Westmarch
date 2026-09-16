@@ -333,3 +333,11 @@
 }
 .scwm-stat-block h3 { margin: 0 0 4px; color: #c9a227; font-size: 13px; }
 .scwm-stat-block .scwm-reg-table td { border-bottom: 1px solid rgba(255,255,255,0.05); }
+
+/* Registre : lignes cliquables + joueurs inactifs + légende */
+.scwm-reg-clickable { cursor: pointer; }
+.scwm-reg-clickable:hover td { background: rgba(201,162,39,0.10); }
+.scwm-reg-inactive td { color: #8a7d63; opacity: 0.72; }
+.scwm-reg-inactive td .fa-moon { color: #7a6cae; margin-left: 3px; font-size: 0.85em; }
+.scwm-reg-legend { margin: 2px 0 8px; font-size: 11px; color: #9a8b70; }
+.scwm-reg-legend .fa-moon { color: #7a6cae; }

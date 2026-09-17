@@ -1165,7 +1165,16 @@ function settingControlHtml(key) {
     } else if (key === "expeditionMapSceneId") {
         control = `<select name="${key}" style="width:100%;">${sceneOptionsHtml(val)}</select>`;
     } else if (key === "expeditionMapSceneIds") {
-        control = `<select name="${key}" multiple size="6" style="width:100%;">${sceneOptionsMultiHtml(val)}</select>`;
+        const ids = Array.isArray(val) ? val.filter(Boolean) : [];
+        const rows = ids.map(id => sceneRowHtml(id)).join("");
+        control = `<div class="scwm-scene-list" data-key="${key}">
+            <div class="scwm-scene-rows">${rows}</div>
+            <button type="button" class="scwm-scene-add"
+                    style="margin-top:2px;padding:3px 10px;border-radius:4px;cursor:pointer;
+                           border:1px solid rgba(201,162,39,0.4);background:rgba(201,162,39,0.12);color:#c9a227;">
+                <i class="fa-solid fa-plus"></i> Ajouter une carte
+            </button>
+        </div>`;
     } else if (key === "activationCode") {
         // Champ masqué (comme un mot de passe) — la valeur ne s'affiche pas en clair.
         control = `<input type="password" name="${key}" value="${escapeAttr(val ?? "")}" autocomplete="new-password" style="width:100%;">`;
@@ -1204,6 +1213,22 @@ function wireCategoryForm(category, root) {
         new FP({ type: btn.dataset.fptype || "image", current: input.value, callback: (path) => { input.value = path; } }).browse();
     }));
 
+    // Liste dynamique de cartes d'expédition : + ajoute une ligne, × retire.
+    const sceneList = root.querySelector(".scwm-scene-list");
+    if (sceneList) {
+        const rowsBox = sceneList.querySelector(".scwm-scene-rows");
+        sceneList.querySelector(".scwm-scene-add")?.addEventListener("click", (e) => {
+            e.preventDefault();
+            rowsBox?.insertAdjacentHTML("beforeend", sceneRowHtml(""));
+        });
+        sceneList.addEventListener("click", (e) => {
+            const del = e.target.closest?.(".scwm-scene-del");
+            if (!del) return;
+            e.preventDefault();
+            del.closest(".scwm-scene-row")?.remove();
+        });
+    }
+
     // Cascade Party : grise les sous-options quand le maître est décoché.
     const master = root.querySelector(`[name="enableParty"]`);
     if (master) {
@@ -1236,18 +1261,20 @@ async function saveCategoryForm(category, root) {
             continue;
         }
 
-        const el = root.querySelector(`[name="${key}"]`);
-        if (!el) continue;
-
-        // Sélecteur multi-scènes → tableau d'IDs.
+        // Liste dynamique de cartes d'expédition → tableau d'IDs (dédupliqué).
         if (key === "expeditionMapSceneIds") {
-            const ids = el.multiple ? [...el.selectedOptions].map(o => o.value).filter(Boolean)
-                                    : (el.value ? [el.value] : []);
+            const container = root.querySelector(`.scwm-scene-list[data-key="${key}"]`);
+            const ids = container
+                ? [...new Set([...container.querySelectorAll(".scwm-scene-select")].map(s => s.value).filter(Boolean))]
+                : [];
             if (JSON.stringify(game.settings.get(MOD, key) ?? []) !== JSON.stringify(ids)) {
                 await game.settings.set(MOD, key, ids);
             }
             continue;
         }
+
+        const el = root.querySelector(`[name="${key}"]`);
+        if (!el) continue;
 
         let v;
         if (cfg.type === Boolean)      v = el.checked;
@@ -1291,12 +1318,16 @@ function sceneOptionsHtml(currentVal) {
     ].join("");
 }
 
-// Options pour le sélecteur MULTIPLE de scènes (carte d'expédition).
-function sceneOptionsMultiHtml(selected) {
-    const sel = new Set(Array.isArray(selected) ? selected : []);
-    return game.scenes.contents
-        .map(s => `<option value="${s.id}" ${sel.has(s.id) ? "selected" : ""}>${escapeAttr(s.name)}</option>`)
-        .join("");
+// Une ligne « carte supplémentaire » : sélecteur de scène + bouton retirer.
+function sceneRowHtml(selectedId = "") {
+    return `<div class="scwm-scene-row" style="display:flex;gap:4px;margin-bottom:4px;">
+        <select class="scwm-scene-select" style="flex:1 1 auto;min-width:0;">${sceneOptionsHtml(selectedId)}</select>
+        <button type="button" class="scwm-scene-del" title="Retirer cette carte"
+                style="flex:0 0 auto;width:30px;border-radius:4px;cursor:pointer;
+                       border:1px solid rgba(192,57,43,0.4);background:rgba(192,57,43,0.12);color:#e58f8f;">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    </div>`;
 }
 
 // Menu déroulant des compendiums (valeur = collection). docType filtre le type

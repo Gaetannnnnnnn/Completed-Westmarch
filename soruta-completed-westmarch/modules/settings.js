@@ -503,8 +503,15 @@ export function registerSettings() {
         "Carte des expéditions",
         "Synchronise la permission Owner de l'acteur Groupe avec les joueurs membres, pour la vision/brouillard sur la carte du monde."));
     game.settings.register(MOD, "expeditionMapSceneId", S(
-        "Carte des expéditions — Scène",
+        "Carte des expéditions — Scène principale",
         "Scène sur laquelle le brouillard de guerre est suivi par personnage plutôt que par compte joueur."));
+    // Scènes SUPPLÉMENTAIRES de carte (ex. archipel : plusieurs îles). Chaque
+    // scène garde son propre brouillard (exploration indépendante par scène).
+    game.settings.register(MOD, "expeditionMapSceneIds", {
+        scope: "world", config: false, type: Array, default: [],
+        name: "Carte des expéditions — Scènes supplémentaires",
+        hint: "Sélectionnez d'autres scènes à traiter comme cartes d'expédition (Ctrl/Cmd-clic pour en choisir plusieurs). Chacune a son propre brouillard, indépendant des autres et de la scène principale. Idéal pour un archipel (une scène par île)."
+    });
     game.settings.register(MOD, "expeditionMapTemplateFolder", S(
         "Carte des expéditions — Dossier du token modèle",
         "Dossier d'acteurs où créer l'acteur Groupe modèle « Token à copier et rennomer ». Laissez vide pour la racine."));
@@ -515,7 +522,7 @@ export function registerSettings() {
     // Zones toujours éclairées (villes, lieux connus de tous) — peintes par le MJ.
     // Liste de clés de case "i.j". Non affiché (édité via l'outil sur la carte).
     game.settings.register(MOD, "expeditionRevealedZones", {
-        scope: "world", config: false, type: Array, default: []
+        scope: "world", config: false, type: Object, default: {}
     });
 
     // ============================================================
@@ -947,7 +954,7 @@ const CATEGORIES = [
       keys: ["carnetEnabled","enablePcStatus"] },
     { firstKey: "enableExpeditionMap", master: "enableExpeditionMap",   icon: "fa-map",             title: "Carte des expéditions",
       desc: "Brouillard de guerre par party et par personnage sur une scène dédiée.",
-      keys: ["enableExpeditionMap","expeditionMapSceneId","expeditionMapTemplateFolder","expeditionRevealRadius"] },
+      keys: ["enableExpeditionMap","expeditionMapSceneId","expeditionMapSceneIds","expeditionMapTemplateFolder","expeditionRevealRadius"] },
     { firstKey: "enableSceneCues", master: "enableSceneCues",       icon: "fa-clapperboard",    title: "Mise en scène — Cues audio",
       desc: "Cues audio attachés aux tokens : déclenchement auto quand le token perd son invisibilité GM, ou manuel. Réglage de la seconde de départ, du volume et du fondu.",
       keys: ["enableSceneCues","sceneCuesDefaultVolume"] },
@@ -1157,6 +1164,8 @@ function settingControlHtml(key) {
         control = `<select name="${key}" style="width:100%;">${packOptionsHtml(val, docType)}</select>`;
     } else if (key === "expeditionMapSceneId") {
         control = `<select name="${key}" style="width:100%;">${sceneOptionsHtml(val)}</select>`;
+    } else if (key === "expeditionMapSceneIds") {
+        control = `<select name="${key}" multiple size="6" style="width:100%;">${sceneOptionsMultiHtml(val)}</select>`;
     } else if (key === "activationCode") {
         // Champ masqué (comme un mot de passe) — la valeur ne s'affiche pas en clair.
         control = `<input type="password" name="${key}" value="${escapeAttr(val ?? "")}" autocomplete="new-password" style="width:100%;">`;
@@ -1229,6 +1238,17 @@ async function saveCategoryForm(category, root) {
 
         const el = root.querySelector(`[name="${key}"]`);
         if (!el) continue;
+
+        // Sélecteur multi-scènes → tableau d'IDs.
+        if (key === "expeditionMapSceneIds") {
+            const ids = el.multiple ? [...el.selectedOptions].map(o => o.value).filter(Boolean)
+                                    : (el.value ? [el.value] : []);
+            if (JSON.stringify(game.settings.get(MOD, key) ?? []) !== JSON.stringify(ids)) {
+                await game.settings.set(MOD, key, ids);
+            }
+            continue;
+        }
+
         let v;
         if (cfg.type === Boolean)      v = el.checked;
         else if (cfg.type === Number)  { v = Number(el.value); if (Number.isNaN(v)) v = cfg.default ?? 0; }
@@ -1269,6 +1289,14 @@ function sceneOptionsHtml(currentVal) {
         `<option value="">— Aucune —</option>`,
         ...game.scenes.contents.map(s => `<option value="${s.id}" ${s.id === currentVal ? "selected" : ""}>${s.name}</option>`)
     ].join("");
+}
+
+// Options pour le sélecteur MULTIPLE de scènes (carte d'expédition).
+function sceneOptionsMultiHtml(selected) {
+    const sel = new Set(Array.isArray(selected) ? selected : []);
+    return game.scenes.contents
+        .map(s => `<option value="${s.id}" ${sel.has(s.id) ? "selected" : ""}>${escapeAttr(s.name)}</option>`)
+        .join("");
 }
 
 // Menu déroulant des compendiums (valeur = collection). docType filtre le type

@@ -20,8 +20,55 @@ const FLAG_EXPLORED = "exploredHexes";           // sur l'acteur personnage
 const TEMPLATE_GROUP_NAME = "Token à copier et rennomer";
 
 const enabled  = () => game.settings.get(MOD, "enableExpeditionMap");
-const sceneId  = () => game.settings.get(MOD, "expeditionMapSceneId");
-const onExpeditionCanvas = () => enabled() && sceneId() && canvas?.scene?.id === sceneId();
+
+// ── Scènes de carte d'expédition (multi-cartes, ex. archipel) ────────────────
+const legacySceneId = () => game.settings.get(MOD, "expeditionMapSceneId");
+const extraSceneIds = () => {
+    const v = game.settings.get(MOD, "expeditionMapSceneIds");
+    return Array.isArray(v) ? v.filter(Boolean) : [];
+};
+// Ensemble des scènes traitées comme carte : scène principale + supplémentaires.
+const expeditionSceneIds = () => {
+    const s = new Set(extraSceneIds());
+    const leg = legacySceneId();
+    if (leg) s.add(leg);
+    return [...s];
+};
+const isExpeditionScene = (id) => !!id && expeditionSceneIds().includes(id);
+const currentSceneId = () => canvas?.scene?.id ?? null;
+const onExpeditionCanvas = () => enabled() && isExpeditionScene(currentSceneId());
+
+// ── Brouillard exploré, stocké PAR SCÈNE sur l'acteur : { [sceneId]: [clés] }.
+//    Compat : un ancien tableau plat est rattaché à la scène principale héritée.
+function exploredMap(actor) {
+    const raw = actor?.getFlag(MOD, FLAG_EXPLORED);
+    if (Array.isArray(raw)) { const leg = legacySceneId(); return leg ? { [leg]: raw } : {}; }
+    return (raw && typeof raw === "object") ? raw : {};
+}
+function getExplored(actor, sid) {
+    if (!sid) return [];
+    const m = exploredMap(actor);
+    return Array.isArray(m[sid]) ? m[sid] : [];
+}
+async function setExplored(actor, sid, keysArr) {
+    if (!sid) return;
+    const m = exploredMap(actor);
+    m[sid] = keysArr;
+    await actor.setFlag(MOD, FLAG_EXPLORED, m);
+}
+
+// ── Zones toujours éclairées (villes), PAR SCÈNE : { [sceneId]: [clés] }.
+function zonesMap() {
+    const raw = game.settings.get(MOD, "expeditionRevealedZones");
+    if (Array.isArray(raw)) { const leg = legacySceneId(); return leg ? { [leg]: raw } : {}; }
+    return (raw && typeof raw === "object") ? raw : {};
+}
+async function setZonesForScene(sid, keysArr) {
+    if (!sid) return;
+    const m = zonesMap();
+    m[sid] = keysArr;
+    await game.settings.set(MOD, "expeditionRevealedZones", m);
+}
 
 // Case (offset hex) précédente des tokens (pour tracer le trajet au déplacement).
 const _prevHex = new Map();
@@ -42,7 +89,7 @@ export function MapHooks() {
     Hooks.on("preUpdateToken", (tokenDoc, changes) => {
         if (!game.user.isGM || !enabled()) return;
         if (!("x" in changes || "y" in changes)) return;
-        if (tokenDoc.parent?.id !== sceneId() || tokenDoc.actor?.type !== "group") return;
+        if (!isExpeditionScene(tokenDoc.parent?.id) || tokenDoc.actor?.type !== "group") return;
         _prevHex.set(tokenDoc.id, tokenHex(tokenDoc));
     });
 
@@ -50,7 +97,7 @@ export function MapHooks() {
     Hooks.on("updateToken", async (tokenDoc, changes) => {
         if (!game.user.isGM || !enabled()) return;
         if (!("x" in changes || "y" in changes)) return;
-        if (tokenDoc.parent?.id !== sceneId() || tokenDoc.actor?.type !== "group") return;
+        if (!isExpeditionScene(tokenDoc.parent?.id) || tokenDoc.actor?.type !== "group") return;
         await revealForGroupMove(tokenDoc, changes);
     });
 
@@ -128,9 +175,11 @@ function setPaintMode(on) {
     drawFog();   // (ré)affiche le repère des zones éclairées côté MJ
 }
 
+// Zones toujours éclairées de la SCÈNE COURANTE.
 function globalZones() {
-    const z = game.settings.get(MOD, "expeditionRevealedZones");
-    return Array.isArray(z) ? z : [];
+    const sid = currentSceneId();
+    const m = zonesMap();
+    return sid && Array.isArray(m[sid]) ? m[sid] : [];
 }
 
 async function onPaintPointerDown(ev) {
@@ -146,7 +195,7 @@ async function onPaintPointerDown(ev) {
 
     const set = new Set(globalZones());
     if (ev.button === 0) set.add(key); else set.delete(key);   // gauche éclaire, droit masque
-    await game.settings.set(MOD, "expeditionRevealedZones", [...set]);
+    await setZonesForScene(currentSceneId(), [...set]);
     // Le hook updateSetting n'existe pas partout → on redessine directement + broadcast implicite
     drawFog();
 }
@@ -231,14 +280,15 @@ async function revealForGroupMove(tokenDoc, changes = {}) {
     for (const h of hexesWithinRadius(toOff, radius)) keys.add(hexKey(h));
     if (!keys.size) return;
 
+    const sid = tokenDoc.parent?.id;                         // scène de CE token
     const memberIds = Array.from(tokenDoc.actor?.system?.members?.ids ?? []);
     for (const charId of memberIds) {
         const actor = game.actors.get(charId);
         if (!actor) continue;
-        const prev = new Set(actor.getFlag(MOD, FLAG_EXPLORED) ?? []);
+        const prev = new Set(getExplored(actor, sid));
         let changed = false;
         for (const k of keys) if (!prev.has(k)) { prev.add(k); changed = true; }
-        if (changed) await actor.setFlag(MOD, FLAG_EXPLORED, [...prev]);
+        if (changed) await setExplored(actor, sid, [...prev]);
     }
     console.log(`[CE] révélation : ${keys.size} cases (arrivée ${hexKey(toOff)}) pour ${memberIds.length} membre(s)`);
 }
@@ -280,7 +330,7 @@ function drawFog() {
 
     // Joueur : noir partout, trous aux cases explorées de son perso + villes globales.
     const char = game.user.character;
-    const explored = new Set(char?.getFlag(MOD, FLAG_EXPLORED) ?? []);
+    const explored = new Set(getExplored(char, currentSceneId()));
     for (const z of zones) explored.add(z);   // zones toujours éclairées, visibles par tous
 
     const d = canvas.dimensions;
@@ -345,14 +395,16 @@ async function ensureTemplateGroupActor() {
     }
     if (!actor) return null;
 
-    const scene = sceneId() ? game.scenes.get(sceneId()) : null;
-    if (scene && !scene.tokens.some(t => t.actorId === actor.id)) {
+    // Dépose un token modèle sur CHAQUE scène de carte qui n'en a pas encore.
+    for (const sid of expeditionSceneIds()) {
+        const scene = game.scenes.get(sid);
+        if (!scene || scene.tokens.some(t => t.actorId === actor.id)) continue;
         try {
             const x = Math.round((scene.width ?? 1000) / 2);
             const y = Math.round((scene.height ?? 1000) / 2);
             const tokenDoc = await actor.getTokenDocument({ x, y });
             await scene.createEmbeddedDocuments("Token", [tokenDoc.toObject()]);
-        } catch (e) { console.warn(`[${MOD}] Dépôt du token Groupe modèle échoué :`, e); }
+        } catch (e) { console.warn(`[${MOD}] Dépôt du token Groupe modèle échoué (scène ${sid}) :`, e); }
     }
     return actor;
 }
@@ -368,14 +420,16 @@ async function removeLegacyAnchor() {
 
 // Désactive la vision/brouillard NATIFS sur la scène (on gère nous-mêmes).
 async function disableNativeSceneFog() {
-    const scene = sceneId() ? game.scenes.get(sceneId()) : null;
-    if (!scene) return;
-    const upd = {};
-    if (scene.tokenVision) upd.tokenVision = false;
-    if (scene.fog?.exploration) upd["fog.exploration"] = false;
-    if (Object.keys(upd).length) {
-        try { await scene.update(upd); console.log(`[${MOD}] Vision/brouillard natifs désactivés sur la scène de la carte.`); }
-        catch (e) { console.warn(`[${MOD}] Désactivation vision native échouée :`, e); }
+    for (const sid of expeditionSceneIds()) {
+        const scene = game.scenes.get(sid);
+        if (!scene) continue;
+        const upd = {};
+        if (scene.tokenVision) upd.tokenVision = false;
+        if (scene.fog?.exploration) upd["fog.exploration"] = false;
+        if (Object.keys(upd).length) {
+            try { await scene.update(upd); console.log(`[${MOD}] Vision/brouillard natifs désactivés (scène ${scene.name}).`); }
+            catch (e) { console.warn(`[${MOD}] Désactivation vision native échouée (scène ${sid}) :`, e); }
+        }
     }
 }
 

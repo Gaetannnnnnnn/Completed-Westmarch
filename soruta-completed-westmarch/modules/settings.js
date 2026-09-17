@@ -10,6 +10,7 @@ import { MOD, TUTO_TOGGLES, TM_DEFAULT_SCROLL, TM_DEFAULT_MAGIC, TM_DEFAULT_ROLL
 import { applyHotbarVisibility } from "./hotbar.js";
 import { applyPartyPause } from "./partypause.js";
 import { openProfilesEditor } from "./companions.js";
+import { openUiHideDialog, applyUiHiding } from "./uihide.js";
 
 // ============================================================
 // Ressources communes — accès centralisé (avec repli sur les anciennes clés
@@ -626,6 +627,14 @@ export function registerSettings() {
         onChange: () => foundry.utils.debouncedReload()
     });
 
+    // ---- Masquage d'éléments d'interface (par rôle). Réglage monde : le MJ
+    // décide ce qui est caché pour les Joueurs et pour les GM ; chaque client
+    // applique sa colonne. Édité via le panneau « Interface — Masquer ».
+    game.settings.register(MOD, "hiddenUi", {
+        scope: "world", config: false, type: Object, default: { players: [], gm: [] },
+        onChange: () => { try { applyUiHiding(); } catch (e) {} }
+    });
+
     // ============================================================
     // MENUS PAR CATÉGORIE (boutons "Configurer" dans la config du module)
     // Visibles UNIQUEMENT si le module est activé (bon code saisi). Tant que le
@@ -919,6 +928,9 @@ const CATEGORIES = [
     { firstKey: "companionProfiles", icon: "fa-dna", title: "Profils de compagnons",
       desc: "Ajouter ou surcharger les profils de formules des compagnons évolutifs (JSON).",
       open: () => openProfilesEditor(), keys: [] },
+    { firstKey: "uihide", icon: "fa-eye-slash", title: "Interface — Masquer des éléments",
+      desc: "Masque des icônes de la barre d'outils et de grandes zones de l'interface, avec deux colonnes : Joueurs et GM. Chaque client applique la colonne de son rôle.",
+      open: () => openUiHideDialog(), keys: [] },
     { firstKey: "commonFolderPJ", icon: "fa-folder-tree", title: "Dossiers & Compendiums",
       desc: "Dossiers et compendiums communs, renseignés une seule fois ici et utilisés par toutes les fonctions (Relations, Bestiaire, Création de personnages, Temps morts).",
       keys: ["commonFolderPJ","autoPlayerFolder","gmAutoFolderParent","commonFolderPNJ","commonFolderNewChars","commonPackPNJ","commonPackCemetery","commonPackCreatures","commonPackCraft"] },

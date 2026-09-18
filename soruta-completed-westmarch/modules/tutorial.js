@@ -133,6 +133,23 @@ export const SECTION_GM_ONLY = new Set(["casier", "carteExpedition", "cues", "no
 // elles seraient vides (déclaration de temps morts, gestion de ses personnages).
 export const SECTION_PLAYER_ONLY = new Set(["monPerso", "tempsMorts"]);
 
+// Sections « natives Foundry / dnd5e » (bases que quelqu'un qui connaît déjà
+// Foundry n'a pas besoin de revoir) : sautées si l'utilisateur se dit expérimenté.
+// On peut aussi marquer une étape isolée avec `native: true` (voir apparenceTokens).
+export const SECTION_NATIVE = new Set(["tourFiche"]);
+
+// Sections ESSENTIELLES (« à connaître pour jouer ici ») — mises en avant dans le
+// menu ; le reste est rangé sous « Optionnel ». Le filtrage par rôle/activation
+// (isSectionAvailable) s'applique ensuite : un joueur ne verra que ses essentiels.
+export const SECTION_ESSENTIAL = new Set([
+    "barreWestmarch",   // repérer les outils du serveur (tous)
+    "monPerso",         // créer / gérer son personnage (joueur)
+    "carnet",           // carnet & expéditions (tous)
+    "tempsMorts",       // déclarer entre deux sessions (joueur)
+    "casier",           // tableau de bord (MJ)
+    "carteExpedition",  // brouillard des expéditions (MJ, si activé)
+]);
+
 /**
  * Retourne true si la section est disponible pour l'utilisateur courant :
  *   - la fonctionnalité correspondante est activée (ou intégrée)
@@ -157,6 +174,7 @@ let _steps      = [];
 let _current    = 0;
 let _wrapEl     = null;
 let _escHandler = null;
+let _onComplete = null;   // callback appelé à la fin d'un parcours (retour au menu)
 
 // ================================================================
 // NAVIGATION : ouvrir la fiche PJ et naviguer vers un onglet
@@ -733,13 +751,21 @@ const STEPS_BY_FEATURE = {
             text:       "Cliquez le <strong>chevron <i class='fa-solid fa-chevron-down'></i></strong> à gauche du titre pour replier ou déplier une note individuellement. Pratique quand le carnet commence à s'allonger.",
             position:   "right"
         },
+        // ── Barre recherche / tout replier-déplier ───────────────
+        {
+            beforeShow: _toSheet("carnet-journal"),
+            target:     ".carnet-tools-bar, .carnet-search",
+            title:      "Rechercher & tout replier",
+            text:       "En haut du carnet : un champ de <strong>recherche</strong> masque instantanément les notes qui ne contiennent pas votre texte (titre + contenu), et les boutons <i class='fa-solid fa-angles-down'></i>/<i class='fa-solid fa-angles-up'></i> <strong>déplient ou replient toutes les notes</strong> d'un coup. Pratique quand le carnet s'allonge.",
+            position:   "bottom"
+        },
         // ── Éditeur de texte ─────────────────────────────────────
         {
             beforeShow: _toSheet("carnet-journal"),
             target:     ".carnet-edit-note",
             title:      "Éditeur de note",
-            text:       "Le bouton <strong>Modifier</strong> ouvre l'éditeur enrichi. La barre d'outils propose : <strong>Gras</strong>, <em>Italique</em>, Souligné, Barré, deux niveaux de <strong>titres</strong> (T1/T2), paragraphe normal, listes à puces et numérotées, et un sélecteur de taille de police. Les icônes s'illuminent en doré quand le format est actif sur votre sélection. Cliquez <strong>Sauvegarder</strong> ou appuyez sur <kbd>Entrée</kbd> — toutes vos frappes sont capturées en temps réel.",
-            textGM:     "Le bouton <strong>Modifier</strong> ouvre l'éditeur enrichi. Il fonctionne comme un éditeur de texte classique avec barre d'outils (gras, italique, titres, listes, taille…). Les icônes s'allument quand le format est actif. Le contenu est sauvegardé à chaque frappe, pas seulement au clic sur Sauvegarder.",
+            text:       "Le bouton <strong>Modifier</strong> ouvre l'éditeur « grimoire ». La barre d'outils propose : <strong>Gras</strong>, <em>Italique</em>, Souligné, Barré, deux niveaux de <strong>titres</strong> (T1/T2), paragraphe, listes, une <strong>taille en points</strong> (comme Word), la <strong>couleur du texte</strong> <i class='fa-solid fa-palette'></i> et l'<strong>insertion de lien</strong> <i class='fa-solid fa-link'></i> (sélectionnez le texte puis l'URL). Tout est <strong>sauvegardé automatiquement</strong> : même en fermant par la croix, rien n'est perdu.",
+            textGM:     "Le bouton <strong>Modifier</strong> ouvre l'éditeur enrichi : gras, italique, titres, listes, <strong>taille en points</strong>, <strong>couleur</strong> et <strong>liens</strong>. Le contenu est sauvegardé en continu (aucune perte, même en fermant sans « Sauvegarder »).",
             position:   "top"
         },
         // ── Lier à une expédition ────────────────────────────────
@@ -832,6 +858,34 @@ const STEPS_BY_FEATURE = {
             position:   "right"
         },
         {
+            beforeShow: () => _openCasier("attendance"),
+            target:     ".scwm-casier-tab[data-tab='attendance']",
+            title:      "Assiduité",
+            textGM:     "L'onglet <strong>Assiduité</strong> mesure l'activité à partir des <strong>sessions</strong> : nombre d'expéditions par joueur et par MJ, dernière session de chacun, et qui est <strong>actif</strong> sur le trimestre (90 jours). Idéal pour repérer les joueurs qui décrochent.",
+            position:   "right"
+        },
+        {
+            beforeShow: () => _openCasier("registre"),
+            target:     ".scwm-casier-tab[data-tab='registre'], .scwm-reg-table",
+            title:      "Registre des personnages",
+            textGM:     "L'onglet <strong>Registre</strong> liste tous les PJ (joueur, perso, classes/sous-classes/niveaux, espèce, niveau total), déduit automatiquement des fiches. <strong>Triable</strong> (clic sur un en-tête), <strong>filtrable</strong> (barre de recherche) et <strong>exportable en CSV</strong>. Un <strong>clic sur une ligne</strong> ouvre la fiche ; les joueurs <strong>inactifs</strong> (90 j) sont grisés avec une 🌙.",
+            position:   "left"
+        },
+        {
+            beforeShow: () => _openCasier("stats"),
+            target:     ".scwm-casier-tab[data-tab='stats'], .scwm-stat-grid",
+            title:      "Statistiques",
+            textGM:     "L'onglet <strong>Statistiques</strong> compte les personnages par classe, sous-classe, espèce, joueur et par niveau, avec le total de joueurs, de persos et de multiclassés — une vue d'ensemble de la population du serveur.",
+            position:   "left"
+        },
+        {
+            beforeShow: () => _openCasier("dispos"),
+            target:     ".scwm-casier-tab[data-tab='dispos'], .scwm-reg-table",
+            title:      "Disponibilités des joueurs",
+            textGM:     "L'onglet <strong>Disponibilités</strong> montre, par joueur, ses PJ, leur nombre, ses expéditions en cours et sa dernière session. Les inactifs y sont aussi signalés.",
+            position:   "left"
+        },
+        {
             beforeShow: () => _openCasier("validation"),
             target:     ".scwm-casier-tab[data-tab='validation'], .scwm-casier-validation",
             title:      "Validation des personnages",
@@ -848,6 +902,14 @@ const STEPS_BY_FEATURE = {
             text:     "Cette carte du monde a un <strong>brouillard « maison »</strong>, géré par le module (pas celui de Foundry). Son intérêt : le brouillard est <strong>propre à CHAQUE personnage</strong>. Chaque PJ ne voit sur la carte que les zones que <em>lui</em> a découvertes — deux personnages d'un même joueur ont chacun leur exploration.<br><br>"
                     + "En pratique : la scène est entièrement visible « nativement » (vision par token désactivée), et le module pose par-dessus un calque noir qui laisse des trous aux cases explorées du personnage joué. C'est fiable et isolé par perso, contrairement au brouillard natif de Foundry.<br><br>"
                     + "La scène concernée est celle définie dans <strong>Réglages → Carte des expéditions → Scène</strong>. Tout ce qui suit ne s'applique qu'à cette scène.",
+            position: "center",
+            gmOnly:   true
+        },
+        {
+            target:   null,
+            title:    "Plusieurs cartes (archipel)",
+            text:     "Tu n'es pas limité à une seule carte. Dans <strong>Réglages → Carte des expéditions</strong>, le bouton <strong>« + Ajouter une carte »</strong> ajoute autant de <strong>scènes</strong> que tu veux (une par île, par région…).<br><br>"
+                    + "Chaque scène garde son <strong>propre brouillard</strong>, totalement indépendant : explorer une île ne dévoile rien sur les autres. Les zones toujours éclairées (villes) sont elles aussi propres à chaque scène. Tout ce qui suit s'applique à <strong>chacune</strong> des cartes déclarées.",
             position: "center",
             gmOnly:   true
         },
@@ -963,7 +1025,7 @@ const STEPS_BY_FEATURE = {
             },
             target:     null,
             title:      "Déclarer une activité",
-            text:       "La fenêtre se divise en deux blocs :<br><br><strong>Gain de compétence</strong> — choisissez une compétence ou maîtrise dans la liste, entrez les dates de début et fin de votre temps mort. Le nombre de jours et le bonus sont calculés automatiquement.<br><br><strong>Artisanat</strong> — choisissez le type d'objet à fabriquer (arme, armure, parchemin…), sa rareté, son prix de base et les dates. Le coût en po et la progression sont calculés à la volée.<br><br>Cliquez <strong>Ajouter au panier</strong> pour chaque activité, puis <strong>Déclarer</strong> pour envoyer au GM. Vous pouvez combiner plusieurs activités dans une même déclaration.",
+            text:       "La fenêtre se divise en deux blocs :<br><br><strong>Gain de compétence</strong> — choisissez une compétence ou maîtrise dans la liste, entrez les dates de début et fin de votre temps mort. Le nombre de jours et le bonus sont calculés automatiquement. Si vous cochez <strong>Tools</strong>, un champ <strong>« Outil utilisé »</strong> apparaît : indiquez l'outil (la compétence choisie ne sert alors qu'à la caractéristique associée), et c'est le nom de l'outil qui figurera dans le récap.<br><br><strong>Artisanat</strong> — choisissez le type d'objet à fabriquer (arme, armure, parchemin…), sa rareté, son prix de base et les dates. Le coût en po et la progression sont calculés à la volée.<br><br>Cliquez <strong>Ajouter au panier</strong> pour chaque activité, puis <strong>Déclarer</strong> pour envoyer au GM. Vous pouvez combiner plusieurs activités dans une même déclaration.",
             position:   "center",
             playerOnly: true
         },
@@ -992,7 +1054,8 @@ const STEPS_BY_FEATURE = {
             target:   null,
             title:    "Voir le portrait",
             text:     "<strong>Clic droit</strong> sur un token → HUD → bouton portrait <i class='fa-solid fa-image'></i> : affiche en grand l'image de la fiche du personnage.",
-            position: "center"
+            position: "center",
+            native:   true
         },
         // ── Accéder au Prototype Token ────────────────────────────
         {
@@ -1006,7 +1069,8 @@ const STEPS_BY_FEATURE = {
             title:    "Ouvrir le Prototype Token",
             text:     "Ce bouton dans l'en-tête de la fiche ouvre la configuration du <strong>Prototype Token</strong> — le token tel qu'il apparaît par défaut sur la carte. L'onglet <strong>Apparence</strong> donne accès à deux fonctions avancées : le <em>Cycle d'apparences</em> et le <em>Wild Shape / Polymorph</em>. Cliquez <strong>Suivant</strong> pour l'ouvrir automatiquement.",
             position: "bottom",
-            gmOnly:   true
+            gmOnly:   true,
+            native:   true
         },
         // ── Cycle d'apparences (prototype token → Apparence) ─────
         {
@@ -1034,7 +1098,7 @@ const STEPS_BY_FEATURE = {
             beforeShow: _expandWestmarch,
             target:     "[data-tool='fakeWarning']",
             title:      "Faux message de maintenance",
-            text:       "Ce bouton <i class='fa-solid fa-triangle-exclamation'></i> envoie une fausse notification jaune à un joueur précis — pour lui faire croire qu'un problème technique a été résolu.",
+            text:       "Ce bouton <i class='fa-solid fa-triangle-exclamation'></i> envoie une fausse notification jaune à un joueur précis — pour lui faire croire qu'un problème technique a été résolu. Vous pouvez le <strong>retirer complètement</strong> en décochant « Faux message de maintenance » dans <em>Réglages → Serveur</em>.",
             position:   "right",
             gmOnly:     true
         },
@@ -1082,6 +1146,23 @@ const STEPS_BY_FEATURE = {
             position: "center",
             gmOnly:   true
         },
+        {
+            target:   null,
+            title:    "Masquer des éléments d'interface",
+            text:     "<strong>Réglages → Interface — Masquer des éléments</strong> ouvre un panneau qui liste ce qui est présent sur l'interface (icônes de la barre d'outils, barre de macros, liste des joueurs, navigation…). Chaque élément a <strong>deux colonnes de cases</strong> : <strong>Joueurs</strong> et <strong>GM</strong>. Cochez ce que vous voulez cacher pour chaque rôle ; chaque client applique la colonne de son rôle. « Tout réafficher » remet tout.",
+            position: "center",
+            gmOnly:   true
+        },
+        {
+            target:   null,
+            title:    "À propos & activation / désactivation",
+            text:     "<strong>Réglages → À propos</strong> (visible par tous) affiche version, auteur et protection des droits. Tout en bas, un <strong>champ code</strong> :<br><br>"
+                    + "• votre <strong>code d'activation</strong> active le module ;<br>"
+                    + "• votre <strong>code de désactivation</strong> le coupe pour tout le serveur (le ressaisir le réactive).<br><br>"
+                    + "Un joueur peut aussi saisir le code (sa demande est relayée à un MJ connecté). Le module désactivé, la fenêtre « À propos » reste accessible pour le réactiver.",
+            position: "center",
+            gmOnly:   true
+        },
     ],
 };
 
@@ -1089,15 +1170,49 @@ const STEPS_BY_FEATURE = {
 // API PUBLIQUE
 // ================================================================
 
+// Question d'entrée : connaît-il déjà Foundry ? → true (sauter les bases natives),
+// false (tout faire), ou null (annulé / fenêtre fermée).
+async function _askFoundryExperience() {
+    const DialogV2 = foundry.applications.api.DialogV2;
+    try {
+        const res = await DialogV2.wait({
+            window: { title: "Avant de commencer", icon: "fa-solid fa-circle-question" },
+            position: { width: 460 },
+            rejectClose: false,
+            content: `<p style="margin:0 0 8px;">Connais-tu déjà <strong>Foundry VTT</strong> et l'as-tu déjà utilisé ?</p>
+                      <p style="margin:0;font-size:.85em;opacity:.75;">Si oui, on passe directement aux fonctions propres à ce serveur (on saute le tour des bases : fiche de personnage, tokens…).</p>`,
+            buttons: [
+                { action: "yes", label: "Oui, je connais Foundry", icon: "fa-solid fa-user-check", callback: () => "yes" },
+                { action: "no",  label: "Non / première fois", icon: "fa-solid fa-graduation-cap", default: true, callback: () => "no" }
+            ]
+        });
+        if (res === "yes") return true;
+        if (res === "no")  return false;
+        return null;
+    } catch (e) { return false; }
+}
+
 /**
  * Lance le tutoriel.
  * @param {string[]|null} selectedSections  Sections à inclure, ou null pour les settings.
  */
-export async function startTutorial(selectedSections = null) {
+export async function startTutorial(selectedSections = null, onComplete = null) {
+    _onComplete = onComplete;
+
+    // Question d'expérience Foundry uniquement pour un parcours COMPLET (pas quand
+    // on lance une section précise depuis le menu — l'utilisateur a déjà choisi).
+    let experienced = false;
+    if (selectedSections === null) {
+        experienced = await _askFoundryExperience();
+        if (experienced === null) { _onComplete = null; return; }
+    }
+
     _steps = [];
     for (const [section, settingKey] of Object.entries(SETTING_KEYS)) {
         // Filtrer les sections dont le module requis n'est pas actif
         if (!isSectionAvailable(section)) continue;
+        // Sauter les sections purement natives si l'utilisateur connaît Foundry.
+        if (experienced && SECTION_NATIVE.has(section)) continue;
 
         const include = selectedSections !== null
             ? selectedSections.includes(section)
@@ -1107,6 +1222,7 @@ export async function startTutorial(selectedSections = null) {
         const sectionSteps = (STEPS_BY_FEATURE[section] ?? []).filter(s => {
             if (s.gmOnly     && !game.user.isGM) return false;
             if (s.playerOnly &&  game.user.isGM) return false;
+            if (experienced  && s.native) return false;   // étape native isolée
             return true;
         });
         _steps.push(...sectionSteps.map(st => ({ ...st, _section: section })));
@@ -1142,6 +1258,14 @@ export function closeTutorial() {
 function _endTutorial(completed = false) {
     revokeTutorialAccess();
     closeTutorial();
+    // Mode « menu » : on rouvre le menu après chaque section, quelle que soit la
+    // façon de terminer (fin, croix, Échap). C'est la croix du MENU qui arrête.
+    if (_onComplete) {
+        const cb = _onComplete;
+        _onComplete = null;
+        try { cb(completed); } catch (e) { console.warn("[Tutoriel] onComplete :", e); }
+        return;
+    }
     if (completed) _promptHideWelcome();
 }
 

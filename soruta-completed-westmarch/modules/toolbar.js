@@ -3,7 +3,7 @@
 // ============================================================
 
 import { MOD } from './const.js';
-import { showTutorialSelector } from './welcome.js';
+import { showTutorialHub } from './welcome.js';
 
 export function registerTutorielButton() {
     Hooks.on("getSceneControlButtons", (controls) => {
@@ -30,7 +30,7 @@ export function registerTutorielButton() {
             title:    "Ouvrir le guide / tutoriel",
             icon:     "fa-solid fa-circle-question",
             button:   true,
-            onChange: () => showTutorialSelector(),
+            onChange: () => showTutorialHub(),
             visible:  true
         };
     });

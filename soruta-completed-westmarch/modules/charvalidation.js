@@ -550,21 +550,63 @@ export function openPlayerHub() {
 // ============================================================
 // HOOKS
 // ============================================================
+// MJ « primaire » : le seul client autorisé à muter le monde (création de
+// dossiers) pour éviter les doublons quand plusieurs MJ sont connectés.
+const isPrimaryGM = () => !!game.user?.isGM && game.users?.activeGM?.id === game.user.id;
+
+// Nettoyage : fusionne les dossiers en double (même type + même nom + même
+// parent). Le contenu (acteurs, sous-dossiers) est déplacé dans le plus ancien,
+// puis les doublons vides sont supprimés. À lancer une fois par un MJ :
+//   game.modules.get("soruta-completed-westmarch").api.dedupeFolders()
+export async function dedupeAutoFolders() {
+    if (!game.user.isGM) { ui.notifications?.warn("Réservé au MJ."); return; }
+    const groups = new Map();
+    for (const f of (game.folders ?? [])) {
+        const key = `${f.type}|${f.name}|${f.folder?.id ?? ""}`;
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(f);
+    }
+    let removed = 0;
+    for (const arr of groups.values()) {
+        if (arr.length < 2) continue;
+        arr.sort((a, b) => (a._stats?.createdTime ?? 0) - (b._stats?.createdTime ?? 0) || a.id.localeCompare(b.id));
+        const keep = arr[0];
+        for (const dup of arr.slice(1)) {
+            try {
+                for (const doc of (dup.contents ?? [])) { try { await doc.update({ folder: keep.id }); } catch (e) {} }
+                for (const sub of (game.folders?.filter(x => (x.folder?.id ?? null) === dup.id) ?? [])) {
+                    try { await sub.update({ folder: keep.id }); } catch (e) {}
+                }
+                await dup.delete();
+                removed++;
+            } catch (e) { console.warn(`[${MOD}] dédoublonnage « ${dup.name} » :`, e); }
+        }
+    }
+    ui.notifications?.info(`[${MOD}] Dédoublonnage terminé : ${removed} dossier(s) en double fusionné(s).`);
+    return removed;
+}
+
 export function CharValidationHooks() {
     // Requête d'(dés)activation d'un personnage — traitée par le GM.
     CONFIG.queries["westmarch.charStock"] = async ({ actorId, stock }) => { await applyCharStock(actorId, stock); return true; };
 
     // ---- Sous-dossier auto au nom du joueur (Dossier des PJ) ----
-    // À la connexion d'un joueur, le GM crée son sous-dossier s'il n'existe pas.
+    // IMPORTANT : la création de dossiers est réservée au MJ PRIMAIRE
+    // (game.users.activeGM). Sinon, chaque client MJ connecté crée les mêmes
+    // dossiers en parallèle → doublons. Un seul client fait autorité.
     Hooks.on("userConnected", (user, connected) => {
-        if (!connected) return;
+        if (!connected || !isPrimaryGM()) return;
         if (user.isGM) ensureGmFolders(user);
         else ensurePlayerPJFolder(user);
     });
-    // Passe initiale : couvre les joueurs/MJ déjà connectés quand le GM arrive,
-    // et crée les dossiers du MJ courant à sa propre connexion.
+    // Passe initiale : couvre les joueurs/MJ déjà connectés. Toujours un seul
+    // client (le MJ primaire) pour éviter les doublons.
     Hooks.once("ready", () => {
-        if (!game.user.isGM) return;
+        // Expose le dédoublonnage manuel : game.modules.get("…").api.dedupeFolders()
+        const mod = game.modules.get(MOD);
+        if (mod) mod.api = { ...(mod.api ?? {}), dedupeFolders: dedupeAutoFolders };
+
+        if (!isPrimaryGM()) return;
         ensureGmFolders(game.user);
         for (const u of (game.users ?? [])) {
             if (!u.active) continue;

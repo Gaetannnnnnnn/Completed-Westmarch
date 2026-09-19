@@ -187,7 +187,7 @@ async function offerCleave(attacker, item) {
 
 // Construit et poste le(s) message(s) de maîtrise à la fin d'une attaque.
 function onAttackComplete(workflow) {
-    _log("AttackRollComplete reçu — réglage maîtrises:", on("enableMasteryReminder"),
+    _log("maîtrise: fin d'attaque reçue — réglage maîtrises:", on("enableMasteryReminder"),
          "| arme:", workflow?.item?.name, "| mastery:", workflow?.item?.system?.mastery);
     if (!on("enableMasteryReminder")) return;
     const item = workflow?.item;
@@ -199,8 +199,9 @@ function onAttackComplete(workflow) {
     if (!attacker) return;
     const hit = workflow?.hitTargets ? [...workflow.hitTargets] : [];
     const all = workflow?.targets ? [...workflow.targets] : [];
-    const missed = all.filter(t => !hit.includes(t));
+    const missed = (workflow?.missedTargets ? [...workflow.missedTargets] : all.filter(t => !hit.includes(t)));
     const concern = m.trigger === "miss" ? missed : hit;
+    _log("maîtrise", mid, "— hits:", hit.length, "| all:", all.length, "| missed:", missed.length, "| concernés:", concern.length);
     if (!concern.length) return;
 
     // Cleave : PROPOSÉ AU JOUEUR (avant), une seule fois par tour.
@@ -289,14 +290,125 @@ async function _runMasteryAction(btn) {
     } catch (e) { console.warn(`[${MOD}] action de maîtrise :`, e); }
 }
 
+// ============================================================
+// PHASE 2 — Actions bonus utiles (Smite / Châtiment après un coup)
+// Après un coup qui TOUCHE avec une arme, si le PJ a un Smite disponible
+// (emplacement de sort ou utilisation), on lui propose de l'utiliser.
+// ============================================================
+function _hasSpellSlot(actor) {
+    const sp = actor?.system?.spells ?? {};
+    return Object.values(sp).some(s => (s?.value ?? 0) > 0 && (s?.max ?? 0) > 0);
+}
+function _smiteAvailable(it, hasSlot) {
+    if (it.type === "spell") return hasSlot;                 // sort → besoin d'un emplacement
+    const uses = it.system?.uses;
+    if (uses && (uses.max ?? 0) > 0) return (uses.value ?? 0) > 0;   // capacité à charges
+    return hasSlot;                                          // feature reposant sur les emplacements (Divine Smite)
+}
+function smiteOptions(actor) {
+    const hasSlot = _hasSpellSlot(actor);
+    const out = [];
+    for (const it of (actor?.items ?? [])) {
+        const n = (it.name ?? "").toLowerCase();
+        if (!/smite|ch[aâ]timent/.test(n)) continue;         // « Smite » / « Châtiment »
+        if (it.type === "spell") {
+            const mode = it.system?.preparation?.mode;
+            const prepared = it.system?.preparation?.prepared ?? true;
+            if (mode === "prepared" && !prepared) continue;  // non préparé → ignoré
+        }
+        if (_smiteAvailable(it, hasSlot)) out.push(it);
+    }
+    return out;
+}
+async function onBonusReminder(workflow) {
+    if (!on("enableBonusReminder")) return;
+    const attacker = workflow?.actor;
+    const item     = workflow?.item;
+    if (!attacker || !item) return;
+    const hit = workflow?.hitTargets ? [...workflow.hitTargets] : [];
+    _log("bonus/smite — hits:", hit.length, "| arme:", item?.name, "| propriétaire:", attacker?.isOwner, "| GM:", game.user.isGM);
+    if (!hit.length) return;                                 // Divine Smite = après un coup qui touche
+    if (item.type !== "weapon") return;                      // attaque d'arme
+    if (!attacker.isOwner || game.user.isGM) return;         // pop-up chez le JOUEUR attaquant
+    const opts = smiteOptions(attacker);
+    if (!opts.length) { _log("bonus/smite — aucun smite disponible (préparé + slot/charge)"); return; }
+
+    const DialogV2 = foundry.applications.api.DialogV2;
+    const buttons = opts.map(it => ({
+        action: it.id, label: it.name, icon: '<i class="fa-solid fa-fire"></i>',
+        callback: async () => { try { await (it.use?.() ?? it.roll?.()); } catch (e) { console.warn(`[${MOD}] usage smite :`, e); } }
+    }));
+    buttons.push({ action: "no", label: "Non merci", icon: '<i class="fa-solid fa-xmark"></i>', default: true });
+    try {
+        await DialogV2.wait({
+            window: { title: "Action bonus — Châtiment ?", icon: "fa-solid fa-fire" },
+            position: { width: 380 },
+            content: `<p style="margin:0 0 6px;">Tu as <strong>touché</strong> ! Utiliser un <strong>Châtiment / Smite</strong> (action bonus) ?</p>`,
+            buttons, rejectClose: false
+        });
+    } catch (e) {}
+}
+
+// ============================================================
+// PHASE 4 — Rappel avantage / désavantage (chuchoté au joueur au jet d'attaque)
+// Simple RAPPEL : ne modifie pas le jet (Midi-QOL/dnd5e calculent déjà « à
+// terre » etc.). Basé sur les conditions (statuses) de l'attaquant et de la cible.
+// ============================================================
+const ADV_TARGET = {   // condition SUR LA CIBLE → avantage pour l'attaquant
+    blinded: "aveuglée", paralyzed: "paralysée", petrified: "pétrifiée",
+    restrained: "entravée", stunned: "étourdie", unconscious: "inconsciente"
+};
+const DIS_ATTACKER = { // condition SUR L'ATTAQUANT → désavantage
+    blinded: "aveuglé", frightened: "effrayé", poisoned: "empoisonné",
+    restrained: "entravé", prone: "à terre"
+};
+
+function onAdvantageReminder(workflow) {
+    if (!on("enableAdvantageReminder")) return;
+    const attacker = workflow?.actor;
+    const item = workflow?.item;
+    if (!attacker) return;
+    if (!attacker.isOwner || game.user.isGM) return;    // rappel chez le JOUEUR attaquant
+
+    const at = item?.system?.actionType ?? workflow?.activity?.actionType ?? "";
+    const melee = at ? /^m/i.test(at) : null;           // mwak/msak = CaC ; null = inconnu
+
+    const adv = [], dis = [];
+    const aStat = attacker.statuses ?? new Set();
+    if (aStat.has("invisible")) adv.push("tu es invisible");
+    for (const [id, lbl] of Object.entries(DIS_ATTACKER)) if (aStat.has(id)) dis.push(`tu es ${lbl}`);
+
+    for (const t of [...(workflow?.targets ?? [])]) {
+        const ta = t?.actor; if (!ta) continue;
+        const tStat = ta.statuses ?? new Set();
+        for (const [id, lbl] of Object.entries(ADV_TARGET)) if (tStat.has(id)) adv.push(`${ta.name} est ${lbl}`);
+        if (tStat.has("invisible")) dis.push(`${ta.name} est invisible`);
+        if (tStat.has("prone")) {
+            if (melee === true)      adv.push(`${ta.name} est à terre (corps-à-corps)`);
+            else if (melee === false) dis.push(`${ta.name} est à terre (à distance)`);
+            else adv.push(`${ta.name} est à terre (avantage au CaC, désavantage à distance)`);
+        }
+    }
+
+    _log("avantage — adv:", adv.length, "| dés:", dis.length);
+    if (!adv.length && !dis.length) return;
+    const block = (title, color, arr) => arr.length
+        ? `<div><strong style="color:${color};">${title} :</strong> ${arr.join(" · ")}</div>` : "";
+    ChatMessage.create({
+        whisper: [game.user.id],
+        speaker: { alias: "Avantage / Désavantage" },
+        content: `<div style="font-size:12px;">${block("Avantage", "#8fd19e", adv)}${block("Désavantage", "#e58f8f", dis)}</div>`
+    });
+}
+
 export function CombatRemindersHooks() {
     // API de diagnostic exposée IMMÉDIATEMENT (pas dans "ready") pour être fiable.
     try {
         const mod = game.modules.get(MOD);
-        if (mod) mod.api = { ...(mod.api ?? {}), combatBuild: "4.8.4", combatDebug: () => {
+        if (mod) mod.api = { ...(mod.api ?? {}), combatBuild: "4.8.7", combatDebug: () => {
             const midi = game.modules.get("midi-qol");
             return {
-                build: "4.8.4",
+                build: "4.8.7",
                 midiPresent: !!midi, midiActive: !!midi?.active,
                 react: on("enableReactReminder"), bonus: on("enableBonusReminder"),
                 mastery: on("enableMasteryReminder"), advantage: on("enableAdvantageReminder")
@@ -312,8 +424,14 @@ export function CombatRemindersHooks() {
     // Phase 1 — réactions : pre-hook Midi-QOL qui expose déjà les cibles.
     Hooks.on("midi-qol.preAttackRoll", onPreAttack);
 
-    // Phase 3 — maîtrises : après le jet d'attaque (hit/miss connus).
-    Hooks.on("midi-qol.AttackRollComplete", onAttackComplete);
+    // Phase 4 — avantage/désavantage : rappel avant le jet (cibles connues).
+    Hooks.on("midi-qol.preAttackRoll", onAdvantageReminder);
+
+    // Phase 3 — maîtrises : à la FIN du workflow (hit/miss définitivement connus).
+    Hooks.on("midi-qol.RollComplete", onAttackComplete);
+
+    // Phase 2 — actions bonus (Smite après un coup) : même hook de fin.
+    Hooks.on("midi-qol.RollComplete", onBonusReminder);
 
     // ---- DIAGNOSTIC : indique au démarrage l'état + trace les hooks Midi-QOL ----
     Hooks.once("ready", () => {

@@ -69,6 +69,7 @@ import { TmHooks }          from "./modules/tm.js";
 // --- Phase 6 : Carte / Midi / Tutoriel ---
 import { MapHooks }              from "./modules/map.js";
 import { UiHideHooks }           from "./modules/uihide.js";
+import { CombatRemindersHooks }  from "./modules/combatreminders.js";
 import { RangeFixHooks }         from "./modules/range-fix.js";
 import { registerTutorielButton } from "./modules/toolbar.js";
 import { showWelcomeIfNeeded }    from "./modules/welcome.js";
@@ -186,6 +187,7 @@ Hooks.on("init", () => {
     // --- Phase 6 : Carte + Tutoriel (init) ---
     MapHooks();
     UiHideHooks();
+    CombatRemindersHooks();
     // Bouton tutoriel enregistré en "init" pour que getSceneControlButtons
     // soit déjà écouté quand Foundry construit la barre. Le hook vérifie
     // lui-même le setting tutoEnabled (voir toolbar.js) : on l'enregistre

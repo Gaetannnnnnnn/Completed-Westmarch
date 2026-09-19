@@ -48,7 +48,11 @@ function selectorFor(key) {
     }
     if (key.startsWith("sidebar:")) {
         const n = cssEsc(key.slice(8));
-        return `#sidebar-tabs [data-tab="${n}"], #sidebar nav [data-tab="${n}"], #sidebar [data-action="tab"][data-tab="${n}"]`;
+        // On masque l'onglet ET son éventuel conteneur (<li>) pour ne pas laisser
+        // de trou dans la barre de droite.
+        return `#sidebar-tabs [data-tab="${n}"], #sidebar nav [data-tab="${n}"], `
+             + `#sidebar [data-action="tab"][data-tab="${n}"], `
+             + `#sidebar-tabs li:has([data-tab="${n}"]), #sidebar nav li:has([data-tab="${n}"])`;
     }
     return null;
 }

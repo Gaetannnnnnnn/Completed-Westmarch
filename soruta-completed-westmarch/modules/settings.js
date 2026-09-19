@@ -271,6 +271,24 @@ export function registerSettings() {
         "Note GM sur les fiches PJ",
         "Ajoute un onglet « Note GM » sur les fiches de personnage, visible et modifiable uniquement par les GM. Les joueurs ne voient pas l'onglet. Nécessite un rechargement.",
         true, { requiresReload: true }));
+
+    // ---- Rappels de combat (assistant contextuel, dépend de Midi-QOL) ----
+    game.settings.register(MOD, "enableReactReminder", B(
+        "Rappel des réactions",
+        "Quand un PJ est réellement ciblé par une attaque (via Midi-QOL), lui propose ses réactions dans un pop-up et prévient le MJ de sa party qu'il réfléchit ; le choix du joueur ferme la notif du MJ.",
+        false));
+    game.settings.register(MOD, "enableBonusReminder", B(
+        "Rappel des actions bonus utiles",
+        "Propose une action bonus pertinente au bon moment (ex. Divine Smite après un coup au corps-à-corps si le PJ a des emplacements de sort).",
+        false));
+    game.settings.register(MOD, "enableMasteryReminder", B(
+        "Rappel des maîtrises d'arme (weapon mastery)",
+        "Si l'arme utilisée possède une maîtrise sur la fiche du PJ, rappelle son effet lors de l'attaque.",
+        false));
+    game.settings.register(MOD, "enableAdvantageReminder", B(
+        "Rappel avantage / désavantage",
+        "Au jet d'attaque, signale les sources d'avantage/désavantage selon l'état de la cible (à terre + CaC…) et les effets de statut du PJ.",
+        false));
     game.settings.register(MOD, "hidePlayerStarTab", B(
         "Masquer l'onglet « étoile » aux joueurs",
         "Cache l'onglet dont l'icône est une étoile (favoris) sur les fiches de personnage, pour les joueurs uniquement. Les GM le voient toujours."));
@@ -949,6 +967,9 @@ const CATEGORIES = [
     { firstKey: "enableXpBlock",         icon: "fa-server",          title: "Serveur",
       desc: "Personnalisations du serveur : blocage XP / Level Up, logs Discord, webhooks.",
       keys: ["enableXpBlock","enableFakeWarning","enableGmNotes","hidePlayerStarTab","enableDiscordLog","discordLogWebhookUrl","downtimeWebhookUrl","tmWebhookUrl"] },
+    { firstKey: "enableReactReminder", icon: "fa-bolt", title: "Rappels de combat",
+      desc: "Assistant de combat contextuel (dépend de Midi-QOL) : rappel des réactions (avec notif au MJ de la party), actions bonus utiles (Smite…), maîtrises d'arme, et avantage/désavantage. Chaque point est activable séparément.",
+      keys: ["enableReactReminder","enableBonusReminder","enableMasteryReminder","enableAdvantageReminder"] },
     { firstKey: "tmSkillBase", master: "tmEnabled", icon: "fa-hourglass-half",  title: "Temps morts",
       desc: "Règles configurables des temps morts : valeurs, formules (gain de compétence, artisanat) et tables (parchemins, objets magiques). Chaque serveur peut avoir ses propres règles.",
       keys: ["tmEnabled","tmSkillBase","tmAddAbilityMod","tmBonusMaitrise","tmBonusExpertise","tmBonusTools","tmRollMinDays","tmReliableTalent","tmSkillFormula","tmCraftNonMagicCostDiv","tmCraftNonMagicDaysPerGp","tmCraftNonMagicCostFormula","tmCraftNonMagicDaysFormula","tmSingleUseFactor","tmScrollTable","tmMagicTable","tmRollTable"] },

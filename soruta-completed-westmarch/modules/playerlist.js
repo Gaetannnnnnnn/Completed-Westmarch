@@ -13,41 +13,38 @@ import { MOD } from "./const.js";
 // ── Repli du panneau des joueurs vers la gauche (état mémorisé par navigateur) ──
 const _isCollapsed = () => { try { return localStorage.getItem("scwm-players-collapsed") === "1"; } catch { return false; } };
 function _applyCollapsed(v) { document.body.classList.toggle("scwm-players-collapsed", !!v); }
-function _setCollapsed(v) { try { localStorage.setItem("scwm-players-collapsed", v ? "1" : "0"); } catch {} _applyCollapsed(v); }
 
-// Poignée fixe (bas-gauche) pour rouvrir le panneau une fois replié — créée une fois.
-function _ensureReopenHandle() {
-    if (document.querySelector(".scwm-players-reopen")) return;
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "scwm-players-reopen";
-    btn.title = "Afficher la liste des joueurs";
-    btn.innerHTML = `<i class="fa-solid fa-users"></i><i class="fa-solid fa-chevron-right"></i>`;
-    btn.addEventListener("click", () => _setCollapsed(false));
-    (document.getElementById("interface") ?? document.body).appendChild(btn);
+let _toggleBtn = null;
+function _refreshToggle() {
+    if (!_toggleBtn) return;
+    const c = _isCollapsed();
+    _toggleBtn.innerHTML = c
+        ? `<i class="fa-solid fa-users"></i><i class="fa-solid fa-angle-right"></i>`
+        : `<i class="fa-solid fa-angle-left"></i>`;
+    _toggleBtn.title = c ? "Afficher la liste des joueurs" : "Réduire la liste des joueurs";
+    _toggleBtn.classList.toggle("is-collapsed", c);
+}
+function _setCollapsed(v) {
+    try { localStorage.setItem("scwm-players-collapsed", v ? "1" : "0"); } catch {}
+    _applyCollapsed(v);
+    _refreshToggle();
+}
+// Un SEUL bouton fixe (indépendant du survol du panneau) qui replie/déplie.
+function _ensureToggle() {
+    if (_toggleBtn && document.contains(_toggleBtn)) return;
+    _toggleBtn = document.createElement("button");
+    _toggleBtn.type = "button";
+    _toggleBtn.className = "scwm-players-toggle";
+    _toggleBtn.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); _setCollapsed(!_isCollapsed()); });
+    (document.getElementById("interface") ?? document.body).appendChild(_toggleBtn);
+    _refreshToggle();
 }
 
 export function PlayerListHooks() {
 
-    // ── Bouton « réduire » sur le panneau des joueurs (indépendant du mode compact) ──
-    Hooks.on("renderPlayers", () => {
-        // On vise TOUJOURS le panneau #players lui-même (le html du hook peut être
-        // un sous-élément selon la version de Foundry) pour un placement fiable.
-        const panel = document.getElementById("players")
-            ?? document.querySelector("#players-active")?.closest("#players, .players");
-        if (!panel) return;
-        _ensureReopenHandle();
-        _applyCollapsed(_isCollapsed());
-        if (!panel.querySelector(".scwm-players-collapse")) {
-            const btn = document.createElement("button");
-            btn.type = "button";
-            btn.className = "scwm-players-collapse";
-            btn.title = "Réduire la liste des joueurs (vers la gauche)";
-            btn.innerHTML = `<i class="fa-solid fa-chevron-left"></i>`;
-            btn.addEventListener("click", (e) => { e.stopPropagation(); _setCollapsed(true); });
-            panel.insertBefore(btn, panel.firstChild);
-        }
-    });
+    // ── Repli du panneau des joueurs (bouton fixe, indépendant du mode compact) ──
+    Hooks.once("ready", () => { _ensureToggle(); _applyCollapsed(_isCollapsed()); _refreshToggle(); });
+    Hooks.on("renderPlayers", () => { _ensureToggle(); _applyCollapsed(_isCollapsed()); _refreshToggle(); });
 
     Hooks.on("renderPlayers", (app, html) => {
         if (!game.settings.get(MOD, "enablePlayerListCompact")) return;

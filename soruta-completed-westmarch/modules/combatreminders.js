@@ -328,14 +328,25 @@ function _smiteAvailable(it, hasSlot) {
     if (uses && (uses.max ?? 0) > 0) return (uses.value ?? 0) > 0;   // capacité à charges
     return hasSlot;                                          // feature reposant sur les emplacements (Divine Smite)
 }
+// Un sort est retenu s'il est PRÉPARÉ, ou « toujours préparé » (sorts
+// additionnels / de serment, dons innés, pacte…).
+function _spellUsable(it) {
+    const p = it.system?.preparation ?? {};
+    const mode = p.mode;
+    if (["always", "atwill", "innate", "pact"].includes(mode)) return true;   // toujours dispo
+    if (mode === "prepared") return p.prepared === true;                        // préparé coché
+    return p.prepared === true;
+}
 function smiteOptions(actor) {
     const hasSlot = _hasSpellSlot(actor);
     const named = (actor?.items ?? []).filter(it => /smite|ch[aâ]timent/i.test(it.name ?? ""));
-    _log("bonus/smite — items « smite » trouvés:", named.map(i => `${i.name}[${i.type}]`), "| emplacement dispo:", hasSlot);
-    // Détection permissive : on liste tout item nommé « smite/châtiment » qui est
-    // utilisable (charge dispo, ou emplacement de sort dispo). On ne filtre PAS
-    // sur « préparé » (le drapeau varie selon les versions et les paladins 2024).
-    return named.filter(it => _smiteAvailable(it, hasSlot));
+    _log("bonus/smite — items « smite » trouvés:",
+         named.map(i => `${i.name}[${i.type}/${i.system?.preparation?.mode ?? "-"}/prep=${i.system?.preparation?.prepared}]`),
+         "| emplacement dispo:", hasSlot);
+    return named.filter(it => {
+        if (it.type === "spell") return _spellUsable(it) && hasSlot;   // préparé (ou toujours) + un emplacement
+        return _smiteAvailable(it, hasSlot);                            // feature (charge ou emplacement)
+    });
 }
 async function onBonusReminder(workflow) {
     if (!on("enableBonusReminder")) return;
@@ -351,17 +362,34 @@ async function onBonusReminder(workflow) {
     if (!opts.length) { _log("bonus/smite — aucun smite disponible (préparé + slot/charge)"); return; }
 
     const DialogV2 = foundry.applications.api.DialogV2;
-    const buttons = opts.map(it => ({
-        action: it.id, label: it.name, icon: '<i class="fa-solid fa-fire"></i>',
-        callback: async () => { try { await (it.use?.() ?? it.roll?.()); } catch (e) { console.warn(`[${MOD}] usage smite :`, e); } }
-    }));
-    buttons.push({ action: "no", label: "Non merci", icon: '<i class="fa-solid fa-xmark"></i>', default: true });
+    const esc = (s) => String(s ?? "").replace(/"/g, "&quot;");
+    const rows = opts.map(it => `
+        <button type="button" class="scwm-smite-opt" data-id="${it.id}"
+                style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+                       padding:6px 8px;margin:4px 0;border-radius:6px;cursor:pointer;
+                       border:1px solid rgba(201,162,39,0.35);background:rgba(201,162,39,0.08);">
+            <img src="${esc(it.img)}" style="width:32px;height:32px;object-fit:cover;border-radius:5px;flex:0 0 auto;">
+            <span style="flex:1;font-weight:600;">${esc(it.name)}</span>
+            <i class="fa-solid fa-fire" style="color:#e67e22;"></i>
+        </button>`).join("");
     try {
         await DialogV2.wait({
             window: { title: "Action bonus — Châtiment ?", icon: "fa-solid fa-fire" },
-            position: { width: 380 },
-            content: `<p style="margin:0 0 6px;">Tu as <strong>touché</strong> ! Utiliser un <strong>Châtiment / Smite</strong> (action bonus) ?</p>`,
-            buttons, rejectClose: false
+            position: { width: 400 },
+            content: `<div style="display:flex;flex-direction:column;">
+                <p style="margin:0 0 6px;">Tu as <strong>touché</strong> ! Utiliser un <strong>Châtiment / Smite</strong> (action bonus) ?</p>
+                ${rows}
+            </div>`,
+            buttons: [{ action: "no", label: "Non merci", icon: '<i class="fa-solid fa-xmark"></i>', default: true }],
+            rejectClose: false,
+            render: (ev, dlg) => {
+                const root = dlg?.element ?? ev?.target?.closest?.(".application") ?? document;
+                root.querySelectorAll?.(".scwm-smite-opt").forEach(b => b.addEventListener("click", async () => {
+                    const it = attacker.items.get(b.dataset.id);
+                    try { await (it?.use?.() ?? it?.roll?.()); } catch (e) { console.warn(`[${MOD}] usage smite :`, e); }
+                    try { dlg?.close?.(); } catch (e) {}
+                }));
+            }
         });
     } catch (e) {}
 }
@@ -422,10 +450,10 @@ export function CombatRemindersHooks() {
     // API de diagnostic exposée IMMÉDIATEMENT (pas dans "ready") pour être fiable.
     try {
         const mod = game.modules.get(MOD);
-        if (mod) mod.api = { ...(mod.api ?? {}), combatBuild: "4.9.0", combatDebug: () => {
+        if (mod) mod.api = { ...(mod.api ?? {}), combatBuild: "4.9.1", combatDebug: () => {
             const midi = game.modules.get("midi-qol");
             return {
-                build: "4.9.0",
+                build: "4.9.1",
                 midiPresent: !!midi, midiActive: !!midi?.active,
                 react: on("enableReactReminder"), bonus: on("enableBonusReminder"),
                 mastery: on("enableMasteryReminder"), advantage: on("enableAdvantageReminder")

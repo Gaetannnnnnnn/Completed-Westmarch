@@ -14,6 +14,7 @@
 import { MOD } from "./const.js";
 
 const on = (k) => { try { return game.settings.get(MOD, k); } catch { return false; } };
+const _log = (...a) => console.log(`%c[WM combat]`, "color:#c9a227", ...a);
 
 // ── Détection des réactions d'un acteur (items/activités de type "reaction") ──
 function reactionItems(actor) {
@@ -99,6 +100,8 @@ function clearGmNotify(promptId) {
 
 // ── Déclencheur : ciblage réel via Midi-QOL (côté client de l'attaquant) ──────
 function onPreAttack(workflow) {
+    _log("preAttackRoll reçu — réglage réactions:", on("enableReactReminder"),
+         "| cibles:", workflow?.targets ? [...workflow.targets].length : 0);
     if (!on("enableReactReminder")) return;
     const targets = workflow?.targets ? [...workflow.targets] : [];
     const attacker = workflow?.actor?.name ?? "";
@@ -184,6 +187,8 @@ async function offerCleave(attacker, item) {
 
 // Construit et poste le(s) message(s) de maîtrise à la fin d'une attaque.
 function onAttackComplete(workflow) {
+    _log("AttackRollComplete reçu — réglage maîtrises:", on("enableMasteryReminder"),
+         "| arme:", workflow?.item?.name, "| mastery:", workflow?.item?.system?.mastery);
     if (!on("enableMasteryReminder")) return;
     const item = workflow?.item;
     const mid  = item?.system?.mastery;
@@ -285,6 +290,20 @@ async function _runMasteryAction(btn) {
 }
 
 export function CombatRemindersHooks() {
+    // API de diagnostic exposée IMMÉDIATEMENT (pas dans "ready") pour être fiable.
+    try {
+        const mod = game.modules.get(MOD);
+        if (mod) mod.api = { ...(mod.api ?? {}), combatBuild: "4.8.4", combatDebug: () => {
+            const midi = game.modules.get("midi-qol");
+            return {
+                build: "4.8.4",
+                midiPresent: !!midi, midiActive: !!midi?.active,
+                react: on("enableReactReminder"), bonus: on("enableBonusReminder"),
+                mastery: on("enableMasteryReminder"), advantage: on("enableAdvantageReminder")
+            };
+        } };
+    } catch (e) { console.warn(`[${MOD}] api combatDebug :`, e); }
+
     // Queries (toujours enregistrées : réception des pop-ups / fermetures).
     CONFIG.queries["westmarch.reactPrompt"] = async (data) => { await showReactionPrompt(data); return true; };
     CONFIG.queries["westmarch.reactNotify"] = async (data) => { showGmNotify(data); return true; };
@@ -295,6 +314,23 @@ export function CombatRemindersHooks() {
 
     // Phase 3 — maîtrises : après le jet d'attaque (hit/miss connus).
     Hooks.on("midi-qol.AttackRollComplete", onAttackComplete);
+
+    // ---- DIAGNOSTIC : indique au démarrage l'état + trace les hooks Midi-QOL ----
+    Hooks.once("ready", () => {
+        const midi = game.modules.get("midi-qol");
+        _log("init — Midi-QOL présent:", !!midi, "actif:", !!midi?.active,
+             "| réglages → réactions:", on("enableReactReminder"),
+             "bonus:", on("enableBonusReminder"),
+             "maîtrises:", on("enableMasteryReminder"),
+             "avantage:", on("enableAdvantageReminder"));
+        if (!midi?.active) _log("⚠️ Midi-QOL n'est PAS actif → aucun rappel ne peut se déclencher.");
+        // Trace quels hooks Midi-QOL se déclenchent réellement chez toi.
+        for (const h of ["midi-qol.preAttackRoll", "midi-qol.AttackRollComplete",
+                         "midi-qol.postAttackRoll", "midi-qol.RollComplete",
+                         "midi-qol.preItemRoll", "midi-qol.preambleComplete"]) {
+            Hooks.on(h, () => _log("hook Midi-QOL déclenché:", h));
+        }
+    });
 
     // Clic sur les boutons de maîtrise (délégation globale, MJ uniquement).
     document.addEventListener("click", (e) => {

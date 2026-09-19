@@ -30,19 +30,22 @@ function _ensureReopenHandle() {
 export function PlayerListHooks() {
 
     // ── Bouton « réduire » sur le panneau des joueurs (indépendant du mode compact) ──
-    Hooks.on("renderPlayers", (app, html) => {
-        const root = html instanceof HTMLElement ? html : html?.[0];
-        if (!root) return;
+    Hooks.on("renderPlayers", () => {
+        // On vise TOUJOURS le panneau #players lui-même (le html du hook peut être
+        // un sous-élément selon la version de Foundry) pour un placement fiable.
+        const panel = document.getElementById("players")
+            ?? document.querySelector("#players-active")?.closest("#players, .players");
+        if (!panel) return;
         _ensureReopenHandle();
         _applyCollapsed(_isCollapsed());
-        if (!root.querySelector(".scwm-players-collapse")) {
+        if (!panel.querySelector(".scwm-players-collapse")) {
             const btn = document.createElement("button");
             btn.type = "button";
             btn.className = "scwm-players-collapse";
             btn.title = "Réduire la liste des joueurs (vers la gauche)";
             btn.innerHTML = `<i class="fa-solid fa-chevron-left"></i>`;
             btn.addEventListener("click", (e) => { e.stopPropagation(); _setCollapsed(true); });
-            root.insertBefore(btn, root.firstChild);
+            panel.insertBefore(btn, panel.firstChild);
         }
     });
 

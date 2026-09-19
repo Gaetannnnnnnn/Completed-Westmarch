@@ -147,6 +147,29 @@ const MASTERY = {
               desc: "Tu peux faire une <strong>attaque d'arme légère supplémentaire</strong> dans l'action d'Attaque." },
 };
 
+// Détermine hits/miss de façon fiable : crit/fumble d'abord, sinon total
+// d'attaque vs CA de la cible, sinon repli sur les sets Midi-QOL.
+function resolveHits(workflow) {
+    const targets = [...(workflow?.targets ?? [])];
+    const atk = Number(workflow?.attackTotal ?? workflow?.attackRoll?.total ?? NaN);
+    const crit = workflow?.isCritical === true;
+    const fumble = workflow?.isFumble === true;
+    const setHit  = workflow?.hitTargets ? new Set([...workflow.hitTargets]) : null;
+    const setMiss = workflow?.missedTargets ? new Set([...workflow.missedTargets]) : null;
+    const hits = [], missed = [];
+    for (const t of targets) {
+        const ac = t?.actor?.system?.attributes?.ac?.value;
+        let hit = null;
+        if (crit) hit = true;
+        else if (fumble) hit = false;
+        else if (Number.isFinite(atk) && Number.isFinite(ac)) hit = atk >= ac;
+        else if (setHit?.has(t)) hit = true;
+        else if (setMiss?.has(t)) hit = false;
+        if (hit === true) hits.push(t); else if (hit === false) missed.push(t);
+    }
+    return { hits, missed, atk, crit, fumble };
+}
+
 function masteryDc(attacker, item) {
     try {
         const abil = item?.abilityMod ?? item?.system?.ability ?? "str";
@@ -197,11 +220,11 @@ function onAttackComplete(workflow) {
 
     const attacker = workflow?.actor;
     if (!attacker) return;
-    const hit = workflow?.hitTargets ? [...workflow.hitTargets] : [];
+    const { hits: hit, missed, atk, crit, fumble } = resolveHits(workflow);
     const all = workflow?.targets ? [...workflow.targets] : [];
-    const missed = (workflow?.missedTargets ? [...workflow.missedTargets] : all.filter(t => !hit.includes(t)));
     const concern = m.trigger === "miss" ? missed : hit;
-    _log("maîtrise", mid, "— hits:", hit.length, "| all:", all.length, "| missed:", missed.length, "| concernés:", concern.length);
+    _log("maîtrise", mid, "— total attaque:", atk, "crit:", crit, "fumble:", fumble,
+         "| hits:", hit.length, "| all:", all.length, "| missed:", missed.length, "| concernés:", concern.length);
     if (!concern.length) return;
 
     // Cleave : PROPOSÉ AU JOUEUR (avant), une seule fois par tour.
@@ -307,29 +330,23 @@ function _smiteAvailable(it, hasSlot) {
 }
 function smiteOptions(actor) {
     const hasSlot = _hasSpellSlot(actor);
-    const out = [];
-    for (const it of (actor?.items ?? [])) {
-        const n = (it.name ?? "").toLowerCase();
-        if (!/smite|ch[aâ]timent/.test(n)) continue;         // « Smite » / « Châtiment »
-        if (it.type === "spell") {
-            const mode = it.system?.preparation?.mode;
-            const prepared = it.system?.preparation?.prepared ?? true;
-            if (mode === "prepared" && !prepared) continue;  // non préparé → ignoré
-        }
-        if (_smiteAvailable(it, hasSlot)) out.push(it);
-    }
-    return out;
+    const named = (actor?.items ?? []).filter(it => /smite|ch[aâ]timent/i.test(it.name ?? ""));
+    _log("bonus/smite — items « smite » trouvés:", named.map(i => `${i.name}[${i.type}]`), "| emplacement dispo:", hasSlot);
+    // Détection permissive : on liste tout item nommé « smite/châtiment » qui est
+    // utilisable (charge dispo, ou emplacement de sort dispo). On ne filtre PAS
+    // sur « préparé » (le drapeau varie selon les versions et les paladins 2024).
+    return named.filter(it => _smiteAvailable(it, hasSlot));
 }
 async function onBonusReminder(workflow) {
     if (!on("enableBonusReminder")) return;
     const attacker = workflow?.actor;
     const item     = workflow?.item;
     if (!attacker || !item) return;
-    const hit = workflow?.hitTargets ? [...workflow.hitTargets] : [];
-    _log("bonus/smite — hits:", hit.length, "| arme:", item?.name, "| propriétaire:", attacker?.isOwner, "| GM:", game.user.isGM);
+    const { hits: hit, atk } = resolveHits(workflow);
+    _log("bonus/smite — total attaque:", atk, "| hits:", hit.length, "| arme:", item?.name, "| propriétaire:", attacker?.isOwner, "| GM:", game.user.isGM);
     if (!hit.length) return;                                 // Divine Smite = après un coup qui touche
     if (item.type !== "weapon") return;                      // attaque d'arme
-    if (!attacker.isOwner || game.user.isGM) return;         // pop-up chez le JOUEUR attaquant
+    if (!attacker.isOwner) return;                           // pop-up chez le propriétaire du token (joueur OU MJ)
     const opts = smiteOptions(attacker);
     if (!opts.length) { _log("bonus/smite — aucun smite disponible (préparé + slot/charge)"); return; }
 
@@ -368,7 +385,7 @@ function onAdvantageReminder(workflow) {
     const attacker = workflow?.actor;
     const item = workflow?.item;
     if (!attacker) return;
-    if (!attacker.isOwner || game.user.isGM) return;    // rappel chez le JOUEUR attaquant
+    if (!attacker.isOwner) return;                      // rappel chez le propriétaire du token (joueur OU MJ)
 
     const at = item?.system?.actionType ?? workflow?.activity?.actionType ?? "";
     const melee = at ? /^m/i.test(at) : null;           // mwak/msak = CaC ; null = inconnu
@@ -405,10 +422,10 @@ export function CombatRemindersHooks() {
     // API de diagnostic exposée IMMÉDIATEMENT (pas dans "ready") pour être fiable.
     try {
         const mod = game.modules.get(MOD);
-        if (mod) mod.api = { ...(mod.api ?? {}), combatBuild: "4.8.7", combatDebug: () => {
+        if (mod) mod.api = { ...(mod.api ?? {}), combatBuild: "4.9.0", combatDebug: () => {
             const midi = game.modules.get("midi-qol");
             return {
-                build: "4.8.7",
+                build: "4.9.0",
                 midiPresent: !!midi, midiActive: !!midi?.active,
                 react: on("enableReactReminder"), bonus: on("enableBonusReminder"),
                 mastery: on("enableMasteryReminder"), advantage: on("enableAdvantageReminder")

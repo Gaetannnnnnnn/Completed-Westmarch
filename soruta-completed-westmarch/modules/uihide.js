@@ -46,6 +46,10 @@ function selectorFor(key) {
         const n = cssEsc(key.slice(8));
         return `#scene-controls [data-control="${n}"], #controls [data-control="${n}"]`;
     }
+    if (key.startsWith("sidebar:")) {
+        const n = cssEsc(key.slice(8));
+        return `#sidebar-tabs [data-tab="${n}"], #sidebar nav [data-tab="${n}"], #sidebar [data-action="tab"][data-tab="${n}"]`;
+    }
     return null;
 }
 
@@ -58,6 +62,21 @@ export function applyUiHiding() {
     let style = document.getElementById(STYLE_ID);
     if (!style) { style = document.createElement("style"); style.id = STYLE_ID; document.head.appendChild(style); }
     style.textContent = rules;
+}
+
+// Onglets de la barre latérale de droite (Chat, Combats, Acteurs, Journaux…),
+// détectés directement dans le DOM.
+function scanSidebar() {
+    const out = []; const seen = new Set();
+    for (const el of document.querySelectorAll('#sidebar-tabs [data-tab], #sidebar nav [data-tab]')) {
+        const name = el.dataset.tab;
+        if (!name || seen.has(name)) continue;
+        seen.add(name);
+        const label = el.dataset.tooltip || el.getAttribute("aria-label") || el.title || name;
+        const icon  = el.querySelector("i")?.className || "fa-solid fa-window-maximize";
+        out.push({ key: `sidebar:${name}`, label, icon });
+    }
+    return out;
 }
 
 // Éléments détectés sur la barre d'outils via ui.controls (groupes + outils).
@@ -109,6 +128,7 @@ export async function openUiHideDialog() {
     const hPlayers = new Set(h.players);
     const hGm      = new Set(h.gm);
 
+    const sidebarTabs = scanSidebar();
     const detected = scanControls();
     const groups = new Map();
     const groupButtons = [];
@@ -133,6 +153,7 @@ export async function openUiHideDialog() {
             ${headerRow()}
             ${subHeader("Grandes zones")}
             ${rows(FIXED_TARGETS)}
+            ${sidebarTabs.length ? subHeader("Barre latérale — onglets") + rows(sidebarTabs) : ""}
             ${groupButtons.length ? subHeader("Barre d'outils — groupes") + rows(groupButtons) : ""}
             ${toolSections}
         </div>`;

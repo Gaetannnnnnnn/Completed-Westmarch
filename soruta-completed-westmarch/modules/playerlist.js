@@ -10,7 +10,42 @@
 
 import { MOD } from "./const.js";
 
+// ── Repli du panneau des joueurs vers la gauche (état mémorisé par navigateur) ──
+const _isCollapsed = () => { try { return localStorage.getItem("scwm-players-collapsed") === "1"; } catch { return false; } };
+function _applyCollapsed(v) { document.body.classList.toggle("scwm-players-collapsed", !!v); }
+function _setCollapsed(v) { try { localStorage.setItem("scwm-players-collapsed", v ? "1" : "0"); } catch {} _applyCollapsed(v); }
+
+// Poignée fixe (bas-gauche) pour rouvrir le panneau une fois replié — créée une fois.
+function _ensureReopenHandle() {
+    if (document.querySelector(".scwm-players-reopen")) return;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "scwm-players-reopen";
+    btn.title = "Afficher la liste des joueurs";
+    btn.innerHTML = `<i class="fa-solid fa-users"></i><i class="fa-solid fa-chevron-right"></i>`;
+    btn.addEventListener("click", () => _setCollapsed(false));
+    (document.getElementById("interface") ?? document.body).appendChild(btn);
+}
+
 export function PlayerListHooks() {
+
+    // ── Bouton « réduire » sur le panneau des joueurs (indépendant du mode compact) ──
+    Hooks.on("renderPlayers", (app, html) => {
+        const root = html instanceof HTMLElement ? html : html?.[0];
+        if (!root) return;
+        _ensureReopenHandle();
+        _applyCollapsed(_isCollapsed());
+        if (!root.querySelector(".scwm-players-collapse")) {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "scwm-players-collapse";
+            btn.title = "Réduire la liste des joueurs (vers la gauche)";
+            btn.innerHTML = `<i class="fa-solid fa-chevron-left"></i>`;
+            btn.addEventListener("click", (e) => { e.stopPropagation(); _setCollapsed(true); });
+            root.insertBefore(btn, root.firstChild);
+        }
+    });
+
     Hooks.on("renderPlayers", (app, html) => {
         if (!game.settings.get(MOD, "enablePlayerListCompact")) return;
 

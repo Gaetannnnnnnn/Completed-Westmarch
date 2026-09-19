@@ -200,6 +200,98 @@ function playerLastSessionMap() {
 }
 const isPlayerActive = (iso) => !!iso && (Date.now() - new Date(iso).getTime()) <= ACTIVE_DAYS * 86400000;
 
+// ============================================================
+// Poids des scènes (données + images) — par dossier et par scène.
+// ============================================================
+const fmtBytes = (b) => b >= 1048576 ? (b / 1048576).toFixed(2) + " Mo" : (b / 1024).toFixed(1) + " Ko";
+
+async function measureScenes() {
+    const size = (o) => new Blob([JSON.stringify(o ?? {})]).size;
+    const cache = new Map(); let echecs = 0;
+    const fileSize = (src) => {
+        if (!cache.has(src)) cache.set(src, fetch(src, { method: "HEAD" })
+            .then(r => Number(r.headers.get("content-length")) || 0)
+            .catch(() => { echecs++; return 0; }));
+        return cache.get(src);
+    };
+    const mesures = new Map();
+    await Promise.all((game.scenes ?? []).map(async (s) => {
+        const d = s.toObject();
+        const srcs = [...new Set([d.background?.src, ...(d.tiles ?? []).map(t => t.texture?.src)].filter(Boolean))];
+        const img = (await Promise.all(srcs.map(fileSize))).reduce((a, b) => a + b, 0);
+        mesures.set(s.id, {
+            nom: s.name, dossier: s.folder?.name ?? "(sans dossier)",
+            data: size(d), img,
+            murs: (d.walls ?? []).length, lumieres: (d.lights ?? []).length, tokens: (d.tokens ?? []).length
+        });
+    }));
+
+    const dossiers = [];
+    const walk = (folder, path) => {
+        let data = 0, img = 0, n = folder.contents.length;
+        for (const s of folder.contents) { const m = mesures.get(s.id); if (m) { data += m.data; img += m.img; } }
+        for (const sub of folder.children.map(c => c.folder)) {
+            const r = walk(sub, `${path}/${sub.name}`); data += r.data; img += r.img; n += r.n;
+        }
+        dossiers.push({ dossier: path, scenes: n, data, img });
+        return { data, img, n };
+    };
+    for (const root of (game.folders ?? []).filter(f => f.type === "Scene" && !f.folder)) walk(root, root.name);
+
+    const orph = (game.scenes ?? []).filter(s => !s.folder);
+    if (orph.length) dossiers.push({
+        dossier: "(sans dossier)", scenes: orph.length,
+        data: orph.reduce((s, sc) => s + (mesures.get(sc.id)?.data ?? 0), 0),
+        img:  orph.reduce((s, sc) => s + (mesures.get(sc.id)?.img ?? 0), 0)
+    });
+
+    dossiers.sort((a, b) => (b.data + b.img) - (a.data + a.img));         // plus lourd d'abord
+    const scenes = [...mesures.values()].sort((a, b) => (b.data + b.img) - (a.data + a.img));
+    return { dossiers, scenes, echecs };
+}
+
+function sceneSizeTablesHtml(res) {
+    const f = fmtBytes;
+    const folderRows = res.dossiers.map(d => `
+        <tr>
+            <td>${esc(d.dossier)}</td>
+            <td style="text-align:center;">${d.scenes}</td>
+            <td style="text-align:right;">${f(d.data)}</td>
+            <td style="text-align:right;">${f(d.img)}</td>
+            <td style="text-align:right;font-weight:700;">${f(d.data + d.img)}</td>
+        </tr>`).join("");
+    const sceneRows = res.scenes.map(m => `
+        <tr>
+            <td>${esc(m.nom)}</td>
+            <td>${esc(m.dossier)}</td>
+            <td style="text-align:right;">${f(m.data)}</td>
+            <td style="text-align:right;">${f(m.img)}</td>
+            <td style="text-align:right;font-weight:700;">${f(m.data + m.img)}</td>
+            <td style="text-align:center;">${m.murs}</td>
+            <td style="text-align:center;">${m.lumieres}</td>
+            <td style="text-align:center;">${m.tokens}</td>
+        </tr>`).join("");
+    const warn = res.echecs
+        ? `<p style="margin:6px 0 0;color:#e0a13a;font-size:12px;"><i class="fa-solid fa-triangle-exclamation"></i> ${res.echecs} image(s) non mesurée(s) (URL externe ou fichier manquant).</p>`
+        : "";
+    return `
+        <h3 style="margin:10px 0 4px;">Par dossier</h3>
+        <div class="scwm-scenesize-scroll" style="max-height:32vh;overflow:auto;">
+            <table class="scwm-reg-table">
+                <thead><tr><th>Dossier</th><th>Scènes</th><th>Données</th><th>Images</th><th>Total</th></tr></thead>
+                <tbody>${folderRows || `<tr><td colspan="5" style="opacity:.6;">Aucun dossier.</td></tr>`}</tbody>
+            </table>
+        </div>
+        <h3 style="margin:14px 0 4px;">Par scène</h3>
+        <div class="scwm-scenesize-scroll" style="max-height:38vh;overflow:auto;">
+            <table class="scwm-reg-table">
+                <thead><tr><th>Scène</th><th>Dossier</th><th>Données</th><th>Images</th><th>Total</th><th>Murs</th><th>Lum.</th><th>Tokens</th></tr></thead>
+                <tbody>${sceneRows || `<tr><td colspan="8" style="opacity:.6;">Aucune scène.</td></tr>`}</tbody>
+            </table>
+        </div>
+        ${warn}`;
+}
+
 // Expéditions CLÔTURÉES distinctes (regroupées par nom + début + MJ), avec les
 // PJ participants. Base de l'assiduité (jamais les connexions).
 function closedExpeditions() {
@@ -306,6 +398,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             { key: "registre",    icon: "fa-address-book",  label: "Registre" },
             { key: "stats",       icon: "fa-chart-pie",     label: "Statistiques" },
             { key: "dispos",      icon: "fa-user-check",    label: "Disponibilités" },
+            { key: "scenesize",   icon: "fa-hard-drive",    label: "Poids des scènes" },
             { key: "gms",         icon: "fa-users-gear", label: "Suivi des GM" },
             { key: "attendance",  icon: "fa-chart-column", label: "Assiduité" },
             ...(cvEnabled ? [{ key: "validation", icon: "fa-id-card", label: `Validation${cvCount ? ` (${cvCount})` : ""}` }] : [])
@@ -338,6 +431,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
         else if (this.#tab === "registre")    detail = this.#registreDetail();
         else if (this.#tab === "stats")       detail = this.#statsDetail();
         else if (this.#tab === "dispos")      detail = this.#disposDetail();
+        else if (this.#tab === "scenesize")   detail = this.#sceneSizeDetail();
         else if (this.#tab === "attendance")  detail = this.#attendanceDetail();
         else if (this.#tab === "validation")  detail = this.#validationDetail();
         else                                  detail = this.#gmsDetail();
@@ -760,6 +854,24 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             </div>`;
     }
 
+    // ---- Onglet Poids des scènes ----
+    #sceneSizeDetail() {
+        return `
+            <div class="scwm-casier-detail">
+                <h2><i class="fa-solid fa-hard-drive"></i> Poids des scènes</h2>
+                <div class="scwm-reg-toolbar">
+                    <span style="flex:1;font-size:.85em;color:#9a8b70;">
+                        Taille des données de scène + poids des images (fond &amp; tuiles, mesuré par requête réseau).
+                        Trié du plus lourd au plus léger.
+                    </span>
+                    <button type="button" class="scwm-scenesize-calc"><i class="fa-solid fa-rotate"></i> Recalculer</button>
+                </div>
+                <div class="scwm-scenesize-out">
+                    <p style="opacity:.7;"><i class="fa-solid fa-spinner fa-spin"></i> Calcul en cours…</p>
+                </div>
+            </div>`;
+    }
+
     // ---- Écouteurs ----
     #wire(root) {
         root.querySelectorAll(".scwm-casier-tab").forEach(btn =>
@@ -779,6 +891,23 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                 this.#selectedId = pg.dataset.draftId;
                 this.render();
             }));
+
+        // ---- Onglet Poids des scènes : calcul asynchrone + remplissage ----
+        if (this.#tab === "scenesize") {
+            const out = root.querySelector(".scwm-scenesize-out");
+            const run = async () => {
+                if (out) out.innerHTML = `<p style="opacity:.7;"><i class="fa-solid fa-spinner fa-spin"></i> Calcul en cours…</p>`;
+                try {
+                    const res = await measureScenes();
+                    if (out) out.innerHTML = sceneSizeTablesHtml(res);
+                } catch (e) {
+                    console.warn("[casier] poids des scènes :", e);
+                    if (out) out.innerHTML = `<p style="color:#c0392b;">Échec du calcul.</p>`;
+                }
+            };
+            run();
+            root.querySelector(".scwm-scenesize-calc")?.addEventListener("click", () => run());
+        }
 
         // ---- Onglet Registre : filtre / tri / export CSV (100% client) ----
         const regTable = root.querySelector(".scwm-reg-table");

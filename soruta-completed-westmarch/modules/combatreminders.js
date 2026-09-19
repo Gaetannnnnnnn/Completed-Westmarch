@@ -328,6 +328,29 @@ function _smiteAvailable(it, hasSlot) {
     if (uses && (uses.max ?? 0) > 0) return (uses.value ?? 0) > 0;   // capacité à charges
     return hasSlot;                                          // feature reposant sur les emplacements (Divine Smite)
 }
+// Nombre total d'emplacements de sort restants (tous niveaux + pacte).
+function _remainingSlots(actor) {
+    const sp = actor?.system?.spells ?? {};
+    let n = 0;
+    for (const [k, v] of Object.entries(sp)) {
+        if (!/^(spell[1-9]|pact)$/.test(k)) continue;
+        n += (v?.value ?? 0);
+    }
+    return n;
+}
+// Libellé de disponibilité d'un smite (emplacements pour un sort, utilisations
+// pour une capacité à charges).
+function _smiteCountLabel(it, actor) {
+    if (it.type === "spell") {
+        const n = _remainingSlots(actor);
+        return `${n} emplacement${n > 1 ? "s" : ""}`;
+    }
+    const u = it.system?.uses;
+    if (u && (u.max ?? 0) > 0) return `${u.value ?? 0}/${u.max} utilisation${u.max > 1 ? "s" : ""}`;
+    const n = _remainingSlots(actor);        // feature reposant sur les emplacements (Divine Smite)
+    return `${n} emplacement${n > 1 ? "s" : ""}`;
+}
+
 // Un sort est retenu s'il est PRÉPARÉ, ou « toujours préparé » (sorts
 // additionnels / de serment, dons innés, pacte…).
 function _spellUsable(it) {
@@ -370,6 +393,7 @@ async function onBonusReminder(workflow) {
                        border:1px solid rgba(201,162,39,0.35);background:rgba(201,162,39,0.08);">
             <img src="${esc(it.img)}" style="width:32px;height:32px;object-fit:cover;border-radius:5px;flex:0 0 auto;">
             <span style="flex:1;font-weight:600;">${esc(it.name)}</span>
+            <span style="flex:0 0 auto;font-size:11px;opacity:.8;white-space:nowrap;">${esc(_smiteCountLabel(it, attacker))}</span>
             <i class="fa-solid fa-fire" style="color:#e67e22;"></i>
         </button>`).join("");
     try {
@@ -450,10 +474,10 @@ export function CombatRemindersHooks() {
     // API de diagnostic exposée IMMÉDIATEMENT (pas dans "ready") pour être fiable.
     try {
         const mod = game.modules.get(MOD);
-        if (mod) mod.api = { ...(mod.api ?? {}), combatBuild: "4.9.1", combatDebug: () => {
+        if (mod) mod.api = { ...(mod.api ?? {}), combatBuild: "4.9.2", combatDebug: () => {
             const midi = game.modules.get("midi-qol");
             return {
-                build: "4.9.1",
+                build: "4.9.2",
                 midiPresent: !!midi, midiActive: !!midi?.active,
                 react: on("enableReactReminder"), bonus: on("enableBonusReminder"),
                 mastery: on("enableMasteryReminder"), advantage: on("enableAdvantageReminder")

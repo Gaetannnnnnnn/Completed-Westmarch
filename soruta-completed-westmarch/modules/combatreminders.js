@@ -47,41 +47,64 @@ function partyGmOf(user) {
     return (gm && gm.isGM && gm.active) ? gm : null;
 }
 
-// ── Pop-up JOUEUR : « tu peux réagir » ───────────────────────────────────────
+// Libellé de disponibilité générique : « v/max » pour une capacité à charges,
+// « N empl. » pour un sort, rien pour ce qui n'a pas de coût suivi.
+function _availLabel(it) {
+    const u = it.system?.uses;
+    if (u && (u.max ?? 0) > 0) return `${u.value ?? 0}/${u.max}`;
+    if (it.type === "spell") { const n = _remainingSlots(it.parent); return `${n} empl.`; }
+    return "";
+}
+
+// ── Pop-up JOUEUR : « tu peux réagir » (interface avec images) ────────────────
 async function showReactionPrompt({ promptId, actorId, attacker, reactionIds }) {
+    const clearGm = () => { const gm = partyGmOf(game.user); if (gm) gm.query("westmarch.reactClear", { promptId }).catch(() => {}); };
     // Ce joueur a coupé les rappels → on ferme la notif du MJ et on n'affiche rien.
-    if (_muted()) {
-        const gm = partyGmOf(game.user);
-        if (gm) gm.query("westmarch.reactClear", { promptId }).catch(() => {});
-        return;
-    }
+    if (_muted()) { clearGm(); return; }
+
     const actor = game.actors.get(actorId);
-    if (!actor) return;
+    if (!actor) { clearGm(); return; }
     const items = (reactionIds ?? []).map(id => actor.items.get(id)).filter(Boolean);
-    if (!items.length) return;
+    if (!items.length) { clearGm(); return; }
 
     const DialogV2 = foundry.applications.api.DialogV2;
-    const buttons = items.map(it => ({
-        action: it.id,
-        label: it.name,
-        icon: '<i class="fa-solid fa-bolt"></i>',
-        callback: async () => { try { await (it.use?.() ?? it.roll?.()); } catch (e) { console.warn(`[${MOD}] usage réaction :`, e); } }
-    }));
-    buttons.push({ action: "pass", label: "Passer", icon: '<i class="fa-solid fa-forward"></i>', default: true });
+    const esc = (s) => String(s ?? "").replace(/"/g, "&quot;");
+    const rows = items.map(it => {
+        const av = _availLabel(it);
+        return `
+        <button type="button" class="scwm-react-opt" data-id="${it.id}"
+                style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+                       padding:6px 8px;margin:4px 0;border-radius:6px;cursor:pointer;
+                       border:1px solid rgba(90,140,220,0.4);background:rgba(90,140,220,0.10);">
+            <img src="${esc(it.img)}" style="width:32px;height:32px;object-fit:cover;border-radius:5px;flex:0 0 auto;">
+            <span style="flex:1;font-weight:600;">${esc(it.name)}</span>
+            ${av ? `<span style="flex:0 0 auto;font-size:11px;opacity:.8;white-space:nowrap;">${esc(av)}</span>` : ""}
+            <i class="fa-solid fa-bolt" style="color:#5a8cdc;"></i>
+        </button>`;
+    }).join("");
 
     try {
         await DialogV2.wait({
             window: { title: `Réaction possible${attacker ? ` — attaqué par ${attacker}` : ""}`, icon: "fa-solid fa-bolt" },
-            position: { width: 380 },
-            content: `<p style="margin:0 0 6px;">Une <strong>réaction</strong> est peut-être utile. Choisis :</p>`,
-            buttons,
-            rejectClose: false
+            position: { width: 400 },
+            content: `<div style="display:flex;flex-direction:column;">
+                <p style="margin:0 0 6px;">Une <strong>réaction</strong> est peut-être utile. Choisis :</p>
+                ${rows}
+            </div>`,
+            buttons: [{ action: "pass", label: "Passer", icon: '<i class="fa-solid fa-forward"></i>', default: true }],
+            rejectClose: false,
+            render: (ev, dlg) => {
+                const root = dlg?.element ?? ev?.target?.closest?.(".application") ?? document;
+                root.querySelectorAll?.(".scwm-react-opt").forEach(b => b.addEventListener("click", async () => {
+                    const it = actor.items.get(b.dataset.id);
+                    try { await (it?.use?.() ?? it?.roll?.()); } catch (e) { console.warn(`[${MOD}] usage réaction :`, e); }
+                    try { dlg?.close?.(); } catch (e) {}
+                }));
+            }
         });
     } catch (e) {}
 
-    // Résolu → ferme la notif du MJ de la party.
-    const gm = partyGmOf(game.user);
-    if (gm) gm.query("westmarch.reactClear", { promptId }).catch(() => {});
+    clearGm();   // résolu (choix ou « Passer ») → ferme la notif du MJ de la party
 }
 
 // ── Notif MJ : « X réfléchit à une réaction… » (fermée quand le joueur choisit) ──

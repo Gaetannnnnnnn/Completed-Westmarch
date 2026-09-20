@@ -18,7 +18,7 @@
 
 import { MOD } from "./const.js";
 
-const DEMO_VERSION = 9;
+const DEMO_VERSION = 10;
 const rid = () => foundry.utils.randomID();
 
 export function getTutorialActor() {
@@ -181,6 +181,13 @@ async function createDemoActor() {
     data.prototypeToken.name = data.name;
     data.prototypeToken.actorLink = true;
     data.prototypeToken.texture = { ...(data.prototypeToken.texture ?? {}), src: IMG };
+
+    // Crédit de l'auteur du portrait, en tête de la biographie.
+    data.system = data.system ?? {};
+    data.system.details = data.system.details ?? {};
+    const _bio = data.system.details.biography ?? {};
+    _bio.value = `<p><em>Illustration du portrait par <strong>__xiu_5</strong>.</em></p>` + (_bio.value ?? "");
+    data.system.details.biography = _bio;
 
     // Flags : marqueur de fiche démo + contenus de démonstration des onglets.
     data.flags = data.flags ?? {};

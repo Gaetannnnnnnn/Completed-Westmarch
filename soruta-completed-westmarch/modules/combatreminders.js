@@ -14,6 +14,8 @@
 import { MOD } from "./const.js";
 
 const on = (k) => { try { return game.settings.get(MOD, k); } catch { return false; } };
+// Opt-out par joueur (réglage client) : ce client a-t-il coupé les rappels ?
+const _muted = () => { try { return game.settings.get(MOD, "combatRemindersOff") === true; } catch { return false; } };
 const _log = (...a) => console.log(`%c[WM combat]`, "color:#c9a227", ...a);
 
 // ── Détection des réactions d'un acteur (items/activités de type "reaction") ──
@@ -47,6 +49,12 @@ function partyGmOf(user) {
 
 // ── Pop-up JOUEUR : « tu peux réagir » ───────────────────────────────────────
 async function showReactionPrompt({ promptId, actorId, attacker, reactionIds }) {
+    // Ce joueur a coupé les rappels → on ferme la notif du MJ et on n'affiche rien.
+    if (_muted()) {
+        const gm = partyGmOf(game.user);
+        if (gm) gm.query("westmarch.reactClear", { promptId }).catch(() => {});
+        return;
+    }
     const actor = game.actors.get(actorId);
     if (!actor) return;
     const items = (reactionIds ?? []).map(id => actor.items.get(id)).filter(Boolean);
@@ -192,6 +200,7 @@ function _cleaveKey(attacker) {
     return c ? `${c.id}:${attacker.id}:${c.round}.${c.turn}` : `noc:${attacker.id}`;
 }
 async function offerCleave(attacker, item) {
+    if (_muted()) return;                           // ce joueur a coupé les rappels
     if (!attacker?.isOwner) return;                 // seul le contrôleur propose
     const key = _cleaveKey(attacker);
     if (_cleaveTurn.get(key)) return;               // déjà proposé ce tour
@@ -232,6 +241,7 @@ function onAttackComplete(workflow) {
 
     // Info perso → chuchoté au joueur propriétaire (via son client si c'est lui).
     if (!m.gm) {
+        if (_muted()) return;                    // ce joueur a coupé les rappels
         const owner = ownerUserOf(attacker);
         ChatMessage.create({
             whisper: owner ? [owner.id] : ChatMessage.getWhisperRecipients("GM").map(u => u.id),
@@ -372,7 +382,7 @@ function smiteOptions(actor) {
     });
 }
 async function onBonusReminder(workflow) {
-    if (!on("enableBonusReminder")) return;
+    if (!on("enableBonusReminder") || _muted()) return;
     const attacker = workflow?.actor;
     const item     = workflow?.item;
     if (!attacker || !item) return;
@@ -433,7 +443,7 @@ const DIS_ATTACKER = { // condition SUR L'ATTAQUANT → désavantage
 };
 
 function onAdvantageReminder(workflow) {
-    if (!on("enableAdvantageReminder")) return;
+    if (!on("enableAdvantageReminder") || _muted()) return;
     const attacker = workflow?.actor;
     const item = workflow?.item;
     if (!attacker) return;
@@ -474,10 +484,10 @@ export function CombatRemindersHooks() {
     // API de diagnostic exposée IMMÉDIATEMENT (pas dans "ready") pour être fiable.
     try {
         const mod = game.modules.get(MOD);
-        if (mod) mod.api = { ...(mod.api ?? {}), combatBuild: "4.9.2", combatDebug: () => {
+        if (mod) mod.api = { ...(mod.api ?? {}), combatBuild: "4.9.3", combatDebug: () => {
             const midi = game.modules.get("midi-qol");
             return {
-                build: "4.9.2",
+                build: "4.9.3",
                 midiPresent: !!midi, midiActive: !!midi?.active,
                 react: on("enableReactReminder"), bonus: on("enableBonusReminder"),
                 mastery: on("enableMasteryReminder"), advantage: on("enableAdvantageReminder")

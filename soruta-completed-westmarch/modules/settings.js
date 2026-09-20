@@ -289,6 +289,13 @@ export function registerSettings() {
         "Rappel avantage / désavantage",
         "Au jet d'attaque, signale les sources d'avantage/désavantage selon l'état de la cible (à terre + CaC…) et les effets de statut du PJ.",
         false));
+    // Opt-out PAR JOUEUR (réglage client, visible et modifiable par chacun) :
+    // coupe les pop-ups/chuchotements de rappels de combat sur SON écran.
+    game.settings.register(MOD, "combatRemindersOff", {
+        name: "Rappels de combat : les désactiver pour moi",
+        hint: "Coché = tu ne reçois plus les pop-ups et chuchotements de rappels de combat (réactions, châtiments/smite, avantage/désavantage, maîtrises). N'affecte que TON écran, pas les autres joueurs ni le MJ.",
+        scope: "client", config: true, type: Boolean, default: false
+    });
     game.settings.register(MOD, "hidePlayerStarTab", B(
         "Masquer l'onglet « étoile » aux joueurs",
         "Cache l'onglet dont l'icône est une étoile (favoris) sur les fiches de personnage, pour les joueurs uniquement. Les GM le voient toujours."));

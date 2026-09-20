@@ -31,7 +31,13 @@ const BLOCKED_ACTOR_PATHS = [
 // Types d'items de CONSTRUCTION (ajout/retrait verrouillé).
 const BUILD_ITEM_TYPES = new Set(["class", "subclass", "background", "race", "feat", "spell"]);
 // Sur un item de construction, sous-clés system qui restent du JEU (autorisées).
-const ITEM_PLAY_KEYS = { feat: ["uses"], spell: ["preparation", "prepared"] };
+// On inclut la consommation d'usage/activités : lancer un sort ou utiliser une
+// capacité (ex. Divine Smite) met à jour "uses"/"activities" — c'est du JEU, pas
+// de la construction, donc à ne PAS bloquer.
+const ITEM_PLAY_KEYS = {
+    feat:  ["uses", "activities"],
+    spell: ["preparation", "prepared", "uses", "activities"]
+};
 
 const enabled = () => game.settings.get(MOD, "enableCharValidation");
 const isLocked = (actor) => actor?.getFlag(MOD, "locked") === true;

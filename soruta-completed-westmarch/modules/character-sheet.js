@@ -194,14 +194,18 @@ export function setupCharacterSheet() {
                 }
                 const sel = `#${(window.CSS?.escape ? CSS.escape(el.id) : el.id)}`;
                 const grad = `linear-gradient(to right, ${_shadeColor(color, 0.5)}, ${_shadeColor(color, 0.34)}) !important`;
-                // On recolore les EN-TÊTES de sections (le rouge « thème »), pas la
-                // barre de PV (santé) qui garde son code couleur.
+                // On recolore : les EN-TÊTES de sections + le BANDEAU du haut (image
+                // teintée via background-blend-mode: color, qui remplace la teinte en
+                // gardant le dessin). On NE touche PAS la barre de dés de vie ni
+                // l'en-tête « Favoris » (demande explicite), ni la barre de PV.
                 style.textContent = `
                     ${sel} .items-header,
                     ${sel} .items-header.header,
-                    ${sel} .inventory-element .items-header,
-                    ${sel} .favorites > h3 { background: ${grad}; }
-                    ${sel} .meter.hit-dice.progress::before { background: ${grad}; }
+                    ${sel} .inventory-element .items-header { background: ${grad}; }
+                    ${sel} .sheet-header {
+                        background-color: ${color} !important;
+                        background-blend-mode: color !important;
+                    }
                 `;
             }
 

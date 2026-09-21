@@ -101,7 +101,11 @@ function playerOf(actor) {
 // Colonnes déduites automatiquement des fiches Foundry.
 // ============================================================
 
-// Classes du perso : [{ name, sub, lvl }] triées par niveau décroissant.
+// Classes du perso : [{ name, ident, sub, subIdent, lvl }] triées par niveau ↓.
+// On garde l'IDENTIFIANT (system.identifier) de la classe et de la sous-classe :
+// il est indépendant de la langue (« wizard »), contrairement au nom affiché
+// qui peut être traduit (« Magicien »). Les statistiques agrègent dessus pour
+// ne pas compter la même classe deux fois selon la langue de la fiche.
 function charClassList(actor) {
     const classItems = actor.items.filter(i => i.type === "class");
     const subItems   = actor.items.filter(i => i.type === "subclass");
@@ -109,10 +113,20 @@ function charClassList(actor) {
         const ident = ci.system?.identifier;
         let s = ident ? subItems.find(x => x.system?.classIdentifier === ident) : null;
         if (!s && classItems.length === 1 && subItems.length === 1) s = subItems[0];
-        return s?.name ?? "";
+        return s ?? null;
     };
+    const norm = (v) => String(v ?? "").toLowerCase().trim();
     return classItems
-        .map(ci => ({ name: ci.name, sub: findSub(ci), lvl: ci.system?.levels ?? 0 }))
+        .map(ci => {
+            const s = findSub(ci);
+            return {
+                name:     ci.name,
+                ident:    norm(ci.system?.identifier) || norm(ci.name),
+                sub:      s?.name ?? "",
+                subIdent: norm(s?.system?.identifier) || norm(s?.name),
+                lvl:      ci.system?.levels ?? 0
+            };
+        })
         .sort((a, b) => (b.lvl || 0) - (a.lvl || 0));
 }
 
@@ -149,20 +163,51 @@ function classesLabel(classes) {
 }
 
 // Comptages type « Statistiques » du tableur.
+// Classes/sous-classes agrégées par IDENTIFIANT (langue-indépendant) pour éviter
+// les doublons « wizard » / « magicien ». Le libellé affiché est le nom le plus
+// fréquent rencontré pour cet identifiant (donc la traduction dominante).
 function rosterStats(rows) {
-    const byClass = {}, bySub = {}, byRace = {}, byPlayer = {}, byLevel = {};
+    const byRace = {}, byPlayer = {}, byLevel = {};
     let multiCount = 0;
+
+    // key -> { count, names: Map(nomAffiché -> occurrences) }
+    const classAgg = new Map();
+    const subAgg   = new Map();
+    const bump = (map, key, label) => {
+        const e = map.get(key) ?? { count: 0, names: new Map() };
+        e.count++;
+        if (label) e.names.set(label, (e.names.get(label) || 0) + 1);
+        map.set(key, e);
+    };
+    // Convertit une Map d'agrégats en objet { libellé: total } (libellé = le
+    // nom le plus fréquent ; les totaux d'un même libellé sont fusionnés).
+    const toObj = (map) => {
+        const out = {};
+        for (const { count, names } of map.values()) {
+            const label = [...names.entries()]
+                .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "fr", { sensitivity: "base" }))[0]?.[0] ?? "—";
+            out[label] = (out[label] || 0) + count;
+        }
+        return out;
+    };
+
     for (const r of rows) {
         if (r.multi) multiCount++;
         byPlayer[r.joueur] = (byPlayer[r.joueur] || 0) + 1;
         byLevel[r.total]   = (byLevel[r.total] || 0) + 1;
         byRace[r.race]     = (byRace[r.race] || 0) + 1;
         for (const c of r.classes) {
-            byClass[c.name] = (byClass[c.name] || 0) + 1;
-            if (c.sub) bySub[`${c.name} — ${c.sub}`] = (bySub[`${c.name} — ${c.sub}`] || 0) + 1;
+            const cKey = c.ident || String(c.name ?? "").toLowerCase().trim();
+            bump(classAgg, cKey, c.name);
+            if (c.sub) {
+                const sKey = `${cKey}|${c.subIdent || String(c.sub).toLowerCase().trim()}`;
+                // Libellé « Classe — Sous-classe » avec les noms tels qu'affichés.
+                bump(subAgg, sKey, `${c.name} — ${c.sub}`);
+            }
         }
     }
-    return { byClass, bySub, byRace, byPlayer, byLevel, multiCount,
+
+    return { byClass: toObj(classAgg), bySub: toObj(subAgg), byRace, byPlayer, byLevel, multiCount,
              nbPerso: rows.length, nbJoueurs: Object.keys(byPlayer).length };
 }
 
@@ -876,12 +921,17 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             const entries = Object.entries(obj);
             entries.sort((a, b) => numericKey ? (Number(a[0]) - Number(b[0]))
                                               : (b[1] - a[1] || a[0].localeCompare(b[0], "fr", { sensitivity: "base" })));
+            // ~10 lignes visibles au maximum, le reste défile.
+            const scroll = entries.length > 10
+                ? ' style="max-height:calc(10 * 2em);overflow-y:auto;"' : "";
             return `<div class="scwm-stat-block">
                 <h3>${title}</h3>
-                <table class="scwm-reg-table"><tbody>
-                    ${entries.map(([k, v]) => `<tr><td>${esc(String(k))}</td><td style="text-align:right;">${v}</td></tr>`).join("")
-                        || `<tr><td style="opacity:.6;">—</td></tr>`}
-                </tbody></table>
+                <div class="scwm-stat-scroll"${scroll}>
+                    <table class="scwm-reg-table"><tbody>
+                        ${entries.map(([k, v]) => `<tr><td>${esc(String(k))}</td><td style="text-align:right;">${v}</td></tr>`).join("")
+                            || `<tr><td style="opacity:.6;">—</td></tr>`}
+                    </tbody></table>
+                </div>
             </div>`;
         };
         return `

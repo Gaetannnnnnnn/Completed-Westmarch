@@ -24,10 +24,29 @@ function _refreshToggle() {
     _toggleBtn.title = c ? "Afficher la liste des joueurs" : "Réduire la liste des joueurs";
     _toggleBtn.classList.toggle("is-collapsed", c);
 }
+
+// Positionne le bouton au CENTRE-GAUCHE du panneau des joueurs (dans la
+// gouttière laissée par le décalage de #players), et non plus au coin bas où
+// il recouvrait « Clore la session ». Le repère vertical reste le même que le
+// panneau soit déplié ou replié (le repli ne fait que translater #players sur
+// l'axe X), donc le bouton ne saute pas.
+function _position() {
+    if (!_toggleBtn) return;
+    const p = document.getElementById("players");
+    if (!p) return;
+    const r = p.getBoundingClientRect();
+    if (!r.height) return;
+    const y = Math.max(2, r.top + r.height / 2 - 12);
+    _toggleBtn.style.top    = `${y}px`;
+    _toggleBtn.style.bottom = "auto";
+    _toggleBtn.style.left   = _isCollapsed() ? "2px" : `${Math.max(2, r.left - 24)}px`;
+}
+
 function _setCollapsed(v) {
     try { localStorage.setItem("scwm-players-collapsed", v ? "1" : "0"); } catch {}
     _applyCollapsed(v);
     _refreshToggle();
+    _position();
 }
 // Un SEUL bouton fixe (indépendant du survol du panneau) qui replie/déplie.
 function _ensureToggle() {
@@ -37,14 +56,18 @@ function _ensureToggle() {
     _toggleBtn.className = "scwm-players-toggle";
     _toggleBtn.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); _setCollapsed(!_isCollapsed()); });
     (document.getElementById("interface") ?? document.body).appendChild(_toggleBtn);
+    // Recalage quand le panneau change de taille (survol, resize).
+    const p = document.getElementById("players");
+    if (p) { p.addEventListener("mouseenter", _position); p.addEventListener("mouseleave", _position); }
+    window.addEventListener("resize", _position);
     _refreshToggle();
 }
 
 export function PlayerListHooks() {
 
     // ── Repli du panneau des joueurs (bouton fixe, indépendant du mode compact) ──
-    Hooks.once("ready", () => { _ensureToggle(); _applyCollapsed(_isCollapsed()); _refreshToggle(); });
-    Hooks.on("renderPlayers", () => { _ensureToggle(); _applyCollapsed(_isCollapsed()); _refreshToggle(); });
+    Hooks.once("ready", () => { _ensureToggle(); _applyCollapsed(_isCollapsed()); _refreshToggle(); setTimeout(_position, 60); });
+    Hooks.on("renderPlayers", () => { _ensureToggle(); _applyCollapsed(_isCollapsed()); _refreshToggle(); setTimeout(_position, 0); });
 
     Hooks.on("renderPlayers", (app, html) => {
         if (!game.settings.get(MOD, "enablePlayerListCompact")) return;

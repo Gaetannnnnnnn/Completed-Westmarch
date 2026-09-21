@@ -10,6 +10,19 @@
 // ============================================================
 
 import { MOD } from "./const.js";
+
+// Assombrit une couleur hex (#rrggbb) : factor = fraction de luminosité gardée.
+// Sert à reproduire le style « dégradé sombre » des en-têtes dnd5e à partir de
+// la couleur choisie par le joueur.
+function _shadeColor(hex, factor) {
+    const m = /^#?([0-9a-fA-F]{6})$/.exec(String(hex || "").trim());
+    if (!m) return hex;
+    const n = parseInt(m[1], 16);
+    const r = Math.round(((n >> 16) & 255) * factor);
+    const g = Math.round(((n >> 8) & 255) * factor);
+    const b = Math.round((n & 255) * factor);
+    return `rgb(${r},${g},${b})`;
+}
 import { buildTabHtml as relBuildTab, wireTab as relWireTab } from "./relations.js";
 import { buildTabHtml as bstBuildTab, wireTab as bstWireTab } from "./bestiary.js";
 import {
@@ -162,15 +175,34 @@ export function setupCharacterSheet() {
                 });
             }
 
-            // Applique la couleur de la fiche (flag acteur) en INLINE sur l'élément
-            // racine : indispensable car dnd5e pose --dnd5e-color-red en inline,
-            // qu'une feuille de style externe ne peut pas surcharger.
+            // Applique la couleur de la fiche (flag acteur). En dnd5e 6, le rouge
+            // n'est PAS une variable CSS : il est cuit dans des dégradés d'en-têtes
+            // (.items-header, barres de progression) via des @layer. On injecte donc
+            // une feuille de style PROPRE à cette fiche (scopée par son id), en
+            // règles !important NON-layered : elles priment sur tout le thème @layer
+            // de dnd5e quelle que soit sa spécificité.
             _scwmApplySheetColor() {
                 const el = this.element;
                 if (!el) return;
+                let style = el.querySelector("style.scwm-sheetcolor-style");
                 const color = this.actor?.getFlag(MOD, "sheetColor");
-                if (color) el.style.setProperty("--dnd5e-color-red", color);
-                else el.style.removeProperty("--dnd5e-color-red");
+                if (!color) { style?.remove(); return; }
+                if (!style) {
+                    style = document.createElement("style");
+                    style.className = "scwm-sheetcolor-style";
+                    el.appendChild(style);
+                }
+                const sel = `#${(window.CSS?.escape ? CSS.escape(el.id) : el.id)}`;
+                const grad = `linear-gradient(to right, ${_shadeColor(color, 0.5)}, ${_shadeColor(color, 0.34)}) !important`;
+                // On recolore les EN-TÊTES de sections (le rouge « thème »), pas la
+                // barre de PV (santé) qui garde son code couleur.
+                style.textContent = `
+                    ${sel} .items-header,
+                    ${sel} .items-header.header,
+                    ${sel} .inventory-element .items-header,
+                    ${sel} .favorites > h3 { background: ${grad}; }
+                    ${sel} .meter.hit-dice.progress::before { background: ${grad}; }
+                `;
             }
 
             async _prepareContext(options = {}) {

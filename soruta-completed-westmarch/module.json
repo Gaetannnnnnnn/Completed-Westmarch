@@ -1,7 +1,7 @@
 {
   "id": "soruta-completed-westmarch",
   "title": "Soruta — Completed Westmarch",
-  "version": "4.9.6",
+  "version": "5.0.0",
   "changelog": "2026-08-03",
   "authors": [
     {
@@ -33,7 +33,9 @@
     "./styles/pcstatus.css",
     "./styles/sceneaudio.css",
     "./styles/charvalidation.css",
-    "./styles/gmnotes.css"
+    "./styles/gmnotes.css",
+    "./styles/accessibility.css",
+    "./styles/settings-hub.css"
   ],
   "relationships": {
     "requires": [

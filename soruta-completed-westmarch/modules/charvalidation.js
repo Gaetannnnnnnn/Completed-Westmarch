@@ -40,6 +40,10 @@ const ITEM_PLAY_KEYS = {
 };
 
 const enabled = () => game.settings.get(MOD, "enableCharValidation");
+// Mode « confiance » : les montées de niveau sont libres (aucun verrou sur la
+// construction après la validation initiale). Voir réglage charFreeLevelUp.
+const freeLevelUp = () => { try { return game.settings.get(MOD, "charFreeLevelUp") === true; } catch { return false; } };
+const notifyLevelUp = () => { try { return game.settings.get(MOD, "charNotifyLevelUp") === true; } catch { return false; } };
 const isLocked = (actor) => actor?.getFlag(MOD, "locked") === true;
 
 // ============================================================
@@ -353,6 +357,36 @@ function postLevelUpDiff(actor, changes) {
     });
 }
 
+// ---- Notification des montées de niveau LIBRES (mode confiance) -------------
+// Quand le verrou est désactivé (charFreeLevelUp) et la notif activée, on agrège
+// les changements de construction et on poste un récap au MJ, sans rien bloquer.
+const _luPending = new Map();   // actorId -> { actor, lines:Set, timer }
+function _luActive(actor, userId) {
+    return enabled() && freeLevelUp() && notifyLevelUp()
+        && !game.user.isGM && userId === game.user.id
+        && actor?.type === "character"
+        && actor?.getFlag(MOD, "validated") === true
+        && actor?.getFlag(MOD, "createdFor") === game.user.id;
+}
+function _queueLuNote(actor, line) {
+    if (!actor || !line) return;
+    let e = _luPending.get(actor.id);
+    if (!e) { e = { actor, lines: new Set(), timer: null }; _luPending.set(actor.id, e); }
+    e.lines.add(line);
+    if (e.timer) clearTimeout(e.timer);
+    e.timer = setTimeout(() => {
+        _luPending.delete(actor.id);
+        const lines = [...e.lines];
+        if (!lines.length) return;
+        const body = `<ul style="margin:4px 0 0;padding-left:18px;">${lines.map(l => `<li>${esc(l)}</li>`).join("")}</ul>`;
+        ChatMessage.create({
+            whisper: gmIds(),
+            speaker: { alias: "Montée de niveau (libre)" },
+            content: `⬆️ <strong>${esc(e.actor.name)}</strong> a modifié sa construction :${body}`
+        });
+    }, 2500);
+}
+
 // Demandes de montée de niveau en attente (badge « Level up »).
 export function getLevelUpRequests() {
     return (game.actors ?? [])
@@ -642,6 +676,7 @@ export function CharValidationHooks() {
     Hooks.on("preUpdateActor", (actor, changes, options, userId) => {
         if (game.user.isGM || userId !== game.user.id) return;
         if (!enabled() || !isLocked(actor)) return;
+        if (freeLevelUp()) return;   // mode confiance : construction libre après validation
         // On ne bloque que si une valeur de CONSTRUCTION change RÉELLEMENT. Comparer
         // à la valeur actuelle évite de rejeter une soumission qui renvoie des champs
         // inchangés (ex. l'enregistrement de la BIOGRAPHIE peut inclure caracs/maîtrises
@@ -660,6 +695,7 @@ export function CharValidationHooks() {
     Hooks.on("preUpdateItem", (item, changes, options, userId) => {
         if (game.user.isGM || userId !== game.user.id) return;
         if (!enabled()) return;
+        if (freeLevelUp()) return;   // mode confiance : construction libre après validation
         const actor = item.parent;
         if (!actor || !isLocked(actor)) return;
         if (!BUILD_ITEM_TYPES.has(item.type)) return;   // inventaire / butin = jeu
@@ -675,6 +711,7 @@ export function CharValidationHooks() {
     const blockBuildItemCD = (item, _d, _o, userId) => {
         if (game.user.isGM || userId !== game.user.id) return;
         if (!enabled()) return;
+        if (freeLevelUp()) return;   // mode confiance : ajout/retrait de construction libre
         const actor = item.parent;
         if (!actor || !isLocked(actor)) return;
         if (BUILD_ITEM_TYPES.has(item.type)) {
@@ -698,6 +735,34 @@ export function CharValidationHooks() {
         if (isPluto) {
             ui.notifications?.warn("Import Plutonium bloqué : cette fiche est verrouillée. Demandez au MJ d'autoriser une création ou une montée de niveau.");
             return false;
+        }
+    });
+
+    // ---- Notification des montées de niveau libres (mode confiance) ----
+    Hooks.on("createItem", (item, _o, userId) => {
+        const a = item.parent; if (!_luActive(a, userId)) return;
+        if (BUILD_ITEM_TYPES.has(item.type)) _queueLuNote(a, `Ajout : ${item.name} (${item.type})`);
+    });
+    Hooks.on("deleteItem", (item, _o, userId) => {
+        const a = item.parent; if (!_luActive(a, userId)) return;
+        if (BUILD_ITEM_TYPES.has(item.type)) _queueLuNote(a, `Retrait : ${item.name}`);
+    });
+    Hooks.on("updateItem", (item, changes, _o, userId) => {
+        const a = item.parent; if (!_luActive(a, userId)) return;
+        if (item.type === "class") {
+            const lv = foundry.utils.getProperty(changes, "system.levels");
+            if (lv != null) _queueLuNote(a, `${item.name} → niveau ${lv}`);
+        }
+    });
+    Hooks.on("updateActor", (actor, changes, _o, userId) => {
+        if (!_luActive(actor, userId)) return;
+        const lvl = foundry.utils.getProperty(changes, "system.details.level");
+        if (lvl != null) _queueLuNote(actor, `Niveau : ${lvl}`);
+        const ab = foundry.utils.getProperty(changes, "system.abilities");
+        if (ab && typeof ab === "object") {
+            for (const k of Object.keys(ab)) {
+                if (ab[k]?.value != null) _queueLuNote(actor, `${_abilLabel(k)} : ${ab[k].value}`);
+            }
         }
     });
 

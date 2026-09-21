@@ -17,6 +17,7 @@ import { MigrationHooks }    from "./modules/migration.js";
 import { setupCharacterSheet } from "./modules/character-sheet.js";
 import { RelationsHooks }      from "./modules/relations.js";
 import { BestiaryHooks }       from "./modules/bestiary.js";
+import { Tidy5eCompatHooks }   from "./modules/tidy5e-compat.js";
 import { CarnetToolbarHooks }  from "./modules/carnet.js";
 import { PcStatusHooks }       from "./modules/pcstatus.js";
 import { SceneAudioHooks }     from "./modules/sceneaudio.js";
@@ -34,7 +35,6 @@ import { MejShopHooks }      from "./modules/mejshop.js";
 import { MejRestockHooks }   from "./modules/mejrestock.js";
 import { ExportDialogHooks } from "./modules/export-dialog.js";
 import { TemplateHooks }     from "./modules/template.js";
-import { HotbarHooks }       from "./modules/hotbar.js";
 import { ConnStatsHooks }    from "./modules/connstats.js";
 
 // --- Phase 4 : Westmarch core ---
@@ -69,6 +69,7 @@ import { TmHooks }          from "./modules/tm.js";
 // --- Phase 6 : Carte / Midi / Tutoriel ---
 import { MapHooks }              from "./modules/map.js";
 import { UiHideHooks }           from "./modules/uihide.js";
+import { AccessibilityHooks }    from "./modules/accessibility.js";
 import { CombatRemindersHooks }  from "./modules/combatreminders.js";
 import { RangeFixHooks }         from "./modules/range-fix.js";
 import { registerTutorielButton } from "./modules/toolbar.js";
@@ -138,6 +139,7 @@ Hooks.on("init", () => {
     PcStatusHooks();
     SceneAudioHooks();
     setupCharacterSheet();   // enregistre la fiche au hook "setup"
+    Tidy5eCompatHooks();     // ré-injecte les onglets dans les fiches Tidy5e (si présent)
 
     // --- Phase 3 : Toolkit ---
     RageHooks();
@@ -152,7 +154,6 @@ Hooks.on("init", () => {
     MejRestockHooks();
     ExportDialogHooks();
     TemplateHooks();
-    HotbarHooks();
     ConnStatsHooks();
 
     // --- Phase 4 : Westmarch core (ordre d'origine) ---
@@ -187,6 +188,7 @@ Hooks.on("init", () => {
     // --- Phase 6 : Carte + Tutoriel (init) ---
     MapHooks();
     UiHideHooks();
+    AccessibilityHooks();
     CombatRemindersHooks();
     // Bouton tutoriel enregistré en "init" pour que getSceneControlButtons
     // soit déjà écouté quand Foundry construit la barre. Le hook vérifie

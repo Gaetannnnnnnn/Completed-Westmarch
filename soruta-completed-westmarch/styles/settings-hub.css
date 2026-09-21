@@ -1,0 +1,117 @@
+/* ============================================================
+   settings-hub.css — Panneau de configuration regroupé
+   ============================================================ */
+
+.scwm-hub {
+    display: flex;
+    gap: 10px;
+    height: 100%;
+    min-height: 0;
+}
+
+/* Barre de navigation des thèmes (à gauche). */
+.scwm-hub-nav {
+    flex: 0 0 190px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow-y: auto;
+    padding-right: 6px;
+    border-right: 1px solid rgba(201, 162, 39, 0.35);
+}
+.scwm-hub-navbtn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-align: left;
+    padding: 8px 10px;
+    border: 1px solid rgba(201, 162, 39, 0.25);
+    border-radius: 5px;
+    background: rgba(20, 18, 14, 0.4);
+    color: #d8cfa8;
+    font-size: 0.85em;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+.scwm-hub-navbtn i { color: #c9a227; width: 16px; text-align: center; flex: 0 0 auto; }
+.scwm-hub-navbtn:hover { background: rgba(201, 162, 39, 0.15); }
+.scwm-hub-navbtn.active {
+    background: linear-gradient(180deg, rgba(201, 162, 39, 0.28), rgba(201, 162, 39, 0.1));
+    border-color: rgba(201, 162, 39, 0.7);
+    color: #fff;
+    font-weight: 600;
+}
+
+/* Zone de contenu défilante (à droite). */
+.scwm-hub-scroll {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-y: auto;
+    padding-right: 6px;
+}
+.scwm-hub-group-title {
+    margin: 0 0 8px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid rgba(201, 162, 39, 0.4);
+    font-size: 1.05em;
+    color: #e8cc6a;
+}
+.scwm-hub-group-title i { margin-right: 6px; }
+
+/* Chaque catégorie devient une section repliable. */
+.scwm-hub-cat {
+    margin: 0 0 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 5px;
+    background: rgba(0, 0, 0, 0.12);
+    overflow: hidden;
+}
+.scwm-hub-cat > summary {
+    cursor: pointer;
+    padding: 8px 10px;
+    font-weight: 600;
+    background: rgba(201, 162, 39, 0.08);
+    list-style: none;
+}
+.scwm-hub-cat > summary::-webkit-details-marker { display: none; }
+.scwm-hub-cat > summary::before {
+    content: "\f0da";                 /* fa-caret-right */
+    font-family: "Font Awesome 6 Free", "Font Awesome 5 Free";
+    font-weight: 900;
+    margin-right: 8px;
+    color: #c9a227;
+    transition: transform 0.15s;
+    display: inline-block;
+}
+.scwm-hub-cat[open] > summary::before { transform: rotate(90deg); }
+.scwm-hub-cat > summary i { color: #c9a227; margin-right: 4px; }
+.scwm-hub-cat-body { padding: 4px 10px 8px; }
+/* Le formulaire de catégorie inliné ne gère plus sa propre hauteur/scroll :
+   c'est la zone du hub qui défile. */
+.scwm-hub-cat-body .scwm-cat-form { max-height: none !important; overflow: visible !important; }
+
+/* Catégories à éditeur dédié : ligne avec bouton « Ouvrir ». */
+.scwm-hub-launch {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0 0 8px;
+    padding: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 5px;
+    background: rgba(0, 0, 0, 0.12);
+}
+.scwm-hub-launch-desc { font-size: 0.78em; color: #999; margin-top: 2px; line-height: 1.35; }
+.scwm-hub-open {
+    flex: 0 0 auto;
+    padding: 6px 12px;
+    border: 1px solid rgba(201, 162, 39, 0.5);
+    border-radius: 5px;
+    background: rgba(201, 162, 39, 0.15);
+    color: #e8cc6a;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.scwm-hub-open:hover { background: rgba(201, 162, 39, 0.3); color: #fff; }

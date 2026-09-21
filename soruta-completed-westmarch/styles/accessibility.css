@@ -1,0 +1,103 @@
+/* ============================================================
+   accessibility.css — Accessibilité & confort d'interface
+   (réglages personnels par joueur ; voir accessibility.js)
+   ============================================================ */
+
+/* ── 1. Daltonisme : filtre de correction sur la carte + l'UI ──
+   On applique le filtre au calque canvas (#board) et à l'interface
+   (#interface). La carte porte l'essentiel de l'information visuelle
+   (tokens, éclairages, dessins) ; l'UI complète la correction. */
+body.scwm-a11y-protan #board,
+body.scwm-a11y-protan #interface { filter: url(#scwm-dalton-protan); }
+body.scwm-a11y-deutan #board,
+body.scwm-a11y-deutan #interface { filter: url(#scwm-dalton-deutan); }
+body.scwm-a11y-tritan #board,
+body.scwm-a11y-tritan #interface { filter: url(#scwm-dalton-tritan); }
+
+/* Les fenêtres modales (DialogV2) sont souvent hors #interface : on les
+   corrige aussi pour rester cohérent. */
+body.scwm-a11y-protan .application.dialog,
+body.scwm-a11y-protan #tooltip { filter: url(#scwm-dalton-protan); }
+body.scwm-a11y-deutan .application.dialog,
+body.scwm-a11y-deutan #tooltip { filter: url(#scwm-dalton-deutan); }
+body.scwm-a11y-tritan .application.dialog,
+body.scwm-a11y-tritan #tooltip { filter: url(#scwm-dalton-tritan); }
+
+/* ── 2. Fort contraste ─────────────────────────────────────── */
+body.scwm-a11y-contrast #interface {
+    --color-text-dark-primary: #ffffff;
+    --color-text-light-primary: #ffffff;
+}
+body.scwm-a11y-contrast .app,
+body.scwm-a11y-contrast .application,
+body.scwm-a11y-contrast #players,
+body.scwm-a11y-contrast #chat-log .message {
+    background: rgba(0, 0, 0, 0.92) !important;
+    border-color: #ffd54a !important;
+    color: #ffffff !important;
+}
+body.scwm-a11y-contrast #interface a,
+body.scwm-a11y-contrast .window-content,
+body.scwm-a11y-contrast .player-name,
+body.scwm-a11y-contrast .message-content {
+    color: #ffffff !important;
+    text-shadow: 0 0 2px #000, 0 0 2px #000 !important;
+}
+body.scwm-a11y-contrast .control-tool,
+body.scwm-a11y-contrast button,
+body.scwm-a11y-contrast .scene-control {
+    border: 1px solid #ffd54a !important;
+}
+body.scwm-a11y-contrast :focus-visible {
+    outline: 3px solid #ffd54a !important;
+    outline-offset: 2px !important;
+}
+
+/* ── 3. Avatars dans la liste des joueurs ──────────────────── */
+.scwm-player-avatar {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex: 0 0 auto;
+    margin-right: 6px;
+    border: 1px solid rgba(201, 162, 39, 0.6);
+    background: #000;
+    vertical-align: middle;
+}
+#players .player > h3,
+#players .player-name { display: inline-flex; align-items: center; }
+
+/* ── 4. Auto-masquage (fondu tant que non survolé) ──────────── */
+body.scwm-a11y-autohide #ui-left,
+body.scwm-a11y-autohide #controls,
+body.scwm-a11y-autohide #navigation,
+body.scwm-a11y-autohide #ui-bottom #hotbar,
+body.scwm-a11y-autohide #hotbar,
+body.scwm-a11y-autohide #players {
+    opacity: 0.22;
+    transition: opacity 0.25s ease;
+}
+body.scwm-a11y-autohide #ui-left:hover,
+body.scwm-a11y-autohide #controls:hover,
+body.scwm-a11y-autohide #navigation:hover,
+body.scwm-a11y-autohide #ui-bottom #hotbar:hover,
+body.scwm-a11y-autohide #hotbar:hover,
+body.scwm-a11y-autohide #players:hover {
+    opacity: 1;
+}
+
+/* ── 5. Contrôles de gauche compacts ───────────────────────── */
+body.scwm-a11y-compact #controls .control-tool,
+body.scwm-a11y-compact #controls li.scene-control,
+body.scwm-a11y-compact #ui-left button.control {
+    width: 28px !important;
+    height: 28px !important;
+    line-height: 28px !important;
+    font-size: 13px !important;
+    margin: 1px 0 !important;
+}
+body.scwm-a11y-compact #controls ol,
+body.scwm-a11y-compact #controls menu {
+    gap: 1px !important;
+}

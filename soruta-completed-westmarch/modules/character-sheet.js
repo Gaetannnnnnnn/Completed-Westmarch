@@ -18,7 +18,7 @@ import {
 
 // Onglet « Note GM » — notes privées du MJ, invisibles pour les joueurs.
 const _escNotes = (s) => String(s ?? "").replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
-function buildGmNotesHtml(actor) {
+export function buildGmNotesHtml(actor) {
     const notes = actor.getFlag(MOD, "gmNotes") ?? "";
     return `<div class="scwm-gmnotes">
         <div class="scwm-gmnotes-header">
@@ -33,7 +33,7 @@ function buildGmNotesHtml(actor) {
         <p class="scwm-gmnotes-foot"><i class="fa-solid fa-cloud-arrow-up"></i> Sauvegarde automatique quand vous cliquez ailleurs.</p>
     </div>`;
 }
-function wireGmNotes(actor, htmlElement) {
+export function wireGmNotes(actor, htmlElement) {
     const ta = htmlElement.querySelector(".scwm-gmnotes-input");
     if (!ta) return;
     ta.addEventListener("change", () => actor.setFlag(MOD, "gmNotes", ta.value));

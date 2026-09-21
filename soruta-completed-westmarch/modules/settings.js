@@ -7,7 +7,6 @@
 // ============================================================
 
 import { MOD, TUTO_TOGGLES, TM_DEFAULT_SCROLL, TM_DEFAULT_MAGIC, TM_DEFAULT_ROLL, ACTIVATION_CODE, DEACTIVATION_CODE } from "./const.js";
-import { applyHotbarVisibility } from "./hotbar.js";
 import { applyPartyPause } from "./partypause.js";
 import { openProfilesEditor } from "./companions.js";
 import { openUiHideDialog, applyUiHiding } from "./uihide.js";
@@ -215,6 +214,14 @@ export function registerSettings() {
     game.settings.register(MOD, "blockPlayerPlutonium", B(
         "Bloquer les imports Plutonium hors autorisation",
         "Empêche les joueurs d'importer du contenu Plutonium sur une fiche VERROUILLÉE. L'import n'est possible que pendant une fenêtre autorisée par le MJ (création du personnage, ou montée de niveau validée). Les GM ne sont jamais bloqués."));
+    game.settings.register(MOD, "charFreeLevelUp", B(
+        "Montées de niveau libres (sans validation MJ)",
+        "Mode confiance : une fois le personnage validé à la création, les modifications de construction (montées de niveau) ne sont PLUS bloquées ni reverrouillées — le joueur monte de niveau librement, sans passer par le MJ. Le verrou ne s'applique donc qu'à la création initiale.",
+        false));
+    game.settings.register(MOD, "charNotifyLevelUp", B(
+        "Notifier le MJ des montées de niveau",
+        "Quand les montées de niveau sont libres, poste quand même au MJ un récapitulatif des changements (niveau, classe, aptitudes, sorts ajoutés/retirés) — pour information, sans rien bloquer.",
+        true));
     game.settings.register(MOD, "charValidationFolder", S(
         "Validation — Dossier des personnages",
         "Nom du dossier d'acteurs où sont créés les personnages validés.",
@@ -416,18 +423,10 @@ export function registerSettings() {
     game.settings.register(MOD, "enableToolAbilityFix", B(
         "Correction de la stat des outils (tools)",
         "À la création d'un outil sans stat, corrige automatiquement vers la stat canonique dnd5e."));
-    game.settings.register(MOD, "enableHideHotbar", {
-        name: "Masquer la barre de macros (joueurs)",
-        hint: "Cache la barre de macros (hotbar) pour les joueurs non-GM. Modifiable sans rechargement.",
-        scope: "world", config: false, type: Boolean, default: false, requiresReload: false,
-        onChange: () => applyHotbarVisibility()
-    });
-    game.settings.register(MOD, "enableHideHotbarGM", {
-        name: "Masquer la barre de macros (GM)",
-        hint: "Cache la barre de macros (hotbar) pour les GM. Indépendant de l'option joueurs. Modifiable sans rechargement.",
-        scope: "world", config: false, type: Boolean, default: false, requiresReload: false,
-        onChange: () => applyHotbarVisibility()
-    });
+    // Le masquage de la barre de macros (joueurs/GM) est désormais géré
+    // uniquement par le panneau « Interface — Masquer des éléments » (uihide.js),
+    // qui couvre la hotbar avec ses deux colonnes Joueurs/GM. Les anciens
+    // réglages dédiés « enableHideHotbar » ont été retirés (doublon).
     game.settings.register(MOD, "enableConnStats", {
         name: "Fenêtre d'infos de connexion",
         hint: "Affiche au chargement, en haut au centre de l'écran, le temps de connexion, le nombre de modules actifs et la durée moyenne de connexion. Prend effet au prochain chargement.",
@@ -677,7 +676,8 @@ export function registerSettings() {
     // Les joueurs ne voient de toute façon que la fenêtre publique « À propos ».
     const activated = (game.settings.get(MOD, "activationCode") ?? "").trim() === ACTIVATION_CODE;
     if (activated) {
-        registerCategoryMenus();
+        registerConfigHub();      // panneau regroupé (point d'entrée recommandé)
+        registerCategoryMenus();  // + boutons directs par catégorie (accès rapide)
         registerCategoryToggles();
     }
 }
@@ -964,7 +964,7 @@ const CATEGORIES = [
       keys: ["enableParty","enableJoinScene","enableShowParty","enablePlayerGrouping","enableGoWithPartyScenes","enableGoWithPartyJournal","enableChatFilter","enableChatTabs","enableNoteLink","enableSessionLog","sessionLogWebhookUrl","sessionLogForum","enableCombatParty","enableCombatTurnLock","enablePartyPause","enableAntiCheat"] },
     { firstKey: "enableCharValidation", master: "enableCharValidation", icon: "fa-id-card", title: "Création de personnages",
       desc: "Les joueurs demandent la création d'un personnage ; un GM valide depuis le Casier, puis le joueur construit et soumet sa fiche ; à la validation elle est verrouillée. Le dossier de destination se règle dans « Dossiers & Compendiums ».",
-      keys: ["enableCharValidation","charMaxTotal","charMaxActive","blockPlayerPlutonium"] },
+      keys: ["enableCharValidation","charMaxTotal","charMaxActive","charFreeLevelUp","charNotifyLevelUp","blockPlayerPlutonium"] },
     { firstKey: "enableSourceControl", master: "enableSourceControl", icon: "fa-book-skull", title: "Contrôle des sources",
       desc: "Réglemente les livres/extensions D&D (Xanathar, Tal'Dorei, etc.) autorisés sur les fiches PJ, via deux listes blanches (joueurs / MJ). Le contenu d'une source non autorisée est bloqué avec un avertissement, quelle que soit la méthode d'ajout.",
       keys: ["enableSourceControl","sourceAllowPlayers","sourceAllowGm","sourceMatchField","sourceMatchExact","sourceBlockUnknown"] },
@@ -982,7 +982,7 @@ const CATEGORIES = [
       keys: ["tmEnabled","tmSkillBase","tmAddAbilityMod","tmBonusMaitrise","tmBonusExpertise","tmBonusTools","tmRollMinDays","tmReliableTalent","tmSkillFormula","tmCraftNonMagicCostDiv","tmCraftNonMagicDaysPerGp","tmCraftNonMagicCostFormula","tmCraftNonMagicDaysFormula","tmSingleUseFactor","tmScrollTable","tmMagicTable","tmRollTable"] },
     { firstKey: "enableTokenAppearance", icon: "fa-toolbox",         title: "Toolkit",
       desc: "Apparences de tokens, transformations, tailles Large, TGCM, utilitaires GM, templates AoE, boutiques MEJ et réapprovisionnement.",
-      keys: ["enableTokenAppearance","enableTokenPortraitButton","enablePolymorph","enableTgcm","enableCompanions","enableFolderMove","enableToolAbilityFix","enableHideHotbar","enableHideHotbarGM","enableConnStats","enablePlayerListCompact","enableTemplateSnap","enableFollowTemplates","enableMejShopFix","enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
+      keys: ["enableTokenAppearance","enableTokenPortraitButton","enablePolymorph","enableTgcm","enableCompanions","enableFolderMove","enableToolAbilityFix","enableConnStats","enablePlayerListCompact","enableTemplateSnap","enableFollowTemplates","enableMejShopFix","enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
     { firstKey: "relationsEnabled", master: "relationsEnabled",      icon: "fa-heart",           title: "Fiche PJ — Relations",
       desc: "Onglet Relations : liens entre personnages, détection automatique des rencontres, anonymisation.",
       keys: ["relationsEnabled","relationsAnonymization"] },
@@ -1073,6 +1073,156 @@ function readTableFromForm(key, root) {
 }
 
 // ============================================================
+// Panneau de configuration REGROUPÉ — un seul bouton ouvre une fenêtre
+// où toutes les catégories sont classées par grands thèmes, avec des
+// sections repliables. Les boutons « Configurer » individuels restent
+// disponibles en parallèle pour un accès direct aux gros modules.
+// ============================================================
+
+// Regroupement des catégories (firstKey) par thème. Les catégories non
+// listées ici sont ajoutées automatiquement à « Divers ».
+const CONFIG_GROUPS = [
+    { title: "Fiche PJ & personnages", icon: "fa-id-card",
+      cats: ["relationsEnabled", "bestiaryEnabled", "carnetEnabled", "enableCharValidation", "enableSourceControl"] },
+    { title: "Party & jeu de groupe", icon: "fa-users",
+      cats: ["enableParty", "enableExpeditionMap", "enableHarvest"] },
+    { title: "Combat", icon: "fa-bolt",
+      cats: ["enableReactReminder", "rangeFixEnabled"] },
+    { title: "Serveur & monde", icon: "fa-server",
+      cats: ["enableXpBlock", "tmSkillBase", "enableSceneCues", "commonFolderPJ"] },
+    { title: "Personnalisation & interface", icon: "fa-sliders",
+      cats: ["enableTokenAppearance", "uihide", "tweakTree", "companionProfiles"] },
+    { title: "Aide & découverte", icon: "fa-circle-question",
+      cats: ["serverName"] }
+];
+
+function _groupedCategories() {
+    const byKey = new Map(CATEGORIES.map(c => [c.firstKey, c]));
+    const used = new Set();
+    const groups = CONFIG_GROUPS.map(g => ({
+        title: g.title, icon: g.icon,
+        cats: g.cats.map(k => byKey.get(k)).filter(Boolean)
+    }));
+    for (const g of groups) for (const c of g.cats) used.add(c.firstKey);
+    const misc = CATEGORIES.filter(c => !used.has(c.firstKey));
+    if (misc.length) groups.push({ title: "Divers", icon: "fa-ellipsis", cats: misc });
+    return groups.filter(g => g.cats.length);
+}
+
+function registerConfigHub() {
+    try {
+        game.settings.registerMenu(MOD, "menu-config-hub", {
+            name:  "⚙ Panneau de configuration (tout)",
+            label: "Ouvrir le panneau",
+            hint:  "Tous les réglages du module, classés par thème avec des sections repliables. Point d'entrée recommandé.",
+            icon:  "fas fa-table-cells-large",
+            type:  makeLauncher({ firstKey: "config-hub", title: "Panneau de configuration", icon: "fa-table-cells-large", open: () => openConfigHub() }),
+            restricted: true
+        });
+    } catch (e) {
+        console.warn(`[${MOD}] registerMenu « Panneau de configuration » échec :`, e);
+    }
+}
+
+// Une catégorie qui a un handler `open` (éditeur dédié) et aucune clé n'est
+// pas inlinable : on affiche un bouton qui ouvre son éditeur.
+const _catIsInlinable = (cat) => Array.isArray(cat.keys) && cat.keys.length > 0 || !!cat.tree;
+const _hubHostId = (cat) => `scwm-hub-cat-${cat.firstKey}`;
+
+async function openConfigHub() {
+    const groups = _groupedCategories();
+
+    const groupHtml = groups.map((g, gi) => {
+        const cats = g.cats.map(cat => {
+            if (!_catIsInlinable(cat)) {
+                // Catégorie à éditeur dédié (Profils compagnons, Interface—Masquer…).
+                return `<div class="scwm-hub-launch">
+                    <div><i class="fa-solid ${cat.icon}"></i> <strong>${cat.title}</strong>
+                        <div class="scwm-hub-launch-desc">${cat.desc ?? ""}</div></div>
+                    <button type="button" class="scwm-hub-open" data-cat="${cat.firstKey}">
+                        <i class="fa-solid fa-up-right-from-square"></i> Ouvrir</button>
+                </div>`;
+            }
+            return `<details class="scwm-hub-cat">
+                <summary><i class="fa-solid ${cat.icon}"></i> ${cat.title}</summary>
+                <div class="scwm-hub-cat-body">${buildCategoryForm(cat, _hubHostId(cat), { banner: false })}</div>
+            </details>`;
+        }).join("");
+        return `<section class="scwm-hub-group" data-group="${gi}" ${gi === 0 ? "" : 'style="display:none;"'}>
+            <h2 class="scwm-hub-group-title"><i class="fa-solid ${g.icon}"></i> ${g.title}</h2>
+            ${cats}
+        </section>`;
+    }).join("");
+
+    const nav = groups.map((g, gi) =>
+        `<button type="button" class="scwm-hub-navbtn ${gi === 0 ? "active" : ""}" data-group="${gi}">
+            <i class="fa-solid ${g.icon}"></i><span>${g.title}</span></button>`).join("");
+
+    const content = `
+    <div id="scwm-hub" class="scwm-hub">
+        <div class="scwm-hub-nav">${nav}</div>
+        <div class="scwm-hub-scroll">${groupHtml}</div>
+    </div>`;
+
+    const wireHub = () => {
+        const root = document.getElementById("scwm-hub");
+        if (!root) return;
+        // Navigation entre thèmes.
+        root.querySelectorAll(".scwm-hub-navbtn").forEach(btn => btn.addEventListener("click", (e) => {
+            e.preventDefault();
+            const gi = btn.dataset.group;
+            root.querySelectorAll(".scwm-hub-navbtn").forEach(b => b.classList.toggle("active", b === btn));
+            root.querySelectorAll(".scwm-hub-group").forEach(s => s.style.display = (s.dataset.group === gi) ? "" : "none");
+            root.querySelector(".scwm-hub-scroll")?.scrollTo({ top: 0 });
+        }));
+        // Boutons « Ouvrir » des éditeurs dédiés.
+        root.querySelectorAll(".scwm-hub-open").forEach(btn => btn.addEventListener("click", (e) => {
+            e.preventDefault();
+            const cat = CATEGORIES.find(c => c.firstKey === btn.dataset.cat);
+            if (cat?.open) cat.open();
+        }));
+        // Câblage de chaque formulaire de catégorie inliné, chacun sur SON hôte
+        // (évite les collisions de sélecteurs entre catégories).
+        for (const g of groups) for (const cat of g.cats) {
+            if (!_catIsInlinable(cat)) continue;
+            const host = document.getElementById(_hubHostId(cat));
+            if (host) { try { wireCategoryForm(cat, host); } catch (err) { console.warn(`[${MOD}] wire hub ${cat.firstKey}`, err); } }
+        }
+    };
+
+    await foundry.applications.api.DialogV2.wait({
+        window:      { title: "Soruta — Panneau de configuration", icon: "fas fa-table-cells-large" },
+        position:    { width: 780, height: 720 },
+        rejectClose: false,
+        content,
+        render:      wireHub,
+        buttons: [
+            {
+                action: "save", default: true,
+                label: "Tout enregistrer", icon: '<i class="fa-solid fa-save"></i>',
+                callback: async () => {
+                    let reload = false;
+                    for (const g of groups) for (const cat of g.cats) {
+                        if (!_catIsInlinable(cat)) continue;
+                        const host = document.getElementById(_hubHostId(cat));
+                        if (host) reload = (await saveCategoryForm(cat, host, { silent: true })) || reload;
+                    }
+                    ui.notifications?.info("Réglages enregistrés.");
+                    if (reload) {
+                        const ok = await foundry.applications.api.DialogV2.confirm({
+                            window:  { title: "Rechargement requis" },
+                            content: "<p>Certains changements nécessitent un rechargement pour s'appliquer. Recharger maintenant ?</p>"
+                        });
+                        if (ok) window.location.reload();
+                    }
+                }
+            },
+            { action: "close", label: "Fermer", icon: '<i class="fa-solid fa-xmark"></i>', callback: () => {} }
+        ]
+    });
+}
+
+// ============================================================
 // Menus par catégorie — chaque grande section devient un bouton
 // "Configurer" (registerMenu) qui ouvre une fenêtre dédiée (DialogV2)
 // avec uniquement les réglages de cette section.
@@ -1135,7 +1285,7 @@ function boolKeysOf(category) {
     return category.keys.filter(k => game.settings.settings.get(`${MOD}.${k}`)?.type === Boolean);
 }
 
-function buildCategoryForm(category, uid) {
+function buildCategoryForm(category, uid, { banner = true } = {}) {
     const toggleBar = boolKeysOf(category).length >= 2 ? `
         <div style="display:flex;gap:12px;justify-content:flex-end;margin:0 4px 8px;font-size:.8em;">
             <a class="scwm-all-on"  style="color:#8fd19e;cursor:pointer;">Tout activer</a>
@@ -1144,7 +1294,7 @@ function buildCategoryForm(category, uid) {
         </div>` : "";
     return `
     <div id="${uid}" class="scwm-cat-form" style="display:flex;flex-direction:column;max-height:60vh;overflow-y:auto;padding-right:4px;">
-        ${licenseBannerHtml()}
+        ${banner ? licenseBannerHtml() : ""}
         ${category.desc ? `<p style="margin:0 0 8px;font-size:.85em;color:#aaa;font-style:italic;">${category.desc}</p>` : ""}
         ${toggleBar}
         ${category.tree ? renderTweakTree(category.tree) : category.keys.map(settingControlHtml).join("")}
@@ -1285,8 +1435,8 @@ function wireCategoryForm(category, root) {
     }
 }
 
-async function saveCategoryForm(category, root) {
-    if (!root) return;
+async function saveCategoryForm(category, root, { silent = false } = {}) {
+    if (!root) return false;
     let needsReload = false;
     for (const key of category.keys) {
         const cfg = game.settings.settings.get(`${MOD}.${key}`);
@@ -1325,6 +1475,7 @@ async function saveCategoryForm(category, root) {
             if (cfg.requiresReload) needsReload = true;
         }
     }
+    if (silent) return needsReload;
     ui.notifications?.info(`${category.title} — réglages enregistrés.`);
     if (needsReload) {
         const ok = await foundry.applications.api.DialogV2.confirm({
@@ -1333,6 +1484,7 @@ async function saveCategoryForm(category, root) {
         });
         if (ok) window.location.reload();
     }
+    return needsReload;
 }
 
 function escapeAttr(s) {

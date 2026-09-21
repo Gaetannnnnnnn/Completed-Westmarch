@@ -28,9 +28,12 @@ import { MOD } from "./const.js";
 // Clés de réglages (toutes "client").
 const K_DALTON   = "a11yDaltonism";      // "none" | "protan" | "deutan" | "tritan"
 const K_CONTRAST = "a11yContrast";        // Boolean
+const K_CONTRASTCOL = "a11yContrastColor"; // String (couleur des contours)
 const K_AVATARS  = "a11yPlayerAvatars";   // Boolean
 const K_AUTOHIDE = "a11yAutoHide";        // Boolean
 const K_COMPACT  = "a11yCompactControls"; // Boolean
+
+const DEFAULT_BORDER = "#ffd54a";
 
 const DALTON_CHOICES = {
     none:   "Aucun (couleurs normales)",
@@ -51,6 +54,10 @@ function registerA11ySettings() {
     game.settings.register(MOD, K_CONTRAST, {
         name: "Fort contraste", scope: "client", config: false,
         type: Boolean, default: false, onChange: applyAccessibility
+    });
+    game.settings.register(MOD, K_CONTRASTCOL, {
+        name: "Couleur des contours (fort contraste)", scope: "client", config: false,
+        type: String, default: DEFAULT_BORDER, onChange: applyAccessibility
     });
     game.settings.register(MOD, K_AVATARS, {
         name: "Avatars dans la liste des joueurs", scope: "client", config: false,
@@ -123,6 +130,17 @@ async function openA11yDialog() {
         </div>
 
         ${row(K_CONTRAST, "Fort contraste", "Renforce le contraste du texte, des bordures et des fonds de l'interface.")}
+        <div class="scwm-a11y-row" style="padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.07);">
+            <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0;font-weight:600;">
+                <span>Couleur des contours</span>
+                <span style="display:inline-flex;align-items:center;gap:6px;">
+                    <input type="color" name="${K_CONTRASTCOL}" value="${_get(K_CONTRASTCOL) || DEFAULT_BORDER}"
+                           style="width:42px;height:26px;padding:0;border:none;background:none;cursor:pointer;">
+                    <a class="scwm-a11y-col-reset" style="font-size:.8em;color:#c9a227;cursor:pointer;">réinit.</a>
+                </span>
+            </label>
+            <p style="margin:3px 0 0;font-size:.8em;color:#999;">Couleur des bordures et du contour de focus en mode fort contraste (jaune par défaut).</p>
+        </div>
         ${row(K_AVATARS,  "Avatars dans la liste des joueurs", "Affiche la miniature du portrait de chaque joueur à côté de son nom.")}
         ${row(K_AUTOHIDE, "Auto-masquage de l'interface", "Estompe contrôles, navigation, macros et liste des joueurs tant que la souris ne les survole pas.")}
         ${row(K_COMPACT,  "Contrôles de gauche compacts", "Réduit la taille des icônes de la barre d'outils de gauche.")}
@@ -133,6 +151,14 @@ async function openA11yDialog() {
         position:    { width: 520 },
         rejectClose: false,
         content,
+        render: () => {
+            const root = document.getElementById(uid);
+            root?.querySelector(".scwm-a11y-col-reset")?.addEventListener("click", (e) => {
+                e.preventDefault();
+                const inp = root.querySelector(`[name="${K_CONTRASTCOL}"]`);
+                if (inp) inp.value = DEFAULT_BORDER;
+            });
+        },
         buttons: [
             {
                 action: "save", default: true,
@@ -142,6 +168,8 @@ async function openA11yDialog() {
                     if (!root) return;
                     const sel = root.querySelector(`[name="${K_DALTON}"]`);
                     await game.settings.set(MOD, K_DALTON, sel?.value ?? "none");
+                    const col = root.querySelector(`[name="${K_CONTRASTCOL}"]`);
+                    await game.settings.set(MOD, K_CONTRASTCOL, col?.value || DEFAULT_BORDER);
                     for (const k of [K_CONTRAST, K_AVATARS, K_AUTOHIDE, K_COMPACT]) {
                         const cb = root.querySelector(`[name="${k}"]`);
                         await game.settings.set(MOD, k, !!cb?.checked);
@@ -155,47 +183,65 @@ async function openA11yDialog() {
     });
 }
 
-// ── Filtres SVG de daltonisation ────────────────────────────
-// Chaîne : (1) simulation de la déficience, (2) erreur = source − simulé,
-// (3) redistribution de l'erreur vers des canaux perceptibles,
-// (4) corrigé = source + erreur redistribuée.
-const SVG_NS = "http://www.w3.org/2000/svg";
-
-function _daltonFilter(id, simMatrix, shiftMatrix) {
-    return `
-    <filter id="${id}" color-interpolation-filters="linearRGB">
-        <feColorMatrix type="matrix" in="SourceGraphic" result="sim" values="${simMatrix}"/>
-        <feComposite in="SourceGraphic" in2="sim" operator="arithmetic"
-                     k1="0" k2="1" k3="-1" k4="0" result="err"/>
-        <feColorMatrix type="matrix" in="err" result="errshift" values="${shiftMatrix}"/>
-        <feComposite in="SourceGraphic" in2="errshift" operator="arithmetic"
-                     k1="0" k2="1" k3="1" k4="0"/>
-    </filter>`;
-}
-
-// Matrices de SIMULATION (4×5 : R,G,B,A).
-const SIM = {
-    protan: "0.567 0.433 0 0 0  0.558 0.442 0 0 0  0 0.242 0.758 0 0  0 0 0 1 0",
-    deutan: "0.625 0.375 0 0 0  0.7 0.3 0 0 0  0 0.3 0.7 0 0  0 0 0 1 0",
-    tritan: "0.95 0.05 0 0 0  0 0.433 0.567 0 0  0 0.475 0.525 0 0  0 0 0 1 0"
+// ── Daltonisation de la SCÈNE via un filtre PIXI ────────────
+// Un filtre CSS url() sur le canvas WebGL de Foundry est ignoré par le
+// navigateur. On applique donc un PIXI.ColorMatrixFilter sur le stage du
+// canvas. La matrice est la daltonisation (correction) précalculée en une
+// seule matrice linéaire : M = I + Shift·(I − Sim), où Sim simule la
+// déficience et Shift redistribue l'information de couleur perdue vers des
+// canaux perceptibles. Format PIXI : 4 lignes (R,G,B,A) × 5 colonnes
+// (r, g, b, a, offset).
+const DALTON_MATRIX = {
+    protan: [
+        1,       0,       0,     0, 0,
+       -0.2549,  1.2549,  0,     0, 0,
+        0.3031, -0.5451,  1.242, 0, 0,
+        0,       0,       0,     1, 0
+    ],
+    deutan: [
+        1,       0,       0,   0, 0,
+       -0.4375,  1.4375,  0,   0, 0,
+        0.2625, -0.5625,  1.3, 0, 0,
+        0,       0,       0,   1, 0
+    ],
+    tritan: [
+        1.05, -0.3825,  0.3325, 0, 0,
+        0,     1.2345, -0.2345, 0, 0,
+        0,     0,       1,      0, 0,
+        0,     0,       0,      1, 0
+    ]
 };
-// Redistribution de l'erreur (rouge-vert → bleu ; bleu → rouge-vert).
-const SHIFT = {
-    rg:    "0 0 0 0 0  0.7 1 0 0 0  0.7 0 1 0 0  0 0 0 1 0",
-    tri:   "1 0 0.7 0 0  0 1 0.7 0 0  0 0 0 0 0  0 0 0 1 0"
-};
 
-function injectDaltonDefs() {
-    if (document.getElementById("scwm-a11y-svg")) return;
-    const svg = document.createElementNS(SVG_NS, "svg");
-    svg.id = "scwm-a11y-svg";
-    svg.setAttribute("aria-hidden", "true");
-    svg.setAttribute("style", "position:absolute;width:0;height:0;overflow:hidden;pointer-events:none;");
-    svg.innerHTML =
-        _daltonFilter("scwm-dalton-protan", SIM.protan, SHIFT.rg) +
-        _daltonFilter("scwm-dalton-deutan", SIM.deutan, SHIFT.rg) +
-        _daltonFilter("scwm-dalton-tritan", SIM.tritan, SHIFT.tri);
-    document.body.appendChild(svg);
+// Applique (ou retire) le filtre de daltonisation sur le canvas de la scène.
+function applyCanvasDaltonism() {
+    const stage = canvas?.stage;
+    const app   = canvas?.app;
+    if (!stage || !app) return;   // canvas pas encore prêt
+
+    // Retire notre éventuel filtre précédent.
+    const others = (stage.filters ?? []).filter(f => !f?._scwmDalton);
+
+    const mode = _get(K_DALTON) ?? "none";
+    const matrix = DALTON_MATRIX[mode];
+    if (!matrix) {                 // « none » ou valeur inconnue → on nettoie
+        stage.filters = others.length ? others : null;
+        return;
+    }
+
+    const CMF = globalThis.PIXI?.filters?.ColorMatrixFilter ?? globalThis.PIXI?.ColorMatrixFilter;
+    if (!CMF) { console.warn(`[${MOD}] PIXI.ColorMatrixFilter indisponible : daltonisme non appliqué.`); return; }
+
+    try {
+        const f = new CMF();
+        f.matrix = matrix.slice();
+        f._scwmDalton = true;
+        stage.filters = [...others, f];
+        // Zone de filtre = tout l'écran de rendu (sinon le filtre suit le stage
+        // qui se déplace/zoome et ne couvre pas le viewport).
+        stage.filterArea = app.renderer.screen;
+    } catch (e) {
+        console.error(`[${MOD}] Application du filtre daltonisme :`, e);
+    }
 }
 
 // ── Avatars dans la liste des joueurs ───────────────────────
@@ -225,14 +271,16 @@ function decoratePlayers(root) {
 export function applyAccessibility() {
     const body = document.body;
     if (!body) return;
-    injectDaltonDefs();
 
-    const dalton = _get(K_DALTON) ?? "none";
-    for (const m of ["protan", "deutan", "tritan"]) body.classList.toggle(`scwm-a11y-${m}`, dalton === m);
+    // Daltonisme : filtre PIXI sur la scène (voir applyCanvasDaltonism).
+    applyCanvasDaltonism();
 
     body.classList.toggle("scwm-a11y-contrast", !!_get(K_CONTRAST));
     body.classList.toggle("scwm-a11y-autohide", !!_get(K_AUTOHIDE));
     body.classList.toggle("scwm-a11y-compact",  !!_get(K_COMPACT));
+
+    // Couleur des contours du mode fort contraste (variable CSS lue par le CSS).
+    body.style.setProperty("--scwm-a11y-border", _get(K_CONTRASTCOL) || DEFAULT_BORDER);
 
     try { decoratePlayers(document.getElementById("players")); } catch {}
 }
@@ -242,7 +290,10 @@ export function AccessibilityHooks() {
     registerA11ySettings();
     registerA11yMenu();
 
-    Hooks.once("ready", () => { injectDaltonDefs(); applyAccessibility(); });
+    Hooks.once("ready", () => applyAccessibility());
+    // Le stage du canvas est reconstruit à chaque (re)dessin de scène : on
+    // réapplique alors le filtre de daltonisation.
+    Hooks.on("canvasReady", () => applyCanvasDaltonism());
     // Réappliquer après chaque rendu de la liste des joueurs (Foundry la
     // reconstruit à chaque changement de statut de connexion).
     Hooks.on("renderPlayers", (app, html) => {

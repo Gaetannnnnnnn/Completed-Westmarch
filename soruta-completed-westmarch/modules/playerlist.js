@@ -36,10 +36,11 @@ function _position() {
     if (!p) return;
     const r = p.getBoundingClientRect();
     if (!r.height) return;
-    const y = Math.max(2, r.top + r.height / 2 - 12);
-    _toggleBtn.style.top    = `${y}px`;
+    // Juste AU-DESSUS du panneau (sur la carte), aligné à son bord gauche :
+    // ne chevauche ni les noms, ni « Clore la session », ni le bord de l'écran.
+    _toggleBtn.style.top    = `${Math.max(2, r.top - 26)}px`;
     _toggleBtn.style.bottom = "auto";
-    _toggleBtn.style.left   = _isCollapsed() ? "2px" : `${Math.max(2, r.left - 24)}px`;
+    _toggleBtn.style.left   = _isCollapsed() ? "2px" : `${Math.max(2, r.left)}px`;
 }
 
 function _setCollapsed(v) {

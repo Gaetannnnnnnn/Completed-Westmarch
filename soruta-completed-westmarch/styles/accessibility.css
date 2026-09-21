@@ -3,25 +3,16 @@
    (réglages personnels par joueur ; voir accessibility.js)
    ============================================================ */
 
-/* ── 1. Daltonisme : filtre de correction sur la carte + l'UI ──
-   On applique le filtre au calque canvas (#board) et à l'interface
-   (#interface). La carte porte l'essentiel de l'information visuelle
-   (tokens, éclairages, dessins) ; l'UI complète la correction. */
-body.scwm-a11y-protan #board,
-body.scwm-a11y-protan #interface { filter: url(#scwm-dalton-protan); }
-body.scwm-a11y-deutan #board,
-body.scwm-a11y-deutan #interface { filter: url(#scwm-dalton-deutan); }
-body.scwm-a11y-tritan #board,
-body.scwm-a11y-tritan #interface { filter: url(#scwm-dalton-tritan); }
-
-/* Les fenêtres modales (DialogV2) sont souvent hors #interface : on les
-   corrige aussi pour rester cohérent. */
-body.scwm-a11y-protan .application.dialog,
-body.scwm-a11y-protan #tooltip { filter: url(#scwm-dalton-protan); }
-body.scwm-a11y-deutan .application.dialog,
-body.scwm-a11y-deutan #tooltip { filter: url(#scwm-dalton-deutan); }
-body.scwm-a11y-tritan .application.dialog,
-body.scwm-a11y-tritan #tooltip { filter: url(#scwm-dalton-tritan); }
+/* ── 1. Daltonisme : filtre de correction sur la SCÈNE uniquement ──
+   IMPORTANT : on n'applique JAMAIS le filtre à #interface ni à une fenêtre
+   d'UI. Appliquer un filtre CSS au conteneur d'interface de Foundry le fait
+   disparaître entièrement (nouveau contexte d'empilement + compositing).
+   On cible donc uniquement le canvas de la scène (#board), là où se trouve
+   l'essentiel de l'information de couleur (tokens, éclairages, dessins).
+   L'UI reste parfaitement visible et cliquable. */
+body.scwm-a11y-protan #board { filter: url(#scwm-dalton-protan); }
+body.scwm-a11y-deutan #board { filter: url(#scwm-dalton-deutan); }
+body.scwm-a11y-tritan #board { filter: url(#scwm-dalton-tritan); }
 
 /* ── 2. Fort contraste ─────────────────────────────────────── */
 body.scwm-a11y-contrast #interface {

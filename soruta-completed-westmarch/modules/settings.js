@@ -676,9 +676,7 @@ export function registerSettings() {
     // Les joueurs ne voient de toute façon que la fenêtre publique « À propos ».
     const activated = (game.settings.get(MOD, "activationCode") ?? "").trim() === ACTIVATION_CODE;
     if (activated) {
-        registerConfigHub();      // panneau regroupé (point d'entrée recommandé)
-        registerCategoryMenus();  // + boutons directs par catégorie (accès rapide)
-        registerCategoryToggles();
+        registerConfigHub();   // TOUT passe par le panneau de configuration regroupé
     }
 }
 
@@ -1115,8 +1113,8 @@ function registerConfigHub() {
             name:  "⚙ Panneau de configuration (tout)",
             label: "Ouvrir le panneau",
             hint:  "Tous les réglages du module, classés par thème avec des sections repliables. Point d'entrée recommandé.",
-            icon:  "fas fa-table-cells-large",
-            type:  makeLauncher({ firstKey: "config-hub", title: "Panneau de configuration", icon: "fa-table-cells-large", open: () => openConfigHub() }),
+            icon:  "fas fa-gears",
+            type:  makeLauncher({ firstKey: "config-hub", title: "Panneau de configuration", icon: "fa-gears", open: () => openConfigHub() }),
             restricted: true
         });
     } catch (e) {
@@ -1191,7 +1189,7 @@ async function openConfigHub() {
     };
 
     await foundry.applications.api.DialogV2.wait({
-        window:      { title: "Soruta — Panneau de configuration", icon: "fas fa-table-cells-large" },
+        window:      { title: "Soruta — Panneau de configuration", icon: "fas fa-gears" },
         position:    { width: 780, height: 720 },
         rejectClose: false,
         content,

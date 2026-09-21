@@ -20,7 +20,21 @@ function normalizeEntry(entry) {
     };
 }
 
+// Sur The Forge, le stockage local « data » est remplacé par la bibliothèque
+// d'assets du joueur (source « forgevtt ») : les uploads doivent y être envoyés,
+// sinon ils échouent ou atterrissent au mauvais endroit. On détecte Forge et on
+// choisit la bonne source. Le chemin renvoyé par l'upload (URL Forge complète ou
+// chemin data) est ensuite utilisable tel quel comme image de token.
+function uploadSource() {
+    try {
+        if (typeof ForgeVTT !== "undefined" && ForgeVTT?.usingTheForge) return "forgevtt";
+    } catch (e) {}
+    return "data";
+}
+
 async function ensureUploadFolder() {
+    // Forge crée l'arborescence à la volée lors de l'upload → pas de mkdir.
+    if (uploadSource() !== "data") return;
     try {
         await FilePicker.createDirectory("data", "westmarch-tokens");
     } catch (e) {
@@ -162,7 +176,7 @@ function openImportPopup(onConfirm) {
             if (!file) return;
             try {
                 await ensureUploadFolder();
-                const result = await FilePicker.upload("data", "westmarch-tokens", file);
+                const result = await FilePicker.upload(uploadSource(), "westmarch-tokens", file);
                 if (result?.path) loadImage(result.path, target);
             } catch (err) {
                 console.error("[WestMarch] Erreur upload :", err);
@@ -242,7 +256,7 @@ function openImportPopup(onConfirm) {
             try {
                 await ensureUploadFolder();
                 const file = new File([blob], `token-${Date.now()}.png`, { type: "image/png" });
-                const result = await FilePicker.upload("data", "westmarch-tokens", file);
+                const result = await FilePicker.upload(uploadSource(), "westmarch-tokens", file);
                 if (result?.path) {
                     onConfirm({ src: result.path, ring: null });
                     cleanup();

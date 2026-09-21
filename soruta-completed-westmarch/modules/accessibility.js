@@ -61,15 +61,15 @@ function registerA11ySettings() {
     });
     game.settings.register(MOD, K_AVATARS, {
         name: "Avatars dans la liste des joueurs", scope: "client", config: false,
-        type: Boolean, default: false, onChange: () => { applyAccessibility(); try { ui.players?.render(); } catch {} }
+        type: Boolean, default: true, onChange: () => { applyAccessibility(); try { ui.players?.render(); } catch {} }
     });
     game.settings.register(MOD, K_AUTOHIDE, {
         name: "Auto-masquage de l'interface", scope: "client", config: false,
-        type: Boolean, default: false, onChange: applyAccessibility
+        type: Boolean, default: true, onChange: applyAccessibility
     });
     game.settings.register(MOD, K_COMPACT, {
         name: "Contrôles de gauche compacts", scope: "client", config: false,
-        type: Boolean, default: false, onChange: applyAccessibility
+        type: Boolean, default: true, onChange: applyAccessibility
     });
 }
 

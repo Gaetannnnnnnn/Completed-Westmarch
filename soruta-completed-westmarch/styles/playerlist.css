@@ -48,15 +48,11 @@
 
 .scwm-player-search input::placeholder { color: #7a6a44; }
 
-/* ── Repli du panneau des joueurs vers la gauche ─────────────────────── */
-#players { transition: transform .2s ease, opacity .2s ease; }
+/* ── Repli du panneau des joueurs ────────────────────────────────────── */
 /* Décale le panneau vers la droite pour laisser la place au bouton fixe. */
 body:not(.scwm-players-collapsed) #players { margin-left: 26px !important; }
-body.scwm-players-collapsed #players {
-    transform: translateX(-130%);
-    opacity: 0;
-    pointer-events: none;
-}
+/* Replié = la fenêtre disparaît simplement (le bouton reste pour la ramener). */
+body.scwm-players-collapsed #players { display: none !important; }
 
 /* Bouton fixe (bas-gauche) qui replie / déplie — toujours visible. */
 .scwm-players-toggle {

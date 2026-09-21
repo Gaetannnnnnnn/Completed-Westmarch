@@ -443,6 +443,10 @@ export function registerSettings() {
     game.settings.register(MOD, "connStatsHistory", {
         scope: "client", config: false, type: Array, default: []
     });
+    // Temps total cumulé passé connecté au serveur (ms), par client.
+    game.settings.register(MOD, "connStatsTotalMs", {
+        scope: "client", config: false, type: Number, default: 0
+    });
     game.settings.register(MOD, "enableTemplateSnap", B(
         "Snap des templates AoE au dixième de pied",
         "Pendant le placement d'un template, la taille s'incrémente par paliers de 0,1 ft. Nécessite lib-wrapper pour le snap live."));

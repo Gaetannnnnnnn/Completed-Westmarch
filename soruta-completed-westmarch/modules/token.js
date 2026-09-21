@@ -28,59 +28,6 @@ async function ensureUploadFolder() {
     }
 }
 
-// ── Intégration Tokenizer (facultative) ─────────────────────────────
-// Détecte le module de tokenisation actif, en préférant « Tokenizer 2 »
-// (tokenizer-2) puis l'original « Tokenizer » (vtta-tokenizer). Renvoie
-// { kind, api } ou null si aucun n'est présent.
-function detectTokenizer() {
-    const t2 = game.modules.get("tokenizer-2");
-    if (t2?.active && t2.api?.openEditorStandalone) return { kind: "t2", api: t2.api };
-    const vt = game.modules.get("vtta-tokenizer");
-    if (vt?.active && vt.api) return { kind: "vtta", api: vt.api };
-    return null;
-}
-
-// Lance Tokenizer et ajoute l'image de token générée comme nouvelle apparence
-// via addEntry({src, ring}). N'a aucun effet de bord sur l'acteur avec T2
-// (mode standalone : Tokenizer renvoie le chemin du token).
-async function createWithTokenizer(actor, addEntry) {
-    const t = detectTokenizer();
-    if (!t) { ui.notifications?.warn("Aucun module Tokenizer actif."); return; }
-
-    if (t.kind === "t2") {
-        // Tokenizer 2 : openEditorStandalone renvoie une Promise résolue à la
-        // sauvegarde, avec { tokenPath, avatarPath, ... }.
-        let res;
-        try {
-            res = await t.api.openEditorStandalone({
-                name: actor.name,
-                type: actor.type || "character",
-                sourceImage: actor.img || undefined,
-                hasPlayerOwner: actor.hasPlayerOwner
-            });
-        } catch (e) { console.warn("[WestMarch] Tokenizer 2 annulé/échec :", e); return; }
-        const src = res?.tokenPath || res?.avatarPath;
-        if (src) await addEntry({ src, ring: null });
-        return;
-    }
-
-    // vtta-tokenizer : API différente (pas de standalone fiable). On ouvre son
-    // éditeur sur l'acteur et on capte la mise à jour du token du prototype
-    // pour l'ajouter à la liste. Meilleur effort.
-    let done = false;
-    const hookId = Hooks.on("updateActor", (a, changes) => {
-        if (done || a.id !== actor.id) return;
-        const src = foundry.utils.getProperty(changes, "prototypeToken.texture.src");
-        if (src) { done = true; Hooks.off("updateActor", hookId); addEntry({ src, ring: null }); }
-    });
-    try {
-        if (typeof t.api.tokenizeActor === "function") await t.api.tokenizeActor(actor);
-        else if (typeof t.api.launchTokenizer === "function") await t.api.launchTokenizer({ name: actor.name, type: "token" });
-        else { Hooks.off("updateActor", hookId); ui.notifications?.warn("Tokenizer : API non reconnue."); return; }
-    } catch (e) { Hooks.off("updateActor", hookId); console.warn("[WestMarch] Tokenizer annulé/échec :", e); return; }
-    setTimeout(() => Hooks.off("updateActor", hookId), 300000);   // filet de sécurité
-}
-
 // Crée le popup d'import d'une apparence (image perso + bordure,
 // avec cadrage à la souris). Appelle onConfirm({src, ring}) si validé.
 function openImportPopup(onConfirm) {
@@ -462,13 +409,6 @@ export function TokenHooks() {
 
         const rawImages = actor.getFlag(MOD, "images") ?? [];
 
-        const tok = detectTokenizer();
-        const tokBtn = tok
-            ? `<button type="button" class="westmarch-tokenizer" style="flex:1;" title="Ouvre ${tok.kind === "t2" ? "Tokenizer 2" : "Tokenizer"} et ajoute le token généré à la liste">
-                    <i class="fa-solid fa-wand-magic-sparkles"></i> Créer avec Tokenizer
-               </button>`
-            : "";
-
         const section = $(`
             <fieldset style="margin-top: 12px; border: 1px solid #555; padding: 8px 12px; border-radius: 4px;">
                 <legend style="font-weight: bold; font-size: 13px;">Apparences (WestMarch)</legend>
@@ -477,7 +417,6 @@ export function TokenHooks() {
                     <button type="button" class="westmarch-add-image" style="flex:1;">
                         <i class="fa-solid fa-plus"></i> Importer un token
                     </button>
-                    ${tokBtn}
                 </div>
             </fieldset>
         `);
@@ -499,15 +438,14 @@ export function TokenHooks() {
 
         renderImages(rawImages);
 
-        const addEntry = async (entry) => {
-            const current = actor.getFlag(MOD, "images") ?? [];
-            const updated = [...current, entry];
-            await actor.setFlag(MOD, "images", updated);
-            renderImages(updated);
-        };
-
-        section.find(".westmarch-add-image").click(() => openImportPopup(addEntry));
-        section.find(".westmarch-tokenizer").click(() => createWithTokenizer(actor, addEntry));
+        section.find(".westmarch-add-image").click(() => {
+            openImportPopup(async (entry) => {
+                const current = actor.getFlag(MOD, "images") ?? [];
+                const updated = [...current, entry];
+                await actor.setFlag(MOD, "images", updated);
+                renderImages(updated);
+            });
+        });
 
         section.on("click", ".westmarch-remove-image", async (ev) => {
             const index = parseInt($(ev.currentTarget).data("index"));

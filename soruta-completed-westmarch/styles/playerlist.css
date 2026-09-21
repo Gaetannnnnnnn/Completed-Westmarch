@@ -50,17 +50,18 @@
 
 /* ── Repli du panneau des joueurs vers la gauche ─────────────────────── */
 #players { transition: transform .2s ease, opacity .2s ease; }
+/* Décale le panneau vers la droite pour laisser la place au bouton fixe. */
+body:not(.scwm-players-collapsed) #players { margin-left: 26px !important; }
 body.scwm-players-collapsed #players {
     transform: translateX(-130%);
     opacity: 0;
     pointer-events: none;
 }
 
-/* Bouton flottant qui replie / déplie — positionné en JS juste au-dessus du
-   panneau des joueurs (voir playerlist.js). left/top sont posés en inline. */
+/* Bouton fixe (bas-gauche) qui replie / déplie — toujours visible. */
 .scwm-players-toggle {
     position: fixed;
-    left: 2px; top: 50%;
+    left: 2px; bottom: 2px;
     display: flex; align-items: center; justify-content: center; gap: 2px;
     min-width: 22px; height: 24px; padding: 0 5px;
     border: 1px solid rgba(201,162,39,0.5);

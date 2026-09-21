@@ -32,6 +32,7 @@ const K_CONTRASTCOL = "a11yContrastColor"; // String (couleur des contours)
 const K_AVATARS  = "a11yPlayerAvatars";   // Boolean
 const K_AUTOHIDE = "a11yAutoHide";        // Boolean
 const K_COMPACT  = "a11yCompactControls"; // Boolean
+const K_SHEETCOL = "a11ySheetColor";      // String ("" = couleur dnd5e par défaut)
 
 const DEFAULT_BORDER = "#ffd54a";
 
@@ -70,6 +71,10 @@ function registerA11ySettings() {
     game.settings.register(MOD, K_COMPACT, {
         name: "Contrôles de gauche compacts", scope: "client", config: false,
         type: Boolean, default: false, onChange: applyAccessibility
+    });
+    game.settings.register(MOD, K_SHEETCOL, {
+        name: "Couleur des fiches personnage", scope: "client", config: false,
+        type: String, default: "", onChange: applyAccessibility
     });
 }
 
@@ -141,6 +146,18 @@ async function openA11yDialog() {
             </label>
             <p style="margin:3px 0 0;font-size:.8em;color:#999;">Couleur des bordures et du contour de focus en mode fort contraste (jaune par défaut).</p>
         </div>
+        <div class="scwm-a11y-row" style="padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.07);">
+            <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0;font-weight:600;">
+                <span>Couleur des fiches personnage</span>
+                <span style="display:inline-flex;align-items:center;gap:6px;">
+                    <input type="checkbox" name="${K_SHEETCOL}_on" ${_get(K_SHEETCOL) ? "checked" : ""}
+                           title="Cocher pour remplacer le rouge par défaut" style="width:16px;height:16px;">
+                    <input type="color" name="${K_SHEETCOL}" value="${_get(K_SHEETCOL) || "#e74c3c"}"
+                           style="width:42px;height:26px;padding:0;border:none;background:none;cursor:pointer;">
+                </span>
+            </label>
+            <p style="margin:3px 0 0;font-size:.8em;color:#999;">Remplace le rouge d'accent par défaut des fiches personnage dnd5e par la couleur choisie (coche la case pour activer ; décoche pour revenir au rouge d'origine).</p>
+        </div>
         ${row(K_AVATARS,  "Avatars dans la liste des joueurs", "Affiche la miniature du portrait de chaque joueur à côté de son nom.")}
         ${row(K_AUTOHIDE, "Auto-masquage de l'interface", "Estompe contrôles, navigation, macros et liste des joueurs tant que la souris ne les survole pas.")}
         ${row(K_COMPACT,  "Contrôles de gauche compacts", "Réduit la taille des icônes de la barre d'outils de gauche.")}
@@ -170,6 +187,9 @@ async function openA11yDialog() {
                     await game.settings.set(MOD, K_DALTON, sel?.value ?? "none");
                     const col = root.querySelector(`[name="${K_CONTRASTCOL}"]`);
                     await game.settings.set(MOD, K_CONTRASTCOL, col?.value || DEFAULT_BORDER);
+                    const shOn  = root.querySelector(`[name="${K_SHEETCOL}_on"]`)?.checked;
+                    const shCol = root.querySelector(`[name="${K_SHEETCOL}"]`)?.value || "";
+                    await game.settings.set(MOD, K_SHEETCOL, shOn ? shCol : "");
                     for (const k of [K_CONTRAST, K_AVATARS, K_AUTOHIDE, K_COMPACT]) {
                         const cb = root.querySelector(`[name="${k}"]`);
                         await game.settings.set(MOD, k, !!cb?.checked);
@@ -244,6 +264,19 @@ function applyCanvasDaltonism() {
     }
 }
 
+// ── Couleur d'accent des fiches personnage ──────────────────
+// Surcharge la variable --dnd5e-color-red (rouge par défaut du système dnd5e)
+// sur toutes les fiches personnage, via une feuille de style injectée. Vide
+// = on laisse la couleur d'origine.
+function applySheetColor() {
+    const col = (_get(K_SHEETCOL) || "").trim();
+    let el = document.getElementById("scwm-sheet-color");
+    if (!col) { el?.remove(); return; }
+    if (!el) { el = document.createElement("style"); el.id = "scwm-sheet-color"; document.head.appendChild(el); }
+    el.textContent =
+        `.dnd5e2.sheet.actor.character { --dnd5e-color-red: ${col} !important; }`;
+}
+
 // ── Avatars dans la liste des joueurs ───────────────────────
 function decoratePlayers(root) {
     if (!_get(K_AVATARS)) return;
@@ -281,6 +314,9 @@ export function applyAccessibility() {
 
     // Couleur des contours du mode fort contraste (variable CSS lue par le CSS).
     body.style.setProperty("--scwm-a11y-border", _get(K_CONTRASTCOL) || DEFAULT_BORDER);
+
+    // Couleur d'accent des fiches personnage dnd5e (surcharge --dnd5e-color-red).
+    applySheetColor();
 
     try { decoratePlayers(document.getElementById("players")); } catch {}
 }

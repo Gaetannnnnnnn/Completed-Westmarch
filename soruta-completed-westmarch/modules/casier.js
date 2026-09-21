@@ -208,11 +208,42 @@ const fmtBytes = (b) => b >= 1048576 ? (b / 1048576).toFixed(2) + " Mo" : (b / 1
 async function measureWorld() {
     const size = (o) => new Blob([JSON.stringify(o ?? {})]).size;
     const cache = new Map(); let echecs = 0;
+
+    // File d'attente à concurrence limitée : lancer TOUTES les requêtes HEAD en
+    // même temps sature le serveur, qui en laisse tomber quelques-unes au hasard
+    // → mesures incomplètes et classement instable d'un run à l'autre. On limite
+    // donc le nombre de requêtes simultanées pour des résultats fiables/stables.
+    const pLimit = (n) => {
+        let active = 0; const queue = [];
+        const pump = () => {
+            if (active >= n || !queue.length) return;
+            active++;
+            const { fn, res } = queue.shift();
+            Promise.resolve().then(fn).then(res, res).finally(() => { active--; pump(); });
+        };
+        return (fn) => new Promise((res) => { queue.push({ fn, res }); pump(); });
+    };
+    const limit = pLimit(6);
+
+    // Une mesure HEAD avec délai d'expiration + un nouvel essai (les erreurs
+    // réseau ponctuelles ne faussent plus le total).
+    const headSize = async (src) => {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 8000);
+        try {
+            const r = await fetch(src, { method: "HEAD", signal: ctrl.signal });
+            return Number(r.headers.get("content-length")) || 0;
+        } finally { clearTimeout(t); }
+    };
+    const measure = async (src) => {
+        try { return await headSize(src); }
+        catch { try { return await headSize(src); }   // second essai
+                catch { echecs++; return 0; } }
+    };
+
     const fileSize = (src) => {
         if (typeof src !== "string" || !src || src.startsWith("data:")) return Promise.resolve(0);
-        if (!cache.has(src)) cache.set(src, fetch(src, { method: "HEAD" })
-            .then(r => Number(r.headers.get("content-length")) || 0)
-            .catch(() => { echecs++; return 0; }));
+        if (!cache.has(src)) cache.set(src, limit(() => measure(src)));
         return cache.get(src);
     };
 
@@ -265,8 +296,12 @@ async function measureWorld() {
         if (!byType.has(it.type)) byType.set(it.type, { type: it.type, count: 0, data: 0, media: 0 });
         const g = byType.get(it.type); g.count++; g.data += it.data; g.media += it.media;
     }
-    const summary = [...byType.values()].sort((a, b) => (b.data + b.media) - (a.data + a.media));
-    items.sort((a, b) => (b.data + b.media) - (a.data + a.media));
+    const summary = [...byType.values()].sort((a, b) =>
+        (b.data + b.media) - (a.data + a.media) || a.type.localeCompare(b.type, "fr"));
+    items.sort((a, b) =>
+        (b.data + b.media) - (a.data + a.media)
+        || (a.type.localeCompare(b.type, "fr"))
+        || (a.nom.localeCompare(b.nom, "fr")));
     return { summary, items, echecs };
 }
 

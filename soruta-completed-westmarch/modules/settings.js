@@ -299,7 +299,7 @@ export function registerSettings() {
     // Opt-out PAR JOUEUR (réglage client, visible et modifiable par chacun) :
     // coupe les pop-ups/chuchotements de rappels de combat sur SON écran.
     game.settings.register(MOD, "combatRemindersOff", {
-        name: "Rappels de combat : les désactiver pour moi",
+        name: "Désactiver mes rappels de combat",
         hint: "Coché = tu ne reçois plus les pop-ups et chuchotements de rappels de combat (réactions, châtiments/smite, avantage/désavantage, maîtrises). N'affecte que TON écran, pas les autres joueurs ni le MJ.",
         scope: "client", config: true, type: Boolean, default: false
     });
@@ -1142,7 +1142,7 @@ async function openConfigHub() {
                 </div>`;
             }
             return `<details class="scwm-hub-cat">
-                <summary><i class="fa-solid ${cat.icon}"></i> ${cat.title}</summary>
+                <summary><i class="scwm-hub-caret fa-solid fa-caret-right"></i><i class="fa-solid ${cat.icon}"></i> ${cat.title}</summary>
                 <div class="scwm-hub-cat-body">${buildCategoryForm(cat, _hubHostId(cat), { banner: false })}</div>
             </details>`;
         }).join("");
@@ -1190,7 +1190,7 @@ async function openConfigHub() {
 
     await foundry.applications.api.DialogV2.wait({
         window:      { title: "Soruta — Panneau de configuration", icon: "fas fa-gears" },
-        position:    { width: 780, height: 720 },
+        position:    { width: 780 },
         rejectClose: false,
         content,
         render:      wireHub,

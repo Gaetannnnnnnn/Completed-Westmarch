@@ -5,7 +5,10 @@
 .scwm-hub {
     display: flex;
     gap: 10px;
-    height: 100%;
+    /* Hauteur DÉFINIE (indispensable pour que les zones internes défilent
+       au lieu de déborder de l'écran). */
+    height: 70vh;
+    max-height: 70vh;
     min-height: 0;
 }
 
@@ -15,6 +18,7 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
+    min-height: 0;
     overflow-y: auto;
     padding-right: 6px;
     border-right: 1px solid rgba(201, 162, 39, 0.35);
@@ -22,8 +26,9 @@
 .scwm-hub-navbtn {
     display: flex;
     align-items: center;
-    gap: 8px;
+    justify-content: flex-start;   /* texte collé à gauche, pas centré */
     text-align: left;
+    gap: 8px;
     padding: 8px 10px;
     border: 1px solid rgba(201, 162, 39, 0.25);
     border-radius: 5px;
@@ -35,6 +40,7 @@
     transition: background 0.15s, border-color 0.15s;
 }
 .scwm-hub-navbtn i { color: #c9a227; width: 16px; text-align: center; flex: 0 0 auto; }
+.scwm-hub-navbtn span { flex: 1 1 auto; text-align: left; }
 .scwm-hub-navbtn:hover { background: rgba(201, 162, 39, 0.15); }
 .scwm-hub-navbtn.active {
     background: linear-gradient(180deg, rgba(201, 162, 39, 0.28), rgba(201, 162, 39, 0.1));
@@ -47,6 +53,7 @@
 .scwm-hub-scroll {
     flex: 1 1 auto;
     min-width: 0;
+    min-height: 0;
     overflow-y: auto;
     padding-right: 6px;
 }
@@ -75,17 +82,19 @@
     list-style: none;
 }
 .scwm-hub-cat > summary::-webkit-details-marker { display: none; }
-.scwm-hub-cat > summary::before {
-    content: "\f0da";                 /* fa-caret-right */
-    font-family: "Font Awesome 6 Free", "Font Awesome 5 Free";
-    font-weight: 900;
-    margin-right: 8px;
+/* Chevron : vraie icône FontAwesome (pas un pseudo-élément unicode, qui
+   s'affichait en carré selon la police FA chargée). */
+.scwm-hub-caret {
     color: #c9a227;
-    transition: transform 0.15s;
+    margin-right: 8px;
+    width: 12px;
+    text-align: center;
     display: inline-block;
+    transition: transform 0.15s;
 }
-.scwm-hub-cat[open] > summary::before { transform: rotate(90deg); }
+.scwm-hub-cat[open] > summary .scwm-hub-caret { transform: rotate(90deg); }
 .scwm-hub-cat > summary i { color: #c9a227; margin-right: 4px; }
+.scwm-hub-cat > summary .scwm-hub-caret { margin-right: 8px; }
 .scwm-hub-cat-body { padding: 4px 10px 8px; }
 /* Le formulaire de catégorie inliné ne gère plus sa propre hauteur/scroll :
    c'est la zone du hub qui défile. */

@@ -37,10 +37,12 @@ body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #cha
 body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .description .summary > img {
     border: 1px solid var(--scwm-chat-gold) !important; border-radius: 4px; box-shadow: 0 0 5px rgba(0,0,0,0.3);
 }
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .card-buttons { gap: 6px; }
 body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .card-buttons button {
-    border: 1px solid rgba(154,123,30,0.55);
-    background: linear-gradient(180deg, rgba(154,123,30,0.16), rgba(154,123,30,0.05));
-    color: var(--scwm-chat-fg); border-radius: 5px; font-weight: 600; min-height: 26px;
+    border: 1px solid rgba(154,123,30,0.6);
+    background: linear-gradient(180deg, rgba(154,123,30,0.20), rgba(154,123,30,0.06));
+    color: var(--scwm-chat-fg); border-radius: 6px; font-weight: 700;
+    width: 100%; min-height: 36px; font-size: 14px; letter-spacing: .3px;
     transition: box-shadow .15s, background .15s, border-color .15s, color .15s;
 }
 body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .card-buttons button:hover {
@@ -52,6 +54,36 @@ body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #cha
 body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message p.supplement > strong { color: var(--scwm-chat-gold); }
 body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .description { box-shadow: inset 0 0 0 1px rgba(154,123,30,0.15); }
 body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .dice-total { border-color: rgba(154,123,30,0.45); }
+
+/* Jets de dés : texte lisible sur crème (le vert/rouge réussite/échec est conservé). */
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .dice-formula,
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .dice-total,
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .dice-tooltip,
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .dice-tooltip .part-total,
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .dice-tooltip .flavor,
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .dice-rolls,
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .dice-result .total .value,
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .dice-result .total .label {
+    color: var(--scwm-chat-fg) !important;
+}
+/* La provenance (flavor) de chaque terme, en petit à côté. */
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .dice-tooltip .flavor,
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .dice-tooltip .constant-term .flavor {
+    color: var(--scwm-chat-fg2) !important; font-size: 10px; text-transform: uppercase; opacity: .85;
+}
+/* Individual dice pips restent lisibles */
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .dice-tooltip .roll.die { filter: none; }
+
+/* Repli de la description de l'objet/sort (par défaut, préférence joueur). */
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .card-description.collapsible.collapsed,
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .description.collapsible.collapsed .details {
+    max-height: 0 !important;
+    padding-block: 0 !important;
+    margin-block: 0 !important;
+    overflow: hidden !important;
+    opacity: 0 !important;
+    border: none !important;
+}
 `;
 
 export function applyChatCardPrefs() {
@@ -117,14 +149,19 @@ export function ReloadChat() {
 // - Les joueurs ne voient que les messages de leur party
 // ============================================================
 function renderChatMessageHTML(message, html, messageData) {
-    // Replie la description des cartes par défaut (préférence par joueur).
-    // En dnd5e 6.0 l'élément dépliable est « .card-header.description.collapsible »
-    // (pas forcément sous un .chat-card) → on cible directement .description.collapsible.
+    // Cartes de chat : déplier les jets par défaut + replier les descriptions.
     try {
-        if (game.settings.get(MOD, "enableChatCards") && game.settings.get(MOD, "chatCardsCollapsed")) {
+        if (game.settings.get(MOD, "enableChatCards")) {
             const root = html instanceof HTMLElement ? html : html?.[0];
-            root?.querySelectorAll?.(".card-description.collapsible, .description.collapsible, .chat-card .collapsible")
-                .forEach(d => d.classList.add("collapsed"));
+            if (root) {
+                // Déplier les jets de dés (voir dés individuels + bonus + provenance).
+                root.querySelectorAll(".dice-roll:not(.expanded)").forEach(r => r.classList.add("expanded"));
+                // Replier la description par défaut (préférence joueur).
+                if (game.settings.get(MOD, "chatCardsCollapsed")) {
+                    root.querySelectorAll(".card-description.collapsible, .description.collapsible")
+                        .forEach(d => d.classList.add("collapsed"));
+                }
+            }
         }
     } catch (e) {}
 

@@ -1,7 +1,7 @@
 {
   "id": "soruta-completed-westmarch",
   "title": "Soruta — Completed Westmarch",
-  "version": "5.2.4",
+  "version": "5.2.7",
   "changelog": "2026-08-03",
   "authors": [
     {
@@ -35,7 +35,8 @@
     "./styles/charvalidation.css",
     "./styles/gmnotes.css",
     "./styles/accessibility.css",
-    "./styles/settings-hub.css"
+    "./styles/settings-hub.css",
+    "./styles/chat-cards.css"
   ],
   "relationships": {
     "requires": [

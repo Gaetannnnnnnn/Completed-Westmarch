@@ -49,6 +49,34 @@
     display: none !important;
 }
 
+/* ============================================================
+   Cartes midi-qol HÉRITÉES (compat quand midi-qol est désactivé)
+   Les messages créés pendant que midi-qol était actif contiennent
+   ses vignettes de cible. Sans le CSS de midi (module retiré), elles
+   s'affichent en pleine taille (images « immenses »). On les recontraint
+   pour que l'historique du chat reste lisible.
+   ============================================================ */
+.midi-qol-target-img {
+    width: 28px !important;
+    height: 28px !important;
+    object-fit: cover;
+    border-radius: 3px;
+    vertical-align: middle;
+    display: inline-block;
+}
+.midi-qol-target-select,
+.midi-qol-hit-class {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+    max-width: 100%;
+}
+.midi-qol-target-select .midi-qol-target-npc,
+.midi-qol-target-select .midi-qol-target-name {
+    font-size: 12px;
+}
+
 #players .players-list {
     gap: 4px;
     max-height: 300px;

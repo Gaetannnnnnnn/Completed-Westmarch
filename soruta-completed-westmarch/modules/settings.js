@@ -10,6 +10,7 @@ import { MOD, TUTO_TOGGLES, TM_DEFAULT_SCROLL, TM_DEFAULT_MAGIC, TM_DEFAULT_ROLL
 import { applyPartyPause } from "./partypause.js";
 import { openProfilesEditor } from "./companions.js";
 import { openUiHideDialog, applyUiHiding } from "./uihide.js";
+import { applyChatCardPrefs } from "./chat.js";
 
 // ============================================================
 // Ressources communes — accès centralisé (avec repli sur les anciennes clés
@@ -446,6 +447,22 @@ export function registerSettings() {
     // Temps total cumulé passé connecté au serveur (ms), par client.
     game.settings.register(MOD, "connStatsTotalMs", {
         scope: "client", config: false, type: Number, default: 0
+    });
+    // ---- Habillage des cartes de chat ----
+    game.settings.register(MOD, "enableChatCards", {
+        name: "Habillage des cartes de chat",
+        hint: "Reteinte les cartes de chat dnd5e (attaques, sorts, objets…) et ajoute du confort de lecture. Chaque joueur peut choisir la couleur et le repli dans « Accessibilité ».",
+        scope: "world", config: false, type: Boolean, default: true,
+        onChange: () => applyChatCardPrefs()
+    });
+    // Couleur de fond des cartes de chat — PAR JOUEUR (défaut : blanc crème).
+    game.settings.register(MOD, "chatCardColor", {
+        scope: "client", config: false, type: String, default: "#f4ecd8",
+        onChange: () => applyChatCardPrefs()
+    });
+    // Replier la description des cartes par défaut — PAR JOUEUR.
+    game.settings.register(MOD, "chatCardsCollapsed", {
+        scope: "client", config: false, type: Boolean, default: true
     });
     game.settings.register(MOD, "enableTemplateSnap", B(
         "Snap des templates AoE au dixième de pied",
@@ -963,7 +980,7 @@ const CATEGORIES = [
       keys: ["commonFolderPJ","autoPlayerFolder","gmAutoFolderParent","commonFolderPNJ","commonFolderNewChars","commonPackPNJ","commonPackCemetery","commonPackCreatures","commonPackCraft"] },
     { firstKey: "enableParty", master: "enableParty",           icon: "fa-users",           title: "Système de Party",
       desc: "Groupes de joueurs : chat filtré, combat par party, téléportation de groupe, journal de session, anti-cheat.",
-      keys: ["enableParty","enableJoinScene","enableShowParty","enablePlayerGrouping","enableGoWithPartyScenes","enableGoWithPartyJournal","enableChatFilter","enableChatTabs","enableNoteLink","enableSessionLog","sessionLogWebhookUrl","sessionLogForum","enableCombatParty","enableCombatTurnLock","enablePartyPause","enableAntiCheat"] },
+      keys: ["enableParty","enableJoinScene","enableShowParty","enablePlayerGrouping","enableGoWithPartyScenes","enableGoWithPartyJournal","enableChatFilter","enableChatTabs","enableChatCards","enableNoteLink","enableSessionLog","sessionLogWebhookUrl","sessionLogForum","enableCombatParty","enableCombatTurnLock","enablePartyPause","enableAntiCheat"] },
     { firstKey: "enableCharValidation", master: "enableCharValidation", icon: "fa-id-card", title: "Création de personnages",
       desc: "Les joueurs demandent la création d'un personnage ; un GM valide depuis le Casier, puis le joueur construit et soumet sa fiche ; à la validation elle est verrouillée. Le dossier de destination se règle dans « Dossiers & Compendiums ».",
       keys: ["enableCharValidation","charMaxTotal","charMaxActive","charFreeLevelUp","charNotifyLevelUp","blockPlayerPlutonium"] },

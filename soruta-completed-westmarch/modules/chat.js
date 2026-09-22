@@ -4,9 +4,35 @@ import { registerSoundFilter } from './audio.js';
 
 var tabSelected = "IC";
 
+// ── Habillage des cartes de chat (thème + couleur par joueur) ──
+// Pose/retire body.scwm-chat-cards selon le réglage monde, et calcule les
+// couleurs de texte lisibles selon la couleur de fond choisie par le joueur.
+function _luminance(hex) {
+    const m = /^#?([0-9a-f]{6})$/i.exec(String(hex ?? "").trim());
+    if (!m) return 1;
+    const n = parseInt(m[1], 16);
+    const r = ((n >> 16) & 255) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+export function applyChatCardPrefs() {
+    const body = document.body;
+    if (!body) return;
+    let on = true, color = "#f4ecd8";
+    try { on = game.settings.get(MOD, "enableChatCards"); } catch {}
+    try { color = game.settings.get(MOD, "chatCardColor") || color; } catch {}
+    body.classList.toggle("scwm-chat-cards", !!on);
+    body.style.setProperty("--scwm-chat-bg", color);
+    const dark = _luminance(color) < 0.5;   // fond sombre → texte clair
+    body.style.setProperty("--scwm-chat-fg",  dark ? "#f2ead4" : "#2a2418");
+    body.style.setProperty("--scwm-chat-fg2", dark ? "#c9bd99" : "#5c5240");
+    body.style.setProperty("--scwm-chat-gold", dark ? "#e8cc6a" : "#9a7b1e");
+}
+
 export function ChatHooks() {
     Hooks.on("renderChatMessageHTML", (message, html, messageData) => renderChatMessageHTML(message, html, messageData));
     Hooks.on("renderChatLog", async (log, html, data) => await renderChatLog(log, html, data));
+
+    Hooks.once("ready", () => applyChatCardPrefs());
 
     // Injection des boutons GM au chargement initial (ready garantit que
     // #chat-controls est dans le DOM) ET à chaque re-render du ChatLog
@@ -44,6 +70,14 @@ export function ReloadChat() {
 // - Les joueurs ne voient que les messages de leur party
 // ============================================================
 function renderChatMessageHTML(message, html, messageData) {
+    // Replie la description des cartes par défaut (préférence par joueur).
+    try {
+        if (game.settings.get(MOD, "enableChatCards") && game.settings.get(MOD, "chatCardsCollapsed")) {
+            const root = html instanceof HTMLElement ? html : html?.[0];
+            root?.querySelectorAll?.(".chat-card .description.collapsible").forEach(d => d.classList.add("collapsed"));
+        }
+    } catch (e) {}
+
     if (!partyFeatureEnabled("enableChatFilter")) return;
 
     if(!isPartyMember(message.author)) {

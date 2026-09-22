@@ -1,78 +1,91 @@
 /* ============================================================
-   chat-cards.css — Reskin « westmarch » des cartes de chat dnd5e
+   chat-cards.css — Habillage « westmarch » des cartes de chat dnd5e
    (attaques, aptitudes, sorts, objets…).
 
-   Approche : on surcharge surtout les VARIABLES du système dnd5e,
-   scopées au chat, pour reteinter toute la carte de façon cohérente
-   sans toucher à sa structure (boutons, chevrons de repli, jets…
-   restent fonctionnels). Quelques accents ciblés en plus.
-   Palette : or (#c9a227 / #e8cc6a), orange (#e67e22), parchemin sombre.
-   Sélecteurs plats (pas de nesting CSS) pour une compat maximale.
+   • Activé seulement si body.scwm-chat-cards est présent (réglage
+     "enableChatCards", posé par le module).
+   • Fond des cartes piloté par --scwm-chat-bg (couleur au choix de
+     CHAQUE joueur ; défaut : blanc crème). Le texte s'adapte via
+     --scwm-chat-fg / --scwm-chat-fg2 (calculés en JS selon la
+     luminosité de la couleur choisie, pour rester lisible).
+   • On surcharge les variables du système + les jetons de texte, donc
+     la structure et les mécaniques (boutons, jets, repli) sont intactes.
+   Sélecteurs plats (pas de nesting) pour compat maximale.
    ============================================================ */
 
-/* ── Teinte globale de la carte (via variables du système) ── */
-:is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) {
-    --dnd5e-border-gold: 1px solid #c9a227;
-    --dnd5e-chat-background: linear-gradient(180deg, #241f17 0%, #1a160f 100%);
-    --dnd5e-background-card: rgba(42, 36, 24, 0.92);
-    --dnd5e-background-alt-1: #2a2418;
-    --dnd5e-background-alt-2: #201b12;
-    --dnd5e-chat-button-background: rgba(201, 162, 39, 0.12);
-    --dnd5e-chat-button-border: rgba(201, 162, 39, 0.55);
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.55);
+:root {
+    --scwm-chat-bg:  #f4ecd8;   /* blanc crème par défaut */
+    --scwm-chat-fg:  #2a2418;   /* texte principal (foncé sur crème) */
+    --scwm-chat-fg2: #5c5240;   /* texte secondaire */
+    --scwm-chat-gold: #9a7b1e;  /* or lisible sur fond clair */
 }
 
-/* ── En-tête : titre doré, sous-titre discret ─────────────── */
-:is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .title {
-    color: #e8cc6a;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+/* ── Teinte globale de la carte ───────────────────────────── */
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) {
+    --dnd5e-chat-background: var(--scwm-chat-bg);
+    --dnd5e-border-gold: 1px solid var(--scwm-chat-gold);
+    --dnd5e-background-card: rgba(255, 255, 255, 0.35);
+    --dnd5e-chat-button-background: rgba(154, 123, 30, 0.12);
+    --dnd5e-chat-button-border: rgba(154, 123, 30, 0.5);
+    /* Jetons de texte du cœur Foundry → couleurs lisibles sur la carte */
+    --color-text-primary: var(--scwm-chat-fg);
+    --color-text-secondary: var(--scwm-chat-fg2);
+    --color-text-tertiary: var(--scwm-chat-fg2);
+    color: var(--scwm-chat-fg);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
 }
-:is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .subtitle {
-    color: #b8a978;
+
+/* ── En-tête : titre doré foncé, sous-titre discret ───────── */
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .title {
+    color: var(--scwm-chat-gold);
+    text-shadow: none;
+}
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .subtitle {
+    color: var(--scwm-chat-fg2);
 }
 
 /* ── Icône d'objet / avatar : encadrée d'or ───────────────── */
-:is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .message-sender .avatar:not(.token) img,
-:is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .chat-card .description .summary > img {
-    border: 1px solid #c9a227 !important;
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .message-sender .avatar:not(.token) img,
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .chat-card .description .summary > img {
+    border: 1px solid var(--scwm-chat-gold) !important;
     border-radius: 4px;
-    box-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
-    background: #1a160f;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
 }
 
 /* ── Boutons (Attaque / Dégâts / Sauvegarde / Utiliser…) ──── */
-:is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .chat-card .card-buttons button {
-    border: 1px solid rgba(201, 162, 39, 0.55);
-    background: linear-gradient(180deg, rgba(201, 162, 39, 0.18), rgba(201, 162, 39, 0.06));
-    color: #ecdca0;
-    border-radius: 4px;
+/* Confort : pleine largeur, cible cliquable plus haute, halo au survol. */
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .chat-card .card-buttons button {
+    border: 1px solid rgba(154, 123, 30, 0.55);
+    background: linear-gradient(180deg, rgba(154, 123, 30, 0.16), rgba(154, 123, 30, 0.05));
+    color: var(--scwm-chat-fg);
+    border-radius: 5px;
     font-weight: 600;
+    min-height: 26px;
     transition: box-shadow 0.15s, background 0.15s, border-color 0.15s, color 0.15s;
 }
-:is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .chat-card .card-buttons button:hover {
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .chat-card .card-buttons button:hover {
     border-color: #e67e22;
-    background: rgba(230, 126, 34, 0.18);
-    box-shadow: 0 0 8px rgba(230, 126, 34, 0.45);
-    color: #fff;
+    background: rgba(230, 126, 34, 0.16);
+    box-shadow: 0 0 8px rgba(230, 126, 34, 0.4);
 }
 
-/* ── Pastilles de propriétés + suppléments (Action, portée…) ─ */
-:is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .pills .pill {
-    border: 1px solid rgba(201, 162, 39, 0.4);
-    background: rgba(201, 162, 39, 0.10);
+/* ── Pastilles + suppléments (Action, portée, composantes…) ─ */
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .pills .pill {
+    border: 1px solid rgba(154, 123, 30, 0.4);
+    background: rgba(154, 123, 30, 0.10);
     border-radius: 3px;
-    color: #d8cca0;
+    color: var(--scwm-chat-fg);
 }
-:is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) p.supplement > strong {
-    color: #e8cc6a;
-}
-
-/* ── Total du jet : liseré d'or (réussite/échec conservés) ── */
-:is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .dice-total {
-    border-color: rgba(201, 162, 39, 0.5);
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) p.supplement > strong {
+    color: var(--scwm-chat-gold);
 }
 
-/* ── Panneau de description : léger liseré interne d'or ───── */
-:is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .chat-card .description {
-    box-shadow: inset 0 0 0 1px rgba(201, 162, 39, 0.12);
+/* ── Panneau de description : liseré interne doré ─────────── */
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .chat-card .description {
+    box-shadow: inset 0 0 0 1px rgba(154, 123, 30, 0.15);
+}
+
+/* ── Total du jet : liseré doré (réussite/échec conservés) ── */
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .dice-total {
+    border-color: rgba(154, 123, 30, 0.45);
 }

@@ -404,8 +404,16 @@ export function registerSettings() {
         "Barbares dont une feature a l'identifiant 'form-of-the-beast' : le module crée 3 armes naturelles (Morsure, Griffes, Queue) avec jets d'attaque/dégâts, et les retire si la feature disparaît.",
         false, { requiresReload: true }));
     game.settings.register(MOD, "enablePolymorph", B(
-        "Transformation de token (Wild Shape / Polymorph)",
-        "Configurer des formes sur un acteur (onglet Apparence). Un bouton dans le HUD transforme le token et le rétablit."));
+        "Activer la transformation (Wild Shape / Polymorphie)",
+        "Deux systèmes distincts basés sur le moteur dnd5e : Wild Shape (druide) et Polymorphie (sort). Formes configurées sur la fiche (onglet Apparence), boutons dans le HUD du token."));
+    game.settings.register(MOD, "transformEnforceCr", B(
+        "Appliquer les limites de FP",
+        "Vérifie le facteur de puissance (FP) de la bête : ≤ niveau/FP de la cible pour la Polymorphie ; selon le niveau de druide pour Wild Shape (1/4 niv.2, 1/2 niv.4, 1 niv.8 ; Cercle de la Lune = niveau/3). Décoché = aucune limite.",
+        true));
+    game.settings.register(MOD, "transformStrictCr", B(
+        "Bloquer au-dessus de la limite de FP",
+        "Coché : une forme au-dessus de la limite est refusée (un MJ peut confirmer pour passer outre). Décoché : simple avertissement, la transformation est autorisée. Sans effet si « Appliquer les limites de FP » est décoché.",
+        true));
     game.settings.register(MOD, "enableTgcm", B(
         "Protégé TGCM (token immunisé à la mort)",
         "Bouton bouclier dans le HUD (GM). Un token protégé ne tombe jamais à 0 PV (reste à 1 PV)."));
@@ -993,6 +1001,9 @@ const CATEGORIES = [
     { firstKey: "enableXpBlock",         icon: "fa-server",          title: "Serveur",
       desc: "Personnalisations du serveur : blocage XP / Level Up, logs Discord, webhooks.",
       keys: ["enableXpBlock","enableFakeWarning","enableGmNotes","hidePlayerStarTab","enableDiscordLog","discordLogWebhookUrl","downtimeWebhookUrl","tmWebhookUrl"] },
+    { firstKey: "enablePolymorph", master: "enablePolymorph", icon: "fa-paw", title: "Transformation",
+      desc: "Wild Shape (druide) et Polymorphie (sort) — deux systèmes distincts via le moteur dnd5e. Active/désactive l'ensemble et règle l'application des limites de facteur de puissance (FP).",
+      keys: ["enablePolymorph","transformEnforceCr","transformStrictCr"] },
     { firstKey: "enableReactReminder", icon: "fa-bolt", title: "Rappels de combat",
       desc: "Assistant de combat contextuel (dépend de Midi-QOL) : rappel des réactions (avec notif au MJ de la party), actions bonus utiles (Smite…), maîtrises d'arme, et avantage/désavantage. Chaque point est activable séparément.",
       keys: ["enableReactReminder","enableBonusReminder","enableMasteryReminder","enableAdvantageReminder"] },
@@ -1001,7 +1012,7 @@ const CATEGORIES = [
       keys: ["tmEnabled","tmSkillBase","tmAddAbilityMod","tmBonusMaitrise","tmBonusExpertise","tmBonusTools","tmRollMinDays","tmReliableTalent","tmSkillFormula","tmCraftNonMagicCostDiv","tmCraftNonMagicDaysPerGp","tmCraftNonMagicCostFormula","tmCraftNonMagicDaysFormula","tmSingleUseFactor","tmScrollTable","tmMagicTable","tmRollTable"] },
     { firstKey: "enableTokenAppearance", icon: "fa-toolbox",         title: "Toolkit",
       desc: "Apparences de tokens, transformations, tailles Large, TGCM, utilitaires GM, templates AoE, boutiques MEJ et réapprovisionnement.",
-      keys: ["enableTokenAppearance","enableTokenPortraitButton","enablePolymorph","enableTgcm","enableCompanions","enableFolderMove","enableToolAbilityFix","enableConnStats","enablePlayerListCompact","enableTemplateSnap","enableFollowTemplates","enableMejShopFix","enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
+      keys: ["enableTokenAppearance","enableTokenPortraitButton","enableTgcm","enableCompanions","enableFolderMove","enableToolAbilityFix","enableConnStats","enablePlayerListCompact","enableTemplateSnap","enableFollowTemplates","enableMejShopFix","enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
     { firstKey: "relationsEnabled", master: "relationsEnabled",      icon: "fa-heart",           title: "Fiche PJ — Relations",
       desc: "Onglet Relations : liens entre personnages, détection automatique des rencontres, anonymisation.",
       keys: ["relationsEnabled","relationsAnonymization"] },
@@ -1106,7 +1117,7 @@ const CONFIG_GROUPS = [
     { title: "Party & jeu de groupe", icon: "fa-users",
       cats: ["enableParty", "enableExpeditionMap", "enableHarvest"] },
     { title: "Combat", icon: "fa-bolt",
-      cats: ["enableReactReminder", "rangeFixEnabled"] },
+      cats: ["enableReactReminder", "rangeFixEnabled", "enablePolymorph"] },
     { title: "Serveur & monde", icon: "fa-server",
       cats: ["enableXpBlock", "tmSkillBase", "enableSceneCues", "commonFolderPJ"] },
     { title: "Personnalisation & interface", icon: "fa-sliders",

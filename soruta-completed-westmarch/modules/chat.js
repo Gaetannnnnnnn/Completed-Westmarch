@@ -14,18 +14,64 @@ function _luminance(hex) {
     const r = ((n >> 16) & 255) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
     return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
+// CSS injecté en JS : plus fiable que le fichier du manifeste (sur certains
+// hébergements comme The Forge, un NOUVEAU fichier .css d'un module n'est pas
+// injecté sans relancer le monde). Ici, le style suit toujours le code.
+const CHAT_CARDS_CSS = `
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) {
+    --dnd5e-chat-background: var(--scwm-chat-bg);
+    --dnd5e-border-gold: 1px solid var(--scwm-chat-gold);
+    --dnd5e-background-card: rgba(255,255,255,0.35);
+    --dnd5e-chat-button-background: rgba(154,123,30,0.12);
+    --dnd5e-chat-button-border: rgba(154,123,30,0.5);
+    --color-text-primary: var(--scwm-chat-fg);
+    --color-text-secondary: var(--scwm-chat-fg2);
+    --color-text-tertiary: var(--scwm-chat-fg2);
+    color: var(--scwm-chat-fg);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.35);
+}
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .title { color: var(--scwm-chat-gold); text-shadow: none; }
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .subtitle { color: var(--scwm-chat-fg2); }
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .message-sender .avatar:not(.token) img,
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .chat-card .description .summary > img {
+    border: 1px solid var(--scwm-chat-gold) !important; border-radius: 4px; box-shadow: 0 0 5px rgba(0,0,0,0.3);
+}
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .chat-card .card-buttons button {
+    border: 1px solid rgba(154,123,30,0.55);
+    background: linear-gradient(180deg, rgba(154,123,30,0.16), rgba(154,123,30,0.05));
+    color: var(--scwm-chat-fg); border-radius: 5px; font-weight: 600; min-height: 26px;
+    transition: box-shadow .15s, background .15s, border-color .15s, color .15s;
+}
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .chat-card .card-buttons button:hover {
+    border-color: #e67e22; background: rgba(230,126,34,0.16); box-shadow: 0 0 8px rgba(230,126,34,0.4);
+}
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .pills .pill {
+    border: 1px solid rgba(154,123,30,0.4); background: rgba(154,123,30,0.10); border-radius: 3px; color: var(--scwm-chat-fg);
+}
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) p.supplement > strong { color: var(--scwm-chat-gold); }
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .chat-card .description { box-shadow: inset 0 0 0 1px rgba(154,123,30,0.15); }
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .dice-total { border-color: rgba(154,123,30,0.45); }
+`;
+
 export function applyChatCardPrefs() {
     const body = document.body;
     if (!body) return;
     let on = true, color = "#f4ecd8";
     try { on = game.settings.get(MOD, "enableChatCards"); } catch {}
     try { color = game.settings.get(MOD, "chatCardColor") || color; } catch {}
+
     body.classList.toggle("scwm-chat-cards", !!on);
     body.style.setProperty("--scwm-chat-bg", color);
     const dark = _luminance(color) < 0.5;   // fond sombre → texte clair
     body.style.setProperty("--scwm-chat-fg",  dark ? "#f2ead4" : "#2a2418");
     body.style.setProperty("--scwm-chat-fg2", dark ? "#c9bd99" : "#5c5240");
     body.style.setProperty("--scwm-chat-gold", dark ? "#e8cc6a" : "#9a7b1e");
+
+    // Injection/retrait du style (fiable quel que soit l'hébergement).
+    let st = document.getElementById("scwm-chat-cards-style");
+    if (!on) { st?.remove(); return; }
+    if (!st) { st = document.createElement("style"); st.id = "scwm-chat-cards-style"; document.head.appendChild(st); }
+    if (st.textContent !== CHAT_CARDS_CSS) st.textContent = CHAT_CARDS_CSS;
 }
 
 export function ChatHooks() {

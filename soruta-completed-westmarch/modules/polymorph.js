@@ -90,18 +90,28 @@ async function doTransform(tokenDoc, beast, kind) {
         return;
     }
 
-    // Vérification stricte de la FP.
-    const beastCr = _beastCr(beast);
-    const max = kind === "wildshape" ? maxCrWildShape(actor) : maxCrPolymorph(actor);
-    const label = kind === "wildshape" ? "Wild Shape" : "Polymorphie";
-    if (max != null && beastCr > max) {
-        const msg = `${beast.name} a une FP de ${fmtCr(beastCr)}, au-dessus de la limite ${label} (${fmtCr(max)}).`;
-        if (!game.user.isGM) { ui.notifications.warn(msg + " Transformation refusée."); return; }
-        const ok = await foundry.applications.api.DialogV2.confirm({
-            window:  { title: "FP dépassée" },
-            content: `<p>${msg}</p><p>Autoriser quand même (MJ) ?</p>`
-        });
-        if (!ok) return;
+    // Vérification de la FP (configurable : appliquée ou non, stricte ou non).
+    const enforce = game.settings.get(MOD, "transformEnforceCr") !== false;
+    const strict  = game.settings.get(MOD, "transformStrictCr") !== false;
+    if (enforce) {
+        const beastCr = _beastCr(beast);
+        const max = kind === "wildshape" ? maxCrWildShape(actor) : maxCrPolymorph(actor);
+        const label = kind === "wildshape" ? "Wild Shape" : "Polymorphie";
+        if (max != null && beastCr > max) {
+            const msg = `${beast.name} a une FP de ${fmtCr(beastCr)}, au-dessus de la limite ${label} (${fmtCr(max)}).`;
+            if (!strict) {
+                ui.notifications.warn(msg);   // avertissement seul, on continue
+            } else if (!game.user.isGM) {
+                ui.notifications.warn(msg + " Transformation refusée.");
+                return;
+            } else {
+                const ok = await foundry.applications.api.DialogV2.confirm({
+                    window:  { title: "FP dépassée" },
+                    content: `<p>${msg}</p><p>Autoriser quand même (MJ) ?</p>`
+                });
+                if (!ok) return;
+            }
+        }
     }
 
     try {

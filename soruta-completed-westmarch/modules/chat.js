@@ -27,7 +27,8 @@ body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #cha
     --color-text-primary: var(--scwm-chat-fg);
     --color-text-secondary: var(--scwm-chat-fg2);
     --color-text-tertiary: var(--scwm-chat-fg2);
-    color: var(--scwm-chat-fg);
+    background: var(--scwm-chat-bg) !important;
+    color: var(--scwm-chat-fg) !important;
     box-shadow: 0 2px 10px rgba(0,0,0,0.35);
 }
 body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .title { color: var(--scwm-chat-gold); text-shadow: none; }
@@ -117,10 +118,12 @@ export function ReloadChat() {
 // ============================================================
 function renderChatMessageHTML(message, html, messageData) {
     // Replie la description des cartes par défaut (préférence par joueur).
+    // En dnd5e 6.0 l'élément dépliable est « .card-header.description.collapsible »
+    // (pas forcément sous un .chat-card) → on cible directement .description.collapsible.
     try {
         if (game.settings.get(MOD, "enableChatCards") && game.settings.get(MOD, "chatCardsCollapsed")) {
             const root = html instanceof HTMLElement ? html : html?.[0];
-            root?.querySelectorAll?.(".chat-card .description.collapsible").forEach(d => d.classList.add("collapsed"));
+            root?.querySelectorAll?.(".description.collapsible").forEach(d => d.classList.add("collapsed"));
         }
     } catch (e) {}
 

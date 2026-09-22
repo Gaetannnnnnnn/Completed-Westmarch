@@ -17,12 +17,10 @@ body.scwm-a11y-contrast #interface {
     --color-text-dark-primary: #ffffff;
     --color-text-light-primary: #ffffff;
 }
-/* Fonds opaques UNIQUEMENT sur des conteneurs dimensionnés (fenêtres, messages
-   de chat). On NE peint PAS #players : ce panneau est plus grand que son
-   contenu visible → il apparaîtrait comme une grande barre noire. */
+/* Fonds opaques UNIQUEMENT sur des fenêtres dimensionnées. On NE touche PAS :
+   #players (barre noire) NI les messages de chat (habillage crème dédié). */
 body.scwm-a11y-contrast .app,
-body.scwm-a11y-contrast .application,
-body.scwm-a11y-contrast #chat-log .message {
+body.scwm-a11y-contrast .application {
     background: rgba(0, 0, 0, 0.92) !important;
     border-color: var(--scwm-a11y-border, #ffd54a) !important;
     color: #ffffff !important;
@@ -36,10 +34,16 @@ body.scwm-a11y-contrast #players .player {
 body.scwm-a11y-contrast #interface a,
 body.scwm-a11y-contrast .window-content,
 body.scwm-a11y-contrast #players .player-name,
-body.scwm-a11y-contrast .player-name,
-body.scwm-a11y-contrast .message-content {
+body.scwm-a11y-contrast .player-name {
     color: #ffffff !important;
     text-shadow: 0 0 2px #000, 0 0 2px #000 !important;
+}
+/* Le fort contraste ne doit PAS toucher les cartes de chat (habillage crème). */
+body.scwm-a11y-contrast :is(#chat-log, .chat-log, .chat-sidebar, .chat-popout) .message,
+body.scwm-a11y-contrast :is(#chat-log, .chat-log, .chat-sidebar, .chat-popout) .message-content {
+    background: revert !important;
+    color: revert !important;
+    text-shadow: none !important;
 }
 body.scwm-a11y-contrast .control-tool,
 body.scwm-a11y-contrast #controls .control,

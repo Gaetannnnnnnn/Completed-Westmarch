@@ -1,0 +1,97 @@
+/* ============================================================
+   trade.css — Fenêtre d'échange entre joueurs + bouton liste joueurs
+   ============================================================ */
+
+/* Bouton « Échanger » dans la liste des joueurs. */
+.scwm-trade-btn {
+    margin-left: 6px;
+    color: #c9a227;
+    cursor: pointer;
+    flex: 0 0 auto;
+}
+.scwm-trade-btn:hover { color: #fff; text-shadow: 0 0 6px #e67e22; }
+
+/* Fenêtre d'échange. */
+.scwm-trade .window-content { padding: 8px; }
+.scwm-trade-body { display: flex; flex-direction: column; gap: 10px; height: 100%; }
+.scwm-trade-cols { display: flex; gap: 10px; flex: 1 1 auto; min-height: 0; }
+
+.scwm-trade-col {
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border: 1px solid rgba(201, 162, 39, 0.4);
+    border-radius: 6px;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.15);
+    min-width: 0;
+}
+.scwm-trade-col h3 {
+    margin: 0 0 2px;
+    font-size: 13px;
+    color: #e8cc6a;
+    border-bottom: 1px solid rgba(201, 162, 39, 0.3);
+    padding-bottom: 4px;
+}
+.scwm-trade-items {
+    flex: 1 1 auto;
+    min-height: 90px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.scwm-trade-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 4px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.04);
+}
+.scwm-trade-item img { width: 28px; height: 28px; border: none; border-radius: 3px; flex: 0 0 auto; object-fit: cover; }
+.scwm-trade-item .n { flex: 1 1 auto; font-size: 12px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scwm-trade-item .q { font-size: 12px; color: #c9a227; flex: 0 0 auto; }
+.scwm-trade-rem { color: #e58f8f; cursor: pointer; flex: 0 0 auto; padding: 0 4px; }
+.scwm-trade-rem:hover { color: #fff; }
+.scwm-trade-empty { color: #777; font-style: italic; font-size: 12px; padding: 6px; text-align: center; }
+
+.scwm-trade-add {
+    font-size: 12px;
+    padding: 3px 8px;
+    border: 1px dashed rgba(201, 162, 39, 0.5);
+    border-radius: 4px;
+    background: rgba(201, 162, 39, 0.08);
+    color: #c9a227;
+    cursor: pointer;
+}
+.scwm-trade-add:hover { background: rgba(201, 162, 39, 0.18); color: #fff; }
+
+.scwm-trade-cur { display: flex; flex-wrap: wrap; gap: 4px; }
+.scwm-cur { display: flex; align-items: center; gap: 3px; font-size: 11px; }
+.scwm-cur span { color: #c9a227; min-width: 20px; }
+.scwm-cur input { width: 46px; height: 22px; font-size: 11px; padding: 0 4px; }
+.scwm-cur-ro { font-size: 11px; color: #d8cca0; padding: 2px 5px; border: 1px solid rgba(201,162,39,0.25); border-radius: 3px; }
+
+.scwm-trade-status { font-size: 11px; display: flex; gap: 8px; margin-top: 2px; }
+.scwm-lock { color: #999; }
+.scwm-lock.on { color: #8fd19e; }
+.scwm-conf.on { color: #8fd19e; }
+
+.scwm-trade-actions { display: flex; gap: 6px; }
+.scwm-trade-actions button {
+    flex: 1 1 auto;
+    min-height: 32px;
+    border-radius: 5px;
+    border: 1px solid rgba(201, 162, 39, 0.5);
+    background: rgba(201, 162, 39, 0.12);
+    color: #ecdca0;
+    cursor: pointer;
+    font-weight: 600;
+}
+.scwm-trade-actions button:hover:not(:disabled) { background: rgba(201, 162, 39, 0.25); color: #fff; }
+.scwm-trade-actions .scwm-trade-lock.on { background: rgba(143, 209, 158, 0.15); border-color: #8fd19e; color: #cdeccf; }
+.scwm-trade-actions .scwm-trade-confirm { border-color: #8fd19e; background: rgba(143, 209, 158, 0.15); color: #d8f0da; }
+.scwm-trade-actions .scwm-trade-cancel { border-color: rgba(192, 57, 43, 0.5); background: rgba(192, 57, 43, 0.12); color: #e58f8f; }
+.scwm-trade-actions button:disabled { opacity: 0.45; cursor: default; }

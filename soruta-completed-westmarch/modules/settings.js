@@ -456,21 +456,44 @@ export function registerSettings() {
     game.settings.register(MOD, "connStatsTotalMs", {
         scope: "client", config: false, type: Number, default: 0
     });
-    // ---- Habillage des cartes de chat ----
+    // ---- Échange entre joueurs ----
+    game.settings.register(MOD, "enableTrade", B(
+        "Échange entre joueurs",
+        "Ajoute un bouton « Échanger » dans la liste des joueurs : fenêtre d'échange synchronisée (objets + monnaies), arbitrée par le MJ. Interdit en party sans expédition ; en expédition, uniquement entre membres de la même expédition ; libre en ville.",
+        true));
+    // ---- Cartes de chat ----
     game.settings.register(MOD, "enableChatCards", {
-        name: "Habillage des cartes de chat",
-        hint: "Reteinte les cartes de chat dnd5e (attaques, sorts, objets…) et ajoute du confort de lecture. Chaque joueur peut choisir la couleur et le repli dans « Accessibilité ».",
+        name: "Activer l'habillage des cartes de chat",
+        hint: "Interrupteur général. Les options ci-dessous n'ont d'effet que si celui-ci est activé.",
         scope: "world", config: false, type: Boolean, default: true,
         onChange: () => applyChatCardPrefs()
+    });
+    game.settings.register(MOD, "chatCardsTheme", {
+        name: "Thème (couleurs & bordures)",
+        hint: "Reteinte les cartes (fond crème par défaut, bordures dorées, titres, pastilles). Chaque joueur choisit sa couleur dans « Accessibilité ».",
+        scope: "world", config: false, type: Boolean, default: true,
+        onChange: () => applyChatCardPrefs()
+    });
+    game.settings.register(MOD, "chatCardsBigButtons", {
+        name: "Gros boutons Attaque / Dégâts",
+        hint: "Boutons de jet pleine largeur et plus hauts, plus faciles à cliquer.",
+        scope: "world", config: false, type: Boolean, default: true,
+        onChange: () => applyChatCardPrefs()
+    });
+    game.settings.register(MOD, "chatCardsCollapse", {
+        name: "Replier les descriptions par défaut",
+        hint: "Les descriptions d'objets/sorts arrivent repliées ; un clic sur l'en-tête les déplie.",
+        scope: "world", config: false, type: Boolean, default: true
+    });
+    game.settings.register(MOD, "chatCardsExpandDice", {
+        name: "Déplier les jets de dés par défaut",
+        hint: "Affiche d'office le détail du jet (dés individuels, bonus et provenance).",
+        scope: "world", config: false, type: Boolean, default: true
     });
     // Couleur de fond des cartes de chat — PAR JOUEUR (défaut : blanc crème).
     game.settings.register(MOD, "chatCardColor", {
         scope: "client", config: false, type: String, default: "#f4ecd8",
         onChange: () => applyChatCardPrefs()
-    });
-    // Replier la description des cartes par défaut — PAR JOUEUR.
-    game.settings.register(MOD, "chatCardsCollapsed", {
-        scope: "client", config: false, type: Boolean, default: true
     });
     game.settings.register(MOD, "enableTemplateSnap", B(
         "Snap des templates AoE au dixième de pied",
@@ -988,7 +1011,7 @@ const CATEGORIES = [
       keys: ["commonFolderPJ","autoPlayerFolder","gmAutoFolderParent","commonFolderPNJ","commonFolderNewChars","commonPackPNJ","commonPackCemetery","commonPackCreatures","commonPackCraft"] },
     { firstKey: "enableParty", master: "enableParty",           icon: "fa-users",           title: "Système de Party",
       desc: "Groupes de joueurs : chat filtré, combat par party, téléportation de groupe, journal de session, anti-cheat.",
-      keys: ["enableParty","enableJoinScene","enableShowParty","enablePlayerGrouping","enableGoWithPartyScenes","enableGoWithPartyJournal","enableChatFilter","enableChatTabs","enableChatCards","enableNoteLink","enableSessionLog","sessionLogWebhookUrl","sessionLogForum","enableCombatParty","enableCombatTurnLock","enablePartyPause","enableAntiCheat"] },
+      keys: ["enableParty","enableJoinScene","enableShowParty","enablePlayerGrouping","enableGoWithPartyScenes","enableGoWithPartyJournal","enableChatFilter","enableChatTabs","enableTrade","enableNoteLink","enableSessionLog","sessionLogWebhookUrl","sessionLogForum","enableCombatParty","enableCombatTurnLock","enablePartyPause","enableAntiCheat"] },
     { firstKey: "enableCharValidation", master: "enableCharValidation", icon: "fa-id-card", title: "Création de personnages",
       desc: "Les joueurs demandent la création d'un personnage ; un GM valide depuis le Casier, puis le joueur construit et soumet sa fiche ; à la validation elle est verrouillée. Le dossier de destination se règle dans « Dossiers & Compendiums ».",
       keys: ["enableCharValidation","charMaxTotal","charMaxActive","charFreeLevelUp","charNotifyLevelUp","blockPlayerPlutonium"] },
@@ -1001,6 +1024,9 @@ const CATEGORIES = [
     { firstKey: "enableXpBlock",         icon: "fa-server",          title: "Serveur",
       desc: "Personnalisations du serveur : blocage XP / Level Up, logs Discord, webhooks.",
       keys: ["enableXpBlock","enableFakeWarning","enableGmNotes","hidePlayerStarTab","enableDiscordLog","discordLogWebhookUrl","downtimeWebhookUrl","tmWebhookUrl"] },
+    { firstKey: "enableChatCards", master: "enableChatCards", icon: "fa-comment-dots", title: "Cartes de chat",
+      desc: "Habillage des cartes de chat dnd5e (attaques, sorts, objets). Interrupteur général + choix de ce qui est activé. La couleur reste un choix par joueur (fenêtre « Accessibilité »).",
+      keys: ["enableChatCards","chatCardsTheme","chatCardsBigButtons","chatCardsCollapse","chatCardsExpandDice"] },
     { firstKey: "enablePolymorph", master: "enablePolymorph", icon: "fa-paw", title: "Transformation",
       desc: "Wild Shape (druide) et Polymorphie (sort) — deux systèmes distincts via le moteur dnd5e. Active/désactive l'ensemble et règle l'application des limites de facteur de puissance (FP).",
       keys: ["enablePolymorph","transformEnforceCr","transformStrictCr"] },
@@ -1121,7 +1147,7 @@ const CONFIG_GROUPS = [
     { title: "Serveur & monde", icon: "fa-server",
       cats: ["enableXpBlock", "tmSkillBase", "enableSceneCues", "commonFolderPJ"] },
     { title: "Personnalisation & interface", icon: "fa-sliders",
-      cats: ["enableTokenAppearance", "uihide", "tweakTree", "companionProfiles"] },
+      cats: ["enableChatCards", "enableTokenAppearance", "uihide", "tweakTree", "companionProfiles"] },
     { title: "Aide & découverte", icon: "fa-circle-question",
       cats: ["serverName"] }
 ];

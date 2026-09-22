@@ -10,19 +10,6 @@
 // ============================================================
 
 import { MOD } from "./const.js";
-
-// Assombrit une couleur hex (#rrggbb) : factor = fraction de luminosité gardée.
-// Sert à reproduire le style « dégradé sombre » des en-têtes dnd5e à partir de
-// la couleur choisie par le joueur.
-function _shadeColor(hex, factor) {
-    const m = /^#?([0-9a-fA-F]{6})$/.exec(String(hex || "").trim());
-    if (!m) return hex;
-    const n = parseInt(m[1], 16);
-    const r = Math.round(((n >> 16) & 255) * factor);
-    const g = Math.round(((n >> 8) & 255) * factor);
-    const b = Math.round((n & 255) * factor);
-    return `rgb(${r},${g},${b})`;
-}
 import { buildTabHtml as relBuildTab, wireTab as relWireTab } from "./relations.js";
 import { buildTabHtml as bstBuildTab, wireTab as bstWireTab } from "./bestiary.js";
 import {
@@ -119,91 +106,6 @@ export function setupCharacterSheet() {
             // Même nom que la fiche native → remplace sans multiplier les entrées.
             static get name() { return "CharacterActorSheet"; }
 
-            // Action du menu « … » : ouvre le choix de couleur de CETTE fiche.
-            static DEFAULT_OPTIONS = {
-                actions: {
-                    scwmSheetColor: function () { this._scwmSheetColorDialog(); }
-                }
-            };
-
-            // Ajoute « Couleur de la fiche » dans le menu d'en-tête (les 3 points),
-            // uniquement pour un propriétaire de la fiche.
-            _getHeaderControls() {
-                const controls = super._getHeaderControls();
-                if (this.actor?.isOwner) {
-                    controls.push({
-                        icon:   "fa-solid fa-palette",
-                        label:  "Couleur de la fiche",
-                        action: "scwmSheetColor"
-                    });
-                }
-                return controls;
-            }
-
-            // Fenêtre de choix de couleur — stockée en flag SUR L'ACTEUR (par fiche).
-            async _scwmSheetColorDialog() {
-                const cur = this.actor.getFlag(MOD, "sheetColor") || "#6f0000";
-                const uid = "scwm-sheetcolor";
-                await foundry.applications.api.DialogV2.wait({
-                    window:      { title: `Couleur de la fiche — ${this.actor.name}`, icon: "fas fa-palette" },
-                    position:    { width: 380 },
-                    rejectClose: false,
-                    content: `<div id="${uid}" style="display:flex;flex-direction:column;gap:10px;padding:4px 0;">
-                        <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0;font-weight:600;">
-                            <span>Couleur d'accent de la fiche</span>
-                            <input type="color" name="col" value="${cur}" style="width:48px;height:28px;padding:0;border:none;background:none;cursor:pointer;">
-                        </label>
-                        <p style="margin:0;font-size:.8em;color:#999;">Remplace le rouge d'accent — uniquement pour cette fiche. « Réinitialiser » revient au rouge d'origine.</p>
-                    </div>`,
-                    buttons: [
-                        {
-                            action: "save", default: true,
-                            label: "Appliquer", icon: '<i class="fa-solid fa-check"></i>',
-                            callback: async (ev, btn) => {
-                                const v = (btn.form ?? document.getElementById(uid))?.querySelector('[name="col"]')?.value;
-                                if (v) await this.actor.setFlag(MOD, "sheetColor", v);
-                                this.render(false);
-                            }
-                        },
-                        {
-                            action: "reset",
-                            label: "Réinitialiser", icon: '<i class="fa-solid fa-rotate-left"></i>',
-                            callback: async () => { await this.actor.unsetFlag(MOD, "sheetColor"); this.render(false); }
-                        },
-                        { action: "close", label: "Fermer", icon: '<i class="fa-solid fa-xmark"></i>', callback: () => {} }
-                    ]
-                });
-            }
-
-            // Applique la couleur de la fiche (flag acteur). En dnd5e 6, le rouge
-            // n'est PAS une variable CSS : il est cuit dans des dégradés d'en-têtes
-            // (.items-header, barres de progression) via des @layer. On injecte donc
-            // une feuille de style PROPRE à cette fiche (scopée par son id), en
-            // règles !important NON-layered : elles priment sur tout le thème @layer
-            // de dnd5e quelle que soit sa spécificité.
-            _scwmApplySheetColor() {
-                const el = this.element;
-                if (!el) return;
-                let style = el.querySelector("style.scwm-sheetcolor-style");
-                const color = this.actor?.getFlag(MOD, "sheetColor");
-                if (!color) { style?.remove(); return; }
-                if (!style) {
-                    style = document.createElement("style");
-                    style.className = "scwm-sheetcolor-style";
-                    el.appendChild(style);
-                }
-                const sel = `#${(window.CSS?.escape ? CSS.escape(el.id) : el.id)}`;
-                const grad = `linear-gradient(to right, ${_shadeColor(color, 0.5)}, ${_shadeColor(color, 0.34)}) !important`;
-                // On recolore uniquement les EN-TÊTES de sections. On NE touche PAS :
-                // le bandeau/dessin du haut (le teinter le recouvrait), la barre de
-                // dés de vie, l'en-tête « Favoris », ni la barre de PV.
-                style.textContent = `
-                    ${sel} .items-header,
-                    ${sel} .items-header.header,
-                    ${sel} .inventory-element .items-header { background: ${grad}; }
-                `;
-            }
-
             async _prepareContext(options = {}) {
                 const ctx = await super._prepareContext(options);
                 if (gmNotesOn) ctx.gmNotesHtml = buildGmNotesHtml(this.actor);
@@ -229,7 +131,6 @@ export function setupCharacterSheet() {
             // l'onglet custom mémorisé n'est pas actif à l'ouverture).
             async _onRender(context, options) {
                 await super._onRender(context, options);
-                this._scwmApplySheetColor();   // couleur d'accent propre à cette fiche
                 const customTabs = [];
                 if (gmNotesOn) customTabs.push("gmnotes");
                 if (relOn)    customTabs.push("relations");

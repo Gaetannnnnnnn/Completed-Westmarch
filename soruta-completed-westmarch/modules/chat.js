@@ -5,7 +5,7 @@ import { registerSoundFilter } from './audio.js';
 var tabSelected = "IC";
 
 // ── Habillage des cartes de chat (thème + couleur par joueur) ──
-// Pose/retire body.scwm-chat-cards selon le réglage monde, et calcule les
+// Pose/retire body.scwm-chat-theme selon le réglage monde, et calcule les
 // couleurs de texte lisibles selon la couleur de fond choisie par le joueur.
 function _luminance(hex) {
     const m = /^#?([0-9a-f]{6})$/i.exec(String(hex ?? "").trim());
@@ -18,7 +18,7 @@ function _luminance(hex) {
 // hébergements comme The Forge, un NOUVEAU fichier .css d'un module n'est pas
 // injecté sans relancer le monde). Ici, le style suit toujours le code.
 const CHAT_CARDS_CSS = `
-body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message {
+body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message {
     --dnd5e-chat-background: var(--scwm-chat-bg);
     --dnd5e-border-gold: 1px solid var(--scwm-chat-gold);
     --dnd5e-background-card: rgba(255,255,255,0.35);
@@ -31,52 +31,44 @@ body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #cha
     color: var(--scwm-chat-fg) !important;
     box-shadow: 0 2px 10px rgba(0,0,0,0.35);
 }
-body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .title { color: var(--scwm-chat-gold); text-shadow: none; }
-body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .subtitle { color: var(--scwm-chat-fg2); }
-body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .message-sender .avatar:not(.token) img,
-body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .description .summary > img {
+body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .title { color: var(--scwm-chat-gold); text-shadow: none; }
+body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .subtitle { color: var(--scwm-chat-fg2); }
+body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .message-sender .avatar:not(.token) img,
+body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .description .summary > img {
     border: 1px solid var(--scwm-chat-gold) !important; border-radius: 4px; box-shadow: 0 0 5px rgba(0,0,0,0.3);
 }
-body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .card-buttons { gap: 6px; }
-body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .card-buttons button {
+body.scwm-chat-bigbtn :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .card-buttons { gap: 6px; }
+body.scwm-chat-bigbtn :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .card-buttons button {
     border: 1px solid rgba(154,123,30,0.6);
     background: linear-gradient(180deg, rgba(154,123,30,0.20), rgba(154,123,30,0.06));
-    color: var(--scwm-chat-fg); border-radius: 6px; font-weight: 700;
+    color: var(--scwm-chat-fg, inherit); border-radius: 6px; font-weight: 700;
     width: 100%; min-height: 36px; font-size: 14px; letter-spacing: .3px;
     transition: box-shadow .15s, background .15s, border-color .15s, color .15s;
 }
-body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .card-buttons button:hover {
+body.scwm-chat-bigbtn :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .card-buttons button:hover {
     border-color: #e67e22; background: rgba(230,126,34,0.16); box-shadow: 0 0 8px rgba(230,126,34,0.4);
 }
-body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .pills .pill {
+body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .pills .pill {
     border: 1px solid rgba(154,123,30,0.4); background: rgba(154,123,30,0.10); border-radius: 3px; color: var(--scwm-chat-fg);
 }
-body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message p.supplement > strong { color: var(--scwm-chat-gold); }
-body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .description { box-shadow: inset 0 0 0 1px rgba(154,123,30,0.15); }
-body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .dice-total { border-color: rgba(154,123,30,0.45); }
+body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message p.supplement > strong { color: var(--scwm-chat-gold); }
+body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .description { box-shadow: inset 0 0 0 1px rgba(154,123,30,0.15); }
+body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .dice-total { border-color: rgba(154,123,30,0.45); }
 
-/* Jets de dés : texte lisible sur crème (le vert/rouge réussite/échec est conservé). */
-body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .dice-formula,
-body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .dice-total,
-body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .dice-tooltip,
-body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .dice-tooltip .part-total,
-body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .dice-tooltip .flavor,
-body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .dice-rolls,
-body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .dice-result .total .value,
-body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .dice-result .total .label {
+/* Résultat du jet AFFICHÉ SUR LA CARTE (fond crème) : texte foncé lisible.
+   On NE touche PAS à la fenêtre de détail au survol (.dice-tooltip / .dice-rolls),
+   qui a son propre fond sombre et doit garder son texte clair (sinon noir sur noir). */
+body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .dice-formula,
+body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .dice-total,
+body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .dice-result > .total > .value,
+body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .dice-result > .total > .label {
     color: var(--scwm-chat-fg) !important;
 }
-/* La provenance (flavor) de chaque terme, en petit à côté. */
-body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .dice-tooltip .flavor,
-body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .dice-tooltip .constant-term .flavor {
-    color: var(--scwm-chat-fg2) !important; font-size: 10px; text-transform: uppercase; opacity: .85;
-}
-/* Individual dice pips restent lisibles */
-body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .dice-tooltip .roll.die { filter: none; }
 
-/* Repli de la description de l'objet/sort (par défaut, préférence joueur). */
-body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .card-description.collapsible.collapsed,
-body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .description.collapsible.collapsed .details {
+/* Repli de la description (indépendant du thème : .collapsed n'est posé que si
+   le repli par défaut est activé, côté JS). */
+:is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .card-description.collapsible.collapsed,
+:is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .description.collapsible.collapsed .details {
     max-height: 0 !important;
     padding-block: 0 !important;
     margin-block: 0 !important;
@@ -89,20 +81,25 @@ body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #cha
 export function applyChatCardPrefs() {
     const body = document.body;
     if (!body) return;
-    let on = true, color = "#f4ecd8";
-    try { on = game.settings.get(MOD, "enableChatCards"); } catch {}
-    try { color = game.settings.get(MOD, "chatCardColor") || color; } catch {}
+    const get = (k, d) => { try { const v = game.settings.get(MOD, k); return v === undefined ? d : v; } catch { return d; } };
 
-    body.classList.toggle("scwm-chat-cards", !!on);
+    const master = !!get("enableChatCards", true);
+    const theme  = master && get("chatCardsTheme", true) !== false;
+    const bigBtn = master && get("chatCardsBigButtons", true) !== false;
+
+    body.classList.toggle("scwm-chat-theme",  theme);
+    body.classList.toggle("scwm-chat-bigbtn", bigBtn);
+
+    const color = get("chatCardColor", "#f4ecd8") || "#f4ecd8";
     body.style.setProperty("--scwm-chat-bg", color);
     const dark = _luminance(color) < 0.5;   // fond sombre → texte clair
     body.style.setProperty("--scwm-chat-fg",  dark ? "#f2ead4" : "#2a2418");
     body.style.setProperty("--scwm-chat-fg2", dark ? "#c9bd99" : "#5c5240");
     body.style.setProperty("--scwm-chat-gold", dark ? "#e8cc6a" : "#9a7b1e");
 
-    // Injection/retrait du style (fiable quel que soit l'hébergement).
+    // Style injecté (fiable quel que soit l'hébergement). Toujours présent : ses
+    // règles sont scopées par les classes body ci-dessus, donc sans effet si off.
     let st = document.getElementById("scwm-chat-cards-style");
-    if (!on) { st?.remove(); return; }
     if (!st) { st = document.createElement("style"); st.id = "scwm-chat-cards-style"; document.head.appendChild(st); }
     if (st.textContent !== CHAT_CARDS_CSS) st.textContent = CHAT_CARDS_CSS;
 }
@@ -154,10 +151,12 @@ function renderChatMessageHTML(message, html, messageData) {
         if (game.settings.get(MOD, "enableChatCards")) {
             const root = html instanceof HTMLElement ? html : html?.[0];
             if (root) {
-                // Déplier les jets de dés (voir dés individuels + bonus + provenance).
-                root.querySelectorAll(".dice-roll:not(.expanded)").forEach(r => r.classList.add("expanded"));
-                // Replier la description par défaut (préférence joueur).
-                if (game.settings.get(MOD, "chatCardsCollapsed")) {
+                // Déplier les jets de dés par défaut (dés + bonus + provenance).
+                if (game.settings.get(MOD, "chatCardsExpandDice") !== false) {
+                    root.querySelectorAll(".dice-roll:not(.expanded)").forEach(r => r.classList.add("expanded"));
+                }
+                // Replier la description par défaut.
+                if (game.settings.get(MOD, "chatCardsCollapse") !== false) {
                     root.querySelectorAll(".card-description.collapsible, .description.collapsible")
                         .forEach(d => d.classList.add("collapsed"));
                 }

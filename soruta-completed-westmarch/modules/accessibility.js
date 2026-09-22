@@ -155,14 +155,7 @@ async function openA11yDialog() {
                     <a class="scwm-chat-col-reset" style="font-size:.8em;color:#c9a227;cursor:pointer;">réinit.</a>
                 </span>
             </label>
-            <p style="margin:3px 0 0;font-size:.8em;color:#999;">Couleur de fond de tes cartes de chat (blanc crème par défaut). Le texte s'adapte automatiquement pour rester lisible.</p>
-        </div>
-        <div class="scwm-a11y-row" style="padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.07);">
-            <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;font-weight:600;margin:0;">
-                <span>Replier les descriptions par défaut</span>
-                <input type="checkbox" name="chatCardsCollapsed" ${_get("chatCardsCollapsed") ? "checked" : ""} style="width:18px;height:18px;flex-shrink:0;">
-            </label>
-            <p style="margin:3px 0 0;font-size:.8em;color:#999;">Les descriptions d'objets/sorts arrivent repliées ; un clic sur le titre les déplie. Les boutons restent visibles.</p>
+            <p style="margin:3px 0 0;font-size:.8em;color:#999;">Couleur de fond de tes cartes de chat (blanc crème par défaut). Le texte s'adapte automatiquement pour rester lisible. Les autres options (repli, boutons…) sont dans les réglages « Cartes de chat » du MJ.</p>
         </div>
     </div>`;
 
@@ -202,8 +195,6 @@ async function openA11yDialog() {
                     // Préférences « cartes de chat » (par joueur).
                     const chatCol = root.querySelector(`[name="chatCardColor"]`);
                     await game.settings.set(MOD, "chatCardColor", chatCol?.value || "#f4ecd8");
-                    const chatCollapse = root.querySelector(`[name="chatCardsCollapsed"]`);
-                    await game.settings.set(MOD, "chatCardsCollapsed", !!chatCollapse?.checked);
 
                     applyAccessibility();
                     try { ui.players?.render(); } catch {}

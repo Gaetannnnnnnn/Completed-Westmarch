@@ -18,7 +18,7 @@ function _luminance(hex) {
 // hébergements comme The Forge, un NOUVEAU fichier .css d'un module n'est pas
 // injecté sans relancer le monde). Ici, le style suit toujours le code.
 const CHAT_CARDS_CSS = `
-body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) {
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message {
     --dnd5e-chat-background: var(--scwm-chat-bg);
     --dnd5e-border-gold: 1px solid var(--scwm-chat-gold);
     --dnd5e-background-card: rgba(255,255,255,0.35);
@@ -31,27 +31,27 @@ body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #cha
     color: var(--scwm-chat-fg) !important;
     box-shadow: 0 2px 10px rgba(0,0,0,0.35);
 }
-body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .title { color: var(--scwm-chat-gold); text-shadow: none; }
-body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .subtitle { color: var(--scwm-chat-fg2); }
-body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .message-sender .avatar:not(.token) img,
-body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .chat-card .description .summary > img {
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .title { color: var(--scwm-chat-gold); text-shadow: none; }
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .subtitle { color: var(--scwm-chat-fg2); }
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .message-sender .avatar:not(.token) img,
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .description .summary > img {
     border: 1px solid var(--scwm-chat-gold) !important; border-radius: 4px; box-shadow: 0 0 5px rgba(0,0,0,0.3);
 }
-body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .chat-card .card-buttons button {
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .card-buttons button {
     border: 1px solid rgba(154,123,30,0.55);
     background: linear-gradient(180deg, rgba(154,123,30,0.16), rgba(154,123,30,0.05));
     color: var(--scwm-chat-fg); border-radius: 5px; font-weight: 600; min-height: 26px;
     transition: box-shadow .15s, background .15s, border-color .15s, color .15s;
 }
-body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .chat-card .card-buttons button:hover {
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .card-buttons button:hover {
     border-color: #e67e22; background: rgba(230,126,34,0.16); box-shadow: 0 0 8px rgba(230,126,34,0.4);
 }
-body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .pills .pill {
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .pills .pill {
     border: 1px solid rgba(154,123,30,0.4); background: rgba(154,123,30,0.10); border-radius: 3px; color: var(--scwm-chat-fg);
 }
-body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) p.supplement > strong { color: var(--scwm-chat-gold); }
-body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .chat-card .description { box-shadow: inset 0 0 0 1px rgba(154,123,30,0.15); }
-body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .dice-total { border-color: rgba(154,123,30,0.45); }
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message p.supplement > strong { color: var(--scwm-chat-gold); }
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .description { box-shadow: inset 0 0 0 1px rgba(154,123,30,0.15); }
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .dice-total { border-color: rgba(154,123,30,0.45); }
 `;
 
 export function applyChatCardPrefs() {
@@ -123,7 +123,8 @@ function renderChatMessageHTML(message, html, messageData) {
     try {
         if (game.settings.get(MOD, "enableChatCards") && game.settings.get(MOD, "chatCardsCollapsed")) {
             const root = html instanceof HTMLElement ? html : html?.[0];
-            root?.querySelectorAll?.(".description.collapsible").forEach(d => d.classList.add("collapsed"));
+            root?.querySelectorAll?.(".card-description.collapsible, .description.collapsible, .chat-card .collapsible")
+                .forEach(d => d.classList.add("collapsed"));
         }
     } catch (e) {}
 

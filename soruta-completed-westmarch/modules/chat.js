@@ -37,15 +37,23 @@ body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #cha
 body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .description .summary > img {
     border: 1px solid var(--scwm-chat-gold) !important; border-radius: 4px; box-shadow: 0 0 5px rgba(0,0,0,0.3);
 }
-body.scwm-chat-bigbtn :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .card-buttons { gap: 6px; }
-body.scwm-chat-bigbtn :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .card-buttons button {
+body.scwm-chat-bigbtn :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .card-buttons { display:flex; flex-direction:column; gap: 6px; }
+body.scwm-chat-bigbtn :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .card-buttons > button,
+body.scwm-chat-bigbtn :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .card-buttons > a,
+body.scwm-chat-bigbtn :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .card-buttons button,
+body.scwm-chat-bigbtn :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .card-buttons a[data-action] {
+    display: flex; align-items: center; justify-content: center;
+    box-sizing: border-box;
     border: 1px solid rgba(154,123,30,0.6);
     background: linear-gradient(180deg, rgba(154,123,30,0.20), rgba(154,123,30,0.06));
-    color: var(--scwm-chat-fg, inherit); border-radius: 6px; font-weight: 700;
-    width: 100%; min-height: 36px; font-size: 14px; letter-spacing: .3px;
+    color: var(--scwm-chat-fg, inherit) !important; border-radius: 6px; font-weight: 700;
+    width: 100%; min-height: 38px; font-size: 14px; letter-spacing: .3px; text-decoration: none;
     transition: box-shadow .15s, background .15s, border-color .15s, color .15s;
 }
-body.scwm-chat-bigbtn :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .card-buttons button:hover {
+body.scwm-chat-bigbtn :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .card-buttons > button:hover,
+body.scwm-chat-bigbtn :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .card-buttons > a:hover,
+body.scwm-chat-bigbtn :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .card-buttons button:hover,
+body.scwm-chat-bigbtn :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .card-buttons a[data-action]:hover {
     border-color: #e67e22; background: rgba(230,126,34,0.16); box-shadow: 0 0 8px rgba(230,126,34,0.4);
 }
 body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .pills .pill {
@@ -65,17 +73,6 @@ body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #cha
     color: var(--scwm-chat-fg) !important;
 }
 
-/* Repli de la description (indépendant du thème : .collapsed n'est posé que si
-   le repli par défaut est activé, côté JS). */
-:is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .card-description.collapsible.collapsed,
-:is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .description.collapsible.collapsed .details {
-    max-height: 0 !important;
-    padding-block: 0 !important;
-    margin-block: 0 !important;
-    overflow: hidden !important;
-    opacity: 0 !important;
-    border: none !important;
-}
 `;
 
 export function applyChatCardPrefs() {
@@ -151,15 +148,24 @@ function renderChatMessageHTML(message, html, messageData) {
         if (game.settings.get(MOD, "enableChatCards")) {
             const root = html instanceof HTMLElement ? html : html?.[0];
             if (root) {
-                // Déplier les jets de dés par défaut (dés + bonus + provenance).
-                if (game.settings.get(MOD, "chatCardsExpandDice") !== false) {
-                    root.querySelectorAll(".dice-roll:not(.expanded)").forEach(r => r.classList.add("expanded"));
-                }
-                // Replier la description par défaut.
-                if (game.settings.get(MOD, "chatCardsCollapse") !== false) {
-                    root.querySelectorAll(".card-description.collapsible, .description.collapsible")
-                        .forEach(d => d.classList.add("collapsed"));
-                }
+                const expand   = game.settings.get(MOD, "chatCardsExpandDice") !== false;
+                const collapse = game.settings.get(MOD, "chatCardsCollapse") !== false;
+                // Léger délai : la carte dnd5e finit de se construire APRÈS ce hook,
+                // et ses écouteurs (repli) sont attachés à ce moment-là.
+                setTimeout(() => {
+                    try {
+                        if (expand) root.querySelectorAll(".dice-roll:not(.expanded)").forEach(r => r.classList.add("expanded"));
+                        if (collapse) {
+                            // On utilise le mécanisme natif de dnd5e (clic sur l'en-tête
+                            // « toggleDescription ») : au 1er rendu la description est
+                            // dépliée, donc un clic la replie proprement.
+                            root.querySelectorAll('[data-action="toggleDescription"]').forEach(h => {
+                                const sec = h.classList.contains("collapsible") ? h : h.closest(".collapsible");
+                                if (!sec || !sec.classList.contains("collapsed")) h.click();
+                            });
+                        }
+                    } catch (e) {}
+                }, 60);
             }
         }
     } catch (e) {}

@@ -26,6 +26,17 @@ const CURRENCIES = ["pp", "gp", "ep", "sp", "cp"];
 const CUR_LABEL  = { pp: "PP", gp: "PO", ep: "PE", sp: "PA", cp: "PC" };
 const PHYS_TYPES = new Set(["weapon", "equipment", "consumable", "tool", "loot", "container", "backpack"]);
 
+// Un objet est-il échangeable ? On exclut les armes naturelles / l'attaque à
+// mains nues (Unarmed Strike) et le non-physique.
+function isTradeable(item) {
+    if (!item || !PHYS_TYPES.has(item.type)) return false;
+    if (item.type === "weapon" && item.system?.type?.value === "natural") return false;
+    const id = String(item.system?.identifier ?? "").toLowerCase();
+    const nm = String(item.name ?? "").toLowerCase();
+    if (id === "unarmedstrike" || /unarmed|mains?\s*nues/.test(nm)) return false;
+    return true;
+}
+
 const activeGM = () => game.users.activeGM ?? game.users.find(u => u.isGM && u.active);
 const uid = () => foundry.utils.randomID();
 
@@ -104,22 +115,32 @@ async function _closeSession(s, reason) {
     }
 }
 
-// Demande d'échange (A → MJ). Le MJ invite B, puis ouvre chez les deux.
+// Demande d'échange (A → MJ). Le MJ crée la session en phase « invite »,
+// invite B (sans bloquer) et renvoie l'id à A pour sa fenêtre d'attente.
 async function gmTradeRequest({ fromUserId, toUserId }) {
     const A = game.users.get(fromUserId), B = game.users.get(toUserId);
     if (!A || !B) return { ok: false, reason: "Joueur introuvable." };
     if (!canTradeWith(A, B)) return { ok: false, reason: tradeBlockReason(A, B) };
-    // Une seule session active par joueur.
     for (const s of _sessions.values()) if ([s.a, s.b].includes(fromUserId) || [s.a, s.b].includes(toUserId))
         return { ok: false, reason: "Un échange est déjà en cours." };
 
-    const invite = await B.query("westmarch.tradeInvite", { fromName: A.name }).catch(() => ({ accepted: false }));
-    if (!invite?.accepted) {
-        A.query("westmarch.tradeNotice", { message: `${B.name} a refusé l'échange.` }).catch(() => {});
-        return { ok: true };
-    }
     const s = _newSession(fromUserId, toUserId);
-    _pushOpen(s);
+    s.phase = "invite";
+    B.query("westmarch.tradeInvite", { sessionId: s.id, fromName: A.name }).catch(() => {});
+    return { ok: true, sessionId: s.id };
+}
+
+// Réponse de B à l'invitation (accept/refus).
+async function gmInviteResponse({ sessionId, accepted }) {
+    const s = _sessions.get(sessionId);
+    if (!s) return { ok: false };                      // annulé entre-temps
+    if (accepted) { s.phase = "open"; _pushOpen(s); }
+    else {
+        const A = game.users.get(s.a), B = game.users.get(s.b);
+        A?.query("westmarch.tradeNotice", { message: `${B?.name ?? "Le joueur"} a refusé l'échange.` }).catch(() => {});
+        A?.query("westmarch.tradeClosed", { reason: "" }).catch(() => {});   // ferme la fenêtre d'attente
+        _sessions.delete(s.id);
+    }
     return { ok: true };
 }
 function _pushOpen(s) {
@@ -163,6 +184,8 @@ async function gmConfirm({ sessionId, userId }) {
 }
 async function gmCancel({ sessionId }) {
     const s = _sessions.get(sessionId); if (!s) return { ok: false };
+    // En phase invitation, fermer la fenêtre d'invitation chez B.
+    if (s.phase === "invite") game.users.get(s.b)?.query("westmarch.tradeInviteClose", { sessionId }).catch(() => {});
     await _closeSession(s, "Échange annulé.");
     return { ok: true };
 }
@@ -185,6 +208,7 @@ async function executeTrade(s) {
         for (const it of offer.items) {
             const item = actor.items.get(it.id);
             if (!item) return `objet manquant (${it.name})`;
+            if (!isTradeable(item)) return `objet non échangeable (${it.name})`;
             if ((item.system?.quantity ?? 1) < it.qty) return `quantité insuffisante (${it.name})`;
         }
         for (const c of CURRENCIES) if ((actor.system?.currency?.[c] ?? 0) < offer.currency[c]) return `${CUR_LABEL[c]} insuffisant`;
@@ -252,9 +276,74 @@ async function startTradeWith(targetUser) {
         return;
     }
     const res = await _gmSend("westmarch.tradeRequest", { fromUserId: game.user.id, toUserId: targetUser.id });
-    if (res && res.ok === false && res.reason) ui.notifications?.warn(res.reason);
-    else ui.notifications?.info(`Demande d'échange envoyée à ${targetUser.name}…`);
+    if (res && res.ok === false) { if (res.reason) ui.notifications?.warn(res.reason); return; }
+    if (res?.sessionId) openWaiting(targetUser.name, res.sessionId);
 }
+
+// ── Fenêtre « en attente d'acceptation » (demandeur) ────────
+let _waitApp = null;
+function openWaiting(targetName, sessionId) {
+    closeWaiting(true);
+    _waitApp = new WaitWindow();
+    _waitApp.targetName = targetName;
+    _waitApp.sessionId = sessionId;
+    _waitApp.render(true);
+}
+function closeWaiting(silent = false) {
+    if (!_waitApp) return;
+    const a = _waitApp; _waitApp = null;
+    if (silent) a.done = true;   // ne pas envoyer d'annulation
+    a.close();
+}
+class WaitWindow extends foundry.applications.api.ApplicationV2 {
+    static DEFAULT_OPTIONS = {
+        id: "scwm-trade-wait", classes: ["scwm-trade-wait"],
+        window: { title: "Demande d'échange", icon: "fas fa-hourglass-half" },
+        position: { width: 340 }
+    };
+    sessionId = null; targetName = ""; done = false;
+    async _renderHTML() {
+        return `<div class="scwm-wait-body">
+            <i class="fa-solid fa-hourglass-half fa-spin"></i>
+            <p>En attente d'acceptation de <strong>${this.targetName}</strong>…</p>
+            <button type="button" class="scwm-wait-cancel"><i class="fa-solid fa-xmark"></i> Annuler la demande</button>
+        </div>`;
+    }
+    _replaceHTML(result, content) {
+        content.innerHTML = result;
+        content.querySelector(".scwm-wait-cancel")?.addEventListener("click", () => {
+            this.done = true;
+            _gmSend("westmarch.tradeCancel", { sessionId: this.sessionId, userId: game.user.id });
+            this.close();
+        });
+    }
+    async close(opts) {
+        // Fermer la fenêtre = annuler la demande (aucune autre sortie possible).
+        if (!this.done) _gmSend("westmarch.tradeCancel", { sessionId: this.sessionId, userId: game.user.id });
+        if (_waitApp === this) _waitApp = null;
+        return super.close(opts);
+    }
+}
+
+// ── Fenêtre d'invitation (cible) — non bloquante ────────────
+let _inviteApp = null;
+function showInvite(sessionId, fromName) {
+    closeInvite();
+    _inviteApp = new foundry.applications.api.DialogV2({
+        window: { title: "Demande d'échange", icon: "fas fa-right-left" },
+        content: `<p style="padding:6px;"><strong>${fromName}</strong> souhaite échanger avec toi.</p>`,
+        buttons: [
+            { action: "yes", default: true, label: "Accepter", icon: '<i class="fa-solid fa-check"></i>',
+              callback: () => { _inviteApp = null; _gmSend("westmarch.tradeInviteResponse", { sessionId, accepted: true }); } },
+            { action: "no", label: "Refuser", icon: '<i class="fa-solid fa-xmark"></i>',
+              callback: () => { _inviteApp = null; _gmSend("westmarch.tradeInviteResponse", { sessionId, accepted: false }); } }
+        ],
+        submit: () => {}
+    });
+    _inviteApp._scwmSid = sessionId;
+    _inviteApp.render(true);
+}
+function closeInvite() { if (_inviteApp) { const a = _inviteApp; _inviteApp = null; a.close().catch?.(() => {}); } }
 
 let _tradeApp = null;
 function openTradeWindow(session) {
@@ -364,7 +453,7 @@ class TradeWindow extends foundry.applications.api.ApplicationV2 {
     async #pickItem(root) {
         const actor = this.#myActor(); if (!actor) return;
         const already = new Set((this.session.me.offer.items ?? []).map(i => i.id));
-        const items = actor.items.filter(i => PHYS_TYPES.has(i.type) && !already.has(i.id));
+        const items = actor.items.filter(i => isTradeable(i) && !already.has(i.id));
         if (!items.length) return ui.notifications?.info("Aucun objet à ajouter.");
         const opts = items.map(i => `<option value="${i.id}">${i.name} (×${i.system?.quantity ?? 1})</option>`).join("");
         const content = `<div style="display:flex;flex-direction:column;gap:8px;">
@@ -429,6 +518,12 @@ const TRADE_CSS = `
 .scwm-trade-actions .scwm-trade-confirm { border-color:#8fd19e; background:rgba(143,209,158,0.15); color:#d8f0da; }
 .scwm-trade-actions .scwm-trade-cancel { border-color:rgba(192,57,43,0.5); background:rgba(192,57,43,0.12); color:#e58f8f; }
 .scwm-trade-actions button:disabled { opacity:0.45; cursor:default; }
+.scwm-trade-wait .window-content { padding:14px; }
+.scwm-wait-body { display:flex; flex-direction:column; align-items:center; gap:10px; text-align:center; }
+.scwm-wait-body > i { font-size:26px; color:#c9a227; }
+.scwm-wait-body p { margin:0; }
+.scwm-wait-cancel { margin-top:4px; padding:6px 12px; border:1px solid rgba(192,57,43,0.5); border-radius:5px; background:rgba(192,57,43,0.12); color:#e58f8f; cursor:pointer; font-weight:600; }
+.scwm-wait-cancel:hover { background:rgba(192,57,43,0.25); color:#fff; }
 `;
 function injectTradeCss() {
     if (document.getElementById("scwm-trade-style")) return;
@@ -441,26 +536,22 @@ function injectTradeCss() {
 export function TradeHooks() {
     injectTradeCss();
     // Handlers CLIENT (reçus depuis le MJ).
-    CONFIG.queries["westmarch.tradeInvite"] = async ({ fromName }) => {
-        const ok = await foundry.applications.api.DialogV2.confirm({
-            window: { title: "Demande d'échange", icon: "fas fa-right-left" },
-            content: `<p><strong>${fromName}</strong> souhaite échanger avec toi. Accepter ?</p>`
-        }).catch(() => false);
-        return { accepted: !!ok };
-    };
-    CONFIG.queries["westmarch.tradeOpen"]   = async ({ session }) => { openTradeWindow(session); return true; };
+    CONFIG.queries["westmarch.tradeInvite"]      = async ({ sessionId, fromName }) => { showInvite(sessionId, fromName); return true; };
+    CONFIG.queries["westmarch.tradeInviteClose"] = async () => { closeInvite(); return true; };
+    CONFIG.queries["westmarch.tradeOpen"]   = async ({ session }) => { closeWaiting(true); closeInvite(); openTradeWindow(session); return true; };
     CONFIG.queries["westmarch.tradeState"]  = async ({ session }) => { updateTradeWindow(session); return true; };
-    CONFIG.queries["westmarch.tradeDone"]   = async () => { ui.notifications?.info("Échange effectué."); closeTradeWindow(); return true; };
-    CONFIG.queries["westmarch.tradeClosed"] = async ({ reason }) => { if (reason) ui.notifications?.info(reason); closeTradeWindow(); return true; };
+    CONFIG.queries["westmarch.tradeDone"]   = async () => { ui.notifications?.info("Échange effectué."); closeWaiting(true); closeTradeWindow(); return true; };
+    CONFIG.queries["westmarch.tradeClosed"] = async ({ reason }) => { if (reason) ui.notifications?.info(reason); closeWaiting(true); closeTradeWindow(); return true; };
     CONFIG.queries["westmarch.tradeNotice"] = async ({ message }) => { ui.notifications?.warn(message); return true; };
 
     // Handlers MJ (l'état vit chez le MJ actif ; on enregistre partout mais ils
     // ne sont sollicités que sur le client MJ via activeGM()).
-    CONFIG.queries["westmarch.tradeRequest"]  = async (d) => gmTradeRequest(d);
-    CONFIG.queries["westmarch.tradeSetOffer"] = async (d) => gmSetOffer(d);
-    CONFIG.queries["westmarch.tradeLock"]     = async (d) => gmLock(d);
-    CONFIG.queries["westmarch.tradeConfirm"]  = async (d) => gmConfirm(d);
-    CONFIG.queries["westmarch.tradeCancel"]   = async (d) => gmCancel(d);
+    CONFIG.queries["westmarch.tradeRequest"]        = async (d) => gmTradeRequest(d);
+    CONFIG.queries["westmarch.tradeInviteResponse"] = async (d) => gmInviteResponse(d);
+    CONFIG.queries["westmarch.tradeSetOffer"]       = async (d) => gmSetOffer(d);
+    CONFIG.queries["westmarch.tradeLock"]           = async (d) => gmLock(d);
+    CONFIG.queries["westmarch.tradeConfirm"]        = async (d) => gmConfirm(d);
+    CONFIG.queries["westmarch.tradeCancel"]         = async (d) => gmCancel(d);
 
     // Bouton « Échanger » dans la liste des joueurs.
     Hooks.on("renderPlayers", (app, html) => {

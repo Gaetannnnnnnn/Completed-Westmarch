@@ -63,6 +63,21 @@ body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #cha
 body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .description { box-shadow: inset 0 0 0 1px rgba(154,123,30,0.15); }
 body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .dice-total { border-color: rgba(154,123,30,0.45); }
 
+/* Repli sans animation (évite le flash « ouvert puis fermé »). */
+body.scwm-chat-collapse :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .collapsible,
+body.scwm-chat-collapse :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .collapsible .details,
+body.scwm-chat-collapse :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .collapsible * {
+    transition: none !important;
+}
+
+/* « Sort listé 3 fois » : on masque l'en-tête répété (icône + nom) sur les
+   cartes qui ne sont QU'UN JET (attaque/dégâts contiennent un .dice-result),
+   pour ne garder l'en-tête complet que sur la carte principale du sort. */
+body.scwm-chat :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:has(.chat-card .dice-result) .chat-card > .card-header,
+body.scwm-chat :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:has(.dice-result) .card-header.description {
+    display: none !important;
+}
+
 /* Résultat du jet AFFICHÉ SUR LA CARTE (fond crème) : texte foncé lisible.
    On NE touche PAS à la fenêtre de détail au survol (.dice-tooltip / .dice-rolls),
    qui a son propre fond sombre et doit garder son texte clair (sinon noir sur noir). */
@@ -84,8 +99,10 @@ export function applyChatCardPrefs() {
     const theme  = master && get("chatCardsTheme", true) !== false;
     const bigBtn = master && get("chatCardsBigButtons", true) !== false;
 
+    body.classList.toggle("scwm-chat",        master);
     body.classList.toggle("scwm-chat-theme",  theme);
     body.classList.toggle("scwm-chat-bigbtn", bigBtn);
+    body.classList.toggle("scwm-chat-collapse", master && get("chatCardsCollapse", true) !== false);
 
     const color = get("chatCardColor", "#f4ecd8") || "#f4ecd8";
     body.style.setProperty("--scwm-chat-bg", color);
@@ -150,22 +167,19 @@ function renderChatMessageHTML(message, html, messageData) {
             if (root) {
                 const expand   = game.settings.get(MOD, "chatCardsExpandDice") !== false;
                 const collapse = game.settings.get(MOD, "chatCardsCollapse") !== false;
-                // Léger délai : la carte dnd5e finit de se construire APRÈS ce hook,
-                // et ses écouteurs (repli) sont attachés à ce moment-là.
-                setTimeout(() => {
+                // Repli AVANT le premier affichage (requestAnimationFrame + animation
+                // désactivée en CSS) → on ne voit jamais l'état déplié, donc pas de flash.
+                const apply = () => {
                     try {
                         if (expand) root.querySelectorAll(".dice-roll:not(.expanded)").forEach(r => r.classList.add("expanded"));
-                        if (collapse) {
-                            // On utilise le mécanisme natif de dnd5e (clic sur l'en-tête
-                            // « toggleDescription ») : au 1er rendu la description est
-                            // dépliée, donc un clic la replie proprement.
-                            root.querySelectorAll('[data-action="toggleDescription"]').forEach(h => {
-                                const sec = h.classList.contains("collapsible") ? h : h.closest(".collapsible");
-                                if (!sec || !sec.classList.contains("collapsed")) h.click();
-                            });
-                        }
+                        if (collapse) root.querySelectorAll('[data-action="toggleDescription"]').forEach(h => {
+                            const sec = h.classList.contains("collapsible") ? h : h.closest(".collapsible");
+                            if (!sec || !sec.classList.contains("collapsed")) h.click();
+                        });
                     } catch (e) {}
-                }, 60);
+                };
+                requestAnimationFrame(apply);
+                setTimeout(apply, 80);   // filet de sécurité si les écouteurs dnd5e ne sont pas prêts
             }
         }
     } catch (e) {}

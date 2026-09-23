@@ -63,13 +63,6 @@ body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #cha
 body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .description { box-shadow: inset 0 0 0 1px rgba(154,123,30,0.15); }
 body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .dice-total { border-color: rgba(154,123,30,0.45); }
 
-/* Repli sans animation (évite le flash « ouvert puis fermé »). */
-body.scwm-chat-collapse :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .collapsible,
-body.scwm-chat-collapse :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .collapsible .details,
-body.scwm-chat-collapse :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .collapsible * {
-    transition: none !important;
-}
-
 /* « Sort listé 3 fois » : on masque l'en-tête répété (icône + nom) sur les
    cartes qui ne sont QU'UN JET (attaque/dégâts contiennent un .dice-result),
    pour ne garder l'en-tête complet que sur la carte principale du sort. */
@@ -102,7 +95,6 @@ export function applyChatCardPrefs() {
     body.classList.toggle("scwm-chat",        master);
     body.classList.toggle("scwm-chat-theme",  theme);
     body.classList.toggle("scwm-chat-bigbtn", bigBtn);
-    body.classList.toggle("scwm-chat-collapse", master && get("chatCardsCollapse", true) !== false);
 
     const color = get("chatCardColor", "#f4ecd8") || "#f4ecd8";
     body.style.setProperty("--scwm-chat-bg", color);
@@ -162,25 +154,12 @@ export function ReloadChat() {
 function renderChatMessageHTML(message, html, messageData) {
     // Cartes de chat : déplier les jets par défaut + replier les descriptions.
     try {
-        if (game.settings.get(MOD, "enableChatCards")) {
+        if (game.settings.get(MOD, "enableChatCards") && game.settings.get(MOD, "chatCardsExpandDice") !== false) {
             const root = html instanceof HTMLElement ? html : html?.[0];
-            if (root) {
-                const expand   = game.settings.get(MOD, "chatCardsExpandDice") !== false;
-                const collapse = game.settings.get(MOD, "chatCardsCollapse") !== false;
-                // Repli AVANT le premier affichage (requestAnimationFrame + animation
-                // désactivée en CSS) → on ne voit jamais l'état déplié, donc pas de flash.
-                const apply = () => {
-                    try {
-                        if (expand) root.querySelectorAll(".dice-roll:not(.expanded)").forEach(r => r.classList.add("expanded"));
-                        if (collapse) root.querySelectorAll('[data-action="toggleDescription"]').forEach(h => {
-                            const sec = h.classList.contains("collapsible") ? h : h.closest(".collapsible");
-                            if (!sec || !sec.classList.contains("collapsed")) h.click();
-                        });
-                    } catch (e) {}
-                };
-                requestAnimationFrame(apply);
-                setTimeout(apply, 80);   // filet de sécurité si les écouteurs dnd5e ne sont pas prêts
-            }
+            // Déplier les jets de dés par défaut (dés + bonus + provenance).
+            if (root) requestAnimationFrame(() => {
+                try { root.querySelectorAll(".dice-roll:not(.expanded)").forEach(r => r.classList.add("expanded")); } catch (e) {}
+            });
         }
     } catch (e) {}
 

@@ -480,11 +480,6 @@ export function registerSettings() {
         scope: "world", config: false, type: Boolean, default: true,
         onChange: () => applyChatCardPrefs()
     });
-    game.settings.register(MOD, "chatCardsCollapse", {
-        name: "Replier les descriptions par défaut",
-        hint: "Les descriptions d'objets/sorts arrivent repliées ; un clic sur l'en-tête les déplie.",
-        scope: "world", config: false, type: Boolean, default: true
-    });
     game.settings.register(MOD, "chatCardsExpandDice", {
         name: "Déplier les jets de dés par défaut",
         hint: "Affiche d'office le détail du jet (dés individuels, bonus et provenance).",
@@ -1026,7 +1021,7 @@ const CATEGORIES = [
       keys: ["enableXpBlock","enableFakeWarning","enableGmNotes","hidePlayerStarTab","enableDiscordLog","discordLogWebhookUrl","downtimeWebhookUrl","tmWebhookUrl"] },
     { firstKey: "enableChatCards", master: "enableChatCards", icon: "fa-comment-dots", title: "Cartes de chat",
       desc: "Habillage des cartes de chat dnd5e (attaques, sorts, objets). Interrupteur général + choix de ce qui est activé. La couleur reste un choix par joueur (fenêtre « Accessibilité »).",
-      keys: ["enableChatCards","chatCardsTheme","chatCardsBigButtons","chatCardsCollapse","chatCardsExpandDice"] },
+      keys: ["enableChatCards","chatCardsTheme","chatCardsBigButtons","chatCardsExpandDice"] },
     { firstKey: "enablePolymorph", master: "enablePolymorph", icon: "fa-paw", title: "Transformation",
       desc: "Wild Shape (druide) et Polymorphie (sort) — deux systèmes distincts via le moteur dnd5e. Active/désactive l'ensemble et règle l'application des limites de facteur de puissance (FP).",
       keys: ["enablePolymorph","transformEnforceCr","transformStrictCr"] },

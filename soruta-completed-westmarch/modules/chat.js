@@ -35,17 +35,25 @@ const CHAT_CARDS_CSS = `
    (ajoutée seulement si le réglage dnd5e « autoCollapseItemCards » est actif).
    ══════════════════════════════════════════════════════════════════════ */
 
-/* ── Thème (couleurs) sur tout le message ── */
+/* ── Thème (couleurs) : on habille le FOND du message, mais on n'impose PAS
+   la couleur du texte à tout le message — sinon les commandes natives dnd5e à
+   fond sombre (barre de dégâts/effets, ciblage, boutons) héritent d'un texte
+   foncé → illisible sur leur fond foncé. On colore donc uniquement le texte
+   DE LA CARTE (titre, description, pastilles…) ci-dessous. ── */
 body.scwm-chat-theme ${SCOPE} .message {
     --dnd5e-chat-background: var(--scwm-chat-bg);
-    --color-text-primary: var(--scwm-chat-fg);
-    --color-text-secondary: var(--scwm-chat-fg2);
-    --color-text-tertiary: var(--scwm-chat-fg2);
     background: var(--scwm-chat-bg) !important;
-    color: var(--scwm-chat-fg) !important;
     box-shadow: 0 2px 10px rgba(0,0,0,0.35);
 }
 body.scwm-chat-theme ${SCOPE} .message .chat-card { border-radius: 5px; }
+/* Texte de la carte, sur le fond crème (les zones sombres natives gardent
+   leur propre texte clair). */
+body.scwm-chat-theme ${SCOPE} .message .chat-card .card-description .wrapper,
+body.scwm-chat-theme ${SCOPE} .message .chat-card .card-flavor,
+body.scwm-chat-theme ${SCOPE} .message .chat-card p.supplement,
+body.scwm-chat-theme ${SCOPE} .message .chat-card .name-stacked .subtitle {
+    color: var(--scwm-chat-fg);
+}
 
 /* ── En-tête 5.3.x : grosse icône encadrée + titre gras + sous-titre italique + filet ── */
 body.scwm-chat-theme ${SCOPE} .message .chat-card .card-header {
@@ -107,15 +115,9 @@ body.scwm-chat-bigbtn ${SCOPE} .message .scwm-btn-row button .scwm-btn-label { f
 /* Le petit bouton-icône natif : on neutralise sa taille fixe pour qu'il s'étende. */
 body.scwm-chat-bigbtn ${SCOPE} .message .scwm-btn-row button.icon { width: 100% !important; height: auto !important; aspect-ratio: auto !important; }
 
-/* ── Lisibilité des jets sur fond crème (on ne touche pas à la fenêtre de
-   détail au survol .dice-tooltip, qui garde son fond sombre). ── */
-body.scwm-chat-theme ${SCOPE} .message .dice-formula,
-body.scwm-chat-theme ${SCOPE} .message .dice-total,
-body.scwm-chat-theme ${SCOPE} .message .dice-result > .total > .value,
-body.scwm-chat-theme ${SCOPE} .message .dice-result > .total > .label {
-    color: var(--scwm-chat-fg) !important;
-}
-body.scwm-chat-theme ${SCOPE} .message .dice-total { border-color: rgba(154,123,30,0.45); }
+/* Les jets et bacs de dés/effets/ciblage restent sur leur fond sombre natif
+   avec leur texte clair natif : on n'y touche pas (sinon texte foncé sur fond
+   foncé, illisible). Le thème ne colore que le texte de la CARTE (ci-dessus). */
 `;
 
 export function applyChatCardPrefs() {

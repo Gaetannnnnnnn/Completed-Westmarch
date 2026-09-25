@@ -93,25 +93,32 @@ body.scwm-chat-theme ${SCOPE} .message .icon-row > i { color: var(--scwm-chat-go
    (.scwm-btn-label) tiré de l'aria-label. On la transforme en colonne de
    boutons pleine largeur, façon 5.3.x. */
 body.scwm-chat-bigbtn ${SCOPE} .message .scwm-btn-row {
-    display: flex; flex-direction: column; align-items: stretch; gap: 6px; margin-top: 7px;
+    display: flex; flex-direction: column; align-items: stretch; gap: 6px; margin-top: 6px;
 }
 body.scwm-chat-bigbtn ${SCOPE} .message .scwm-btn-row > i { display: none; } /* icône « play » de tête */
+/* Grille 2 colonnes : les boutons s'apparient (Attaque|Dégâts, Consommer|Gabarit…). */
 body.scwm-chat-bigbtn ${SCOPE} .message .scwm-btn-row > ul {
-    display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; width: 100%;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+    margin: 0; padding: 0; list-style: none; width: 100%;
 }
-body.scwm-chat-bigbtn ${SCOPE} .message .scwm-btn-row > ul > li { width: 100%; margin: 0; }
+body.scwm-chat-bigbtn ${SCOPE} .message .scwm-btn-row > ul > li { margin: 0; }
+/* Un bouton seul en fin de rangée impaire prend toute la largeur. */
+body.scwm-chat-bigbtn ${SCOPE} .message .scwm-btn-row > ul > li:last-child:nth-child(odd) { grid-column: 1 / -1; }
 body.scwm-chat-bigbtn ${SCOPE} .message .scwm-btn-row button {
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-    width: 100%; min-height: 38px; box-sizing: border-box; padding: 4px 10px;
-    border: 1px solid rgba(154,123,30,0.6); border-radius: 6px;
-    background: linear-gradient(180deg, rgba(154,123,30,0.20), rgba(154,123,30,0.06));
-    color: var(--scwm-chat-fg) !important; font-weight: 700; font-size: 14px;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    width: 100%; min-height: 20px; box-sizing: border-box; padding: 2px 8px;
+    border: 1px solid rgba(154,123,30,0.6); border-radius: 5px;
+    background: linear-gradient(180deg, rgba(154,123,30,0.18), rgba(154,123,30,0.05));
+    color: var(--scwm-chat-fg) !important;
+    font-family: var(--font-sans, "Signika", sans-serif); font-weight: 600; font-size: 12px;
     transition: box-shadow .15s, background .15s, border-color .15s;
 }
 body.scwm-chat-bigbtn ${SCOPE} .message .scwm-btn-row button:hover {
-    border-color: #e67e22; background: rgba(230,126,34,0.16); box-shadow: 0 0 8px rgba(230,126,34,0.4);
+    border-color: #e67e22; background: rgba(230,126,34,0.16); box-shadow: 0 0 6px rgba(230,126,34,0.35);
 }
-body.scwm-chat-bigbtn ${SCOPE} .message .scwm-btn-row button .scwm-btn-label { font-size: 14px; letter-spacing: .3px; }
+body.scwm-chat-bigbtn ${SCOPE} .message .scwm-btn-row button .scwm-btn-label {
+    font-family: var(--font-sans, "Signika", sans-serif); font-size: 12px; font-weight: 600; letter-spacing: 0;
+}
 /* Le petit bouton-icône natif : on neutralise sa taille fixe pour qu'il s'étende. */
 body.scwm-chat-bigbtn ${SCOPE} .message .scwm-btn-row button.icon { width: 100% !important; height: auto !important; aspect-ratio: auto !important; }
 

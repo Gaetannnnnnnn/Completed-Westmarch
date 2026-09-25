@@ -298,20 +298,29 @@ function injectWidget(app, root) {
     //   div.xp-label (« valeur / max ») + div.xp-bar (barre de progression).
     // On place le compteur d'étoiles À LA PLACE de ce bloc, puis on masque
     // l'XP native. À défaut (autres fiches), on retombe sur des repères larges.
-    // Le compteur se place juste après .xp-label (qui contient le bouton ⬆ de
-    // montée de niveau) → « ⬆  ★ 0/1 ». Le texte 0/300 et la barre sont masqués.
-    const xpAnchor =
-        root.querySelector(".xp-label") ||
-        root.querySelector(".xp-bar") ||
-        root.querySelector('input[name="system.details.xp.value"]')?.closest(".xp, .meter, .form-group, li, div") ||
-        root.querySelector(".header-details .xp");
-
-    if (xpAnchor) {
-        xpAnchor.insertAdjacentElement("afterend", node);   // le widget prend la place de l'XP
+    // On colle le compteur À DROITE du bouton ⬆ de montée de niveau, qui est
+    // logé DANS .xp-label. On l'insère donc juste après ce bouton, à l'intérieur
+    // de .xp-label (dont le texte 0/300 est masqué), pour un rendu « ⬆ ★ 0/1 ».
+    const xpLabel = root.querySelector(".xp-label");
+    const lvlBtn  = xpLabel?.querySelector("button");
+    if (lvlBtn) {
+        lvlBtn.insertAdjacentElement("afterend", node);
+        node.style.marginLeft = "5px";
+    } else if (xpLabel) {
+        xpLabel.appendChild(node);
+        node.style.marginLeft = "5px";
     } else {
-        const header = root.querySelector(".sheet-header .right, .sheet-header, .window-content .header, header");
-        if (header) header.appendChild(node);
-        else root.prepend(node);
+        const xpAnchor =
+            root.querySelector(".xp-bar") ||
+            root.querySelector('input[name="system.details.xp.value"]')?.closest(".xp, .meter, .form-group, li, div") ||
+            root.querySelector(".header-details .xp");
+        if (xpAnchor) {
+            xpAnchor.insertAdjacentElement("afterend", node);
+        } else {
+            const header = root.querySelector(".sheet-header .right, .sheet-header, .window-content .header, header");
+            if (header) header.appendChild(node);
+            else root.prepend(node);
+        }
     }
 
     // Masque l'affichage d'XP natif (valeur/max « 0 / 300 » + barre de
@@ -335,7 +344,10 @@ function injectWidget(app, root) {
 // la barre de progression .xp-bar (qui, elle, ne contient pas le bouton).
 function hideNativeXp(root, keep) {
     root.querySelectorAll(".xp-label").forEach(lbl => {
-        lbl.style.display = "";   // annule un éventuel display:none posé avant → garde le bouton ⬆
+        // inline-flex + centrage : le bouton ⬆ et le compteur restent sur la
+        // même ligne, alignés et collés (annule aussi un display:none antérieur).
+        lbl.style.display = "inline-flex";
+        lbl.style.alignItems = "center";
         lbl.querySelectorAll(".value, .separator, .max").forEach(el => { el.style.display = "none"; });
     });
     root.querySelectorAll(".xp-bar").forEach(el => { el.style.display = "none"; });

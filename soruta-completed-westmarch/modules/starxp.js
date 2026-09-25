@@ -213,15 +213,12 @@ function starWidgetHtml(actor) {
     }
 
     if (isGM) {
-        const label = ready ? `Prêt · niveau ${level + 1}` : `avant niveau ${level + 1}`;
+        // Champ éditable seul : « [n] / seuil ★ » (pas de −/+, pas de texte final).
         return `<div class="scwm-starxp ${ready ? "is-ready" : ""}" title="Étoiles (modifiable par le MJ)">
             <span class="scwm-star-edit">
-                <button type="button" class="scwm-star-dec" title="−1 étoile">−</button>
                 <input type="number" class="scwm-star-num" min="0" step="1" value="${stars}">
-                <button type="button" class="scwm-star-inc" title="+1 étoile">+</button>
                 <span class="scwm-star-slash">/ ${threshold} ★</span>
             </span>
-            <span class="scwm-starxp-text">${label}</span>
         </div>`;
     }
 
@@ -232,9 +229,7 @@ function starWidgetHtml(actor) {
               "☆".repeat(Math.max(0, threshold - stars))
           }${stars > threshold ? ` +${stars - threshold}` : ""}</span>`
         : "";
-    const label = ready
-        ? `Prêt à monter niveau ${level + 1} !`
-        : `${stars} / ${threshold} ★ avant niveau ${level + 1}`;
+    const label = ready ? `Prêt à monter !` : `${stars} / ${threshold} ★`;
     return `<div class="scwm-starxp ${ready ? "is-ready" : ""}" title="Étoiles vers le niveau suivant">
         ${drawn}
         <span class="scwm-starxp-text">${label}</span>
@@ -244,7 +239,7 @@ function starWidgetHtml(actor) {
 // CSS injecté en JS (fiable quel que soit l'hébergement — cf. chat.js).
 const STARXP_CSS = `
 .scwm-starxp {
-    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    display: inline-flex; align-items: center; gap: 6px; width: auto;
     padding: 3px 6px; border-radius: 5px;
     background: rgba(230,190,60,0.12);
     border: 1px solid rgba(230,190,60,0.45);
@@ -316,12 +311,10 @@ function injectWidget(app, root) {
     // (évite « expertise » qui contient la sous-chaîne « xp »).
     hideNativeXp(root, node);
 
-    // Contrôles d'édition MJ : − / champ / + → écrit le compteur d'étoiles.
+    // Champ éditable MJ → écrit le compteur d'étoiles.
     if (game.user.isGM) {
         const numEl  = node.querySelector(".scwm-star-num");
         const commit = (v) => setStars(actor, v);
-        node.querySelector(".scwm-star-dec")?.addEventListener("click", (e) => { e.preventDefault(); commit((Number(numEl?.value) || 0) - 1); });
-        node.querySelector(".scwm-star-inc")?.addEventListener("click", (e) => { e.preventDefault(); commit((Number(numEl?.value) || 0) + 1); });
         numEl?.addEventListener("change", () => commit(numEl.value));
         // Empêche la touche Entrée de soumettre/fermer la fiche.
         numEl?.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); commit(numEl.value); } });

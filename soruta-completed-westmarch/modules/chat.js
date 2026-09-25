@@ -72,27 +72,27 @@ body.scwm-chat-theme ${SCOPE} .message .chat-card .card-flavor { font-style: ita
 body.scwm-chat-theme ${SCOPE} .message .chat-card p.supplement > strong { color: var(--scwm-chat-gold); }
 
 /* ── Pastilles (infos + propriétés) ── */
-body.scwm-chat-theme ${SCOPE} .message .chat-card .icon-row .pill,
-body.scwm-chat-theme ${SCOPE} .message .chat-card .pills .pill {
+body.scwm-chat-theme ${SCOPE} .message .icon-row .pill,
+body.scwm-chat-theme ${SCOPE} .message .pills .pill {
     border: 1px solid rgba(154,123,30,0.4); background: rgba(154,123,30,0.10);
     border-radius: 3px; color: var(--scwm-chat-fg);
 }
-body.scwm-chat-theme ${SCOPE} .message .chat-card .icon-row > i { color: var(--scwm-chat-gold); }
+body.scwm-chat-theme ${SCOPE} .message .icon-row > i { color: var(--scwm-chat-gold); }
 
 /* ── GROS BOUTONS d'action (5.3.x) ──
    Les boutons natifs 6.0 sont de petites icônes dans .icon-row > ul.unlist ;
    le JS marque cette rangée .scwm-btn-row et ajoute un libellé texte
    (.scwm-btn-label) tiré de l'aria-label. On la transforme en colonne de
    boutons pleine largeur, façon 5.3.x. */
-body.scwm-chat-bigbtn ${SCOPE} .message .chat-card .scwm-btn-row {
+body.scwm-chat-bigbtn ${SCOPE} .message .scwm-btn-row {
     display: flex; flex-direction: column; align-items: stretch; gap: 6px; margin-top: 7px;
 }
-body.scwm-chat-bigbtn ${SCOPE} .message .chat-card .scwm-btn-row > i { display: none; } /* icône « play » de tête */
-body.scwm-chat-bigbtn ${SCOPE} .message .chat-card .scwm-btn-row > ul {
-    display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none;
+body.scwm-chat-bigbtn ${SCOPE} .message .scwm-btn-row > i { display: none; } /* icône « play » de tête */
+body.scwm-chat-bigbtn ${SCOPE} .message .scwm-btn-row > ul {
+    display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; width: 100%;
 }
-body.scwm-chat-bigbtn ${SCOPE} .message .chat-card .scwm-btn-row > ul > li { width: 100%; margin: 0; }
-body.scwm-chat-bigbtn ${SCOPE} .message .chat-card .scwm-btn-row button {
+body.scwm-chat-bigbtn ${SCOPE} .message .scwm-btn-row > ul > li { width: 100%; margin: 0; }
+body.scwm-chat-bigbtn ${SCOPE} .message .scwm-btn-row button {
     display: flex; align-items: center; justify-content: center; gap: 8px;
     width: 100%; min-height: 38px; box-sizing: border-box; padding: 4px 10px;
     border: 1px solid rgba(154,123,30,0.6); border-radius: 6px;
@@ -100,10 +100,12 @@ body.scwm-chat-bigbtn ${SCOPE} .message .chat-card .scwm-btn-row button {
     color: var(--scwm-chat-fg) !important; font-weight: 700; font-size: 14px;
     transition: box-shadow .15s, background .15s, border-color .15s;
 }
-body.scwm-chat-bigbtn ${SCOPE} .message .chat-card .scwm-btn-row button:hover {
+body.scwm-chat-bigbtn ${SCOPE} .message .scwm-btn-row button:hover {
     border-color: #e67e22; background: rgba(230,126,34,0.16); box-shadow: 0 0 8px rgba(230,126,34,0.4);
 }
-body.scwm-chat-bigbtn ${SCOPE} .message .chat-card .scwm-btn-row button .scwm-btn-label { font-size: 14px; letter-spacing: .3px; }
+body.scwm-chat-bigbtn ${SCOPE} .message .scwm-btn-row button .scwm-btn-label { font-size: 14px; letter-spacing: .3px; }
+/* Le petit bouton-icône natif : on neutralise sa taille fixe pour qu'il s'étende. */
+body.scwm-chat-bigbtn ${SCOPE} .message .scwm-btn-row button.icon { width: 100% !important; height: auto !important; aspect-ratio: auto !important; }
 
 /* ── Lisibilité des jets sur fond crème (on ne touche pas à la fenêtre de
    détail au survol .dice-tooltip, qui garde son fond sombre). ── */
@@ -144,42 +146,48 @@ export function applyChatCardPrefs() {
 }
 
 // Transforme une carte de chat dnd5e 6.0 (usage-card) vers le rendu « 5.3.x ».
-// Appelé au rendu de chaque message : opère sur le DOM réel de la 6.0.
+// `root` peut être UN message (li.chat-message) OU le ChatLog entier : on
+// balaie tout le sous-arbre (les rangées de boutons/dés sont parfois des
+// FRÈRES de .chat-card, pas des enfants — d'où la recherche large).
 function reskinChatCard(root) {
-    root.querySelectorAll(".chat-card").forEach(card => {
+    if (!root) return;
+    try {
         // 1) Description ouverte par défaut : on retire l'état « replié » que
         //    dnd5e pose (réglage autoCollapseItemCards) sur .card-header et
         //    .card-description. Synchrone → aucun flash ; le chevron reste
         //    fonctionnel (le clic natif ré-ajoute .collapsed pour replier).
-        try {
-            card.querySelectorAll(".card-header.collapsed, .card-description.collapsed")
-                .forEach(el => el.classList.remove("collapsed"));
-        } catch (e) {}
+        root.querySelectorAll(".card-header.collapsed, .card-description.collapsed")
+            .forEach(el => el.classList.remove("collapsed"));
+    } catch (e) {}
 
-        // 2) Gros boutons libellés : en 6.0 les actions (Attaque/Dégâts) sont de
-        //    petites icônes dans .icon-row > ul.unlist > li > button.icon, sans
-        //    texte visible (libellé dans aria-label). On marque cette rangée et
-        //    on injecte le libellé ; le CSS la met en colonne pleine largeur.
-        if (game.settings.get(MOD, "chatCardsBigButtons") !== false) {
-            try {
-                card.querySelectorAll(".icon-row").forEach(row => {
-                    const btns = row.querySelectorAll("button[data-action], button.icon");
-                    if (!btns.length) return;   // rangée d'infos (pastilles) → on saute
-                    row.classList.add("scwm-btn-row");
-                    btns.forEach(btn => {
-                        if (btn.querySelector(".scwm-btn-label")) return;
-                        const lbl = (btn.getAttribute("aria-label") || btn.getAttribute("data-tooltip") || "").trim();
-                        if (lbl) {
-                            const s = document.createElement("span");
-                            s.className = "scwm-btn-label";
-                            s.textContent = lbl;
-                            btn.appendChild(s);
-                        }
-                    });
+    // 2) Gros boutons libellés : en 6.0 les actions (Attaque/Dégâts) sont de
+    //    petites icônes dans .icon-row > ul > li > button.icon, sans texte
+    //    visible (libellé dans aria-label). On marque la rangée et on injecte
+    //    le libellé ; le CSS la met en colonne pleine largeur.
+    if (game.settings.get(MOD, "chatCardsBigButtons") !== false) {
+        try {
+            root.querySelectorAll(".icon-row").forEach(row => {
+                // On ne prend QUE les rangées de vraies actions (boutons avec
+                // data-action ou .icon), pas la rangée de dés (button.dice-roll)
+                // ni les rangées d'infos (pastilles sans bouton).
+                const btns = [...row.querySelectorAll("button")].filter(b =>
+                    (b.hasAttribute("data-action") || b.classList.contains("icon")) &&
+                    !b.classList.contains("dice-roll"));
+                if (!btns.length) return;
+                row.classList.add("scwm-btn-row");
+                btns.forEach(btn => {
+                    if (btn.querySelector(".scwm-btn-label")) return;
+                    const lbl = (btn.getAttribute("aria-label") || btn.getAttribute("data-tooltip") || btn.textContent || "").trim();
+                    if (lbl) {
+                        const s = document.createElement("span");
+                        s.className = "scwm-btn-label";
+                        s.textContent = lbl;
+                        btn.appendChild(s);
+                    }
                 });
-            } catch (e) {}
-        }
-    });
+            });
+        } catch (e) {}
+    }
 }
 
 export function ChatHooks() {
@@ -270,6 +278,15 @@ function renderChatMessageHTML(message, html, messageData) {
 }
 
 async function renderChatLog(log, html, data) {
+    // Catch-all reskin : si le hook par message n'a pas traité une carte
+    // (ordre de rendu, re-render de la sidebar…), on rebalaie tout le log.
+    try {
+        if (game.settings.get(MOD, "enableChatCards")) {
+            const root = html instanceof HTMLElement ? html : html?.[0];
+            reskinChatCard(root);
+        }
+    } catch (e) {}
+
     // Éviter la duplication des tabs si renderChatLog fire plusieurs fois
     if (partyFeatureEnabled("enableChatFilter") && game.settings.get(MOD, "enableChatTabs") && !document.querySelector('.tabbed-controls')) {
         const _rt = foundry.applications?.handlebars?.renderTemplate ?? renderTemplate;

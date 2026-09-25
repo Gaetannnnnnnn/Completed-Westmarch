@@ -222,16 +222,9 @@ function starWidgetHtml(actor) {
         </div>`;
     }
 
-    // Joueur : jusqu'à 12 étoiles dessinées, sinon compte simple.
-    const drawn = threshold <= 12
-        ? `<span class="scwm-starxp-stars">${
-              "★".repeat(Math.min(stars, threshold)) +
-              "☆".repeat(Math.max(0, threshold - stars))
-          }${stars > threshold ? ` +${stars - threshold}` : ""}</span>`
-        : "";
+    // Joueur : compte simple « X / T ★ » (pas d'étoiles dessinées).
     const label = ready ? `Prêt à monter !` : `${stars} / ${threshold} ★`;
     return `<div class="scwm-starxp ${ready ? "is-ready" : ""}" title="Étoiles vers le niveau suivant">
-        ${drawn}
         <span class="scwm-starxp-text">${label}</span>
     </div>`;
 }
@@ -239,7 +232,8 @@ function starWidgetHtml(actor) {
 // CSS injecté en JS (fiable quel que soit l'hébergement — cf. chat.js).
 const STARXP_CSS = `
 .scwm-starxp {
-    display: inline-flex; align-items: center; gap: 6px; width: auto;
+    display: inline-flex; align-items: center; gap: 6px;
+    width: fit-content; max-width: 100%; align-self: flex-start;
     padding: 3px 6px; border-radius: 5px;
     background: rgba(230,190,60,0.12);
     border: 1px solid rgba(230,190,60,0.45);

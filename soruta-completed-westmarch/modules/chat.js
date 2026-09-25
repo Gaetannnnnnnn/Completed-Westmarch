@@ -188,6 +188,38 @@ function reskinChatCard(root) {
             });
         } catch (e) {}
     }
+
+    // 3) Jets dépliés par défaut.
+    if (game.settings.get(MOD, "chatCardsExpandDice") !== false) {
+        try { root.querySelectorAll(".dice-roll:not(.expanded)").forEach(r => r.classList.add("expanded")); } catch (e) {}
+    }
+}
+
+// ── Observateur du ChatLog ──
+// dnd5e RE-REND la carte à chaque clic sur un bouton (Attaque/Dégâts…), ce qui
+// efface nos libellés → retour aux petits carrés. Et le hook par message ne
+// couvre pas toujours les nouvelles cartes. Un MutationObserver ré-applique le
+// reskin dès qu'une carte apparaît OU est re-rendue en place. reskinChatCard
+// est idempotent (garde du libellé déjà posé) → pas de boucle.
+let _chatObs = null;
+function observeChatLog(logEl) {
+    if (!logEl || !(logEl instanceof HTMLElement)) return;
+    if (_chatObs) _chatObs.disconnect();
+    _chatObs = new MutationObserver((mutations) => {
+        const targets = new Set();
+        for (const m of mutations) {
+            m.addedNodes.forEach(n => { if (n instanceof HTMLElement) targets.add(n); });
+            if (m.target instanceof HTMLElement) targets.add(m.target);
+        }
+        if (!targets.size) return;
+        requestAnimationFrame(() => {
+            try {
+                if (!game.settings.get(MOD, "enableChatCards")) return;
+                targets.forEach(n => reskinChatCard(n.closest?.(".chat-message") ?? n));
+            } catch (e) {}
+        });
+    });
+    _chatObs.observe(logEl, { childList: true, subtree: true });
 }
 
 export function ChatHooks() {
@@ -232,19 +264,12 @@ export function ReloadChat() {
 // - Les joueurs ne voient que les messages de leur party
 // ============================================================
 function renderChatMessageHTML(message, html, messageData) {
-    // Reskin 5.3.x sur le DOM 6.0 : description ouverte, gros boutons, jets dépliés.
+    // Reskin 5.3.x sur le DOM 6.0 (l'observateur du ChatLog assure le suivi des
+    // re-renders après clic sur un bouton ; ici on traite le rendu initial).
     try {
         if (game.settings.get(MOD, "enableChatCards")) {
             const root = html instanceof HTMLElement ? html : html?.[0];
-            if (root) {
-                reskinChatCard(root);
-                // Déplier les jets de dés par défaut (dés + bonus + provenance).
-                if (game.settings.get(MOD, "chatCardsExpandDice") !== false) {
-                    requestAnimationFrame(() => {
-                        try { root.querySelectorAll(".dice-roll:not(.expanded)").forEach(r => r.classList.add("expanded")); } catch (e) {}
-                    });
-                }
-            }
+            if (root) { reskinChatCard(root); requestAnimationFrame(() => reskinChatCard(root)); }
         }
     } catch (e) {}
 
@@ -278,12 +303,13 @@ function renderChatMessageHTML(message, html, messageData) {
 }
 
 async function renderChatLog(log, html, data) {
-    // Catch-all reskin : si le hook par message n'a pas traité une carte
-    // (ordre de rendu, re-render de la sidebar…), on rebalaie tout le log.
+    // Catch-all reskin + observateur : rebalaie tout le log au (re)rendu de la
+    // sidebar, puis surveille les nouvelles cartes et les re-renders en place.
     try {
         if (game.settings.get(MOD, "enableChatCards")) {
             const root = html instanceof HTMLElement ? html : html?.[0];
             reskinChatCard(root);
+            observeChatLog(root);
         }
     } catch (e) {}
 

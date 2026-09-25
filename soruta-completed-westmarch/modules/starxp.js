@@ -237,15 +237,15 @@ const STARXP_CSS = `
     display: inline-flex; align-items: center; gap: 6px;
     width: fit-content; max-width: 100%; align-self: flex-start;
     padding: 3px 6px; border-radius: 5px;
-    background: rgba(230,190,60,0.12);
-    border: 1px solid rgba(230,190,60,0.45);
+    background: rgba(230,190,60,0.07);
+    border: 1px solid rgba(230,190,60,0.28);
     font-size: 12px; line-height: 1.2;
 }
 .scwm-starxp .scwm-starxp-stars { color: #e6be3c; letter-spacing: 1px; font-size: 13px; }
 .scwm-starxp .scwm-starxp-text  { font-weight: 600; }
 /* Pastille joueur — plus grande et plus soignée */
 .scwm-starxp.scwm-starxp-player { padding: 4px 11px; font-size: 15px; gap: 7px; }
-.scwm-starxp .scwm-starxp-ico { color: #e6be3c; font-size: 15px; filter: drop-shadow(0 0 2px rgba(230,190,60,0.55)); }
+.scwm-starxp .scwm-starxp-ico { color: #a8863a; font-size: 14px; }
 .scwm-starxp .scwm-starxp-count { font-weight: 600; }
 .scwm-starxp .scwm-starxp-count strong { font-size: 17px; }
 .scwm-starxp .scwm-starxp-sep { opacity: .55; margin: 0 3px; }

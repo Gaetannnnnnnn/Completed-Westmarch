@@ -67,9 +67,11 @@ export function setupCharacterSheet() {
         // Onglet Note GM : uniquement si activé ET si l'utilisateur courant est GM
         // (la part n'existe pas du tout pour les joueurs → onglet + contenu privés).
         const gmNotesOn = game.settings.get(MOD, "enableGmNotes") && game.user?.isGM;
+        // Note GM PNJ : réglage dédié (Toolkit), indépendant de l'option PJ.
+        const npcNotesOn = game.settings.get(MOD, "enableGmNotesNpc") && game.user?.isGM;
 
         // Aucun onglet custom demandé → on laisse la fiche dnd5e native.
-        if (!relOn && !bestOn && !carnetOn && !gmNotesOn) return;
+        if (!relOn && !bestOn && !carnetOn && !gmNotesOn && !npcNotesOn) return;
 
         const Base = dnd5e.applications.actor.CharacterActorSheet;
         const tpl  = (name) => `modules/${MOD}/templates/${name}`;
@@ -154,9 +156,20 @@ export function setupCharacterSheet() {
 
         // ── Fiche PNJ : uniquement l'onglet « Note GM » (les autres onglets
         //    Relations / Bestiaire / Carnet sont propres aux PJ). On ne
-        //    l'enregistre que si les notes MJ sont activées et qu'on est MJ.
-        const NPCBase = dnd5e.applications?.actor?.NPCActorSheet;
-        if (gmNotesOn && NPCBase) {
+        //    l'enregistre que si les notes MJ PNJ sont activées et qu'on est MJ.
+        // Résolution robuste de la classe de fiche PNJ dnd5e : le nom varie
+        // selon la version (NPCActorSheet en AppV2, ActorSheet5eNPC en legacy).
+        // En dernier recours, on récupère la classe de la fiche PNJ dnd5e
+        // effectivement enregistrée dans CONFIG.
+        const _npcRegistered = () => {
+            const map = CONFIG.Actor?.sheetClasses?.npc ?? {};
+            const entry = Object.entries(map).find(([id]) => id.startsWith("dnd5e"));
+            return entry?.[1]?.cls ?? null;
+        };
+        const NPCBase = dnd5e.applications?.actor?.NPCActorSheet
+            ?? dnd5e.applications?.actor?.ActorSheet5eNPC
+            ?? _npcRegistered();
+        if (npcNotesOn && NPCBase) {
             class SorutaNPCSheet extends NPCBase {
 
                 static PARTS = {
@@ -189,8 +202,8 @@ export function setupCharacterSheet() {
                 makeDefault: true,
                 label:       "Soruta — Fiche PNJ"
             });
-        } else if (gmNotesOn && !NPCBase) {
-            console.warn(`[${MOD}] Fiche PNJ native introuvable (NPCActorSheet) : onglet Note GM PNJ non injecté sur la fiche native.`);
+        } else if (npcNotesOn && !NPCBase) {
+            console.warn(`[${MOD}] Fiche PNJ dnd5e introuvable : onglet Note GM PNJ non injecté sur la fiche native.`);
         }
     });
 }

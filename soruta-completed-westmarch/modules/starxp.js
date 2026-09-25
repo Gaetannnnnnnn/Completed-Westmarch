@@ -83,9 +83,12 @@ export async function reconcile(actor) {
 
     if (stored == null) {
         try { await actor.setFlag(MOD, "starsLevel", cur); } catch {}
+        await applyState(actor, { notify: false });
         return;
     }
     if (cur > stored) {
+        // Le niveau a monté (bouton de base utilisé) : on soustrait les seuils
+        // franchis, le surplus est reporté, et on nettoie l'état « prêt ».
         let stars = getStars(actor);
         for (let L = stored; L < cur; L++) {
             const t = thresholdForLevel(L);
@@ -100,54 +103,91 @@ export async function reconcile(actor) {
                 [`flags.${MOD}.starsReadyNotified`]: false
             });
         } catch {}
+        await applyState(actor, { notify: false });
     } else if (cur < stored) {
         try { await actor.setFlag(MOD, "starsLevel", cur); } catch {}
+        await applyState(actor, { notify: false });
     }
 }
 
-// ── Attribution d'étoiles (contexte MJ, à la clôture de session) ──
-// Ajoute `n` étoiles à l'acteur. Si le seuil du niveau courant est
-// atteint et qu'on ne l'a pas déjà signalé, marque « prêt à monter »
-// (pendingLevelUp) et prévient les MJ + le joueur par whisper.
-export async function awardStars(actor, n) {
-    if (!starXpEnabled() || !isTrackedActor(actor)) return;
-    n = Math.max(0, Math.round(Number(n) || 0));
-    if (!n) return;
+// ── Synchronise l'état « prêt à monter » ────────────────────
+// Met à jour pendingLevelUp + l'XP native pour que le BOUTON de montée de
+// niveau dnd5e s'active quand le seuil d'étoiles est atteint (XP mise à
+// value=max), et se désactive sinon (value=0). L'affichage XP natif est
+// masqué sur la fiche : ces valeurs ne servent qu'à piloter le bouton.
+// notify=true → whisper MJ + joueur une seule fois au passage « prêt ».
+async function applyState(actor, { notify = false } = {}) {
+    if (!isTrackedActor(actor) || !actor.isOwner) return;
 
-    const cur   = charLevel(actor);
-    const stars = getStars(actor) + n;
-    const patch = {
-        [`flags.${MOD}.stars`]:      stars,
-        [`flags.${MOD}.starsLevel`]: actor.getFlag(MOD, "starsLevel") ?? cur
-    };
-
+    const cur       = charLevel(actor);
+    const stars     = getStars(actor);
     const threshold = thresholdForLevel(cur);
-    const reached   = Number.isFinite(threshold) && stars >= threshold;
+    const ready     = Number.isFinite(threshold) && stars >= threshold;
     const notified  = actor.getFlag(MOD, "starsReadyNotified") === true;
 
-    if (reached && !notified) {
-        patch[`flags.${MOD}.pendingLevelUp`]     = true;
-        patch[`flags.${MOD}.starsReadyNotified`] = true;
+    const patch = {};
+    if ((actor.getFlag(MOD, "pendingLevelUp") === true) !== ready) {
+        patch[`flags.${MOD}.pendingLevelUp`] = ready;
+    }
+    if (ready && !notified)  patch[`flags.${MOD}.starsReadyNotified`] = true;
+    if (!ready && notified)  patch[`flags.${MOD}.starsReadyNotified`] = false;
+
+    // Pilotage du bouton de montée de niveau natif (si progression par XP).
+    const xp = actor.system?.details?.xp;
+    const max = Number(xp?.max) || 0;
+    if (max > 0) {
+        const target = ready ? max : 0;
+        if ((Number(xp?.value) || 0) !== target) patch["system.details.xp.value"] = target;
     }
 
-    try { await actor.update(patch); } catch (e) { console.warn(`[${MOD}] awardStars`, e); }
+    if (Object.keys(patch).length) {
+        try { await actor.update(patch); } catch (e) { console.warn(`[${MOD}] applyState`, e); }
+    }
 
-    if (reached && !notified) {
+    if (ready && !notified && notify) {
         const gmIds = game.users.filter(u => u.isGM).map(u => u.id);
         const owner = game.users.find(u => u.character?.id === actor.id && !u.isGM);
         try {
             ChatMessage.create({
-                whisper: gmIds,
-                speaker: { alias: "Système d'étoiles" },
+                whisper: gmIds, speaker: { alias: "Système d'étoiles" },
                 content: `⭐ <strong>${actor.name}</strong> a atteint le seuil d'étoiles : <strong>prêt à monter de niveau ${cur + 1}</strong>.`
             });
             if (owner) ChatMessage.create({
-                whisper: [owner.id],
-                speaker: { alias: "Système d'étoiles" },
+                whisper: [owner.id], speaker: { alias: "Système d'étoiles" },
                 content: `⭐ Tu as assez d'étoiles pour passer <strong>niveau ${cur + 1}</strong> ! Le MJ va valider ta montée de niveau.`
             });
         } catch {}
     }
+}
+
+// ── Attribution d'étoiles (clôture de session) ──────────────
+export async function awardStars(actor, n) {
+    if (!starXpEnabled() || !isTrackedActor(actor)) return;
+    n = Math.max(0, Math.round(Number(n) || 0));
+    if (!n) return;
+    const cur = charLevel(actor);
+    try {
+        await actor.update({
+            [`flags.${MOD}.stars`]:      getStars(actor) + n,
+            [`flags.${MOD}.starsLevel`]: actor.getFlag(MOD, "starsLevel") ?? cur
+        });
+    } catch (e) { console.warn(`[${MOD}] awardStars`, e); return; }
+    await applyState(actor, { notify: true });
+}
+
+// ── Édition directe du compteur (MJ, sur la fiche) ──────────
+export async function setStars(actor, n) {
+    if (!starXpEnabled() || !isTrackedActor(actor)) return;
+    if (!game.user.isGM) return;
+    n = Math.max(0, Math.round(Number(n) || 0));
+    const cur = charLevel(actor);
+    try {
+        await actor.update({
+            [`flags.${MOD}.stars`]:      n,
+            [`flags.${MOD}.starsLevel`]: actor.getFlag(MOD, "starsLevel") ?? cur
+        });
+    } catch (e) { console.warn(`[${MOD}] setStars`, e); return; }
+    await applyState(actor, { notify: true });
 }
 
 // ── Progression pour la fiche / le rapport ──────────────────
@@ -161,15 +201,31 @@ export function progressFor(actor) {
 }
 
 // ── Widget de fiche (remplace l'affichage d'XP) ─────────────
+// Le MJ voit des contrôles d'édition (− / champ / +) ; les joueurs voient
+// seulement leur progression.
 function starWidgetHtml(actor) {
     const { level, stars, threshold, ready, max } = progressFor(actor);
+    const isGM = game.user.isGM;
+
     if (max) {
-        return `<div class="scwm-starxp" title="Niveau maximum atteint">
-            <span class="scwm-starxp-stars">${"★".repeat(3)}</span>
-            <span class="scwm-starxp-text">Niveau maximum</span>
+        return `<div class="scwm-starxp"><span class="scwm-starxp-stars">★</span>
+            <span class="scwm-starxp-text">Niveau maximum</span></div>`;
+    }
+
+    if (isGM) {
+        const label = ready ? `Prêt · niveau ${level + 1}` : `avant niveau ${level + 1}`;
+        return `<div class="scwm-starxp ${ready ? "is-ready" : ""}" title="Étoiles (modifiable par le MJ)">
+            <span class="scwm-star-edit">
+                <button type="button" class="scwm-star-dec" title="−1 étoile">−</button>
+                <input type="number" class="scwm-star-num" min="0" step="1" value="${stars}">
+                <button type="button" class="scwm-star-inc" title="+1 étoile">+</button>
+                <span class="scwm-star-slash">/ ${threshold} ★</span>
+            </span>
+            <span class="scwm-starxp-text">${label}</span>
         </div>`;
     }
-    // Jusqu'à 12 étoiles dessinées (au-delà on n'affiche que le compte).
+
+    // Joueur : jusqu'à 12 étoiles dessinées, sinon compte simple.
     const drawn = threshold <= 12
         ? `<span class="scwm-starxp-stars">${
               "★".repeat(Math.min(stars, threshold)) +
@@ -202,13 +258,19 @@ const STARXP_CSS = `
 }
 .scwm-starxp.is-ready .scwm-starxp-text { color: #6ec06e; }
 @keyframes scwm-starxp-pulse { 0%,100%{ box-shadow:0 0 0 rgba(120,200,120,0); } 50%{ box-shadow:0 0 6px rgba(120,200,120,0.5); } }
-/* Masque l'affichage d'XP natif sur les fiches où on a injecté le widget. */
-.app.sheet:has(.scwm-starxp) .xp-bar,
-.app.sheet:has(.scwm-starxp) [data-action="setXP"],
-.sheet:has(.scwm-starxp) .header-details .xp,
-.sheet:has(.scwm-starxp) input[name="system.details.xp.value"] {
-    display: none !important;
+/* Contrôles d'édition MJ */
+.scwm-starxp .scwm-star-edit { display:inline-flex; align-items:center; gap:3px; }
+.scwm-starxp .scwm-star-dec,
+.scwm-starxp .scwm-star-inc {
+    width:20px; height:20px; line-height:1; padding:0; flex:0 0 auto;
+    border:1px solid rgba(230,190,60,0.5); border-radius:4px; cursor:pointer;
+    background:rgba(230,190,60,0.15); color:#e6be3c; font-weight:700;
 }
+.scwm-starxp .scwm-star-num {
+    width:42px; text-align:center; padding:1px 2px; box-sizing:border-box;
+    background:rgba(0,0,0,0.25); border:1px solid rgba(230,190,60,0.4); border-radius:4px; color:#f2ead4;
+}
+.scwm-starxp .scwm-star-slash { color:#e6be3c; }
 `;
 
 function ensureStarCss() {
@@ -238,7 +300,7 @@ function injectWidget(app, root) {
         root.querySelector(".xp-bar") ||
         root.querySelector('input[name="system.details.xp.value"]')?.closest(".xp, .meter, .form-group, li, div") ||
         root.querySelector(".header-details .xp") ||
-        root.querySelector('[data-action="setXP"]');
+        root.querySelector('[class~="xp"]');
 
     if (xpAnchor?.parentElement) {
         xpAnchor.parentElement.insertBefore(node, xpAnchor);
@@ -247,6 +309,46 @@ function injectWidget(app, root) {
         if (header) header.appendChild(node);
         else root.prepend(node);
     }
+
+    // Masque l'affichage d'XP natif (valeur/max « 0 / 300 » + barre de
+    // progression), SANS toucher aux boutons (le bouton de montée de niveau
+    // de base reste cliquable). On cible « xp » comme mot-clé de classe entier
+    // (évite « expertise » qui contient la sous-chaîne « xp »).
+    hideNativeXp(root, node);
+
+    // Contrôles d'édition MJ : − / champ / + → écrit le compteur d'étoiles.
+    if (game.user.isGM) {
+        const numEl  = node.querySelector(".scwm-star-num");
+        const commit = (v) => setStars(actor, v);
+        node.querySelector(".scwm-star-dec")?.addEventListener("click", (e) => { e.preventDefault(); commit((Number(numEl?.value) || 0) - 1); });
+        node.querySelector(".scwm-star-inc")?.addEventListener("click", (e) => { e.preventDefault(); commit((Number(numEl?.value) || 0) + 1); });
+        numEl?.addEventListener("change", () => commit(numEl.value));
+        // Empêche la touche Entrée de soumettre/fermer la fiche.
+        numEl?.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); commit(numEl.value); } });
+    }
+}
+
+// Masque l'XP native (valeur/max + barre) en conservant les boutons.
+function hideNativeXp(root, keep) {
+    const nodes = root.querySelectorAll('.xp-bar, [class~="xp"], [data-property="system.details.xp.value"]');
+    nodes.forEach(el => {
+        if (el === keep || el.closest(".scwm-starxp")) return;
+        if (el.tagName === "BUTTON") return;                 // garder les boutons
+        if (el.querySelector("button")) {
+            // Conteneur mixte (texte XP + bouton de montée de niveau) : on
+            // masque tout sauf ce qui contient un bouton.
+            [...el.children].forEach(ch => {
+                if (ch.tagName === "BUTTON" || ch.querySelector("button")) return;
+                ch.style.display = "none";
+            });
+            return;
+        }
+        el.style.display = "none";
+    });
+    root.querySelectorAll('input[name="system.details.xp.value"], input[name="system.details.xp.max"]').forEach(el => {
+        const w = el.closest(".xp, .form-group, li") || el;
+        if (!w.querySelector("button")) w.style.display = "none";
+    });
 }
 
 export function StarXpHooks() {

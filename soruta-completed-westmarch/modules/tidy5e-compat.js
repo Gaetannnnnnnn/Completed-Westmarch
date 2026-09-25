@@ -70,18 +70,19 @@ function registerTidyTabs(api) {
 
     const opts = { overrideExisting: true };
 
+    // Note GM PNJ : réglage dédié (Toolkit), indépendant de l'option PJ.
+    const npcNotesOn = game.settings.get(MOD, "enableGmNotesNpc") && game.user?.isGM;
+
     try {
-        if (gmNotesOn) {
-            const gmNotesTabDef = {
-                title: "Note GM", id: "gmnotes", icon: "fa-solid fa-user-secret",
-                build: (a) => buildGmNotesHtml(a),
-                wire:  (a, el) => wireGmNotes(a, el)
-            };
-            api.registerCharacterTab(makeTab(gmNotesTabDef), opts);
-            // Même onglet Note GM sur les fiches PNJ Tidy (si l'API le permet).
-            if (typeof api.registerNpcTab === "function") {
-                api.registerNpcTab(makeTab(gmNotesTabDef), opts);
-            }
+        const gmNotesTabDef = {
+            title: "Note GM", id: "gmnotes", icon: "fa-solid fa-user-secret",
+            build: (a) => buildGmNotesHtml(a),
+            wire:  (a, el) => wireGmNotes(a, el)
+        };
+        if (gmNotesOn) api.registerCharacterTab(makeTab(gmNotesTabDef), opts);
+        // Même onglet Note GM sur les fiches PNJ Tidy (si l'API le permet).
+        if (npcNotesOn && typeof api.registerNpcTab === "function") {
+            api.registerNpcTab(makeTab(gmNotesTabDef), opts);
         }
 
         if (relOn) api.registerCharacterTab(makeTab({

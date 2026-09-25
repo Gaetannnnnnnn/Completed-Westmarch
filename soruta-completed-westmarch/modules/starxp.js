@@ -222,10 +222,12 @@ function starWidgetHtml(actor) {
         </div>`;
     }
 
-    // Joueur : compte simple « X / T ★ » (pas d'étoiles dessinées).
-    const label = ready ? `Prêt à monter !` : `${stars} / ${threshold} ★`;
-    return `<div class="scwm-starxp ${ready ? "is-ready" : ""}" title="Étoiles vers le niveau suivant">
-        <span class="scwm-starxp-text">${label}</span>
+    // Joueur : pastille soignée avec étoile dorée.
+    return `<div class="scwm-starxp scwm-starxp-player ${ready ? "is-ready" : ""}" title="Étoiles vers le niveau suivant">
+        <i class="fa-solid fa-star scwm-starxp-ico"></i>
+        ${ready
+            ? `<span class="scwm-starxp-ready">Prêt à monter !</span>`
+            : `<span class="scwm-starxp-count"><strong>${stars}</strong><span class="scwm-starxp-sep">/</span>${threshold}</span>`}
     </div>`;
 }
 
@@ -241,6 +243,13 @@ const STARXP_CSS = `
 }
 .scwm-starxp .scwm-starxp-stars { color: #e6be3c; letter-spacing: 1px; font-size: 13px; }
 .scwm-starxp .scwm-starxp-text  { font-weight: 600; }
+/* Pastille joueur — plus grande et plus soignée */
+.scwm-starxp.scwm-starxp-player { padding: 4px 11px; font-size: 15px; gap: 7px; }
+.scwm-starxp .scwm-starxp-ico { color: #e6be3c; font-size: 15px; filter: drop-shadow(0 0 2px rgba(230,190,60,0.55)); }
+.scwm-starxp .scwm-starxp-count { font-weight: 600; }
+.scwm-starxp .scwm-starxp-count strong { font-size: 17px; }
+.scwm-starxp .scwm-starxp-sep { opacity: .55; margin: 0 3px; }
+.scwm-starxp .scwm-starxp-ready { font-weight: 700; }
 .scwm-starxp.is-ready {
     background: rgba(120,200,120,0.18); border-color: rgba(120,200,120,0.6);
     animation: scwm-starxp-pulse 1.6s ease-in-out infinite;
@@ -289,9 +298,11 @@ function injectWidget(app, root) {
     //   div.xp-label (« valeur / max ») + div.xp-bar (barre de progression).
     // On place le compteur d'étoiles À LA PLACE de ce bloc, puis on masque
     // l'XP native. À défaut (autres fiches), on retombe sur des repères larges.
+    // On place le compteur juste après la barre/bouton d'XP (le ⬆), sinon après
+    // le texte « 0/300 » qu'on masque : le widget occupe la place du nombre.
     const xpAnchor =
-        root.querySelector(".xp-label") ||
         root.querySelector(".xp-bar") ||
+        root.querySelector(".xp-label") ||
         root.querySelector('input[name="system.details.xp.value"]')?.closest(".xp, .meter, .form-group, li, div") ||
         root.querySelector(".header-details .xp");
 
@@ -317,25 +328,17 @@ function injectWidget(app, root) {
     }
 }
 
-// Masque l'XP native (valeur/max + barre) en conservant les boutons.
+// Masque UNIQUEMENT le texte d'XP « valeur / max » (.xp-label). On NE masque
+// PAS la barre .xp-bar : dans Carolingian UI (et pour le level-up par XP) elle
+// sert de bouton de montée de niveau ⬆ — la cacher empêcherait de monter.
 function hideNativeXp(root, keep) {
-    const nodes = root.querySelectorAll('.xp-label, .xp-bar, [class~="xp"], [data-property="system.details.xp.value"]');
-    nodes.forEach(el => {
+    root.querySelectorAll(".xp-label").forEach(el => {
         if (el === keep || el.closest(".scwm-starxp")) return;
-        if (el.tagName === "BUTTON") return;                 // garder les boutons
-        if (el.querySelector("button")) {
-            // Conteneur mixte (texte XP + bouton de montée de niveau) : on
-            // masque tout sauf ce qui contient un bouton.
-            [...el.children].forEach(ch => {
-                if (ch.tagName === "BUTTON" || ch.querySelector("button")) return;
-                ch.style.display = "none";
-            });
-            return;
-        }
+        if (el.querySelector("button")) return;   // par sécurité, jamais un bouton
         el.style.display = "none";
     });
     root.querySelectorAll('input[name="system.details.xp.value"], input[name="system.details.xp.max"]').forEach(el => {
-        const w = el.closest(".xp, .form-group, li") || el;
+        const w = el.closest(".xp-label, .form-group, li") || el;
         if (!w.querySelector("button")) w.style.display = "none";
     });
 }

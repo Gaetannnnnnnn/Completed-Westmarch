@@ -17,13 +17,27 @@ function _luminance(hex) {
 // CSS injecté en JS : plus fiable que le fichier du manifeste (sur certains
 // hébergements comme The Forge, un NOUVEAU fichier .css d'un module n'est pas
 // injecté sans relancer le monde). Ici, le style suit toujours le code.
+// Portée commune : le conteneur de chat en v13/v14.
+const SCOPE = ":is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications)";
 const CHAT_CARDS_CSS = `
-body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message {
+/* ══════════════════════════════════════════════════════════════════════
+   Reskin « dnd5e 5.3.x » posé sur le DOM RÉEL de dnd5e 6.0 (usage-card) :
+     .chat-card
+       section.card-header[data-action=toggleDescription]
+         .item-icon > img.gold-icon      (+ éventuel .activity-icon .gold-icon)
+         .name-stacked > .title/.subtitle
+         .chevron > i
+       section.card-description.collapsible > .collapsible-content > .wrapper
+       p.supplement > strong
+       section.icon-row (infos)  → ul.pills.unlist > li.pill > .label
+       section.icon-row (actions)→ i.fa-circle-play + ul.unlist > li > button.icon[data-action]
+   L'état replié est la classe .collapsed sur .card-header/.card-description
+   (ajoutée seulement si le réglage dnd5e « autoCollapseItemCards » est actif).
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── Thème (couleurs) sur tout le message ── */
+body.scwm-chat-theme ${SCOPE} .message {
     --dnd5e-chat-background: var(--scwm-chat-bg);
-    --dnd5e-border-gold: 1px solid var(--scwm-chat-gold);
-    --dnd5e-background-card: rgba(255,255,255,0.35);
-    --dnd5e-chat-button-background: rgba(154,123,30,0.12);
-    --dnd5e-chat-button-border: rgba(154,123,30,0.5);
     --color-text-primary: var(--scwm-chat-fg);
     --color-text-secondary: var(--scwm-chat-fg2);
     --color-text-tertiary: var(--scwm-chat-fg2);
@@ -31,124 +45,75 @@ body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #cha
     color: var(--scwm-chat-fg) !important;
     box-shadow: 0 2px 10px rgba(0,0,0,0.35);
 }
-body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .title { color: var(--scwm-chat-gold); text-shadow: none; }
-body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .subtitle { color: var(--scwm-chat-fg2); }
-body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .message-sender .avatar:not(.token) img,
-body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .description .summary > img {
-    border: 1px solid var(--scwm-chat-gold) !important; border-radius: 4px; box-shadow: 0 0 5px rgba(0,0,0,0.3);
-}
-body.scwm-chat-bigbtn :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .card-buttons { display:flex; flex-direction:column; gap: 6px; }
-body.scwm-chat-bigbtn :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .card-buttons > button,
-body.scwm-chat-bigbtn :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .card-buttons > a,
-body.scwm-chat-bigbtn :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .card-buttons button,
-body.scwm-chat-bigbtn :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .card-buttons a[data-action] {
-    display: flex; align-items: center; justify-content: center;
-    box-sizing: border-box;
-    border: 1px solid rgba(154,123,30,0.6);
-    background: linear-gradient(180deg, rgba(154,123,30,0.20), rgba(154,123,30,0.06));
-    color: var(--scwm-chat-fg, inherit) !important; border-radius: 6px; font-weight: 700;
-    width: 100%; min-height: 38px; font-size: 14px; letter-spacing: .3px; text-decoration: none;
-    transition: box-shadow .15s, background .15s, border-color .15s, color .15s;
-}
-body.scwm-chat-bigbtn :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .card-buttons > button:hover,
-body.scwm-chat-bigbtn :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .card-buttons > a:hover,
-body.scwm-chat-bigbtn :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .card-buttons button:hover,
-body.scwm-chat-bigbtn :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .card-buttons a[data-action]:hover {
-    border-color: #e67e22; background: rgba(230,126,34,0.16); box-shadow: 0 0 8px rgba(230,126,34,0.4);
-}
-body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .pills .pill {
-    border: 1px solid rgba(154,123,30,0.4); background: rgba(154,123,30,0.10); border-radius: 3px; color: var(--scwm-chat-fg);
-}
-body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message p.supplement > strong { color: var(--scwm-chat-gold); }
-body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .description { box-shadow: inset 0 0 0 1px rgba(154,123,30,0.15); }
-body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .dice-total { border-color: rgba(154,123,30,0.45); }
+body.scwm-chat-theme ${SCOPE} .message .chat-card { border-radius: 5px; }
 
-/* « Sort listé 3 fois » : on masque l'en-tête répété (icône + nom) sur les
-   cartes qui ne sont QU'UN JET (attaque/dégâts contiennent un .dice-result),
-   pour ne garder l'en-tête complet que sur la carte principale du sort. */
-body.scwm-chat :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:has(.chat-card .dice-result) .chat-card > .card-header,
-body.scwm-chat :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:has(.dice-result) .card-header.description {
-    display: none !important;
-}
-
-/* Résultat du jet AFFICHÉ SUR LA CARTE (fond crème) : texte foncé lisible.
-   On NE touche PAS à la fenêtre de détail au survol (.dice-tooltip / .dice-rolls),
-   qui a son propre fond sombre et doit garder son texte clair (sinon noir sur noir). */
-body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .dice-formula,
-body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .dice-total,
-body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .dice-result > .total > .value,
-body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .dice-result > .total > .label {
-    color: var(--scwm-chat-fg) !important;
-}
-
-/* ══════════════════════════════════════════════════════════════════════
-   Look « dnd5e 5.3.3 » posé sur le DOM 6.0.3 : en-tête large avec grosse
-   icône encadrée + titre gras + sous-titre italique, filets de séparation
-   type parchemin, description ouverte et lisible, pied de page à filet.
-   Portée : toutes les cartes d'objet (attaque, dégâts, sort, activité).
-   ══════════════════════════════════════════════════════════════════════ */
-
-/* Cadre général de la carte */
-body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card {
-    border-radius: 5px;
-    overflow: hidden;
-}
-
-/* En-tête 5.3.3 : icône + noms sur une ligne, séparé du corps par un filet */
-body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .card-header .summary,
-body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card section.description > header.summary {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 4px 2px 7px;
-    margin: 0;
+/* ── En-tête 5.3.x : grosse icône encadrée + titre gras + sous-titre italique + filet ── */
+body.scwm-chat-theme ${SCOPE} .message .chat-card .card-header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 4px 2px 7px; margin: 0;
     border-bottom: 2px groove rgba(154,123,30,0.40);
 }
-/* Grosse icône encadrée gold (comme 5.3.3) */
-body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .summary > img {
-    width: 40px !important;
-    height: 40px !important;
-    flex: 0 0 40px;
-    object-fit: cover;
-    border: 2px solid var(--scwm-chat-gold) !important;
-    border-radius: 4px;
-    box-shadow: 0 0 4px rgba(0,0,0,0.3);
+body.scwm-chat-theme ${SCOPE} .message .chat-card .card-header .item-icon img.gold-icon,
+body.scwm-chat-theme ${SCOPE} .message .chat-card .card-header .activity-icon .gold-icon {
+    width: 40px !important; height: 40px !important; flex: 0 0 40px;
+    object-fit: cover; border: 2px solid var(--scwm-chat-gold) !important;
+    border-radius: 4px; box-shadow: 0 0 4px rgba(0,0,0,0.3);
 }
-/* Titre gras + sous-titre italique discret */
-body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .name-stacked { line-height: 1.15; }
-body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .title {
-    font-size: 15px; font-weight: 700; letter-spacing: .2px;
-}
-body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .subtitle {
-    font-size: 11px; font-style: italic; opacity: .85;
-}
-/* Le chevron natif : discret, poussé à droite */
-body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .summary > i,
-body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .summary > .collapser-icon {
-    margin-left: auto; opacity: .55; font-size: 12px;
-}
+body.scwm-chat-theme ${SCOPE} .message .chat-card .card-header .name-stacked { line-height: 1.15; flex: 1 1 auto; min-width: 0; }
+body.scwm-chat-theme ${SCOPE} .message .chat-card .card-header .title { color: var(--scwm-chat-gold); text-shadow: none; font-size: 15px; font-weight: 700; letter-spacing: .2px; }
+body.scwm-chat-theme ${SCOPE} .message .chat-card .card-header .subtitle { color: var(--scwm-chat-fg2); font-size: 11px; font-style: italic; opacity: .9; }
+body.scwm-chat-theme ${SCOPE} .message .chat-card .card-header .chevron { margin-left: auto; opacity: .55; }
 
-/* Description confortable et lisible (elle est ouverte par défaut, cf. JS) */
-body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .card-header .collapsible-content .details,
-body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card section.description .collapsible-content-inner,
-body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .card-content {
-    padding: 7px 3px 3px;
-    font-size: 13px;
-    line-height: 1.42;
+/* ── Description : lisible et confortable (ouverte par défaut, cf. JS) ── */
+body.scwm-chat-theme ${SCOPE} .message .chat-card .card-description .wrapper {
+    padding: 8px 3px 4px; font-size: 13px; line-height: 1.42;
 }
+body.scwm-chat-theme ${SCOPE} .message .chat-card .card-flavor { font-style: italic; padding: 4px 2px; opacity: .95; }
+body.scwm-chat-theme ${SCOPE} .message .chat-card p.supplement > strong { color: var(--scwm-chat-gold); }
 
-/* Pied de page à filet, tags espacés (5.3.3) */
-body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .card-footer.pills,
-body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card ul.card-footer {
-    border-top: 2px groove rgba(154,123,30,0.40);
-    padding-top: 6px;
-    margin-top: 4px;
-    gap: 4px;
+/* ── Pastilles (infos + propriétés) ── */
+body.scwm-chat-theme ${SCOPE} .message .chat-card .icon-row .pill,
+body.scwm-chat-theme ${SCOPE} .message .chat-card .pills .pill {
+    border: 1px solid rgba(154,123,30,0.4); background: rgba(154,123,30,0.10);
+    border-radius: 3px; color: var(--scwm-chat-fg);
 }
+body.scwm-chat-theme ${SCOPE} .message .chat-card .icon-row > i { color: var(--scwm-chat-gold); }
 
-/* Boutons : un peu d'air au-dessus de la rangée large */
-body.scwm-chat-bigbtn :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .card-buttons { margin-top: 7px; }
+/* ── GROS BOUTONS d'action (5.3.x) ──
+   Les boutons natifs 6.0 sont de petites icônes dans .icon-row > ul.unlist ;
+   le JS marque cette rangée .scwm-btn-row et ajoute un libellé texte
+   (.scwm-btn-label) tiré de l'aria-label. On la transforme en colonne de
+   boutons pleine largeur, façon 5.3.x. */
+body.scwm-chat-bigbtn ${SCOPE} .message .chat-card .scwm-btn-row {
+    display: flex; flex-direction: column; align-items: stretch; gap: 6px; margin-top: 7px;
+}
+body.scwm-chat-bigbtn ${SCOPE} .message .chat-card .scwm-btn-row > i { display: none; } /* icône « play » de tête */
+body.scwm-chat-bigbtn ${SCOPE} .message .chat-card .scwm-btn-row > ul {
+    display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none;
+}
+body.scwm-chat-bigbtn ${SCOPE} .message .chat-card .scwm-btn-row > ul > li { width: 100%; margin: 0; }
+body.scwm-chat-bigbtn ${SCOPE} .message .chat-card .scwm-btn-row button {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; min-height: 38px; box-sizing: border-box; padding: 4px 10px;
+    border: 1px solid rgba(154,123,30,0.6); border-radius: 6px;
+    background: linear-gradient(180deg, rgba(154,123,30,0.20), rgba(154,123,30,0.06));
+    color: var(--scwm-chat-fg) !important; font-weight: 700; font-size: 14px;
+    transition: box-shadow .15s, background .15s, border-color .15s;
+}
+body.scwm-chat-bigbtn ${SCOPE} .message .chat-card .scwm-btn-row button:hover {
+    border-color: #e67e22; background: rgba(230,126,34,0.16); box-shadow: 0 0 8px rgba(230,126,34,0.4);
+}
+body.scwm-chat-bigbtn ${SCOPE} .message .chat-card .scwm-btn-row button .scwm-btn-label { font-size: 14px; letter-spacing: .3px; }
 
+/* ── Lisibilité des jets sur fond crème (on ne touche pas à la fenêtre de
+   détail au survol .dice-tooltip, qui garde son fond sombre). ── */
+body.scwm-chat-theme ${SCOPE} .message .dice-formula,
+body.scwm-chat-theme ${SCOPE} .message .dice-total,
+body.scwm-chat-theme ${SCOPE} .message .dice-result > .total > .value,
+body.scwm-chat-theme ${SCOPE} .message .dice-result > .total > .label {
+    color: var(--scwm-chat-fg) !important;
+}
+body.scwm-chat-theme ${SCOPE} .message .dice-total { border-color: rgba(154,123,30,0.45); }
 `;
 
 export function applyChatCardPrefs() {
@@ -176,6 +141,45 @@ export function applyChatCardPrefs() {
     let st = document.getElementById("scwm-chat-cards-style");
     if (!st) { st = document.createElement("style"); st.id = "scwm-chat-cards-style"; document.head.appendChild(st); }
     if (st.textContent !== CHAT_CARDS_CSS) st.textContent = CHAT_CARDS_CSS;
+}
+
+// Transforme une carte de chat dnd5e 6.0 (usage-card) vers le rendu « 5.3.x ».
+// Appelé au rendu de chaque message : opère sur le DOM réel de la 6.0.
+function reskinChatCard(root) {
+    root.querySelectorAll(".chat-card").forEach(card => {
+        // 1) Description ouverte par défaut : on retire l'état « replié » que
+        //    dnd5e pose (réglage autoCollapseItemCards) sur .card-header et
+        //    .card-description. Synchrone → aucun flash ; le chevron reste
+        //    fonctionnel (le clic natif ré-ajoute .collapsed pour replier).
+        try {
+            card.querySelectorAll(".card-header.collapsed, .card-description.collapsed")
+                .forEach(el => el.classList.remove("collapsed"));
+        } catch (e) {}
+
+        // 2) Gros boutons libellés : en 6.0 les actions (Attaque/Dégâts) sont de
+        //    petites icônes dans .icon-row > ul.unlist > li > button.icon, sans
+        //    texte visible (libellé dans aria-label). On marque cette rangée et
+        //    on injecte le libellé ; le CSS la met en colonne pleine largeur.
+        if (game.settings.get(MOD, "chatCardsBigButtons") !== false) {
+            try {
+                card.querySelectorAll(".icon-row").forEach(row => {
+                    const btns = row.querySelectorAll("button[data-action], button.icon");
+                    if (!btns.length) return;   // rangée d'infos (pastilles) → on saute
+                    row.classList.add("scwm-btn-row");
+                    btns.forEach(btn => {
+                        if (btn.querySelector(".scwm-btn-label")) return;
+                        const lbl = (btn.getAttribute("aria-label") || btn.getAttribute("data-tooltip") || "").trim();
+                        if (lbl) {
+                            const s = document.createElement("span");
+                            s.className = "scwm-btn-label";
+                            s.textContent = lbl;
+                            btn.appendChild(s);
+                        }
+                    });
+                });
+            } catch (e) {}
+        }
+    });
 }
 
 export function ChatHooks() {
@@ -220,20 +224,12 @@ export function ReloadChat() {
 // - Les joueurs ne voient que les messages de leur party
 // ============================================================
 function renderChatMessageHTML(message, html, messageData) {
-    // Look 5.3.3 : description ouverte par défaut + jets dépliés.
+    // Reskin 5.3.x sur le DOM 6.0 : description ouverte, gros boutons, jets dépliés.
     try {
         if (game.settings.get(MOD, "enableChatCards")) {
             const root = html instanceof HTMLElement ? html : html?.[0];
             if (root) {
-                // Ouvrir la description AVANT insertion dans le DOM (synchrone) :
-                // la carte est peinte déjà ouverte, donc aucune animation/flash.
-                // On retire seulement l'état « replié » : le chevron reste
-                // fonctionnel (un clic ré-ajoute .collapsed → repli manuel).
-                try {
-                    root.querySelectorAll(
-                        ".chat-card .card-header.collapsible.collapsed, .chat-card section.description.collapsible.collapsed"
-                    ).forEach(s => s.classList.remove("collapsed"));
-                } catch (e) {}
+                reskinChatCard(root);
                 // Déplier les jets de dés par défaut (dés + bonus + provenance).
                 if (game.settings.get(MOD, "chatCardsExpandDice") !== false) {
                     requestAnimationFrame(() => {

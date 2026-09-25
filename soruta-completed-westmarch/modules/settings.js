@@ -502,6 +502,11 @@ export function registerSettings() {
         hint: "Affiche d'office le détail du jet (dés individuels, bonus et provenance).",
         scope: "world", config: false, type: Boolean, default: true
     });
+    game.settings.register(MOD, "chatCardsFoldDescription", {
+        name: "Replier la description par défaut",
+        hint: "La description de l'objet/sort est repliée à l'ouverture de la carte (un clic sur l'en-tête la déplie). Décoché : la description est affichée d'emblée.",
+        scope: "world", config: false, type: Boolean, default: true
+    });
     // Couleur de fond des cartes de chat — PAR JOUEUR (défaut : blanc crème).
     game.settings.register(MOD, "chatCardColor", {
         scope: "client", config: false, type: String, default: "#f4ecd8",
@@ -1041,7 +1046,7 @@ const CATEGORIES = [
       keys: ["enableXpBlock","enableFakeWarning","enableGmNotes","hidePlayerStarTab","enableDiscordLog","discordLogWebhookUrl","downtimeWebhookUrl","tmWebhookUrl"] },
     { firstKey: "enableChatCards", master: "enableChatCards", icon: "fa-comment-dots", title: "Cartes de chat",
       desc: "Habillage des cartes de chat dnd5e (attaques, sorts, objets). Interrupteur général + choix de ce qui est activé. La couleur reste un choix par joueur (fenêtre « Accessibilité »).",
-      keys: ["enableChatCards","chatCardsTheme","chatCardsBigButtons","chatCardsExpandDice"] },
+      keys: ["enableChatCards","chatCardsTheme","chatCardsBigButtons","chatCardsExpandDice","chatCardsFoldDescription"] },
     { firstKey: "enablePolymorph", master: "enablePolymorph", icon: "fa-paw", title: "Transformation",
       desc: "Wild Shape (druide) et Polymorphie (sort) — deux systèmes distincts via le moteur dnd5e. Active/désactive l'ensemble et règle l'application des limites de facteur de puissance (FP).",
       keys: ["enablePolymorph","transformEnforceCr","transformStrictCr"] },

@@ -395,17 +395,11 @@ async function ensureTemplateGroupActor() {
     }
     if (!actor) return null;
 
-    // Dépose un token modèle sur CHAQUE scène de carte qui n'en a pas encore.
-    for (const sid of expeditionSceneIds()) {
-        const scene = game.scenes.get(sid);
-        if (!scene || scene.tokens.some(t => t.actorId === actor.id)) continue;
-        try {
-            const x = Math.round((scene.width ?? 1000) / 2);
-            const y = Math.round((scene.height ?? 1000) / 2);
-            const tokenDoc = await actor.getTokenDocument({ x, y });
-            await scene.createEmbeddedDocuments("Token", [tokenDoc.toObject()]);
-        } catch (e) { console.warn(`[${MOD}] Dépôt du token Groupe modèle échoué (scène ${sid}) :`, e); }
-    }
+    // NOTE : on ne dépose PLUS automatiquement le token modèle sur les scènes de
+    // carte. L'acteur « modèle » reste disponible dans la barre latérale ; le MJ
+    // le glisse lui-même sur la carte quand il veut créer un groupe d'expédition.
+    // (Auparavant, un token se replaçait tout seul au centre de chaque scène et
+    // réapparaissait après suppression — comportement jugé indésirable.)
     return actor;
 }
 

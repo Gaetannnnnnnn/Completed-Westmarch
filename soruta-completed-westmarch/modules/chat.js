@@ -161,12 +161,18 @@ export function applyChatCardPrefs() {
 function reskinChatCard(root) {
     if (!root) return;
     try {
-        // 1) Description ouverte par défaut : on retire l'état « replié » que
-        //    dnd5e pose (réglage autoCollapseItemCards) sur .card-header et
-        //    .card-description. Synchrone → aucun flash ; le chevron reste
-        //    fonctionnel (le clic natif ré-ajoute .collapsed pour replier).
-        root.querySelectorAll(".card-header.collapsed, .card-description.collapsed")
-            .forEach(el => el.classList.remove("collapsed"));
+        // 1) État de la description à l'ouverture : repliée (défaut) ou dépliée,
+        //    selon le réglage. On ne l'applique QU'UNE FOIS par carte (marqueur
+        //    data-scwm-desc) pour NE PAS combattre le clic manuel sur le chevron
+        //    (sinon l'observateur ré-appliquerait l'état à chaque toggle).
+        const fold = game.settings.get(MOD, "chatCardsFoldDescription") !== false;
+        root.querySelectorAll(".chat-card").forEach(card => {
+            // Carte sans description repliable → rien à faire.
+            if (!card.querySelector(".card-description.collapsible, .card-header[data-action='toggleDescription']")) return;
+            if (card.dataset.scwmDesc === "1") return;   // déjà initialisée → respecter le clic
+            card.dataset.scwmDesc = "1";
+            card.querySelectorAll(".card-header, .card-description").forEach(el => el.classList.toggle("collapsed", fold));
+        });
     } catch (e) {}
 
     // 2) Gros boutons libellés : en 6.0 les actions (Attaque/Dégâts) sont de

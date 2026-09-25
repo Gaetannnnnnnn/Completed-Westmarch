@@ -151,5 +151,46 @@ export function setupCharacterSheet() {
             makeDefault: true,
             label:       "Soruta — Fiche personnage"
         });
+
+        // ── Fiche PNJ : uniquement l'onglet « Note GM » (les autres onglets
+        //    Relations / Bestiaire / Carnet sont propres aux PJ). On ne
+        //    l'enregistre que si les notes MJ sont activées et qu'on est MJ.
+        const NPCBase = dnd5e.applications?.actor?.NPCActorSheet;
+        if (gmNotesOn && NPCBase) {
+            class SorutaNPCSheet extends NPCBase {
+
+                static PARTS = {
+                    ...super.PARTS,
+                    gmnotes: partDef("character-gmnotes.hbs")
+                };
+
+                static TABS = [
+                    ...super.TABS,
+                    { tab: "gmnotes", group: "primary", label: "Note GM", icon: "fa-solid fa-user-secret" }
+                ];
+
+                // Même nom que la fiche native → remplace sans multiplier les entrées.
+                static get name() { return "NPCActorSheet"; }
+
+                async _prepareContext(options = {}) {
+                    const ctx = await super._prepareContext(options);
+                    ctx.gmNotesHtml = buildGmNotesHtml(this.actor);
+                    return ctx;
+                }
+
+                _attachPartListeners(partId, htmlElement, options) {
+                    super._attachPartListeners(partId, htmlElement, options);
+                    if (partId === "gmnotes") wireGmNotes(this.actor, htmlElement);
+                }
+            }
+
+            Actors.registerSheet("dnd5e", SorutaNPCSheet, {
+                types:       ["npc"],
+                makeDefault: true,
+                label:       "Soruta — Fiche PNJ"
+            });
+        } else if (gmNotesOn && !NPCBase) {
+            console.warn(`[${MOD}] Fiche PNJ native introuvable (NPCActorSheet) : onglet Note GM PNJ non injecté sur la fiche native.`);
+        }
     });
 }

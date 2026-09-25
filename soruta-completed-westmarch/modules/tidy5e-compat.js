@@ -71,11 +71,18 @@ function registerTidyTabs(api) {
     const opts = { overrideExisting: true };
 
     try {
-        if (gmNotesOn) api.registerCharacterTab(makeTab({
-            title: "Note GM", id: "gmnotes", icon: "fa-solid fa-user-secret",
-            build: (a) => buildGmNotesHtml(a),
-            wire:  (a, el) => wireGmNotes(a, el)
-        }), opts);
+        if (gmNotesOn) {
+            const gmNotesTabDef = {
+                title: "Note GM", id: "gmnotes", icon: "fa-solid fa-user-secret",
+                build: (a) => buildGmNotesHtml(a),
+                wire:  (a, el) => wireGmNotes(a, el)
+            };
+            api.registerCharacterTab(makeTab(gmNotesTabDef), opts);
+            // Même onglet Note GM sur les fiches PNJ Tidy (si l'API le permet).
+            if (typeof api.registerNpcTab === "function") {
+                api.registerNpcTab(makeTab(gmNotesTabDef), opts);
+            }
+        }
 
         if (relOn) api.registerCharacterTab(makeTab({
             title: "Relations", id: "relations", icon: "fa-solid fa-heart",

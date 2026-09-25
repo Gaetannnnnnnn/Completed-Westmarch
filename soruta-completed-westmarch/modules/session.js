@@ -5,6 +5,7 @@ import { MOD } from "./const.js";
 // ============================================================
 
 import { partyFeatureEnabled } from './settings.js';
+import { starXpEnabled, starAwardBlockHtml, wireStarAwardBlock, readStarAward, awardStars, progressFor } from './starxp.js';
 
 // Données capturées en début de session
 var sessionData = {
@@ -266,6 +267,8 @@ function promptSessionClose(partyId) {
                    data-actor-id="${esc(pc.actorId)}" value="0" style="width:90px;">
         </div>`).join("");
 
+    const starOn = starXpEnabled();
+
     const xpBlock = pcs.length ? `
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;
                         padding-bottom:8px;border-bottom:1px solid var(--color-border-light-tertiary,#bbb);">
@@ -275,10 +278,16 @@ function promptSessionClose(partyId) {
             ${rows}`
         : `<p style="opacity:0.7;">Aucun PJ dans la party — attribution d'XP indisponible.</p>`;
 
+    // Système d'étoiles actif → sélecteur 1–3 étoiles à la place des champs d'XP.
+    const awardBlock = starOn
+        ? (pcs.length ? starAwardBlockHtml(pcs) : `<p style="opacity:0.7;">Aucun PJ dans la party — attribution d'étoiles indisponible.</p>`)
+        : xpBlock;
+    const introLabel = starOn ? "Attribution des étoiles de fin de session." : "Attribution d'XP de fin de session.";
+
     const content = `
         <form class="scwm-close-form">
-            <p style="margin:0 0 8px;">Attribution d'XP de fin de session.</p>
-            ${xpBlock}
+            <p style="margin:0 0 8px;">${introLabel}</p>
+            ${awardBlock}
             <div style="margin-top:10px;">
                 <label style="display:block;font-weight:bold;margin-bottom:4px;">Notes de session</label>
                 <textarea class="scwm-close-notes" rows="4" style="width:100%;box-sizing:border-box;"
@@ -289,7 +298,16 @@ function promptSessionClose(partyId) {
     let resolveFn;
     const done = new Promise(res => { resolveFn = res; });
 
-    const applyXp = async (root) => {
+    // Applique l'attribution ; renvoie le nombre d'étoiles données (0 en mode XP).
+    const applyAward = async (root) => {
+        if (starOn) {
+            const n = readStarAward(root);
+            for (const pc of pcs) {
+                const actor = game.actors.get(pc.actorId);
+                if (actor) await awardStars(actor, n);
+            }
+            return n;
+        }
         for (const input of root.querySelectorAll(".scwm-xp-pc")) {
             const gain = Math.max(0, Math.round(Number(input.value) || 0));
             if (!gain) continue;
@@ -298,6 +316,7 @@ function promptSessionClose(partyId) {
             const cur = actor.system?.details?.xp?.value ?? 0;
             await actor.update({ "system.details.xp.value": cur + gain });
         }
+        return 0;
     };
 
     const dlg = new foundry.applications.api.DialogV2({
@@ -309,8 +328,8 @@ function promptSessionClose(partyId) {
                 callback: async (event, button, dialog) => {
                     const root = dialog.element;
                     const notes = root.querySelector(".scwm-close-notes")?.value ?? "";
-                    await applyXp(root);
-                    resolveFn({ action: "send", notes });
+                    const starN = await applyAward(root);
+                    resolveFn({ action: "send", notes, starN });
                 }
             },
             {
@@ -318,8 +337,8 @@ function promptSessionClose(partyId) {
                 callback: async (event, button, dialog) => {
                     const root = dialog.element;
                     const notes = root.querySelector(".scwm-close-notes")?.value ?? "";
-                    await applyXp(root);
-                    resolveFn({ action: "draft", notes });
+                    const starN = await applyAward(root);
+                    resolveFn({ action: "draft", notes, starN });
                 }
             }
         ],
@@ -332,6 +351,7 @@ function promptSessionClose(partyId) {
 
     dlg.render({ force: true }).then(() => {
         const root = dlg.element;
+        if (starOn) { try { wireStarAwardBlock(root); } catch (e) {} return; }
         const allInput = root?.querySelector(".scwm-xp-all");
         if (allInput) {
             allInput.addEventListener("input", () => {
@@ -347,7 +367,8 @@ function promptSessionClose(partyId) {
 // SECTION : Construction des données de rapport de session
 // (réutilisable par la clôture immédiate ET par le Casier).
 // ============================================================
-function buildReportData(partyId, xpBeforeById, notes) {
+function buildReportData(partyId, xpBeforeById, notes, starN = 0) {
+    const starOn = starXpEnabled();
     // Liste des PJ : snapshot de session si présent, sinon membres actuels.
     let reportPlayers = sessionData.players;
     if (!reportPlayers.length) {
@@ -364,6 +385,21 @@ function buildReportData(partyId, xpBeforeById, notes) {
 
     const players = reportPlayers.map(p => {
         const actor = game.actors.get(p.actorId);
+        // Système d'étoiles : on rapporte les étoiles au lieu de l'XP chiffrée.
+        if (starOn && actor) {
+            const pr = progressFor(actor);
+            return {
+                name: p.name,
+                star: {
+                    gain:      starN,
+                    level:     pr.level,
+                    stars:     pr.stars,
+                    threshold: Number.isFinite(pr.threshold) ? pr.threshold : null,
+                    ready:     pr.ready,
+                    max:       pr.max
+                }
+            };
+        }
         const xpAfter = actor?.system?.details?.xp?.value ?? p.xpBefore;
         const levelBefore = getLevelFromXp(p.xpBefore);
         const levelAfter = getLevelFromXp(xpAfter);
@@ -406,6 +442,16 @@ export function buildSessionEmbed(data) {
     const trunc = (str) => str.length > 1024 ? str.slice(0, 1021) + "…" : str;
 
     const playersLines = (data.players ?? []).map(p => {
+        // Ligne « étoiles » (système d'étoiles actif).
+        if (p.star) {
+            const s = p.star;
+            let l = `**${p.name}**`;
+            if (s.gain > 0) l += ` — ⭐ +${s.gain}`;
+            if (s.max)            l += ` — Niveau ${s.level} (max)`;
+            else if (s.ready)     l += ` — ⬆ **Prêt à monter niveau ${s.level + 1} !**`;
+            else if (s.threshold) l += ` — ${s.stars}/${s.threshold} ★ avant niveau ${s.level + 1}`;
+            return l;
+        }
         let l = `**${p.name}** — XP : ${p.xpBefore} → ${p.xpAfter}`;
         if (p.xpGained > 0) l += ` (+${p.xpGained})`;
         if (p.levelUp)      l += ` ⬆ **Level Up ! (Niveau ${p.levelAfter})**`;
@@ -580,7 +626,7 @@ async function closeSession(playerListApp) {
     if (res.action === "cancel") return;
 
     // Données du rapport construites AVANT le reset de sessionData.
-    const reportData = buildReportData(partyId, xpBeforeById, res.notes);
+    const reportData = buildReportData(partyId, xpBeforeById, res.notes, res.starN ?? 0);
 
     // Journalise la session clôturée (assiduité) — envoyée OU brouillon.
     await appendSessionLog(reportData);

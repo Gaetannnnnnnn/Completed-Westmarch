@@ -81,6 +81,74 @@ body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #cha
     color: var(--scwm-chat-fg) !important;
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+   Look « dnd5e 5.3.3 » posé sur le DOM 6.0.3 : en-tête large avec grosse
+   icône encadrée + titre gras + sous-titre italique, filets de séparation
+   type parchemin, description ouverte et lisible, pied de page à filet.
+   Portée : toutes les cartes d'objet (attaque, dégâts, sort, activité).
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* Cadre général de la carte */
+body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card {
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+/* En-tête 5.3.3 : icône + noms sur une ligne, séparé du corps par un filet */
+body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .card-header .summary,
+body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card section.description > header.summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 2px 7px;
+    margin: 0;
+    border-bottom: 2px groove rgba(154,123,30,0.40);
+}
+/* Grosse icône encadrée gold (comme 5.3.3) */
+body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .summary > img {
+    width: 40px !important;
+    height: 40px !important;
+    flex: 0 0 40px;
+    object-fit: cover;
+    border: 2px solid var(--scwm-chat-gold) !important;
+    border-radius: 4px;
+    box-shadow: 0 0 4px rgba(0,0,0,0.3);
+}
+/* Titre gras + sous-titre italique discret */
+body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .name-stacked { line-height: 1.15; }
+body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .title {
+    font-size: 15px; font-weight: 700; letter-spacing: .2px;
+}
+body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .subtitle {
+    font-size: 11px; font-style: italic; opacity: .85;
+}
+/* Le chevron natif : discret, poussé à droite */
+body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .summary > i,
+body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .summary > .collapser-icon {
+    margin-left: auto; opacity: .55; font-size: 12px;
+}
+
+/* Description confortable et lisible (elle est ouverte par défaut, cf. JS) */
+body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .card-header .collapsible-content .details,
+body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card section.description .collapsible-content-inner,
+body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .card-content {
+    padding: 7px 3px 3px;
+    font-size: 13px;
+    line-height: 1.42;
+}
+
+/* Pied de page à filet, tags espacés (5.3.3) */
+body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card .card-footer.pills,
+body.scwm-chat-theme :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .chat-card ul.card-footer {
+    border-top: 2px groove rgba(154,123,30,0.40);
+    padding-top: 6px;
+    margin-top: 4px;
+    gap: 4px;
+}
+
+/* Boutons : un peu d'air au-dessus de la rangée large */
+body.scwm-chat-bigbtn :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message .card-buttons { margin-top: 7px; }
+
 `;
 
 export function applyChatCardPrefs() {
@@ -152,14 +220,27 @@ export function ReloadChat() {
 // - Les joueurs ne voient que les messages de leur party
 // ============================================================
 function renderChatMessageHTML(message, html, messageData) {
-    // Cartes de chat : déplier les jets par défaut + replier les descriptions.
+    // Look 5.3.3 : description ouverte par défaut + jets dépliés.
     try {
-        if (game.settings.get(MOD, "enableChatCards") && game.settings.get(MOD, "chatCardsExpandDice") !== false) {
+        if (game.settings.get(MOD, "enableChatCards")) {
             const root = html instanceof HTMLElement ? html : html?.[0];
-            // Déplier les jets de dés par défaut (dés + bonus + provenance).
-            if (root) requestAnimationFrame(() => {
-                try { root.querySelectorAll(".dice-roll:not(.expanded)").forEach(r => r.classList.add("expanded")); } catch (e) {}
-            });
+            if (root) {
+                // Ouvrir la description AVANT insertion dans le DOM (synchrone) :
+                // la carte est peinte déjà ouverte, donc aucune animation/flash.
+                // On retire seulement l'état « replié » : le chevron reste
+                // fonctionnel (un clic ré-ajoute .collapsed → repli manuel).
+                try {
+                    root.querySelectorAll(
+                        ".chat-card .card-header.collapsible.collapsed, .chat-card section.description.collapsible.collapsed"
+                    ).forEach(s => s.classList.remove("collapsed"));
+                } catch (e) {}
+                // Déplier les jets de dés par défaut (dés + bonus + provenance).
+                if (game.settings.get(MOD, "chatCardsExpandDice") !== false) {
+                    requestAnimationFrame(() => {
+                        try { root.querySelectorAll(".dice-roll:not(.expanded)").forEach(r => r.classList.add("expanded")); } catch (e) {}
+                    });
+                }
+            }
         }
     } catch (e) {}
 

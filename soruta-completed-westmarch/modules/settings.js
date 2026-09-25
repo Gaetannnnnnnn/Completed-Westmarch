@@ -187,6 +187,19 @@ export function registerSettings() {
     game.settings.register(MOD, "sessionLog", {
         scope: "world", config: false, type: Array, default: []
     });
+
+    // ============================================================
+    // SYSTÈME D'ÉTOILES (XP par étoiles)
+    // enableStarXp : interrupteur général. starXpLevels : tableau de 19
+    // entrées (niveau i→i+1) = étoiles requises. Édité en grille avec total.
+    // ============================================================
+    game.settings.register(MOD, "enableStarXp", B(
+        "Système d'étoiles (XP par étoiles)",
+        "Remplace l'XP chiffrée par des étoiles. À la clôture de session, le MJ attribue 1 à 3 étoiles ; chaque niveau coûte un nombre d'étoiles réglé dans le tableau ci-dessous. Sur la fiche, l'XP est remplacée par un compteur d'étoiles.",
+        false));
+    game.settings.register(MOD, "starXpLevels", {
+        scope: "world", config: false, type: Array, default: Array.from({ length: 19 }, () => 3)
+    });
     // Profils de Casier par GM (présentation du dashboard, etc.). Non affiché.
     game.settings.register(MOD, "casierProfiles", {
         scope: "world", config: false, type: Object, default: {}
@@ -1007,6 +1020,9 @@ const CATEGORIES = [
     { firstKey: "enableParty", master: "enableParty",           icon: "fa-users",           title: "Système de Party",
       desc: "Groupes de joueurs : chat filtré, combat par party, téléportation de groupe, journal de session, anti-cheat.",
       keys: ["enableParty","enableJoinScene","enableShowParty","enablePlayerGrouping","enableGoWithPartyScenes","enableGoWithPartyJournal","enableChatFilter","enableChatTabs","enableTrade","enableNoteLink","enableSessionLog","sessionLogWebhookUrl","sessionLogForum","enableCombatParty","enableCombatTurnLock","enablePartyPause","enableAntiCheat"] },
+    { firstKey: "enableStarXp", master: "enableStarXp", icon: "fa-star", title: "Système d'étoiles",
+      desc: "XP par étoiles : le MJ attribue 1 à 3 étoiles à la clôture de session ; le tableau fixe le coût en étoiles de chaque niveau (avec le total = nombre de sessions). Sur la fiche, l'XP est remplacée par un compteur d'étoiles.",
+      keys: ["enableStarXp","starXpLevels"] },
     { firstKey: "enableCharValidation", master: "enableCharValidation", icon: "fa-id-card", title: "Création de personnages",
       desc: "Les joueurs demandent la création d'un personnage ; un GM valide depuis le Casier, puis le joueur construit et soumet sa fiche ; à la validation elle est verrouillée. Le dossier de destination se règle dans « Dossiers & Compendiums ».",
       keys: ["enableCharValidation","charMaxTotal","charMaxActive","charFreeLevelUp","charNotifyLevelUp","blockPlayerPlutonium"] },
@@ -1123,6 +1139,55 @@ function readTableFromForm(key, root) {
     });
 }
 
+// ── Table du système d'étoiles (niveau → étoiles requises + total) ──
+const STARXP_LEVELS = 19;   // niveaux 1→2 … 19→20 (dnd5e plafonne à 20)
+
+function normalizeStarLevels() {
+    let raw = game.settings.get(MOD, "starXpLevels");
+    if (!Array.isArray(raw)) raw = [];
+    const out = [];
+    for (let i = 0; i < STARXP_LEVELS; i++) {
+        const n = Math.max(0, Math.round(Number(raw[i]) || 0));
+        out.push(n > 0 ? n : 3);
+    }
+    return out;
+}
+
+function starTableHtml(cfg) {
+    const rows = normalizeStarLevels();
+    const total = rows.reduce((a, b) => a + b, 0);
+    const body = rows.map((n, i) => `<tr>
+        <td style="font-size:.8em;color:#aaa;white-space:nowrap;padding:2px 6px 2px 0;">Niveau ${i + 1} → ${i + 2}</td>
+        <td style="padding:1px 4px;">
+            <input type="number" min="1" step="1" class="scwm-starxp-input" name="starXpLevels__${i}"
+                   value="${n}" style="width:80px;box-sizing:border-box;">
+            <span style="color:#e6be3c;margin-left:4px;">★</span>
+        </td>
+    </tr>`).join("");
+    return `<div class="scwm-set" data-key="starXpLevels" style="padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.06);">
+        <label style="display:block;font-weight:600;margin-bottom:4px;">Coût en étoiles par niveau</label>
+        <p style="margin:0 0 6px;font-size:.8em;color:#999;">Nombre d'étoiles à accumuler pour passer chaque niveau. Le total indique combien de sessions représente une progression complète (niveau 1 → 20).</p>
+        <table style="width:100%;border-collapse:collapse;"><tbody>${body}</tbody></table>
+        <div class="scwm-starxp-total" style="margin-top:8px;padding-top:6px;border-top:1px solid rgba(230,190,60,0.4);font-weight:700;color:#e6be3c;">
+            Total : <span class="scwm-starxp-total-n">${total}</span> ★
+            <span style="font-weight:400;color:#999;font-size:.85em;">
+                (≈ <span class="scwm-starxp-total-s1">${total}</span> sessions à 1★,
+                <span class="scwm-starxp-total-s2">${Math.ceil(total / 2)}</span> à 2★,
+                <span class="scwm-starxp-total-s3">${Math.ceil(total / 3)}</span> à 3★)
+            </span>
+        </div>
+    </div>`;
+}
+
+function readStarTableFromForm(root) {
+    const out = [];
+    for (let i = 0; i < STARXP_LEVELS; i++) {
+        const el = root.querySelector(`[name="starXpLevels__${i}"]`);
+        out.push(Math.max(1, Math.round(Number(el?.value) || 3)));
+    }
+    return out;
+}
+
 // ============================================================
 // Panneau de configuration REGROUPÉ — un seul bouton ouvre une fenêtre
 // où toutes les catégories sont classées par grands thèmes, avec des
@@ -1134,7 +1199,7 @@ function readTableFromForm(key, root) {
 // listées ici sont ajoutées automatiquement à « Divers ».
 const CONFIG_GROUPS = [
     { title: "Fiche PJ & personnages", icon: "fa-id-card",
-      cats: ["relationsEnabled", "bestiaryEnabled", "carnetEnabled", "enableCharValidation", "enableSourceControl"] },
+      cats: ["relationsEnabled", "bestiaryEnabled", "carnetEnabled", "enableCharValidation", "enableStarXp", "enableSourceControl"] },
     { title: "Party & jeu de groupe", icon: "fa-users",
       cats: ["enableParty", "enableExpeditionMap", "enableHarvest"] },
     { title: "Combat", icon: "fa-bolt",
@@ -1371,6 +1436,7 @@ export function licenseBannerHtml() {
 function settingControlHtml(key) {
     const cfg = game.settings.settings.get(`${MOD}.${key}`);
     if (!cfg) return "";
+    if (key === "starXpLevels") return starTableHtml(cfg);
     if (TM_TABLE_SCHEMAS[key]) return tableControlHtml(key, cfg);
     const val    = game.settings.get(MOD, key);
     const reload = cfg.requiresReload ? ` <span style="color:${ACCENT};font-size:.78em;">⟳ rechargement</span>` : "";
@@ -1470,6 +1536,21 @@ function wireCategoryForm(category, root) {
         });
     }
 
+    // Table du système d'étoiles : total recalculé en direct.
+    const starInputs = [...root.querySelectorAll(".scwm-starxp-input")];
+    if (starInputs.length) {
+        const recompute = () => {
+            const total = starInputs.reduce((a, el) => a + Math.max(1, Math.round(Number(el.value) || 3)), 0);
+            const set = (sel, v) => { const n = root.querySelector(sel); if (n) n.textContent = String(v); };
+            set(".scwm-starxp-total-n", total);
+            set(".scwm-starxp-total-s1", total);
+            set(".scwm-starxp-total-s2", Math.ceil(total / 2));
+            set(".scwm-starxp-total-s3", Math.ceil(total / 3));
+        };
+        starInputs.forEach(el => el.addEventListener("input", recompute));
+        recompute();
+    }
+
     // Cascade Party : grise les sous-options quand le maître est décoché.
     const master = root.querySelector(`[name="enableParty"]`);
     if (master) {
@@ -1492,6 +1573,15 @@ async function saveCategoryForm(category, root, { silent = false } = {}) {
     for (const key of category.keys) {
         const cfg = game.settings.settings.get(`${MOD}.${key}`);
         if (!cfg) continue;
+
+        // Table du système d'étoiles (niveau → étoiles).
+        if (key === "starXpLevels") {
+            const arr = readStarTableFromForm(root);
+            if (JSON.stringify(game.settings.get(MOD, key)) !== JSON.stringify(arr)) {
+                await game.settings.set(MOD, key, arr);
+            }
+            continue;
+        }
 
         // Tables de temps morts (grille de champs) — reconstruites à part.
         if (TM_TABLE_SCHEMAS[key]) {

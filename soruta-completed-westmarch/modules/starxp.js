@@ -298,11 +298,11 @@ function injectWidget(app, root) {
     //   div.xp-label (« valeur / max ») + div.xp-bar (barre de progression).
     // On place le compteur d'étoiles À LA PLACE de ce bloc, puis on masque
     // l'XP native. À défaut (autres fiches), on retombe sur des repères larges.
-    // On place le compteur juste après la barre/bouton d'XP (le ⬆), sinon après
-    // le texte « 0/300 » qu'on masque : le widget occupe la place du nombre.
+    // Le compteur se place juste après .xp-label (qui contient le bouton ⬆ de
+    // montée de niveau) → « ⬆  ★ 0/1 ». Le texte 0/300 et la barre sont masqués.
     const xpAnchor =
-        root.querySelector(".xp-bar") ||
         root.querySelector(".xp-label") ||
+        root.querySelector(".xp-bar") ||
         root.querySelector('input[name="system.details.xp.value"]')?.closest(".xp, .meter, .form-group, li, div") ||
         root.querySelector(".header-details .xp");
 
@@ -328,19 +328,18 @@ function injectWidget(app, root) {
     }
 }
 
-// Masque UNIQUEMENT le texte d'XP « valeur / max » (.xp-label). On NE masque
-// PAS la barre .xp-bar : dans Carolingian UI (et pour le level-up par XP) elle
-// sert de bouton de montée de niveau ⬆ — la cacher empêcherait de monter.
+// Masque l'XP native SANS toucher au bouton de montée de niveau.
+// IMPORTANT : le bouton ⬆ (Plutonium : .imp-cls__btn-sheet-level-up) est PLACÉ
+// À L'INTÉRIEUR de .xp-label. On garde donc .xp-label affiché (pour le bouton)
+// et on masque seulement son TEXTE (valeur / séparateur / max). On masque aussi
+// la barre de progression .xp-bar (qui, elle, ne contient pas le bouton).
 function hideNativeXp(root, keep) {
-    root.querySelectorAll(".xp-label").forEach(el => {
-        if (el === keep || el.closest(".scwm-starxp")) return;
-        if (el.querySelector("button")) return;   // par sécurité, jamais un bouton
-        el.style.display = "none";
+    root.querySelectorAll(".xp-label").forEach(lbl => {
+        lbl.style.display = "";   // annule un éventuel display:none posé avant → garde le bouton ⬆
+        lbl.querySelectorAll(".value, .separator, .max").forEach(el => { el.style.display = "none"; });
     });
-    root.querySelectorAll('input[name="system.details.xp.value"], input[name="system.details.xp.max"]').forEach(el => {
-        const w = el.closest(".xp-label, .form-group, li") || el;
-        if (!w.querySelector("button")) w.style.display = "none";
-    });
+    root.querySelectorAll(".xp-bar").forEach(el => { el.style.display = "none"; });
+    root.querySelectorAll('input[name="system.details.xp.value"], input[name="system.details.xp.max"]').forEach(el => { el.style.display = "none"; });
 }
 
 export function StarXpHooks() {

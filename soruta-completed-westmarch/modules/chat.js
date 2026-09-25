@@ -140,6 +140,18 @@ export function applyChatCardPrefs() {
     body.classList.toggle("scwm-chat-theme",  theme);
     body.classList.toggle("scwm-chat-bigbtn", bigBtn);
 
+    // Repli de la description : on aligne le réglage NATIF dnd5e
+    // « autoCollapseItemCards » (client) sur notre option. Son clic de dépli
+    // fonctionne nativement. On ne le touche que si notre habillage est actif.
+    try {
+        if (master) {
+            const fold = get("chatCardsFoldDescription", true) !== false;
+            if (game.settings.get("dnd5e", "autoCollapseItemCards") !== fold) {
+                game.settings.set("dnd5e", "autoCollapseItemCards", fold);
+            }
+        }
+    } catch (e) {}
+
     const color = get("chatCardColor", "#f4ecd8") || "#f4ecd8";
     body.style.setProperty("--scwm-chat-bg", color);
     const dark = _luminance(color) < 0.5;   // fond sombre → texte clair
@@ -160,20 +172,10 @@ export function applyChatCardPrefs() {
 // FRÈRES de .chat-card, pas des enfants — d'où la recherche large).
 function reskinChatCard(root) {
     if (!root) return;
-    try {
-        // 1) État de la description à l'ouverture : repliée (défaut) ou dépliée,
-        //    selon le réglage. On ne l'applique QU'UNE FOIS par carte (marqueur
-        //    data-scwm-desc) pour NE PAS combattre le clic manuel sur le chevron
-        //    (sinon l'observateur ré-appliquerait l'état à chaque toggle).
-        const fold = game.settings.get(MOD, "chatCardsFoldDescription") !== false;
-        root.querySelectorAll(".chat-card").forEach(card => {
-            // Carte sans description repliable → rien à faire.
-            if (!card.querySelector(".card-description.collapsible, .card-header[data-action='toggleDescription']")) return;
-            if (card.dataset.scwmDesc === "1") return;   // déjà initialisée → respecter le clic
-            card.dataset.scwmDesc = "1";
-            card.querySelectorAll(".card-header, .card-description").forEach(el => el.classList.toggle("collapsed", fold));
-        });
-    } catch (e) {}
+    // NOTE : le repli de la description N'EST PLUS géré ici. On pilote le
+    // réglage NATIF dnd5e « autoCollapseItemCards » (voir applyChatCardPrefs),
+    // dont le clic de dépli/repli sur l'en-tête fonctionne nativement — forcer
+    // la classe .collapsed nous-mêmes cassait ce clic.
 
     // 2) Gros boutons libellés : en 6.0 les actions (Attaque/Dégâts) sont de
     //    petites icônes dans .icon-row > ul > li > button.icon, sans texte

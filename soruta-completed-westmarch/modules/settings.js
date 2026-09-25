@@ -504,8 +504,9 @@ export function registerSettings() {
     });
     game.settings.register(MOD, "chatCardsFoldDescription", {
         name: "Replier la description par défaut",
-        hint: "La description de l'objet/sort est repliée à l'ouverture de la carte (un clic sur l'en-tête la déplie). Décoché : la description est affichée d'emblée.",
-        scope: "world", config: false, type: Boolean, default: true
+        hint: "La description de l'objet/sort est repliée à l'ouverture de la carte ; un clic sur l'en-tête la déplie (mécanisme natif dnd5e). Décoché : la description est affichée d'emblée. Pilote le réglage dnd5e « Auto Collapse Item Cards » de chaque client.",
+        scope: "world", config: false, type: Boolean, default: true,
+        onChange: () => applyChatCardPrefs()
     });
     // Couleur de fond des cartes de chat — PAR JOUEUR (défaut : blanc crème).
     game.settings.register(MOD, "chatCardColor", {

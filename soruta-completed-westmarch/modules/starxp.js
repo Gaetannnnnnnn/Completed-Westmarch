@@ -285,24 +285,26 @@ function injectWidget(app, root) {
 
     // On cherche l'emplacement de l'XP natif ; à défaut, on pose le widget
     // près du niveau, puis en dernier recours dans l'en-tête de la fiche.
+    // Emplacement de l'XP native dnd5e (character-header.hbs) :
+    //   div.xp-label (« valeur / max ») + div.xp-bar (barre de progression).
+    // On place le compteur d'étoiles À LA PLACE de ce bloc, puis on masque
+    // l'XP native. À défaut (autres fiches), on retombe sur des repères larges.
     const xpAnchor =
+        root.querySelector(".xp-label") ||
         root.querySelector(".xp-bar") ||
         root.querySelector('input[name="system.details.xp.value"]')?.closest(".xp, .meter, .form-group, li, div") ||
-        root.querySelector(".header-details .xp") ||
-        root.querySelector('[class~="xp"]');
+        root.querySelector(".header-details .xp");
 
-    if (xpAnchor?.parentElement) {
-        xpAnchor.parentElement.insertBefore(node, xpAnchor);
+    if (xpAnchor) {
+        xpAnchor.insertAdjacentElement("afterend", node);   // le widget prend la place de l'XP
     } else {
-        const header = root.querySelector(".sheet-header, .window-content .header, header");
+        const header = root.querySelector(".sheet-header .right, .sheet-header, .window-content .header, header");
         if (header) header.appendChild(node);
         else root.prepend(node);
     }
 
     // Masque l'affichage d'XP natif (valeur/max « 0 / 300 » + barre de
-    // progression), SANS toucher aux boutons (le bouton de montée de niveau
-    // de base reste cliquable). On cible « xp » comme mot-clé de classe entier
-    // (évite « expertise » qui contient la sous-chaîne « xp »).
+    // progression), SANS toucher aux boutons (montée de niveau, repos…).
     hideNativeXp(root, node);
 
     // Champ éditable MJ → écrit le compteur d'étoiles.
@@ -317,7 +319,7 @@ function injectWidget(app, root) {
 
 // Masque l'XP native (valeur/max + barre) en conservant les boutons.
 function hideNativeXp(root, keep) {
-    const nodes = root.querySelectorAll('.xp-bar, [class~="xp"], [data-property="system.details.xp.value"]');
+    const nodes = root.querySelectorAll('.xp-label, .xp-bar, [class~="xp"], [data-property="system.details.xp.value"]');
     nodes.forEach(el => {
         if (el === keep || el.closest(".scwm-starxp")) return;
         if (el.tagName === "BUTTON") return;                 // garder les boutons

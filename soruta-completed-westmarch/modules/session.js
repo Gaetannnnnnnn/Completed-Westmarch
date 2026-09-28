@@ -269,19 +269,30 @@ function promptSessionClose(partyId) {
 
     const starOn = starXpEnabled();
 
-    // Intrigues (tags) prédéfinies dans les réglages → cases à cocher.
-    const allTags = (game.settings.get(MOD, "sessionTags") || []).filter(Boolean);
-    const tagsBlock = allTags.length
-        ? `<div style="margin-top:10px;">
-                <label style="display:block;font-weight:bold;margin-bottom:4px;">Intrigues liées</label>
-                <div class="scwm-close-tags" style="display:flex;flex-wrap:wrap;gap:6px;">
-                    ${allTags.map(t => `
-                        <label style="display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border:1px solid rgba(154,123,30,0.5);border-radius:12px;cursor:pointer;font-size:.9em;">
-                            <input type="checkbox" class="scwm-close-tag" value="${esc(t)}"> ${esc(t)}
-                        </label>`).join("")}
-                </div>
-           </div>`
-        : `<p style="margin-top:8px;font-size:.82em;opacity:.6;">Astuce : définissez des intrigues dans Paramètres → Système de Party pour pouvoir taguer vos rapports.</p>`;
+    // Intrigues (tags) : liste PARTAGÉE (réglages, monde) + liste PERSO du MJ.
+    const worldTags = (game.settings.get(MOD, "sessionTags") || []).filter(Boolean);
+    const persoTags = (game.settings.get(MOD, "sessionTagsPersonal") || []).filter(Boolean);
+    const tagChip = (t) => `
+        <label style="display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border:1px solid rgba(154,123,30,0.5);border-radius:12px;cursor:pointer;font-size:.9em;">
+            <input type="checkbox" class="scwm-close-tag" value="${esc(t)}"> ${esc(t)}
+        </label>`;
+    const tagsBlock = `
+        <div style="margin-top:10px;">
+            <label style="display:block;font-weight:bold;margin-bottom:4px;">Intrigues liées</label>
+            ${worldTags.length
+                ? `<div class="scwm-close-tags" style="display:flex;flex-wrap:wrap;gap:6px;">${worldTags.map(tagChip).join("")}</div>`
+                : `<p style="font-size:.8em;opacity:.6;margin:0;">Aucune intrigue partagée (Paramètres → Système de Party).</p>`}
+            <label style="display:block;font-weight:bold;margin:8px 0 4px;">Mes intrigues
+                <span style="font-weight:400;opacity:.6;font-size:.85em;">— perso, pour organiser vos expéditions</span></label>
+            <div class="scwm-close-tags scwm-close-tags-perso" style="display:flex;flex-wrap:wrap;gap:6px;">${persoTags.map(tagChip).join("")}</div>
+            <div style="display:flex;gap:4px;margin-top:6px;">
+                <input type="text" class="scwm-close-newtag" placeholder="Nouvelle intrigue perso…" style="flex:1 1 auto;min-width:0;">
+                <button type="button" class="scwm-close-addtag"
+                        style="flex:0 0 auto;padding:2px 10px;border-radius:4px;cursor:pointer;border:1px solid rgba(201,162,39,0.4);background:rgba(201,162,39,0.12);color:#c9a227;">
+                    <i class="fa-solid fa-plus"></i> Ajouter
+                </button>
+            </div>
+        </div>`;
 
     const xpBlock = pcs.length ? `
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;
@@ -333,6 +344,19 @@ function promptSessionClose(partyId) {
         return { type: "xp", perActor, actorIds: pcs.map(p => p.actorId) };
     };
 
+    // Récupère les tags cochés ET persiste les nouveaux tags PERSO (tapés à la
+    // volée) dans la liste perso du MJ (scope utilisateur), s'ils ne sont ni
+    // partagés ni déjà connus.
+    const readTags = async (root) => {
+        const tags = [...root.querySelectorAll(".scwm-close-tag:checked")].map(c => c.value);
+        const worldSet = new Set(game.settings.get(MOD, "sessionTags") || []);
+        const perso = game.settings.get(MOD, "sessionTagsPersonal") || [];
+        const persoSet = new Set(perso.map(x => String(x).toLowerCase()));
+        const add = tags.filter(t => !worldSet.has(t) && !persoSet.has(t.toLowerCase()));
+        if (add.length) { try { await game.settings.set(MOD, "sessionTagsPersonal", [...perso, ...add]); } catch (e) {} }
+        return tags;
+    };
+
     const dlg = new foundry.applications.api.DialogV2({
         window: { title: "Clôture de session", icon: "fa-solid fa-flag-checkered" },
         content,
@@ -343,7 +367,7 @@ function promptSessionClose(partyId) {
                     const root = dialog.element;
                     const notes = root.querySelector(".scwm-close-notes")?.value ?? "";
                     const defer = !!root.querySelector(".scwm-defer-award")?.checked;
-                    const tags = [...root.querySelectorAll(".scwm-close-tag:checked")].map(c => c.value);
+                    const tags = await readTags(root);
                     const award = readAward(root);
                     const starN = award.type === "stars" ? award.n : 0;
                     if (!defer) await applyDeferredAward(award);   // appliqué de suite si non différé
@@ -356,7 +380,7 @@ function promptSessionClose(partyId) {
                     const root = dialog.element;
                     const notes = root.querySelector(".scwm-close-notes")?.value ?? "";
                     const defer = !!root.querySelector(".scwm-defer-award")?.checked;
-                    const tags = [...root.querySelectorAll(".scwm-close-tag:checked")].map(c => c.value);
+                    const tags = await readTags(root);
                     const award = readAward(root);
                     const starN = award.type === "stars" ? award.n : 0;
                     if (!defer) await applyDeferredAward(award);   // non différé : appliqué même en brouillon
@@ -373,6 +397,26 @@ function promptSessionClose(partyId) {
 
     dlg.render({ force: true }).then(() => {
         const root = dlg.element;
+
+        // Ajout d'une intrigue perso à la volée (chip cochée ; persistée à la
+        // validation via readTags). Câblé dans TOUS les cas (étoiles ou XP).
+        const newInput = root?.querySelector(".scwm-close-newtag");
+        const persoBox = root?.querySelector(".scwm-close-tags-perso");
+        const addTag = () => {
+            const v = (newInput?.value || "").trim();
+            if (!v || !persoBox) return;
+            if ([...root.querySelectorAll(".scwm-close-tag")].some(c => c.value.toLowerCase() === v.toLowerCase())) { newInput.value = ""; return; }
+            const lbl = document.createElement("label");
+            lbl.style.cssText = "display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border:1px solid rgba(154,123,30,0.5);border-radius:12px;cursor:pointer;font-size:.9em;";
+            const cb = document.createElement("input");
+            cb.type = "checkbox"; cb.className = "scwm-close-tag"; cb.value = v; cb.checked = true;
+            lbl.appendChild(cb); lbl.appendChild(document.createTextNode(" " + v));
+            persoBox.appendChild(lbl);
+            newInput.value = "";
+        };
+        root?.querySelector(".scwm-close-addtag")?.addEventListener("click", (e) => { e.preventDefault(); addTag(); });
+        newInput?.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addTag(); } });
+
         if (starOn) { try { wireStarAwardBlock(root); } catch (e) {} return; }
         const allInput = root?.querySelector(".scwm-xp-all");
         if (allInput) {

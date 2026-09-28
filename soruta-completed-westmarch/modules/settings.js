@@ -191,6 +191,11 @@ export function registerSettings() {
     game.settings.register(MOD, "sessionTags", {
         scope: "world", config: false, type: Array, default: []
     });
+    // Intrigues PERSO de chaque MJ (scope utilisateur) : créées à la volée depuis
+    // « Clore la session », gardées en mémoire, séparées de la liste partagée.
+    game.settings.register(MOD, "sessionTagsPersonal", {
+        scope: "user", config: false, type: Array, default: []
+    });
 
     // ============================================================
     // SYSTÈME D'ÉTOILES (XP par étoiles)

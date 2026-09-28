@@ -907,20 +907,26 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             <p style="opacity:.7;font-size:.85em;margin:2px 0 0;">Appliquée au moment de l'envoi du rapport.</p>`;
     }
 
-    // Éditeur des intrigues (tags) d'un rapport — cases cochables (liste réglages).
+    // Éditeur des intrigues (tags) d'un rapport — partagées (réglages) + perso MJ.
     #tagEditorHtml(d) {
-        const all = (game.settings.get(MOD, "sessionTags") || []).filter(Boolean);
-        if (!all.length) {
-            return `<h3><i class="fa-solid fa-puzzle-piece"></i> Intrigues</h3>
-                <p style="opacity:.6;font-size:.85em;">Aucune intrigue définie. Ajoutez-en dans Paramètres → Système de Party.</p>`;
-        }
+        const world = (game.settings.get(MOD, "sessionTags") || []).filter(Boolean);
+        const perso = (game.settings.get(MOD, "sessionTagsPersonal") || []).filter(Boolean);
         const sel = new Set(d.tags ?? []);
-        const chips = all.map(t => `
+        // Tags posés sur le rapport mais absents des deux listes → restent visibles.
+        const extra = (d.tags ?? []).filter(t => !world.includes(t) && !perso.includes(t));
+        const chip = (t) => `
             <label class="scwm-casier-tagchip" style="display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border:1px solid rgba(154,123,30,0.5);border-radius:12px;cursor:pointer;font-size:.9em;${sel.has(t) ? "background:rgba(154,123,30,0.18);" : ""}">
                 <input type="checkbox" class="scwm-casier-tag" value="${esc(t)}" ${sel.has(t) ? "checked" : ""}> ${esc(t)}
-            </label>`).join("");
+            </label>`;
+        const persoAll = [...perso, ...extra];
         return `<h3><i class="fa-solid fa-puzzle-piece"></i> Intrigues liées</h3>
-            <div class="scwm-casier-tags" style="display:flex;flex-wrap:wrap;gap:6px;">${chips}</div>`;
+            ${world.length ? `<div class="scwm-casier-tags" style="display:flex;flex-wrap:wrap;gap:6px;">${world.map(chip).join("")}</div>` : ""}
+            <div style="font-size:.85em;opacity:.7;margin:6px 0 2px;">Mes intrigues (perso)</div>
+            <div class="scwm-casier-tags scwm-casier-tags-perso" style="display:flex;flex-wrap:wrap;gap:6px;">${persoAll.map(chip).join("") || "<span style='opacity:.5;font-size:.85em;'>—</span>"}</div>
+            <div style="display:flex;gap:4px;margin-top:6px;max-width:340px;">
+                <input type="text" class="scwm-casier-newtag" placeholder="Nouvelle intrigue perso…" style="flex:1 1 auto;min-width:0;">
+                <button type="button" class="scwm-casier-addtag" style="flex:0 0 auto;padding:2px 10px;border-radius:4px;cursor:pointer;border:1px solid rgba(201,162,39,0.4);background:rgba(201,162,39,0.12);color:#c9a227;"><i class="fa-solid fa-plus"></i> Ajouter</button>
+            </div>`;
     }
 
     // ---- Onglet Intrigues : rapports regroupés par tag ----
@@ -1242,6 +1248,26 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             const chip = cb.closest(".scwm-casier-tagchip");
             if (chip) chip.style.background = cb.checked ? "rgba(154,123,30,0.18)" : "";
         }));
+
+        // Créer une intrigue PERSO à la volée dans le Casier.
+        const newTagInput = root.querySelector(".scwm-casier-newtag");
+        const addPersoTag = async () => {
+            const v = (newTagInput?.value || "").trim();
+            if (!v) return;
+            const d = myDrafts().find(x => x.id === this.#selectedId);
+            if (!d) return;
+            const perso = game.settings.get(MOD, "sessionTagsPersonal") || [];
+            if (!perso.some(x => String(x).toLowerCase() === v.toLowerCase())) {
+                try { await game.settings.set(MOD, "sessionTagsPersonal", [...perso, v]); } catch (e) {}
+            }
+            d.tags = [...new Set([...(d.tags ?? []), v])];
+            await saveSessionDraft(d);
+            await setSessionLogTags(d.id, d.tags);
+            if (newTagInput) newTagInput.value = "";
+            this.render();
+        };
+        root.querySelector(".scwm-casier-addtag")?.addEventListener("click", (e) => { e.preventDefault(); addPersoTag(); });
+        newTagInput?.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addPersoTag(); } });
 
         // Édition de l'attribution en attente (étoiles ou XP).
         const awardBox = root.querySelector(".scwm-casier-award");

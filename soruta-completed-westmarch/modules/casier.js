@@ -13,7 +13,8 @@
 import { MOD } from "./const.js";
 import { getExpeditions, formatDate } from "./carnet.js";
 import {
-    getSessionDrafts, saveSessionDraft, deleteSessionDraft, sendSessionReport, getSessionLog, expeditionSessionCount
+    getSessionDrafts, saveSessionDraft, deleteSessionDraft, sendSessionReport, getSessionLog, expeditionSessionCount,
+    applyDeferredAward, setSessionLogTags
 } from "./session.js";
 import {
     getCreationRequests, approveCreation, rejectCreation,
@@ -514,6 +515,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             ...(cvEnabled ? [{ key: "validation", icon: "fa-id-card", label: `Validation${cvCount ? ` (${cvCount})` : ""}` }] : [])
         ];
         const statTabs = [
+            { key: "intrigues",   icon: "fa-puzzle-piece", label: "Intrigues" },
             { key: "gms",         icon: "fa-users-gear",   label: "Suivi des GM" },
             { key: "registre",    icon: "fa-address-book", label: "Registre" },
             { key: "stats",       icon: "fa-chart-pie",    label: "Statistiques" },
@@ -549,6 +551,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             const draft = drafts.find(d => d.id === this.#selectedId);
             detail = draft ? this.#draftDetail(draft) : `<div class="scwm-casier-placeholder"><i class="fa-solid fa-book-open"></i><p>Sélectionnez un rapport à finaliser dans le livret.</p></div>`;
         }
+        else if (this.#tab === "intrigues")   detail = this.#intriguesDetail();
         else if (this.#tab === "expeditions") detail = this.#expeditionsDetail();
         else if (this.#tab === "downtime")    detail = this.#downtimeDetail();
         else if (this.#tab === "registre")    detail = this.#registreDetail();
@@ -853,6 +856,10 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                 <h3>Joueurs</h3>
                 <ul class="scwm-casier-players">${players}</ul>
 
+                ${this.#tagEditorHtml(d)}
+
+                ${this.#awardEditorHtml(d)}
+
                 ${enemies ? `<h3>Ennemis rencontrés</h3><ul>${enemies}</ul>` : ""}
                 ${npcs    ? `<h3>PNJ rencontrés</h3><ul>${npcs}</ul>` : ""}
                 ${items   ? `<h3>Objets récupérés</h3><ul>${items}</ul>` : ""}
@@ -865,6 +872,97 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                     <button type="button" class="scwm-casier-delete"><i class="fa-solid fa-trash"></i> Supprimer</button>
                 </div>
             </div>`;
+    }
+
+    // Éditeur de l'attribution EN ATTENTE (appliquée seulement à l'envoi).
+    #awardEditorHtml(d) {
+        const aw = d.pendingAward;
+        if (!aw) return "";
+        if (aw.type === "stars") {
+            const n = Math.max(1, Math.min(3, aw.n || 1));
+            const stars = [1, 2, 3].map(i =>
+                `<button type="button" class="scwm-casier-star" data-n="${i}"
+                    style="background:none;border:none;cursor:pointer;font-size:24px;line-height:1;padding:0 2px;color:${i <= n ? "#e6be3c" : "#888"};">★</button>`
+            ).join("");
+            return `
+                <h3><i class="fa-solid fa-hourglass-half"></i> Étoiles à attribuer (en attente d'envoi)</h3>
+                <div class="scwm-casier-award" data-type="stars" style="display:flex;align-items:center;gap:6px;">
+                    ${stars}<span class="scwm-casier-star-count" style="margin-left:8px;font-weight:600;">${n} étoile${n > 1 ? "s" : ""}</span>
+                </div>
+                <p style="opacity:.7;font-size:.85em;margin:2px 0 0;">Attribuées à toute la party au moment de l'envoi du rapport.</p>`;
+        }
+        // XP : un champ par PJ.
+        const ids = aw.actorIds ?? Object.keys(aw.perActor ?? {});
+        const rows = ids.map(id => {
+            const name = game.actors.get(id)?.name ?? id;
+            const gain = aw.perActor?.[id] ?? 0;
+            return `<div style="display:flex;align-items:center;gap:8px;margin:3px 0;">
+                <label style="flex:1;">${esc(name)}</label>
+                <input type="number" min="0" step="1" class="scwm-casier-xp" data-actor-id="${esc(id)}" value="${gain}" style="width:90px;">
+            </div>`;
+        }).join("") || "<p>—</p>";
+        return `
+            <h3><i class="fa-solid fa-hourglass-half"></i> XP à attribuer (en attente d'envoi)</h3>
+            <div class="scwm-casier-award" data-type="xp">${rows}</div>
+            <p style="opacity:.7;font-size:.85em;margin:2px 0 0;">Appliquée au moment de l'envoi du rapport.</p>`;
+    }
+
+    // Éditeur des intrigues (tags) d'un rapport — cases cochables (liste réglages).
+    #tagEditorHtml(d) {
+        const all = (game.settings.get(MOD, "sessionTags") || []).filter(Boolean);
+        if (!all.length) {
+            return `<h3><i class="fa-solid fa-puzzle-piece"></i> Intrigues</h3>
+                <p style="opacity:.6;font-size:.85em;">Aucune intrigue définie. Ajoutez-en dans Paramètres → Système de Party.</p>`;
+        }
+        const sel = new Set(d.tags ?? []);
+        const chips = all.map(t => `
+            <label class="scwm-casier-tagchip" style="display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border:1px solid rgba(154,123,30,0.5);border-radius:12px;cursor:pointer;font-size:.9em;${sel.has(t) ? "background:rgba(154,123,30,0.18);" : ""}">
+                <input type="checkbox" class="scwm-casier-tag" value="${esc(t)}" ${sel.has(t) ? "checked" : ""}> ${esc(t)}
+            </label>`).join("");
+        return `<h3><i class="fa-solid fa-puzzle-piece"></i> Intrigues liées</h3>
+            <div class="scwm-casier-tags" style="display:flex;flex-wrap:wrap;gap:6px;">${chips}</div>`;
+    }
+
+    // ---- Onglet Intrigues : rapports regroupés par tag ----
+    #intriguesDetail() {
+        const log = getSessionLog();
+        const all = (game.settings.get(MOD, "sessionTags") || []).filter(Boolean);
+        const byTag = new Map();
+        for (const e of log) for (const t of (e.tags ?? [])) {
+            if (!byTag.has(t)) byTag.set(t, []);
+            byTag.get(t).push(e);
+        }
+        const tags = [...new Set([...all, ...byTag.keys()])].sort((a, b) => a.localeCompare(b, "fr", { sensitivity: "base" }));
+
+        if (!tags.length) {
+            return `<div class="scwm-casier-detail">
+                <h2><i class="fa-solid fa-puzzle-piece"></i> Intrigues</h2>
+                <p class="scwm-casier-placeholder">Aucune intrigue définie. Ajoutez-en dans Paramètres → Système de Party, puis taguez vos rapports à la clôture de session.</p>
+            </div>`;
+        }
+
+        const sections = tags.map(t => {
+            const entries = (byTag.get(t) ?? []).slice().sort((a, b) => (a.dateISO < b.dateISO ? 1 : -1));
+            const gms = [...new Set(entries.map(e => e.gmName).filter(Boolean))];
+            const players = [...new Set(entries.flatMap(e => (e.players ?? []).map(p => p.name)))]
+                .sort((a, b) => a.localeCompare(b, "fr", { sensitivity: "base" }));
+            const rows = entries.map(e =>
+                `<li>${esc(realDateLabel(e.dateISO))} — MJ <strong>${esc(e.gmName ?? "—")}</strong> — ${(e.players ?? []).map(p => esc(p.name)).join(", ") || "—"}</li>`
+            ).join("") || "<li style='opacity:.6;'>Aucune session taguée pour l'instant.</li>";
+            return `<section class="scwm-intrigue" style="margin:0 0 16px;padding:8px 10px;border:1px solid rgba(154,123,30,0.3);border-radius:6px;">
+                <h3 style="margin:0 0 6px;"><i class="fa-solid fa-puzzle-piece"></i> ${esc(t)}
+                    <span style="opacity:.6;font-weight:400;font-size:.85em;">(${entries.length} session${entries.length > 1 ? "s" : ""})</span></h3>
+                <p style="margin:2px 0;font-size:.9em;"><strong>MJ impliqués :</strong> ${gms.map(esc).join(", ") || "—"}</p>
+                <p style="margin:2px 0;font-size:.9em;"><strong>Joueurs liés :</strong> ${players.map(esc).join(", ") || "—"}</p>
+                <ul style="margin:6px 0 0;padding-left:18px;font-size:.9em;">${rows}</ul>
+            </section>`;
+        }).join("");
+
+        return `<div class="scwm-casier-detail">
+            <h2><i class="fa-solid fa-puzzle-piece"></i> Intrigues</h2>
+            <p class="scwm-casier-meta">Rapports regroupés par intrigue — pour relier plusieurs quêtes/MJ, préparer une récompense finale ou retrouver les joueurs concernés.</p>
+            ${sections}
+        </div>`;
     }
 
     // ---- Onglet Registre des personnages ----
@@ -1132,15 +1230,58 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             });
         }
 
+        // Édition des intrigues (tags) du rapport → brouillon + journal synchro.
+        root.querySelectorAll(".scwm-casier-tag").forEach(cb => cb.addEventListener("change", async () => {
+            const d = myDrafts().find(x => x.id === this.#selectedId);
+            if (!d) return;
+            const tags = [...root.querySelectorAll(".scwm-casier-tag:checked")].map(c => c.value);
+            d.tags = tags;
+            await saveSessionDraft(d);
+            await setSessionLogTags(d.id, tags);
+            // reflet visuel de la puce
+            const chip = cb.closest(".scwm-casier-tagchip");
+            if (chip) chip.style.background = cb.checked ? "rgba(154,123,30,0.18)" : "";
+        }));
+
+        // Édition de l'attribution en attente (étoiles ou XP).
+        const awardBox = root.querySelector(".scwm-casier-award");
+        if (awardBox?.dataset.type === "stars") {
+            const paint = (n) => {
+                awardBox.querySelectorAll(".scwm-casier-star").forEach(b => { b.style.color = Number(b.dataset.n) <= n ? "#e6be3c" : "#888"; });
+                const c = awardBox.querySelector(".scwm-casier-star-count");
+                if (c) c.textContent = `${n} étoile${n > 1 ? "s" : ""}`;
+            };
+            awardBox.querySelectorAll(".scwm-casier-star").forEach(b => b.addEventListener("click", async () => {
+                const n = Math.max(1, Math.min(3, Number(b.dataset.n) || 1));
+                const d = myDrafts().find(x => x.id === this.#selectedId);
+                if (!d?.pendingAward) return;
+                d.pendingAward.n = n;
+                await saveSessionDraft(d);
+                paint(n);
+            }));
+        } else if (awardBox?.dataset.type === "xp") {
+            awardBox.querySelectorAll(".scwm-casier-xp").forEach(inp => inp.addEventListener("change", async () => {
+                const d = myDrafts().find(x => x.id === this.#selectedId);
+                if (!d?.pendingAward) return;
+                d.pendingAward.perActor ??= {};
+                const g = Math.max(0, Math.round(Number(inp.value) || 0));
+                if (g) d.pendingAward.perActor[inp.dataset.actorId] = g;
+                else delete d.pendingAward.perActor[inp.dataset.actorId];
+                await saveSessionDraft(d);
+            }));
+        }
+
         root.querySelector(".scwm-casier-send")?.addEventListener("click", async () => {
             const d = myDrafts().find(x => x.id === this.#selectedId);
             if (!d) return;
             if (notes) d.notes = notes.value;
             const ok = await sendSessionReport(d);
             if (!ok) return;   // avertissement déjà émis (webhook manquant / échec)
+            // Attribution différée : appliquée SEULEMENT maintenant, l'envoi ayant réussi.
+            if (d.pendingAward) { try { await applyDeferredAward(d.pendingAward); } catch (e) { console.warn("[WestMarch] Attribution différée :", e); } }
             await deleteSessionDraft(d.id);
             this.#selectedId = null;
-            ui.notifications.info("Rapport de session envoyé sur Discord.");
+            ui.notifications.info(d.pendingAward ? "Rapport envoyé et attribution appliquée." : "Rapport de session envoyé sur Discord.");
             refreshCasierBadge();
             this.render();
         });

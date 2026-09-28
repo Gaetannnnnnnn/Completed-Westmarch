@@ -187,6 +187,10 @@ export function registerSettings() {
     game.settings.register(MOD, "sessionLog", {
         scope: "world", config: false, type: Array, default: []
     });
+    // Intrigues (tags) prédéfinies pour relier des rapports d'une même trame.
+    game.settings.register(MOD, "sessionTags", {
+        scope: "world", config: false, type: Array, default: []
+    });
 
     // ============================================================
     // SYSTÈME D'ÉTOILES (XP par étoiles)
@@ -1029,7 +1033,7 @@ const CATEGORIES = [
       keys: ["commonFolderPJ","autoPlayerFolder","gmAutoFolderParent","commonFolderPNJ","commonFolderNewChars","commonPackPNJ","commonPackCemetery","commonPackCreatures","commonPackCraft"] },
     { firstKey: "enableParty", master: "enableParty",           icon: "fa-users",           title: "Système de Party",
       desc: "Groupes de joueurs : chat filtré, combat par party, téléportation de groupe, journal de session, anti-cheat.",
-      keys: ["enableParty","enableJoinScene","enableShowParty","enablePlayerGrouping","enableGoWithPartyScenes","enableGoWithPartyJournal","enableChatFilter","enableChatTabs","enableTrade","enableNoteLink","enableSessionLog","sessionLogWebhookUrl","sessionLogForum","enableCombatParty","enableCombatTurnLock","enablePartyPause","enableAntiCheat"] },
+      keys: ["enableParty","enableJoinScene","enableShowParty","enablePlayerGrouping","enableGoWithPartyScenes","enableGoWithPartyJournal","enableChatFilter","enableChatTabs","enableTrade","enableNoteLink","enableSessionLog","sessionLogWebhookUrl","sessionLogForum","sessionTags","enableCombatParty","enableCombatTurnLock","enablePartyPause","enableAntiCheat"] },
     { firstKey: "enableStarXp", master: "enableStarXp", icon: "fa-star", title: "Système d'étoiles",
       desc: "XP par étoiles : le MJ attribue 1 à 3 étoiles à la clôture de session ; le tableau fixe le coût en étoiles de chaque niveau (avec le total = nombre de sessions). Sur la fiche, l'XP est remplacée par un compteur d'étoiles.",
       keys: ["enableStarXp","starXpLevels"] },
@@ -1447,6 +1451,7 @@ function settingControlHtml(key) {
     const cfg = game.settings.settings.get(`${MOD}.${key}`);
     if (!cfg) return "";
     if (key === "starXpLevels") return starTableHtml(cfg);
+    if (key === "sessionTags") return tagListControlHtml();
     if (TM_TABLE_SCHEMAS[key]) return tableControlHtml(key, cfg);
     const val    = game.settings.get(MOD, key);
     const reload = cfg.requiresReload ? ` <span style="color:${ACCENT};font-size:.78em;">⟳ rechargement</span>` : "";
@@ -1546,6 +1551,23 @@ function wireCategoryForm(category, root) {
         });
     }
 
+    // Liste d'intrigues (tags) : + ajoute une ligne, × retire.
+    const tagList = root.querySelector(".scwm-tag-list");
+    if (tagList) {
+        const rowsBox = tagList.querySelector(".scwm-tag-rows");
+        tagList.querySelector(".scwm-tag-add")?.addEventListener("click", (e) => {
+            e.preventDefault();
+            rowsBox?.insertAdjacentHTML("beforeend", tagRowHtml(""));
+            rowsBox?.querySelector(".scwm-tag-row:last-child .scwm-tag-input")?.focus();
+        });
+        tagList.addEventListener("click", (e) => {
+            const del = e.target.closest?.(".scwm-tag-del");
+            if (!del) return;
+            e.preventDefault();
+            del.closest(".scwm-tag-row")?.remove();
+        });
+    }
+
     // Table du système d'étoiles : total recalculé en direct.
     const starInputs = [...root.querySelectorAll(".scwm-starxp-input")];
     if (starInputs.length) {
@@ -1583,6 +1605,21 @@ async function saveCategoryForm(category, root, { silent = false } = {}) {
     for (const key of category.keys) {
         const cfg = game.settings.settings.get(`${MOD}.${key}`);
         if (!cfg) continue;
+
+        // Liste d'intrigues (tags) → tableau de chaînes (nettoyé, dédupliqué).
+        if (key === "sessionTags") {
+            const container = root.querySelector(`.scwm-tag-list[data-key="${key}"]`);
+            const seen = new Set();
+            const tags = container
+                ? [...container.querySelectorAll(".scwm-tag-input")]
+                    .map(i => i.value.trim())
+                    .filter(v => v && !seen.has(v.toLowerCase()) && seen.add(v.toLowerCase()))
+                : [];
+            if (JSON.stringify(game.settings.get(MOD, key) ?? []) !== JSON.stringify(tags)) {
+                await game.settings.set(MOD, key, tags);
+            }
+            continue;
+        }
 
         // Table du système d'étoiles (niveau → étoiles).
         if (key === "starXpLevels") {
@@ -1659,6 +1696,34 @@ function sceneOptionsHtml(currentVal) {
         `<option value="">— Aucune —</option>`,
         ...game.scenes.contents.map(s => `<option value="${s.id}" ${s.id === currentVal ? "selected" : ""}>${s.name}</option>`)
     ].join("");
+}
+
+// Liste d'intrigues (tags de rapports) — rangées de champs texte + / −.
+function tagRowHtml(val = "") {
+    return `<div class="scwm-tag-row" style="display:flex;gap:4px;margin-bottom:4px;">
+        <input type="text" class="scwm-tag-input" value="${escapeAttr(val)}" placeholder="Nom de l'intrigue…" style="flex:1 1 auto;min-width:0;">
+        <button type="button" class="scwm-tag-del" title="Retirer cette intrigue"
+                style="flex:0 0 auto;width:30px;border-radius:4px;cursor:pointer;
+                       border:1px solid rgba(192,57,43,0.4);background:rgba(192,57,43,0.12);color:#e58f8f;">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    </div>`;
+}
+function tagListControlHtml() {
+    const tags = (game.settings.get(MOD, "sessionTags") || []).filter(Boolean);
+    const rows = tags.map(t => tagRowHtml(t)).join("");
+    return `<div class="scwm-set" data-key="sessionTags" style="padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.06);">
+        <label style="display:block;font-weight:600;margin-bottom:4px;">Intrigues (tags de rapports)</label>
+        <p style="margin:0 0 6px;font-size:.8em;color:#999;">Liste d'intrigues/trames que le MJ pourra cocher sur ses rapports de session, pour relier plusieurs quêtes (récompense finale, joueurs liés, recrutement…).</p>
+        <div class="scwm-tag-list" data-key="sessionTags">
+            <div class="scwm-tag-rows">${rows}</div>
+            <button type="button" class="scwm-tag-add"
+                    style="margin-top:2px;padding:3px 10px;border-radius:4px;cursor:pointer;
+                           border:1px solid rgba(201,162,39,0.4);background:rgba(201,162,39,0.12);color:#c9a227;">
+                <i class="fa-solid fa-plus"></i> Ajouter une intrigue
+            </button>
+        </div>
+    </div>`;
 }
 
 // Une ligne « carte supplémentaire » : sélecteur de scène + bouton retirer.

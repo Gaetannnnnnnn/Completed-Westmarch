@@ -269,6 +269,20 @@ function promptSessionClose(partyId) {
 
     const starOn = starXpEnabled();
 
+    // Intrigues (tags) prédéfinies dans les réglages → cases à cocher.
+    const allTags = (game.settings.get(MOD, "sessionTags") || []).filter(Boolean);
+    const tagsBlock = allTags.length
+        ? `<div style="margin-top:10px;">
+                <label style="display:block;font-weight:bold;margin-bottom:4px;">Intrigues liées</label>
+                <div class="scwm-close-tags" style="display:flex;flex-wrap:wrap;gap:6px;">
+                    ${allTags.map(t => `
+                        <label style="display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border:1px solid rgba(154,123,30,0.5);border-radius:12px;cursor:pointer;font-size:.9em;">
+                            <input type="checkbox" class="scwm-close-tag" value="${esc(t)}"> ${esc(t)}
+                        </label>`).join("")}
+                </div>
+           </div>`
+        : `<p style="margin-top:8px;font-size:.82em;opacity:.6;">Astuce : définissez des intrigues dans Paramètres → Système de Party pour pouvoir taguer vos rapports.</p>`;
+
     const xpBlock = pcs.length ? `
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;
                         padding-bottom:8px;border-bottom:1px solid var(--color-border-light-tertiary,#bbb);">
@@ -293,30 +307,30 @@ function promptSessionClose(partyId) {
                 <textarea class="scwm-close-notes" rows="4" style="width:100%;box-sizing:border-box;"
                     placeholder="Résumé, événements marquants… (peut être complété plus tard dans le Casier)"></textarea>
             </div>
+            ${tagsBlock}
+            ${pcs.length ? `
+            <label style="display:flex;align-items:flex-start;gap:8px;margin-top:10px;cursor:pointer;">
+                <input type="checkbox" class="scwm-defer-award" style="margin-top:2px;flex:0 0 auto;">
+                <span style="font-size:.9em;">N'attribuer ${starOn ? "les étoiles" : "l'XP"} qu'<strong>une fois le rapport envoyé sur Discord</strong>.
+                    <span style="opacity:.7;">Pratique si vous hésitez : vous pourrez encore l'ajuster dans le Casier avant l'envoi.</span></span>
+            </label>` : ""}
         </form>`;
 
     let resolveFn;
     const done = new Promise(res => { resolveFn = res; });
 
-    // Applique l'attribution ; renvoie le nombre d'étoiles données (0 en mode XP).
-    const applyAward = async (root) => {
+    // Lit l'attribution saisie SANS l'appliquer : renvoie un descripteur
+    // { type:"stars", n, actorIds } ou { type:"xp", perActor:{id:gain} }.
+    const readAward = (root) => {
         if (starOn) {
-            const n = readStarAward(root);
-            for (const pc of pcs) {
-                const actor = game.actors.get(pc.actorId);
-                if (actor) await awardStars(actor, n);
-            }
-            return n;
+            return { type: "stars", n: readStarAward(root), actorIds: pcs.map(p => p.actorId) };
         }
+        const perActor = {};
         for (const input of root.querySelectorAll(".scwm-xp-pc")) {
             const gain = Math.max(0, Math.round(Number(input.value) || 0));
-            if (!gain) continue;
-            const actor = game.actors.get(input.dataset.actorId);
-            if (!actor) continue;
-            const cur = actor.system?.details?.xp?.value ?? 0;
-            await actor.update({ "system.details.xp.value": cur + gain });
+            if (gain) perActor[input.dataset.actorId] = gain;
         }
-        return 0;
+        return { type: "xp", perActor, actorIds: pcs.map(p => p.actorId) };
     };
 
     const dlg = new foundry.applications.api.DialogV2({
@@ -328,8 +342,12 @@ function promptSessionClose(partyId) {
                 callback: async (event, button, dialog) => {
                     const root = dialog.element;
                     const notes = root.querySelector(".scwm-close-notes")?.value ?? "";
-                    const starN = await applyAward(root);
-                    resolveFn({ action: "send", notes, starN });
+                    const defer = !!root.querySelector(".scwm-defer-award")?.checked;
+                    const tags = [...root.querySelectorAll(".scwm-close-tag:checked")].map(c => c.value);
+                    const award = readAward(root);
+                    const starN = award.type === "stars" ? award.n : 0;
+                    if (!defer) await applyDeferredAward(award);   // appliqué de suite si non différé
+                    resolveFn({ action: "send", notes, starN, defer, award, tags });
                 }
             },
             {
@@ -337,8 +355,12 @@ function promptSessionClose(partyId) {
                 callback: async (event, button, dialog) => {
                     const root = dialog.element;
                     const notes = root.querySelector(".scwm-close-notes")?.value ?? "";
-                    const starN = await applyAward(root);
-                    resolveFn({ action: "draft", notes, starN });
+                    const defer = !!root.querySelector(".scwm-defer-award")?.checked;
+                    const tags = [...root.querySelectorAll(".scwm-close-tag:checked")].map(c => c.value);
+                    const award = readAward(root);
+                    const starN = award.type === "stars" ? award.n : 0;
+                    if (!defer) await applyDeferredAward(award);   // non différé : appliqué même en brouillon
+                    resolveFn({ action: "draft", notes, starN, defer, award, tags });
                 }
             }
         ],
@@ -361,6 +383,30 @@ function promptSessionClose(partyId) {
     });
 
     return done;
+}
+
+// Applique une attribution (descripteur produit par readAward) : étoiles ou XP.
+// Exporté pour être rejoué depuis le Casier au moment de l'envoi Discord.
+export async function applyDeferredAward(desc) {
+    if (!desc) return 0;
+    if (desc.type === "stars") {
+        for (const id of desc.actorIds ?? []) {
+            const actor = game.actors.get(id);
+            if (actor) await awardStars(actor, desc.n);
+        }
+        return desc.n ?? 0;
+    }
+    if (desc.type === "xp") {
+        for (const [id, gain] of Object.entries(desc.perActor ?? {})) {
+            const g = Math.max(0, Math.round(Number(gain) || 0));
+            if (!g) continue;
+            const actor = game.actors.get(id);
+            if (!actor) continue;
+            const cur = actor.system?.details?.xp?.value ?? 0;
+            await actor.update({ "system.details.xp.value": cur + g });
+        }
+    }
+    return 0;
 }
 
 // ============================================================
@@ -459,6 +505,9 @@ export function buildSessionEmbed(data) {
     });
     const fields = [{ name: "Joueurs", value: trunc(playersLines.join("\n") || "—") }];
 
+    if ((data.tags ?? []).length > 0) {
+        fields.push({ name: "🧩 Intrigues", value: trunc(data.tags.map(t => `\`${t}\``).join(" · ")) });
+    }
     if ((data.combatants ?? []).length > 0) {
         const lines = data.combatants.map(e => {
             let l = `**${e.name}**`;
@@ -594,11 +643,24 @@ async function appendSessionLog(data) {
             gmName:  data.gmName ?? game.user.name,
             dateISO: data.dateISO ?? new Date().toISOString(),
             players: (data.players ?? []).map(p => ({ actorId: p.actorId, name: p.name })),
+            tags:    Array.isArray(data.tags) ? [...data.tags] : [],
         };
         const log = getSessionLog();
         log.push(entry);
         await game.settings.set(MOD, "sessionLog", log);
     } catch (e) { console.warn("[WestMarch] Journal de session :", e); }
+}
+
+// Met à jour les tags d'une entrée du journal (édition depuis le Casier) —
+// garde le journal (durable, sessions envoyées incluses) synchro avec le brouillon.
+export async function setSessionLogTags(id, tags) {
+    try {
+        const log = getSessionLog();
+        const entry = log.find(e => e.id === id);
+        if (!entry) return;
+        entry.tags = Array.isArray(tags) ? [...tags] : [];
+        await game.settings.set(MOD, "sessionLog", log);
+    } catch (e) { console.warn("[WestMarch] MAJ tags journal :", e); }
 }
 
 // ============================================================
@@ -627,17 +689,33 @@ async function closeSession(playerListApp) {
 
     // Données du rapport construites AVANT le reset de sessionData.
     const reportData = buildReportData(partyId, xpBeforeById, res.notes, res.starN ?? 0);
+    reportData.tags = Array.isArray(res.tags) ? res.tags : [];
+    // Attribution différée : on la range dans le rapport pour l'appliquer à l'envoi.
+    if (res.defer) reportData.pendingAward = res.award;
 
     // Journalise la session clôturée (assiduité) — envoyée OU brouillon.
     await appendSessionLog(reportData);
 
     if (res.action === "send") {
         const ok = await sendSessionReport(reportData);
-        ui.notifications.info(ok ? "Session close — rapport envoyé sur Discord." : "Session close — rapport NON envoyé (voir avertissement).");
+        if (ok) {
+            if (res.defer) await applyDeferredAward(res.award);   // appliqué APRÈS envoi réussi
+            ui.notifications.info(res.defer ? "Session close — rapport envoyé et attribution appliquée." : "Session close — rapport envoyé sur Discord.");
+        } else if (res.defer) {
+            // Envoi échoué + attribution différée → on ne perd rien : on range le
+            // rapport en brouillon (avec l'attribution en attente) dans le Casier.
+            await saveSessionDraft(reportData);
+            try { ui.controls?.render?.(); } catch (e) {}
+            ui.notifications.warn("Rapport NON envoyé — enregistré dans le Casier ; l'attribution sera appliquée à l'envoi.");
+        } else {
+            ui.notifications.info("Session close — rapport NON envoyé (voir avertissement).");
+        }
     } else if (res.action === "draft") {
         await saveSessionDraft(reportData);
         try { ui.controls?.render?.(); } catch (e) {}   // rafraîchit la pastille du Casier
-        ui.notifications.info("Session close — rapport enregistré dans votre Casier (à finaliser plus tard).");
+        ui.notifications.info(res.defer
+            ? "Session close — rapport au Casier ; l'attribution sera appliquée à l'envoi (ajustable avant)."
+            : "Session close — rapport enregistré dans votre Casier (à finaliser plus tard).");
     }
 
     // Leave Party

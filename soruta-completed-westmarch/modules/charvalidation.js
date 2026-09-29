@@ -489,6 +489,18 @@ export function openPlayerHub() {
             status = "🔒 en stock (non jouable)";
             const dis = atActiveLimit ? "disabled title=\"Limite de personnages actifs atteinte — mettez-en un en stock d'abord\"" : "";
             btns = `<button type="button" class="scwm-cv-act" data-act="activate" data-id="${a.id}" ${dis}><i class="fa-solid fa-lock-open"></i> Activer</button>`;
+        } else if (validated && freeLevelUp()) {
+            // MODE CONFIANCE : montées de niveau SANS validation MJ, mais via le
+            // bouton dédié (déverrouille → avancement → « Terminer » re-verrouille).
+            // Forcer directement sur la fiche verrouillée est bloqué (cf. gardes).
+            if (a.getFlag(MOD, "levelUpGranted") === true) {
+                status = "🛠️ montée de niveau en cours";
+                btns = `<button type="button" class="scwm-cv-act" data-act="finishFree" data-id="${a.id}"><i class="fa-solid fa-lock"></i> Terminer</button>`;
+            } else {
+                status = "🎭 jouable (montées libres)";
+                btns = `<button type="button" class="scwm-cv-act" data-act="levelup" data-id="${a.id}"><i class="fa-solid fa-arrow-up-1-9"></i> Monter de niveau</button>`;
+            }
+            btns += `<button type="button" class="scwm-cv-act" data-act="stock" data-id="${a.id}" title="Mettre en stock"><i class="fa-solid fa-box-archive"></i></button>`;
         } else {
             if (locked && lvlPending)      status = "verrouillé · ⬆️ montée en attente";
             else if (locked)             {
@@ -568,16 +580,35 @@ export function openPlayerHub() {
                     ui.notifications?.info("Fiche soumise pour validation.");
                 } else if (a === "levelup" && ac) {
                     // Auto-déverrouillage : le joueur monte de niveau lui-même. Les
-                    // modifications sont tracées (liste au MJ à la re-soumission),
-                    // donc plus besoin d'un accord préalable du MJ.
+                    // modifications sont tracées (liste au MJ), donc plus besoin
+                    // d'un accord préalable du MJ.
                     await ac.update({
                         [`flags.${MOD}.levelUpGranted`]: true,
                         [`flags.${MOD}.locked`]: false,
                         [`flags.${MOD}.pendingLevelUp`]: false,
                         [`flags.${MOD}.levelUpSnapshot`]: buildSnapshot(ac)
                     });
-                    ChatMessage.create({ whisper: gmIds(), speaker: { alias: "Validation" }, content: `⬆️ <strong>${esc(game.user.name)}</strong> effectue une <strong>montée de niveau</strong> pour <strong>${esc(ac.name)}</strong> (déverrouillage auto ; les modifications seront listées à la re-soumission).` });
-                    ui.notifications?.info("Fiche déverrouillée pour la montée de niveau. Effectuez-la, puis re-soumettez-la pour re-verrouiller.");
+                    if (freeLevelUp()) {
+                        ui.notifications?.info("Fiche déverrouillée : faites votre avancement (bouton de montée de niveau dnd5e/Plutonium), puis cliquez « Terminer ».");
+                    } else {
+                        ChatMessage.create({ whisper: gmIds(), speaker: { alias: "Validation" }, content: `⬆️ <strong>${esc(game.user.name)}</strong> effectue une <strong>montée de niveau</strong> pour <strong>${esc(ac.name)}</strong> (déverrouillage auto ; les modifications seront listées à la re-soumission).` });
+                        ui.notifications?.info("Fiche déverrouillée pour la montée de niveau. Effectuez-la, puis re-soumettez-la pour re-verrouiller.");
+                    }
+                } else if (a === "finishFree" && ac) {
+                    // MODE CONFIANCE : fin de montée de niveau → re-verrouille SANS
+                    // validation MJ. Notifie le MJ (avec le récap) si l'option est active.
+                    const snap = ac.getFlag(MOD, "levelUpSnapshot");
+                    await ac.update({
+                        [`flags.${MOD}.locked`]: true,
+                        [`flags.${MOD}.levelUpGranted`]: false,
+                        [`flags.${MOD}.pendingLevelUp`]: false,
+                        [`flags.${MOD}.-=levelUpSnapshot`]: null,
+                        [`flags.${MOD}.-=levelUpChanges`]: null
+                    });
+                    if (snap && notifyLevelUp()) {
+                        try { postLevelUpDiff(ac, buildDiff(snap, buildSnapshot(ac))); } catch (e) {}
+                    }
+                    ui.notifications?.info("Montée de niveau terminée — fiche re-verrouillée.");
                 }
                 dlg.close();
             };
@@ -692,30 +723,39 @@ export function CharValidationHooks() {
         }
     });
 
+    // Message d'avertissement quand on tente de forcer une montée de niveau
+    // (ajout de classe / sous-classe / features / sorts) sur une fiche VERROUILLÉE,
+    // au lieu de passer par le bouton dédié. S'applique AUSSI en mode confiance :
+    // le mode confiance retire la validation MJ, PAS la bonne méthode de montée.
+    const levelUpWarn = (actor) => {
+        const via = freeLevelUp()
+            ? `Cliquez sur « Monter de niveau » dans « Mon personnage » (barre d'outils WestMarch) : la fiche se déverrouille, faites votre avancement, puis « Terminer ».`
+            : `Cliquez sur « Monter de niveau » dans « Mon personnage » et suivez la procédure (le MJ valide ensuite).`;
+        ui.notifications?.warn(`⚠️ Ce n'est pas ainsi qu'on monte de niveau ! ${via}`, { permanent: false });
+        setTimeout(() => actor.sheet?.render(false), 30);   // reverte l'affichage optimiste
+    };
+
     Hooks.on("preUpdateItem", (item, changes, options, userId) => {
         if (game.user.isGM || userId !== game.user.id) return;
         if (!enabled()) return;
-        if (freeLevelUp()) return;   // mode confiance : construction libre après validation
         const actor = item.parent;
-        if (!actor || !isLocked(actor)) return;
+        if (!actor || !isLocked(actor)) return;   // fiche déverrouillée (montée en cours) = autorisé
         if (!BUILD_ITEM_TYPES.has(item.type)) return;   // inventaire / butin = jeu
         const sys = changes.system;
         if (!sys) return;                                // changement non mécanique
         const allowed = ITEM_PLAY_KEYS[item.type] ?? [];
         if (Object.keys(sys).every(k => allowed.includes(k))) return;   // uniquement du jeu
-        ui.notifications?.warn(`Fiche validée : « ${item.name} » est un élément de construction verrouillé.`);
-        setTimeout(() => actor.sheet?.render(false), 30);   // reverte l'affichage optimiste
+        levelUpWarn(actor);
         return false;
     });
 
     const blockBuildItemCD = (item, _d, _o, userId) => {
         if (game.user.isGM || userId !== game.user.id) return;
         if (!enabled()) return;
-        if (freeLevelUp()) return;   // mode confiance : ajout/retrait de construction libre
         const actor = item.parent;
-        if (!actor || !isLocked(actor)) return;
+        if (!actor || !isLocked(actor)) return;   // fiche déverrouillée = autorisé
         if (BUILD_ITEM_TYPES.has(item.type)) {
-            ui.notifications?.warn("Fiche validée : l'ajout/retrait d'éléments de construction passe par le MJ.");
+            levelUpWarn(actor);
             return false;
         }
     };

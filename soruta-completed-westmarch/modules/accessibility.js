@@ -266,6 +266,47 @@ function applyCanvasDaltonism() {
     }
 }
 
+// ── Daltonisation de l'INTERFACE (DOM) via un filtre SVG ────
+// Complète le filtre PIXI du canvas : mêmes matrices, mais appliquées à l'UI
+// (fenêtres, fiches, chat, barres) via `filter: url(#…)`. On ne touche PAS au
+// canvas ici (#board) — il a déjà son filtre PIXI (sinon double correction).
+function ensureDaltonSvg() {
+    if (document.getElementById("scwm-dalton-svg")) return;
+    const filt = (id, m) =>
+        `<filter id="${id}" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="${m.join(" ")}"/></filter>`;
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.id = "scwm-dalton-svg";
+    svg.setAttribute("aria-hidden", "true");
+    svg.style.cssText = "position:absolute;width:0;height:0;overflow:hidden;pointer-events:none;";
+    svg.innerHTML = `<defs>${filt("scwm-dalton-protan", DALTON_MATRIX.protan)}${filt("scwm-dalton-deutan", DALTON_MATRIX.deutan)}${filt("scwm-dalton-tritan", DALTON_MATRIX.tritan)}</defs>`;
+    document.body.appendChild(svg);
+}
+
+// Éléments d'UI ciblés (jamais le canvas #board / #ui-middle).
+const DALTON_UI_SEL = "#sidebar, #ui-left, #ui-right, #ui-top, #ui-bottom, #players, #hotbar, #controls, #navigation, #hud, #chat-notifications, #camera-views, .application, .app, #tooltip, #context-menu, aside.notifications, .notifications, #pause";
+const DALTON_UI_CSS = `
+body.scwm-a11y-dalton-protan :is(${DALTON_UI_SEL}) { filter: url(#scwm-dalton-protan); }
+body.scwm-a11y-dalton-deutan :is(${DALTON_UI_SEL}) { filter: url(#scwm-dalton-deutan); }
+body.scwm-a11y-dalton-tritan :is(${DALTON_UI_SEL}) { filter: url(#scwm-dalton-tritan); }
+`;
+function ensureDaltonUiCss() {
+    let st = document.getElementById("scwm-dalton-ui-style");
+    if (!st) { st = document.createElement("style"); st.id = "scwm-dalton-ui-style"; document.head.appendChild(st); }
+    if (st.textContent !== DALTON_UI_CSS) st.textContent = DALTON_UI_CSS;
+}
+
+// Pose/retire les classes body qui déclenchent le filtre UI selon le mode.
+function applyUiDaltonism() {
+    const body = document.body;
+    if (!body) return;
+    ensureDaltonSvg();
+    ensureDaltonUiCss();
+    const mode = _get(K_DALTON) ?? "none";
+    for (const m of ["protan", "deutan", "tritan"]) {
+        body.classList.toggle(`scwm-a11y-dalton-${m}`, mode === m);
+    }
+}
+
 // ── Avatars dans la liste des joueurs ───────────────────────
 function decoratePlayers(root) {
     if (!_get(K_AVATARS)) return;
@@ -294,8 +335,9 @@ export function applyAccessibility() {
     const body = document.body;
     if (!body) return;
 
-    // Daltonisme : filtre PIXI sur la scène (voir applyCanvasDaltonism).
+    // Daltonisme : filtre PIXI sur la scène + filtre SVG sur l'interface.
     applyCanvasDaltonism();
+    applyUiDaltonism();
 
     body.classList.toggle("scwm-a11y-contrast", !!_get(K_CONTRAST));
     body.classList.toggle("scwm-a11y-autohide", !!_get(K_AUTOHIDE));

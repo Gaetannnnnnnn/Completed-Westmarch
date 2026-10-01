@@ -49,14 +49,22 @@ body.scwm-chat-theme ${SCOPE} .message {
    fond crème. SANS !important : les composants sombres natifs (dés, bacs de
    dégâts/effets/ciblage) qui posent leur PROPRE couleur claire gardent leur
    texte clair — on ne recrée pas le « clair sur sombre » illisible. */
+body.scwm-chat-theme ${SCOPE} .message { color: var(--scwm-chat-fg); }
 body.scwm-chat-theme ${SCOPE} .message .message-header,
 body.scwm-chat-theme ${SCOPE} .message .message-metadata,
 body.scwm-chat-theme ${SCOPE} .message .message-content {
     color: var(--scwm-chat-fg);
 }
+/* Lignes d'en-tête parfois atténuées (expéditeur, horodatage, « To: … » du
+   chuchotement) : on remet la couleur ET l'opacité pleine pour la lisibilité. */
 body.scwm-chat-theme ${SCOPE} .message .message-sender,
 body.scwm-chat-theme ${SCOPE} .message .message-timestamp,
-body.scwm-chat-theme ${SCOPE} .message .whisper-to { color: var(--scwm-chat-fg); }
+body.scwm-chat-theme ${SCOPE} .message .message-metadata,
+body.scwm-chat-theme ${SCOPE} .message .whisper-to,
+body.scwm-chat-theme ${SCOPE} .message .message-whisper {
+    color: var(--scwm-chat-fg) !important;
+    opacity: 1 !important;
+}
 body.scwm-chat-theme ${SCOPE} .message .chat-card { border-radius: 5px; }
 /* Texte de la carte, sur le fond crème (les zones sombres natives gardent
    leur propre texte clair). */

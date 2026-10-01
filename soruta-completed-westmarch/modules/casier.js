@@ -233,13 +233,20 @@ function disposRows() {
 // Activité des joueurs (réutilise la logique d'assiduité : trimestre = 90 j).
 const ACTIVE_DAYS = 90;
 function playerLastSessionMap() {
-    const m = new Map();   // nom joueur -> ISO de la dernière session
+    const m = new Map();   // nom joueur -> ISO de la dernière activité
+    const bump = (name, iso) => { if (!iso) return; const cur = m.get(name); if (!cur || iso > cur) m.set(name, iso); };
     for (const s of getSessionLog()) {
         for (const p of (s.players ?? [])) {
             const a = game.actors.get(p.actorId);
-            const name = a ? playerOf(a) : (p.name ?? "?");
-            const cur = m.get(name);
-            if (s.dateISO && (!cur || s.dateISO > cur)) m.set(name, s.dateISO);
+            bump(a ? playerOf(a) : (p.name ?? "?"), s.dateISO);
+        }
+    }
+    // Repli sur les expéditions clôturées (le journal de sessions peut être vide).
+    for (const e of closedExpeditions()) {
+        if (!e.endReal) continue;
+        for (const id of (e.participants ?? [])) {
+            const a = game.actors.get(id);
+            bump(a ? playerOf(a) : "?", e.endReal);
         }
     }
     return m;
@@ -727,6 +734,18 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             for (const p of (s.players ?? [])) {
                 const a = game.actors.get(p.actorId);
                 keepMax(sessPlayerLast, a ? playerOf(a) : (p.name ?? "?"), s.dateISO);
+            }
+        }
+        // Repli : si le JOURNAL DE SESSIONS (bouton « Clore la session ») est
+        // vide pour un joueur/MJ, on utilise la date réelle de clôture des
+        // EXPÉDITIONS auxquelles il a participé — sinon on afficherait « jamais »
+        // alors qu'il a bien joué (les deux sources sont indépendantes).
+        for (const e of list) {
+            if (!e.endReal) continue;
+            if (e.gmId) keepMax(sessGmLast, game.users.get(e.gmId)?.name ?? "MJ inconnu", e.endReal);
+            for (const id of (e.participants ?? [])) {
+                const a = game.actors.get(id);
+                keepMax(sessPlayerLast, a ? playerOf(a) : "?", e.endReal);
             }
         }
         if (!list.length) {

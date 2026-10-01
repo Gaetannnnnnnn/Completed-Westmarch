@@ -45,6 +45,18 @@ body.scwm-chat-theme ${SCOPE} .message {
     background: var(--scwm-chat-bg) !important;
     box-shadow: 0 2px 10px rgba(0,0,0,0.35);
 }
+/* Texte des messages (en-tête, chuchotements, texte hors carte) lisible sur le
+   fond crème. SANS !important : les composants sombres natifs (dés, bacs de
+   dégâts/effets/ciblage) qui posent leur PROPRE couleur claire gardent leur
+   texte clair — on ne recrée pas le « clair sur sombre » illisible. */
+body.scwm-chat-theme ${SCOPE} .message .message-header,
+body.scwm-chat-theme ${SCOPE} .message .message-metadata,
+body.scwm-chat-theme ${SCOPE} .message .message-content {
+    color: var(--scwm-chat-fg);
+}
+body.scwm-chat-theme ${SCOPE} .message .message-sender,
+body.scwm-chat-theme ${SCOPE} .message .message-timestamp,
+body.scwm-chat-theme ${SCOPE} .message .whisper-to { color: var(--scwm-chat-fg); }
 body.scwm-chat-theme ${SCOPE} .message .chat-card { border-radius: 5px; }
 /* Texte de la carte, sur le fond crème (les zones sombres natives gardent
    leur propre texte clair). */

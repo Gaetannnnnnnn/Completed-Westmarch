@@ -305,6 +305,14 @@ export function registerSettings() {
         "Note GM sur les fiches PNJ",
         "Ajoute le même onglet « Note GM » (privé, MJ uniquement) sur les fiches de PNJ. Indépendant de l'option PJ. Nécessite un rechargement.",
         true, { requiresReload: true }));
+    game.settings.register(MOD, "createPantheonFolder", B(
+        "Dossier « Panthéons » (Dieux de Faerûn)",
+        "Au premier lancement, crée dans les Journaux un dossier « Panthéons » (couleur #860404) contenant le compendium des dieux de Faerûn fourni avec le module. Décoché : ne crée rien. Une fois créé, il n'est pas recréé si vous le supprimez.",
+        true));
+    // Garde-fou : création effectuée une seule fois (ne pas recréer après suppression).
+    game.settings.register(MOD, "pantheonCreatedOnce", {
+        scope: "world", config: false, type: Boolean, default: false
+    });
 
     // ---- Rappels de combat (assistant contextuel, dépend de Midi-QOL) ----
     game.settings.register(MOD, "enableReactReminder", B(
@@ -1053,7 +1061,7 @@ const CATEGORIES = [
       keys: ["enableHarvest","harvestDcBase","harvestDcPerCr","harvestBaseDraws","harvestBloodImage"] },
     { firstKey: "enableXpBlock",         icon: "fa-server",          title: "Serveur",
       desc: "Personnalisations du serveur : blocage XP / Level Up, logs Discord, webhooks.",
-      keys: ["enableXpBlock","enableFakeWarning","enableGmNotes","hidePlayerStarTab","enableDiscordLog","discordLogWebhookUrl","downtimeWebhookUrl","tmWebhookUrl"] },
+      keys: ["enableXpBlock","enableFakeWarning","enableGmNotes","hidePlayerStarTab","createPantheonFolder","enableDiscordLog","discordLogWebhookUrl","downtimeWebhookUrl","tmWebhookUrl"] },
     { firstKey: "enableChatCards", master: "enableChatCards", icon: "fa-comment-dots", title: "Cartes de chat",
       desc: "Habillage des cartes de chat dnd5e (attaques, sorts, objets). Interrupteur général + choix de ce qui est activé. La couleur reste un choix par joueur (fenêtre « Accessibilité »).",
       keys: ["enableChatCards","chatCardsTheme","chatCardsBigButtons","chatCardsExpandDice","chatCardsFoldDescription"] },

@@ -15,6 +15,8 @@ import { getTutorialActor, grantTutorialAccess, revokeTutorialAccess } from "./d
 import { openCasier } from "./casier.js";
 import { openSceneCues } from "./sceneaudio.js";
 import { openPlayerHub } from "./charvalidation.js";
+import { openA11yDialog } from "./accessibility.js";
+import { openConfigHub } from "./settings.js";
 const MODULE = MOD;
 
 // Ouvre le gestionnaire de cues audio (étapes GM).
@@ -51,6 +53,7 @@ function _tutorialActor() {
 // ================================================================
 
 export const SECTION_LABELS = {
+    accessibilite:   "Accessibilité",
     barreWestmarch:  "Barre WestMarch",
     tourFiche:       "Tour de la fiche",
     noteGm:          "Note GM (privé)",
@@ -65,9 +68,14 @@ export const SECTION_LABELS = {
     tempsMorts:      "Temps morts",
     apparenceTokens: "Apparence des tokens",
     outilsGm:        "Outils GM",
+    echange:         "Échange entre joueurs",
+    transformation:  "Transformations",
+    compagnons:      "Compagnons évolutifs",
+    pantheon:        "Panthéons",
 };
 
 export const SECTION_ICONS = {
+    accessibilite:   "fa-universal-access",
     barreWestmarch:  "fa-compass",
     tourFiche:       "fa-id-card",
     noteGm:          "fa-user-secret",
@@ -82,6 +90,10 @@ export const SECTION_ICONS = {
     tempsMorts:      "fa-hourglass-half",
     apparenceTokens: "fa-masks-theater",
     outilsGm:        "fa-shield-halved",
+    echange:         "fa-right-left",
+    transformation:  "fa-paw",
+    compagnons:      "fa-dna",
+    pantheon:        "fa-landmark",
 };
 
 // L'ordre des clés = ordre de passage du tutoriel.
@@ -100,6 +112,10 @@ export const SETTING_KEYS = {
     tempsMorts:      "tutoTempsMorts",
     apparenceTokens: "tutoApparenceTokens",
     outilsGm:        "tutoOutilsGm",
+    echange:         "tutoEchange",
+    transformation:  "tutoTransformation",
+    compagnons:      "tutoCompagnons",
+    pantheon:        "tutoPantheon",
 };
 
 // ================================================================
@@ -124,10 +140,14 @@ export const SECTION_FEATURE_SETTING = {
     tempsMorts:      null,               // fonctionnalité intégrée
     apparenceTokens: null,               // fonctionnalité intégrée
     outilsGm:        null,               // fonctionnalité intégrée (gmOnly géré à part)
+    echange:         "enableTrade",
+    transformation:  "enablePolymorph",
+    compagnons:      "enableCompanions",
+    pantheon:        "createPantheonFolder",
 };
 
 // Sections réservées au GM (toutes leurs étapes sont gmOnly)
-export const SECTION_GM_ONLY = new Set(["casier", "carteExpedition", "cues", "noteGm", "boutiques", "outilsGm"]);
+export const SECTION_GM_ONLY = new Set(["casier", "carteExpedition", "cues", "noteGm", "boutiques", "outilsGm", "compagnons"]);
 
 // Sections réservées aux JOUEURS (étapes playerOnly) : cachées aux GM, pour qui
 // elles seraient vides (déclaration de temps morts, gestion de ses personnages).
@@ -212,6 +232,134 @@ async function _openActorSheetTab(tabName) {
 
 // Raccourci : renvoie un beforeShow qui navigue vers l'onglet donné
 const _toSheet = tab => () => _openActorSheetTab(tab);
+
+// Ouvre le Carnet ET déplie la première note si elle est repliée : le bouton
+// « Modifier » / « Lier » se trouve dans le CORPS de la note (masqué quand elle
+// est repliée), donc sans ça le spotlight n'a rien à pointer et part en haut.
+async function _openCarnetNoteExpanded() {
+    await _openActorSheetTab("carnet-journal");
+    await new Promise(r => setTimeout(r, 150));
+    try {
+        const el = _tutorialActor()?.sheet?.element;
+        const root = (el instanceof HTMLElement ? el : el?.[0]) ?? document;
+        const firstCard = root.querySelector(".carnet-note-card");
+        const body = firstCard?.querySelector(".carnet-note-body");
+        if (firstCard && body && getComputedStyle(body).display === "none") {
+            firstCard.querySelector(".carnet-toggle-note")?.click();
+            await new Promise(r => setTimeout(r, 200));
+        }
+    } catch {}
+}
+
+// ── Tour d'accessibilité : navigation Settings → config module → dialogue ──
+const _sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+async function _openSidebarSettingsTab() {
+    try { ui.sidebar?.expand?.(); } catch {}
+    try { ui.sidebar?.activateTab?.("settings"); } catch {}
+    try { ui.sidebar?.changeTab?.("settings", "primary"); } catch {}
+    try {
+        document.querySelector('#sidebar [data-tab="settings"], #sidebar-tabs [data-tab="settings"], nav.tabs [data-tab="settings"], [data-action="tab"][data-tab="settings"]')?.click();
+    } catch {}
+    await _sleep(300);
+}
+
+// Ouvre la fenêtre de configuration des paramètres (« Game Settings ») et
+// surligne le bouton « Accessibilité » du module.
+async function _openModuleSettings() {
+    try { game.settings.sheet?.render(true); } catch {}
+    await _sleep(550);
+    _highlightA11yMenu();
+}
+
+function _highlightA11yMenu() {
+    document.querySelectorAll(".tuto-a11y-highlight").forEach(e => e.classList.remove("tuto-a11y-highlight"));
+    // Le bouton du menu Accessibilité (registerMenu) porte data-key "<MOD>.menu-accessibility".
+    let node = document.querySelector(`[data-key="${MODULE}.menu-accessibility"]`);
+    if (!node) {
+        // Repli : chercher par texte « Accessibilité » dans la fenêtre de config.
+        node = [...document.querySelectorAll(".form-group, .settings-config .form-group, section .form-group")]
+            .find(g => /accessibilit/i.test(g.textContent ?? ""));
+    }
+    const row = node?.closest?.(".form-group") ?? node;
+    if (row) {
+        row.classList.add("tuto-a11y-highlight");
+        try { row.scrollIntoView({ block: "center", behavior: "instant" }); } catch {}
+    }
+}
+
+// Ouvre le dialogue Accessibilité. NE PAS await openA11yDialog : il bloque
+// (DialogV2.wait) jusqu'à la fermeture → on le lance et on attend le rendu DOM.
+async function _openA11yTour() {
+    try { if (!document.getElementById("scwm-a11y-form")) openA11yDialog(); } catch {}
+    await _sleep(450);
+}
+
+// ── Panthéons : ouvrir l'onglet Journaux + surligner le dossier « Panthéons » ──
+async function _openPantheonFolder() {
+    _closeTradeDemo();
+    try { ui.sidebar?.expand?.(); } catch {}
+    try { ui.sidebar?.activateTab?.("journal"); } catch {}
+    try { ui.sidebar?.changeTab?.("journal", "primary"); } catch {}
+    try { document.querySelector('#sidebar [data-tab="journal"], #sidebar-tabs [data-tab="journal"], nav.tabs [data-tab="journal"], [data-action="tab"][data-tab="journal"]')?.click(); } catch {}
+    await _sleep(300);
+    try { ui.journal?.render?.(false); } catch {}
+    await _sleep(250);
+    document.querySelectorAll(".tuto-a11y-highlight").forEach(e => e.classList.remove("tuto-a11y-highlight"));
+    const el = ui.journal?.element;
+    const root = (el instanceof HTMLElement) ? el : (el?.[0] ?? document.getElementById("journal"));
+    const folderLi = [...(root?.querySelectorAll("li.folder, .directory-item.folder") ?? [])]
+        .find(li => /panth[eé]on/i.test(li.querySelector(".folder-name, header, .directory-item-name")?.textContent ?? li.textContent ?? ""));
+    if (folderLi) {
+        if (folderLi.classList.contains("collapsed")) folderLi.querySelector(":scope > header, :scope > .folder-header")?.click();
+        folderLi.classList.add("tuto-a11y-highlight");
+        try { folderLi.scrollIntoView({ block: "center", behavior: "instant" }); } catch {}
+    }
+}
+
+// ── Échange : fenêtre FICTIVE de démonstration (pas un vrai échange) ──
+function _closeTradeDemo() { document.getElementById("scwm-trade-demo")?.remove(); }
+async function _openTradeDemo() {
+    _closeTradeDemo();
+    const el = document.createElement("div");
+    el.id = "scwm-trade-demo";
+    el.style.cssText = "position:fixed;top:13%;left:50%;transform:translateX(-50%);z-index:60;width:540px;max-width:92vw;"
+        + "background:#1b1a17;border:1px solid #c9a227;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,.6);color:#e8dcc0;font-size:13px;overflow:hidden;";
+    el.innerHTML = `
+        <div style="background:linear-gradient(180deg,rgba(201,162,39,.25),rgba(0,0,0,.2));padding:8px 12px;font-weight:700;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(201,162,39,.4);">
+            <i class="fa-solid fa-right-left" style="color:#c9a227;"></i> Échange avec Alya (démonstration)
+        </div>
+        <div style="display:flex;gap:10px;padding:12px;">
+            <div data-demo="mine" style="flex:1;border:1px solid rgba(201,162,39,.4);border-radius:6px;padding:8px;min-height:120px;">
+                <div style="font-weight:700;margin-bottom:6px;color:#c9a227;">Votre offre</div>
+                <div style="opacity:.8;">• Épée longue<br>• Potion de soin ×2</div>
+            </div>
+            <div data-demo="theirs" style="flex:1;border:1px solid rgba(154,123,30,.4);border-radius:6px;padding:8px;min-height:120px;">
+                <div style="font-weight:700;margin-bottom:6px;color:#9ab;">Offre d'Alya</div>
+                <div style="opacity:.8;">• Bouclier<br>• 25 po</div>
+            </div>
+        </div>
+        <div data-demo="currency" style="display:flex;gap:10px;padding:0 12px 10px;align-items:center;">
+            <span style="opacity:.8;">Monnaie à donner :</span>
+            <span style="border:1px solid rgba(201,162,39,.4);border-radius:4px;padding:2px 8px;">PO <strong>10</strong></span>
+            <span style="border:1px solid rgba(201,162,39,.4);border-radius:4px;padding:2px 8px;">PA <strong>0</strong></span>
+            <span style="border:1px solid rgba(201,162,39,.4);border-radius:4px;padding:2px 8px;">PC <strong>0</strong></span>
+        </div>
+        <div data-demo="buttons" style="display:flex;gap:8px;padding:0 12px 12px;">
+            <button type="button" style="flex:1;padding:6px;border-radius:5px;border:1px solid #6ec06e;background:rgba(110,192,110,.18);color:#bfeabf;font-weight:700;">✔ Confirmer mon offre</button>
+            <button type="button" style="flex:0 0 auto;padding:6px 12px;border-radius:5px;border:1px solid #c0392b;background:rgba(192,57,43,.18);color:#f0b5ae;">Annuler</button>
+        </div>`;
+    document.body.appendChild(el);
+    await _sleep(200);
+}
+
+// ── Transformations / Compagnons : ouvrir le Panneau de configuration ──
+async function _openConfigHubTour() {
+    _closeTradeDemo();
+    try { ui.sidebar?.expand?.(); } catch {}
+    try { openConfigHub(); } catch {}
+    await _sleep(550);
+}
 
 // Ouvre la fiche démo sans changer d'onglet (pour pointer l'en-tête / la barre latérale).
 async function _openSheet() {
@@ -382,15 +530,32 @@ async function _expandWestmarch() {
 
 // Ouvre l'onglet Acteurs de la sidebar, déplie le dossier du perso démo et
 // marque son badge de statut pour que le spotlight le pointe précisément.
+// Racine DOM du répertoire des Acteurs, tolérante aux versions (v13/v14).
+function _actorsRoot() {
+    const el = ui.actors?.element;
+    return (el instanceof HTMLElement) ? el : (el?.[0] ?? document.getElementById("actors"));
+}
+
 async function _showPcStatus() {
+    // Déplier la sidebar et basculer sur l'onglet Acteurs — plusieurs méthodes
+    // car l'API a changé (v13/v14) et la sidebar peut être repliée.
+    try { ui.sidebar?.expand?.(); } catch {}
     try { ui.sidebar?.activateTab?.("actors"); } catch {}
     try { ui.sidebar?.changeTab?.("actors", "primary"); } catch {}
+    // Repli ultime : clic direct sur le bouton d'onglet dans le DOM.
+    try {
+        document.querySelector('#sidebar [data-tab="actors"], #sidebar-tabs [data-tab="actors"], nav.tabs [data-tab="actors"], [data-action="tab"][data-tab="actors"]')?.click();
+    } catch {}
+    await new Promise(r => setTimeout(r, 300));
+
     const actor = _tutorialActor();
+
     // Déplier le dossier contenant le perso démo (le <li> n'existe pas si replié).
     try {
+        const root = _actorsRoot();
         const fid = actor?.folder?.id ?? actor?.folder;
-        if (fid) {
-            const folderLi = document.querySelector(`#actors li.folder[data-folder-id="${fid}"]`);
+        if (fid && root) {
+            const folderLi = root.querySelector(`li.folder[data-folder-id="${fid}"]`);
             if (folderLi && folderLi.classList.contains("collapsed")) {
                 folderLi.querySelector(":scope > header, :scope > .folder-header")?.click();
                 await new Promise(r => setTimeout(r, 200));
@@ -399,14 +564,18 @@ async function _showPcStatus() {
     } catch {}
     try { ui.actors?.render(false); } catch {}
     await new Promise(r => setTimeout(r, 450));
-    // Marqueur temporaire sur le badge du perso démo (cible du spotlight).
-    document.querySelectorAll(".scwm-pc-status.tuto-status-highlight")
-        .forEach(e => e.classList.remove("tuto-status-highlight"));
-    if (actor) {
-        const li = document.querySelector(
-            `#actors li.directory-item[data-entry-id="${actor.id}"], ` +
-            `#actors li.directory-item[data-document-id="${actor.id}"]`);
-        li?.querySelector(".scwm-pc-status")?.classList.add("tuto-status-highlight");
+
+    // Marqueur temporaire sur le badge (cible du spotlight). Si le badge n'existe
+    // pas (option PC status désactivée), on marque la LIGNE du perso à défaut,
+    // pour que le spotlight pointe au moins le bon endroit.
+    document.querySelectorAll(".tuto-status-highlight").forEach(e => e.classList.remove("tuto-status-highlight"));
+    const root = _actorsRoot();
+    if (actor && root) {
+        const li = root.querySelector(
+            `li.directory-item[data-entry-id="${actor.id}"], ` +
+            `li.directory-item[data-document-id="${actor.id}"]`);
+        const badge = li?.querySelector(".scwm-pc-status");
+        (badge ?? li)?.classList.add("tuto-status-highlight");
         try { li?.scrollIntoView({ block: "center", behavior: "instant" }); } catch {}
     }
 }
@@ -416,6 +585,87 @@ async function _showPcStatus() {
 // ================================================================
 
 const STEPS_BY_FEATURE = {
+
+    // ---- Accessibilité (section obligatoire, en premier) ----
+    accessibilite: [
+        {
+            beforeShow: async () => { try { ui.sidebar?.expand?.(); } catch {} await _sleep(200); },
+            target:     '#sidebar [data-tab="settings"], #sidebar-tabs [data-tab="settings"], nav.tabs [data-tab="settings"], [data-action="tab"][data-tab="settings"]',
+            title:      "D'abord : l'accessibilité",
+            text:       "Avant tout, un point <strong>important</strong> : ce module propose des options d'accessibilité pour un confort de jeu adapté à chacun (daltonisme, contraste, avatars, auto-masquage…). <strong>Chaque personne règle les siennes</strong> sur son propre compte. On va les découvrir ensemble. Tout commence par l'onglet <strong>Réglages</strong> (l'engrenage) de la barre latérale.",
+            position:   "left"
+        },
+        {
+            beforeShow: _openSidebarSettingsTab,
+            target:     '#settings button[data-action="configure"], button.configure-settings, [data-action="configure"], #settings .settings, #settings',
+            title:      "Les Paramètres du jeu",
+            text:       "Dans l'onglet Réglages, ouvre <strong>Configurer les paramètres</strong> (Game Settings) : c'est là que vivent tous les réglages, dont ceux de ce module.",
+            position:   "left"
+        },
+        {
+            beforeShow: _openModuleSettings,
+            target:     '.tuto-a11y-highlight, .settings-config, #client-settings, .categories, section.window-content',
+            title:      "Les réglages du module",
+            text:       "Voici les réglages de <strong>Soruta — Completed Westmarch</strong>. Repère la ligne <strong>Accessibilité</strong> : son bouton <em>Ouvrir</em> donne accès à tes options personnelles. (Les réglages marqués ici sont surtout côté MJ ; l'accessibilité, elle, est pour tout le monde.)",
+            position:   "right"
+        },
+        {
+            beforeShow: _openA11yTour,
+            target:     "#scwm-a11y-form",
+            title:      "Tes options d'accessibilité",
+            text:       "Cette fenêtre est <strong>personnelle à ton compte</strong> : elle n'affecte que ton affichage, pas celui des autres. Passons chaque option en revue.",
+            position:   "left"
+        },
+        {
+            beforeShow: _openA11yTour,
+            target:     '[data-a11y-row="dalton"]',
+            title:      "Mode daltonisme",
+            text:       "Applique un <strong>filtre de correction des couleurs</strong> sur l'interface et la carte, pour mieux distinguer les teintes. Trois types : <strong>Protanopie</strong> (rouge), <strong>Deutéranopie</strong> (vert), <strong>Tritanopie</strong> (bleu). Choisis celui qui correspond à ta vision, ou « Aucun » pour des couleurs normales.",
+            position:   "left"
+        },
+        {
+            beforeShow: _openA11yTour,
+            target:     '[data-a11y-row="contrast"]',
+            title:      "Fort contraste",
+            text:       "Renforce le <strong>contraste</strong> du texte, des bordures et des fonds de l'interface — utile en cas de basse vision ou d'écran peu lisible.",
+            position:   "left"
+        },
+        {
+            beforeShow: _openA11yTour,
+            target:     '[data-a11y-row="contrastcol"]',
+            title:      "Couleur des contours",
+            text:       "En mode fort contraste, choisis la <strong>couleur des bordures</strong> et du contour de focus (jaune par défaut). Le lien <em>réinit.</em> remet la couleur d'origine.",
+            position:   "left"
+        },
+        {
+            beforeShow: _openA11yTour,
+            target:     '[data-a11y-row="avatars"]',
+            title:      "Avatars des joueurs",
+            text:       "Affiche la <strong>miniature du portrait</strong> de chaque joueur à côté de son nom dans la liste des joueurs — plus facile à repérer d'un coup d'œil.",
+            position:   "left"
+        },
+        {
+            beforeShow: _openA11yTour,
+            target:     '[data-a11y-row="autohide"]',
+            title:      "Auto-masquage de l'interface",
+            text:       "<strong>Estompe</strong> les contrôles, la navigation, les macros et la liste des joueurs tant que la souris ne les survole pas : l'écran reste épuré et tu te concentres sur la scène.",
+            position:   "left"
+        },
+        {
+            beforeShow: _openA11yTour,
+            target:     '[data-a11y-row="compact"]',
+            title:      "Contrôles de gauche compacts",
+            text:       "<strong>Réduit la taille</strong> des icônes de la barre d'outils de gauche, pour gagner de la place à l'écran.",
+            position:   "left"
+        },
+        {
+            beforeShow: _openA11yTour,
+            target:     '[data-a11y-row="chatcol"]',
+            title:      "Couleur des cartes de chat",
+            text:       "Choisis la <strong>couleur de fond</strong> de tes cartes de chat (blanc crème par défaut) ; le texte s'adapte automatiquement pour rester lisible. C'est un réglage personnel. <strong>N'oublie pas d'Enregistrer</strong> en bas de la fenêtre pour appliquer tes choix !",
+            position:   "left"
+        }
+    ],
 
     // ---- Barre WestMarch ----
     barreWestmarch: [
@@ -564,7 +814,7 @@ const STEPS_BY_FEATURE = {
             beforeShow: _toSheet("gmnotes"),
             target:     "nav.tabs [data-tab='gmnotes'], .tabs [data-tab='gmnotes']",
             title:      "Onglet Note GM",
-            textGM:     "Sur chaque fiche de personnage, l'onglet <strong>Note GM</strong> <i class='fa-solid fa-user-secret'></i> n'est visible que par vous — il n'existe même pas côté joueur. Idéal pour vos secrets et rappels sur un PJ.",
+            textGM:     "Sur chaque fiche de personnage, l'onglet <strong>Note GM</strong> <i class='fa-solid fa-user-secret'></i> n'est visible que par vous — il n'existe même pas côté joueur. Idéal pour vos secrets et rappels sur un PJ. <strong>Le même onglet existe aussi sur les fiches de PNJ</strong> (réglable séparément dans Réglages → Toolkit), pratique pour noter secrets, motivations et projets d'un PNJ.",
             position:   "bottom",
             gmOnly:     true
         },
@@ -731,7 +981,7 @@ const STEPS_BY_FEATURE = {
             target:     ".carnet-add-section",
             title:      "Organiser en sections",
             text:       "Le bouton <strong>Section</strong> insère un séparateur nommé entre vos notes. Utilisez-le pour regrouper vos notes par thème (par ex. <em>Quêtes</em>, <em>PNJ rencontrés</em>, <em>Secrets</em>…). Cliquez le chevron d'une section pour la replier et masquer toutes ses notes.",
-            textGM:     "Les <strong>sections</strong> sont des séparateurs que le joueur (ou vous) peut créer pour organiser ses notes. Replier une section masque toutes les notes qu'elle contient jusqu'à la section suivante.",
+            textGM:     "Les <strong>sections</strong> sont des séparateurs que le joueur (ou vous, le MJ) peut créer pour organiser ses notes. Replier une section masque toutes les notes qu'elle contient jusqu'à la section suivante.",
             position:   "bottom"
         },
         // ── Réordonner par drag & drop ───────────────────────────
@@ -761,7 +1011,7 @@ const STEPS_BY_FEATURE = {
         },
         // ── Éditeur de texte ─────────────────────────────────────
         {
-            beforeShow: _toSheet("carnet-journal"),
+            beforeShow: _openCarnetNoteExpanded,
             target:     ".carnet-edit-note",
             title:      "Éditeur de note",
             text:       "Le bouton <strong>Modifier</strong> ouvre l'éditeur « grimoire ». La barre d'outils propose : <strong>Gras</strong>, <em>Italique</em>, Souligné, Barré, deux niveaux de <strong>titres</strong> (T1/T2), paragraphe, listes, une <strong>taille en points</strong> (comme Word), la <strong>couleur du texte</strong> <i class='fa-solid fa-palette'></i> et l'<strong>insertion de lien</strong> <i class='fa-solid fa-link'></i> (sélectionnez le texte puis l'URL). Tout est <strong>sauvegardé automatiquement</strong> : même en fermant par la croix, rien n'est perdu.",
@@ -770,7 +1020,7 @@ const STEPS_BY_FEATURE = {
         },
         // ── Lier à une expédition ────────────────────────────────
         {
-            beforeShow: _toSheet("carnet-journal"),
+            beforeShow: _openCarnetNoteExpanded,
             target:     ".carnet-link-exp",
             title:      "Lier une note à une expédition",
             text:       "Le lien <i class='fa-solid fa-link'></i> <strong>Lier</strong> associe une note à une expédition précise. Une fois liée, le nom de l'expédition apparaît dans la note, et un lien <i class='fa-solid fa-calendar-alt'></i> permet de sauter directement à l'expédition dans l'onglet Expéditions. Pour délier, cliquez <i class='fa-solid fa-unlink'></i>.",
@@ -797,7 +1047,7 @@ const STEPS_BY_FEATURE = {
         // ── Statut de disponibilité des PJ (répertoire des Acteurs) ──
         {
             beforeShow: _showPcStatus,
-            target:     ".scwm-pc-status.tuto-status-highlight, #actors .scwm-pc-status",
+            target:     ".tuto-status-highlight, #actors .scwm-pc-status, .scwm-pc-status",
             title:      "Statut de disponibilité",
             text:       "Dans le répertoire des <strong>Acteurs</strong>, un badge à droite de chaque personnage indique s'il est <strong>Disponible</strong> ou <strong>En expédition</strong>. Le statut est automatique : dès qu'une expédition est ouverte (date de début sans date de fin), le PJ passe « En expédition » ; sa clôture le repasse « Disponible ». Pratique pour voir d'un coup d'œil qui est déjà parti.",
             position:   "right"
@@ -807,7 +1057,7 @@ const STEPS_BY_FEATURE = {
             beforeShow: async () => { ui.players?.render?.(); await new Promise(r => setTimeout(r, 300)); },
             target:     ".westmarch-close-session",
             title:      "Clore la session",
-            textGM:     "Sous la liste des joueurs, le bouton <i class='fa-solid fa-book'></i> <strong>Clore la session</strong> ouvre la fenêtre de clôture : attribution d'XP à la party (un champ « pour tous » qui remplit tous les PJ, puis un champ par PJ), un champ de <strong>notes</strong>, et deux issues — <strong>Clôturer &amp; envoyer</strong> le rapport sur Discord, ou <strong>Enregistrer pour plus tard</strong> pour le retrouver dans votre Casier. C'est justement ce Casier qu'on va voir maintenant.",
+            textGM:     "Sous la liste des joueurs, le bouton <i class='fa-solid fa-book'></i> <strong>Clore la session</strong> ouvre la fenêtre de clôture. On y trouve : l'attribution d'<strong>XP</strong> à la party (champ « pour tous » + un champ par PJ) — ou un sélecteur <strong>1 à 3 étoiles</strong> si le système d'étoiles est actif ; une case pour <strong>n'attribuer qu'une fois le rapport envoyé</strong> (pratique si vous hésitez : ajustable ensuite dans le Casier) ; le choix des <strong>intrigues liées</strong> (tags partagés ou vos intrigues perso, créables à la volée) ; un champ de <strong>notes</strong> ; et deux issues — <strong>Clôturer &amp; envoyer</strong> sur Discord, ou <strong>Enregistrer pour plus tard</strong> dans votre Casier. C'est ce Casier qu'on va voir maintenant.",
             position:   "top",
             gmOnly:     true
         },
@@ -829,11 +1079,13 @@ const STEPS_BY_FEATURE = {
             textGM:     "Ce champ libre vous laisse noter votre présentation, vos critères, vos horaires… Sauvegardé automatiquement et propre à chaque meneur.",
             position:   "top"
         },
+        // Onglets présentés DE HAUT EN BAS, dans l'ordre de la barre du Casier.
+        // Groupe « Travail » : Rapports, Expéditions, Temps morts, Validation.
         {
             beforeShow: () => _openCasier("reports"),
             target:     ".scwm-casier-tab[data-tab='reports']",
             title:      "Rapports à finaliser",
-            textGM:     "Les rapports <strong>enregistrés pour plus tard</strong> à la clôture arrivent ici. Sélectionnez-en un pour compléter ses notes, puis <strong>Clôturer &amp; envoyer sur Discord</strong>. Une pastille sur le bouton Casier et un message à la connexion vous rappellent les rapports en attente.",
+            textGM:     "Les rapports <strong>enregistrés pour plus tard</strong> à la clôture arrivent ici. Sélectionnez-en un pour compléter ses notes, ajuster les <strong>intrigues</strong> et l'attribution en attente, puis <strong>Clôturer &amp; envoyer sur Discord</strong>. Une pastille sur le bouton Casier et un message à la connexion vous rappellent les rapports en attente.",
             position:   "right"
         },
         {
@@ -851,18 +1103,26 @@ const STEPS_BY_FEATURE = {
             position:   "right"
         },
         {
+            beforeShow: () => _openCasier("validation"),
+            target:     ".scwm-casier-tab[data-tab='validation'], .scwm-casier-validation",
+            title:      "Validation des personnages",
+            textGM:     "L'onglet <strong>Validation</strong> regroupe les <strong>demandes de création</strong> (Créer &amp; assigner), les <strong>fiches à valider</strong> (Valider &amp; verrouiller) et les <strong>montées de niveau</strong> à autoriser. C'est ici que vous gérez tout le cycle de vie des personnages joueurs.",
+            position:   "right"
+        },
+        // Groupe « Statistiques » : Intrigues, Suivi des GM, Registre, Statistiques, Disponibilités, Assiduité, Poids du monde.
+        {
+            beforeShow: () => _openCasier("intrigues"),
+            target:     ".scwm-casier-tab[data-tab='intrigues'], .scwm-intrigue",
+            title:      "Intrigues",
+            textGM:     "L'onglet <strong>Intrigues</strong> regroupe vos rapports par <strong>trame narrative</strong> (les intrigues cochées à la clôture). Pour chaque intrigue : les <strong>MJ impliqués</strong>, les <strong>joueurs liés</strong> et la liste des sessions. Parfait pour préparer une <strong>récompense finale</strong>, retrouver les joueurs d'une même trame ou recruter. La liste d'intrigues partagées se règle dans les paramètres (Système de Party) ; chaque MJ a aussi ses <strong>intrigues perso</strong>.",
+            position:   "left"
+        },
+        {
             beforeShow: () => _openCasier("gms"),
             target:     ".scwm-casier-tab[data-tab='gms']",
             title:      "Suivi des GM",
             textGM:     "Pour chaque meneur : le nombre d'expéditions en cours, leur nom et les joueurs qui y participent — pratique pour se coordonner à plusieurs MJ.",
-            position:   "right"
-        },
-        {
-            beforeShow: () => _openCasier("attendance"),
-            target:     ".scwm-casier-tab[data-tab='attendance']",
-            title:      "Assiduité",
-            textGM:     "L'onglet <strong>Assiduité</strong> mesure l'activité à partir des <strong>sessions</strong> : nombre d'expéditions par joueur et par MJ, dernière session de chacun, et qui est <strong>actif</strong> sur le trimestre (90 jours). Idéal pour repérer les joueurs qui décrochent.",
-            position:   "right"
+            position:   "left"
         },
         {
             beforeShow: () => _openCasier("registre"),
@@ -886,11 +1146,18 @@ const STEPS_BY_FEATURE = {
             position:   "left"
         },
         {
-            beforeShow: () => _openCasier("validation"),
-            target:     ".scwm-casier-tab[data-tab='validation'], .scwm-casier-validation",
-            title:      "Validation des personnages",
-            textGM:     "L'onglet <strong>Validation</strong> regroupe les <strong>demandes de création</strong> (Créer &amp; assigner), les <strong>fiches à valider</strong> (Valider &amp; verrouiller) et les <strong>montées de niveau</strong> à autoriser. C'est ici que vous gérez tout le cycle de vie des personnages joueurs.",
-            position:   "right"
+            beforeShow: () => _openCasier("attendance"),
+            target:     ".scwm-casier-tab[data-tab='attendance']",
+            title:      "Assiduité",
+            textGM:     "L'onglet <strong>Assiduité</strong> mesure l'activité : nombre d'expéditions par joueur et par MJ, dernière activité de chacun (session ou expédition close), et qui est <strong>actif</strong> sur le trimestre (90 jours). Idéal pour repérer les joueurs qui décrochent.",
+            position:   "left"
+        },
+        {
+            beforeShow: () => _openCasier("scenesize"),
+            target:     ".scwm-casier-tab[data-tab='scenesize']",
+            title:      "Poids du monde",
+            textGM:     "L'onglet <strong>Poids du monde</strong> mesure la taille (données + médias) de vos scènes, acteurs, objets et journaux — pour repérer ce qui alourdit le monde et faire le ménage si besoin.",
+            position:   "left"
         },
     ],
 
@@ -1164,6 +1431,93 @@ const STEPS_BY_FEATURE = {
             gmOnly:   true
         },
     ],
+
+    // ---- Échange entre joueurs (players + GM) ----
+    echange: [
+        {
+            beforeShow: async () => { _closeTradeDemo(); try { ui.players?.render?.(); } catch {} await _sleep(250); },
+            target:     "#players, #players-active, .players",
+            title:      "Échange entre joueurs",
+            text:       "Ce serveur permet d'<strong>échanger objets et monnaie</strong> entre joueurs, façon Dofus. Pour lancer un échange : dans la <strong>liste des joueurs</strong>, survolez un joueur en ligne — un bouton <i class='fa-solid fa-right-left'></i> <strong>Échanger</strong> apparaît. (On ne peut pas échanger pendant une party ; en expédition, uniquement avec les membres de l'expédition ; sinon librement.)",
+            position:   "right"
+        },
+        {
+            beforeShow: _openTradeDemo,
+            target:     "#scwm-trade-demo",
+            title:      "La fenêtre d'échange",
+            text:       "Voici (en <strong>démonstration</strong>) à quoi ressemble un échange. Deux zones : <strong>votre offre</strong> à gauche, celle de l'autre à droite. Vous y glissez vos objets et réglez la <strong>monnaie</strong> à donner. Tant que personne n'a validé, chacun peut modifier son offre.",
+            position:   "left"
+        },
+        {
+            beforeShow: _openTradeDemo,
+            target:     '#scwm-trade-demo [data-demo="buttons"]',
+            title:      "Confirmer l'échange",
+            text:       "Chaque joueur doit <strong>Confirmer son offre</strong> : l'échange ne se fait que lorsque les <strong>deux</strong> ont confirmé — tout est transféré d'un coup, sans risque. <strong>Annuler</strong> ferme l'échange sans rien transférer. Côté demandeur, une petite fenêtre « en attente d'acceptation » s'affiche (impossible à fermer, seulement annuler) tant que l'autre n'a pas répondu.",
+            position:   "left"
+        },
+    ],
+
+    // ---- Transformations : Wild Shape / Polymorphie (players + GM) ----
+    transformation: [
+        {
+            beforeShow: _openSidebarSettingsTab,
+            target:     '#settings button[data-action="configure"], button.configure-settings, [data-action="configure"], #settings',
+            title:      "Transformations — où régler",
+            text:       "Le module gère deux systèmes distincts via le moteur dnd5e : la <strong>Forme sauvage</strong> (druide) et la <strong>Polymorphie</strong> (sort), avec les règles PHB 2024. Les options se trouvent dans <strong>Réglages → Configurer les paramètres</strong>, catégorie <strong>Transformation</strong>.",
+            position:   "left"
+        },
+        {
+            beforeShow: _openConfigHubTour,
+            target:     "#scwm-hub",
+            title:      "Catégorie « Transformation »",
+            text:       "Dans le <strong>Panneau de configuration</strong> → groupe <strong>Combat</strong> → <strong>Transformation</strong> : activez/désactivez l'ensemble et réglez l'application des limites de <strong>facteur de puissance (FP)</strong>.",
+            position:   "right"
+        },
+        {
+            target:     null,
+            title:      "Comment ça marche en jeu",
+            text:       "En combat, sélectionnez le token du personnage : des boutons apparaissent dans le <strong>HUD du token</strong> — <strong>Forme sauvage</strong> (druide) et/ou <strong>Polymorphie</strong>, puis <strong>Revenir</strong> à la forme d'origine. Choisissez la bête : le moteur dnd5e applique la transformation (garde l'essentiel du perso selon le type), vérifie le FP max autorisé, et <strong>Revenir</strong> restaure la fiche. Deux listes de formes mémorisées (Wild Shape / Polymorphie) évitent de re-chercher à chaque fois.",
+            position:   "center"
+        },
+    ],
+
+    // ---- Compagnons évolutifs (GM) ----
+    compagnons: [
+        {
+            target:     null,
+            title:      "Compagnons évolutifs — le principe",
+            textGM:     "Un <strong>compagnon évolutif</strong> (familier, invocation, animal) voit ses stats (CA, PV, bonus…) <strong>recalculées automatiquement</strong> selon le niveau de son <strong>maître</strong> (le PJ). Plus besoin de refaire sa fiche à chaque niveau : le module resynchronise via des <strong>formules</strong>.",
+            position:   "center",
+            gmOnly:     true
+        },
+        {
+            target:     null,
+            title:      "Attribuer un compagnon",
+            textGM:     "Ouvrez la fiche de la <strong>créature (PNJ)</strong> à lier. Dans la <strong>barre de titre</strong> de sa fenêtre, un bouton <i class='fa-solid fa-dna'></i> apparaît (MJ) : cliquez-le pour ouvrir le dialogue, choisissez le <strong>maître</strong> (le PJ) et le <strong>profil</strong> de formules à appliquer, puis validez. Le compagnon est lié et se mettra à jour tout seul quand le maître monte de niveau.",
+            position:   "center",
+            gmOnly:     true
+        },
+        {
+            beforeShow: _openConfigHubTour,
+            target:     "#scwm-hub",
+            title:      "Personnaliser les profils (JSON)",
+            textGM:     "Les profils de formules sont <strong>personnalisables</strong>. Dans le <strong>Panneau de configuration</strong> → groupe <strong>Personnalisation &amp; interface</strong> → <strong>Profils de compagnons</strong>, vous pouvez ajouter ou surcharger des profils en <strong>JSON</strong> : chaque champ (ex. <code>system.attributes.hp.max</code>) reçoit une <strong>formule</strong> pouvant référencer <code>@level</code> (niveau du maître), <code>@master</code>, <code>@pb</code>… Parfait pour coller à vos règles maison.",
+            position:   "right",
+            gmOnly:     true
+        },
+    ],
+
+    // ---- Panthéons : Dieux de Faerûn (players + GM) ----
+    pantheon: [
+        {
+            beforeShow: _openPantheonFolder,
+            target:     ".tuto-a11y-highlight, #journal .folder, .journal .directory-item.folder",
+            title:      "Le dossier Panthéons",
+            text:       "Dans l'onglet <strong>Journaux</strong>, le module ajoute un dossier <strong>Panthéons</strong> contenant un compendium complet des <strong>Dieux de Faerûn</strong> (tous les panthéons). Il est <strong>visible par tout le monde</strong> : cliquez le journal pour consulter les divinités, leurs domaines et symboles.",
+            textGM:     "Dans l'onglet <strong>Journaux</strong>, le module crée au premier lancement un dossier <strong>Panthéons</strong> (Dieux de Faerûn, tous les panthéons), <strong>visible par tous les joueurs</strong>. Vous pouvez le consulter, le déplacer ou le supprimer ; il ne sera pas recréé. L'option se coupe dans <strong>Réglages → Serveur</strong> si vous n'en voulez pas.",
+            position:   "right"
+        },
+    ],
 };
 
 // ================================================================
@@ -1208,6 +1562,16 @@ export async function startTutorial(selectedSections = null, onComplete = null) 
     }
 
     _steps = [];
+    // Section OBLIGATOIRE : Accessibilité — toujours incluse, en premier, non
+    // désactivable (ni gating par réglage, ni par le sélecteur de sections).
+    {
+        const accSteps = (STEPS_BY_FEATURE.accessibilite ?? []).filter(s => {
+            if (s.gmOnly     && !game.user.isGM) return false;
+            if (s.playerOnly &&  game.user.isGM) return false;
+            return true;
+        });
+        _steps.push(...accSteps.map(st => ({ ...st, _section: "accessibilite" })));
+    }
     for (const [section, settingKey] of Object.entries(SETTING_KEYS)) {
         // Filtrer les sections dont le module requis n'est pas actif
         if (!isSectionAvailable(section)) continue;
@@ -1257,6 +1621,7 @@ export function closeTutorial() {
 // (dernière étape), on propose de ne plus afficher la fenêtre de bienvenue.
 function _endTutorial(completed = false) {
     revokeTutorialAccess();
+    _closeTradeDemo();   // retire la fenêtre d'échange de démonstration si présente
     closeTutorial();
     // Mode « menu » : on rouvre le menu après chaque section, quelle que soit la
     // façon de terminer (fin, croix, Échap). C'est la croix du MENU qui arrête.

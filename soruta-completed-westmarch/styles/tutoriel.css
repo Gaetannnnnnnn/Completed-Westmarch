@@ -487,3 +487,12 @@
     opacity: 0.35;
     cursor: default;
 }
+
+/* Surbrillance temporaire posée par le tutoriel (ligne de réglage « Accessibilité »
+   dans la config du module, badge de statut dans le répertoire des Acteurs). */
+.tuto-a11y-highlight {
+    outline: 2px solid #c9a227;
+    outline-offset: 2px;
+    border-radius: 4px;
+    background: rgba(201,162,39,0.10);
+}

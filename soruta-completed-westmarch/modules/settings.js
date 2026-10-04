@@ -263,6 +263,9 @@ export function registerSettings() {
     game.settings.register(MOD, "sourceAllowGm", S(
         "Sources autorisées — MJ",
         "Liste blanche des sources autorisées pour le MJ, même syntaxe que pour les joueurs (« Source » ou « Source : type1, type2 », entrées séparées par « ; »). Laisser vide = aucune restriction pour le MJ."));
+    game.settings.register(MOD, "sourceDeny", S(
+        "Sources / identifiants INTERDITS",
+        "Liste noire PRIORITAIRE, pour tout le monde (joueurs ET MJ), sur les fiches PJ. Chaque entrée interdit un contenu si elle correspond à sa <strong>source</strong> OU à son <strong>identifiant</strong> — pratique pour bannir un <strong>sort précis</strong> (ex. « conjure-animals ») ou une source entière, même si elle est par ailleurs autorisée. Entrées séparées par « ; ». La correspondance exacte/souple suit le même réglage que les listes blanches."));
     game.settings.register(MOD, "sourceMatchField", {
         name: "Champ comparé (Book ou Identifier)",
         hint: "Choisit sur quel champ de la source portent les listes ci-dessus. « Book » = le livre (ex. « PHB 2024 »), plus large. « Identifier » = l'identifiant précis de l'objet (ex. « unarmed-strike »), pour un filtrage fin. « Les deux » accepte une correspondance sur l'un OU l'autre.",
@@ -311,6 +314,10 @@ export function registerSettings() {
         true));
     // Garde-fou : création effectuée une seule fois (ne pas recréer après suppression).
     game.settings.register(MOD, "pantheonCreatedOnce", {
+        scope: "world", config: false, type: Boolean, default: false
+    });
+    // Garde-fou : partage (visibilité joueurs) appliqué une seule fois à l'existant.
+    game.settings.register(MOD, "pantheonSharedOnce", {
         scope: "world", config: false, type: Boolean, default: false
     });
 
@@ -1055,7 +1062,7 @@ const CATEGORIES = [
       keys: ["enableCharValidation","charMaxTotal","charMaxActive","charFreeLevelUp","charNotifyLevelUp","blockPlayerPlutonium"] },
     { firstKey: "enableSourceControl", master: "enableSourceControl", icon: "fa-book-skull", title: "Contrôle des sources",
       desc: "Réglemente les livres/extensions D&D (Xanathar, Tal'Dorei, etc.) autorisés sur les fiches PJ, via deux listes blanches (joueurs / MJ). Le contenu d'une source non autorisée est bloqué avec un avertissement, quelle que soit la méthode d'ajout.",
-      keys: ["enableSourceControl","sourceAllowPlayers","sourceAllowGm","sourceMatchField","sourceMatchExact","sourceBlockUnknown"] },
+      keys: ["enableSourceControl","sourceAllowPlayers","sourceAllowGm","sourceDeny","sourceMatchField","sourceMatchExact","sourceBlockUnknown"] },
     { firstKey: "enableHarvest", master: "enableHarvest", icon: "fa-hand-holding-droplet", title: "Récolte (harvest)",
       desc: "Récolte de matériaux sur les créatures mortes. Le module utilise des RollTables que vous créez et associez aux créatures (bouton « Associations » dans l'onglet WestMarch). Butin partagé sur la dépouille, pourriture avec le temps, tache de sang une fois vidée.",
       keys: ["enableHarvest","harvestDcBase","harvestDcPerCr","harvestBaseDraws","harvestBloodImage"] },
@@ -1097,7 +1104,7 @@ const CATEGORIES = [
       keys: ["rangeFixEnabled","rangeAdjust"] },
     { firstKey: "serverName", master: "tutoEnabled", icon: "fa-circle-question", title: "Tutoriel",
       desc: "Fenêtre de bienvenue et guide interactif, configurable section par section.",
-      keys: ["tutoEnabled","serverName","tutoBarreWestmarch","tutoTourFiche","tutoNoteGm","tutoMonPerso","tutoBestiary","tutoRelations","tutoCarnet","tutoCasier","tutoCues","tutoBoutiques","tutoTempsMorts","tutoApparenceTokens","tutoOutilsGm","showWelcome"] },
+      keys: ["tutoEnabled","serverName","tutoBarreWestmarch","tutoTourFiche","tutoNoteGm","tutoMonPerso","tutoBestiary","tutoRelations","tutoCarnet","tutoCasier","tutoCues","tutoBoutiques","tutoTempsMorts","tutoApparenceTokens","tutoOutilsGm","tutoEchange","tutoTransformation","tutoCompagnons","tutoPantheon","showWelcome"] },
 ];
 
 const ACCENT = "#e67e22";
@@ -1272,7 +1279,7 @@ function registerConfigHub() {
 const _catIsInlinable = (cat) => Array.isArray(cat.keys) && cat.keys.length > 0 || !!cat.tree;
 const _hubHostId = (cat) => `scwm-hub-cat-${cat.firstKey}`;
 
-async function openConfigHub() {
+export async function openConfigHub() {
     const groups = _groupedCategories();
 
     const groupHtml = groups.map((g, gi) => {
@@ -1487,6 +1494,11 @@ function settingControlHtml(key) {
         control = `<select name="${key}" style="width:100%;">${opts}</select>`;
     } else if (cfg.type === Number) {
         control = `<input type="number" name="${key}" value="${val ?? 0}" step="any" style="width:100%;">`;
+    } else if (key === "sourceAllowPlayers" || key === "sourceAllowGm" || key === "sourceDeny") {
+        // Listes de sources potentiellement longues → zone multi-ligne.
+        const ph = key === "sourceDeny" ? "Ex. : conjure-animals ; silvery-barbs ; UA" : "Ex. : XPHB ; TCE : sous-classe, don ; XGE : sort";
+        control = `<textarea name="${key}" rows="4" placeholder="${ph}"
+            style="width:100%;box-sizing:border-box;resize:vertical;min-height:70px;font-family:var(--font-mono,monospace);font-size:.9em;">${escapeAttr(val ?? "")}</textarea>`;
     } else if (key === "gmAutoFolderParent") {
         // Nom de dossier saisi librement (PAS un sélecteur : le même nom sert
         // dans Acteurs, Journaux et Scènes).

@@ -114,6 +114,23 @@ export function SourceControlHooks() {
         const actor = item.parent;
         if (!actor || actor.type !== "character") return;   // seulement les fiches PJ
 
+        // LISTE NOIRE (prioritaire, pour TOUS) : on bloque si la source OU
+        // l'identifiant du contenu correspond à une entrée interdite — pratique
+        // pour bannir un sort précis (identifiant) même si sa source est permise.
+        const denyRaw = game.settings.get(MOD, "sourceDeny");
+        const deny = String(denyRaw ?? "").split(/[;\n]/).map(s => s.trim()).filter(Boolean);
+        if (deny.length) {
+            const det = detectSources(data, item);
+            const candidates = [...det.books, ...det.ids];
+            const exactD = game.settings.get(MOD, "sourceMatchExact");
+            const hit = deny.find(d => candidates.some(s => entryMatches(s, d, exactD)));
+            if (hit) {
+                ui.notifications?.warn(`« ${item.name} » est interdit sur le serveur (règle « ${hit} »).`);
+                console.warn(`[${MOD}] Contenu interdit (liste noire) : ${item.name} — règle « ${hit} ».`);
+                return false;
+            }
+        }
+
         // Le rôle est celui du client initiateur (les hooks preCreate sont locaux).
         const isGM = game.user.isGM;
         const listRaw = isGM

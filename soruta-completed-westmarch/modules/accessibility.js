@@ -93,14 +93,17 @@ function registerA11yMenu() {
     }
 }
 
-async function openA11yDialog() {
+export async function openA11yDialog() {
     const uid = "scwm-a11y-form";
+    // Idempotent : si la fenêtre est déjà ouverte (ex. tutoriel), ne pas en
+    // rouvrir une seconde par-dessus.
+    if (document.getElementById(uid)) return;
     const dalton = _get(K_DALTON) ?? "none";
     const opts = Object.entries(DALTON_CHOICES)
         .map(([v, lbl]) => `<option value="${v}" ${dalton === v ? "selected" : ""}>${lbl}</option>`).join("");
 
-    const row = (key, label, hint) => `
-        <div class="scwm-a11y-row" style="padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.07);">
+    const row = (key, label, hint, rowKey) => `
+        <div class="scwm-a11y-row" data-a11y-row="${rowKey ?? key}" style="padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.07);">
             <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;font-weight:600;margin:0;">
                 <span>${label}</span>
                 <input type="checkbox" name="${key}" ${_get(key) ? "checked" : ""} style="width:18px;height:18px;flex-shrink:0;">
@@ -120,7 +123,7 @@ async function openA11yDialog() {
             </div>
         </div>
 
-        <div style="padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.07);">
+        <div data-a11y-row="dalton" style="padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.07);">
             <label style="display:block;font-weight:600;margin:0 0 4px;">Mode daltonisme</label>
             <select name="${K_DALTON}" style="width:100%;">${opts}</select>
             <p style="margin:4px 0 0;font-size:.8em;color:#999;">
@@ -129,8 +132,8 @@ async function openA11yDialog() {
             </p>
         </div>
 
-        ${row(K_CONTRAST, "Fort contraste", "Renforce le contraste du texte, des bordures et des fonds de l'interface.")}
-        <div class="scwm-a11y-row" style="padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.07);">
+        ${row(K_CONTRAST, "Fort contraste", "Renforce le contraste du texte, des bordures et des fonds de l'interface.", "contrast")}
+        <div class="scwm-a11y-row" data-a11y-row="contrastcol" style="padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.07);">
             <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0;font-weight:600;">
                 <span>Couleur des contours</span>
                 <span style="display:inline-flex;align-items:center;gap:6px;">
@@ -141,12 +144,12 @@ async function openA11yDialog() {
             </label>
             <p style="margin:3px 0 0;font-size:.8em;color:#999;">Couleur des bordures et du contour de focus en mode fort contraste (jaune par défaut).</p>
         </div>
-        ${row(K_AVATARS,  "Avatars dans la liste des joueurs", "Affiche la miniature du portrait de chaque joueur à côté de son nom.")}
-        ${row(K_AUTOHIDE, "Auto-masquage de l'interface", "Estompe contrôles, navigation, macros et liste des joueurs tant que la souris ne les survole pas.")}
-        ${row(K_COMPACT,  "Contrôles de gauche compacts", "Réduit la taille des icônes de la barre d'outils de gauche.")}
+        ${row(K_AVATARS,  "Avatars dans la liste des joueurs", "Affiche la miniature du portrait de chaque joueur à côté de son nom.", "avatars")}
+        ${row(K_AUTOHIDE, "Auto-masquage de l'interface", "Estompe contrôles, navigation, macros et liste des joueurs tant que la souris ne les survole pas.", "autohide")}
+        ${row(K_COMPACT,  "Contrôles de gauche compacts", "Réduit la taille des icônes de la barre d'outils de gauche.", "compact")}
 
         <div style="margin:10px 0 4px;font-weight:700;color:#c9a227;font-size:.9em;">Cartes de chat</div>
-        <div class="scwm-a11y-row" style="padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.07);">
+        <div class="scwm-a11y-row" data-a11y-row="chatcol" style="padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.07);">
             <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0;font-weight:600;">
                 <span>Couleur des cartes de chat</span>
                 <span style="display:inline-flex;align-items:center;gap:6px;">

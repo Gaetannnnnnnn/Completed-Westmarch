@@ -112,6 +112,7 @@ export const SETTING_KEYS = {
     tempsMorts:      "tutoTempsMorts",
     apparenceTokens: "tutoApparenceTokens",
     outilsGm:        "tutoOutilsGm",
+    accessibilite:   "tutoAccessibilite",
     echange:         "tutoEchange",
     transformation:  "tutoTransformation",
     compagnons:      "tutoCompagnons",
@@ -162,6 +163,7 @@ export const SECTION_NATIVE = new Set(["tourFiche"]);
 // menu ; le reste est rangé sous « Optionnel ». Le filtrage par rôle/activation
 // (isSectionAvailable) s'applique ensuite : un joueur ne verra que ses essentiels.
 export const SECTION_ESSENTIAL = new Set([
+    "accessibilite",    // options de confort personnelles (tous) — à connaître
     "barreWestmarch",   // repérer les outils du serveur (tous)
     "monPerso",         // créer / gérer son personnage (joueur)
     "carnet",           // carnet & expéditions (tous)
@@ -1562,16 +1564,6 @@ export async function startTutorial(selectedSections = null, onComplete = null) 
     }
 
     _steps = [];
-    // Section OBLIGATOIRE : Accessibilité — toujours incluse, en premier, non
-    // désactivable (ni gating par réglage, ni par le sélecteur de sections).
-    {
-        const accSteps = (STEPS_BY_FEATURE.accessibilite ?? []).filter(s => {
-            if (s.gmOnly     && !game.user.isGM) return false;
-            if (s.playerOnly &&  game.user.isGM) return false;
-            return true;
-        });
-        _steps.push(...accSteps.map(st => ({ ...st, _section: "accessibilite" })));
-    }
     for (const [section, settingKey] of Object.entries(SETTING_KEYS)) {
         // Filtrer les sections dont le module requis n'est pas actif
         if (!isSectionAvailable(section)) continue;

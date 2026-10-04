@@ -25,6 +25,7 @@ export const TUTO_TOGGLES = [
     { key: "tutoTempsMorts",      legacy: "tempsMorts",      label: "Temps morts (déclaration & validation)" },
     { key: "tutoApparenceTokens", legacy: "apparenceTokens", label: "Apparence des tokens (portrait, polymorph, cycle)" },
     { key: "tutoOutilsGm",        legacy: "outilsGm",        label: "Outils GM (TGCM, XP, Discord, Fake Warning)" },
+    { key: "tutoAccessibilite",   legacy: "accessibilite",   label: "Accessibilité (daltonisme, contraste…)" },
     { key: "tutoEchange",         legacy: "echange",         label: "Échange entre joueurs" },
     { key: "tutoTransformation",  legacy: "transformation",  label: "Transformations (Wild Shape / Polymorphie)" },
     { key: "tutoCompagnons",      legacy: "compagnons",      label: "Compagnons évolutifs (GM)" },

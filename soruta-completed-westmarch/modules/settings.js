@@ -1104,7 +1104,7 @@ const CATEGORIES = [
       keys: ["rangeFixEnabled","rangeAdjust"] },
     { firstKey: "serverName", master: "tutoEnabled", icon: "fa-circle-question", title: "Tutoriel",
       desc: "Fenêtre de bienvenue et guide interactif, configurable section par section.",
-      keys: ["tutoEnabled","serverName","tutoBarreWestmarch","tutoTourFiche","tutoNoteGm","tutoMonPerso","tutoBestiary","tutoRelations","tutoCarnet","tutoCasier","tutoCues","tutoBoutiques","tutoTempsMorts","tutoApparenceTokens","tutoOutilsGm","tutoEchange","tutoTransformation","tutoCompagnons","tutoPantheon","showWelcome"] },
+      keys: ["tutoEnabled","serverName","tutoBarreWestmarch","tutoTourFiche","tutoNoteGm","tutoMonPerso","tutoBestiary","tutoRelations","tutoCarnet","tutoCasier","tutoCues","tutoBoutiques","tutoTempsMorts","tutoApparenceTokens","tutoOutilsGm","tutoAccessibilite","tutoEchange","tutoTransformation","tutoCompagnons","tutoPantheon","showWelcome"] },
 ];
 
 const ACCENT = "#e67e22";

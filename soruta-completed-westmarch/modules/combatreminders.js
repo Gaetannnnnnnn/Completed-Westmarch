@@ -12,6 +12,7 @@
 // ============================================================
 
 import { MOD } from "./const.js";
+import { Dialog } from "./compat.js";
 
 const on = (k) => { try { return game.settings.get(MOD, k); } catch { return false; } };
 // Opt-out par joueur (réglage client) : ce client a-t-il coupé les rappels ?

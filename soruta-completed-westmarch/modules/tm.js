@@ -1,4 +1,5 @@
 import { MOD, TM_DEFAULT_SCROLL, TM_DEFAULT_MAGIC, TM_DEFAULT_ROLL } from "./const.js";
+import { Dialog } from "./compat.js";
 import { commonPackCraft } from "./settings.js";
 // ============================================================
 // tm.js — Temps morts : déclaration joueur + validation GM

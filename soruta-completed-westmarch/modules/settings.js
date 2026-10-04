@@ -1109,6 +1109,10 @@ const CATEGORIES = [
 
 const ACCENT = "#e67e22";
 
+// Réglages GELÉS : affichés grisés/désactivés dans la configuration (on ne peut
+// pas les modifier). Utilisé pour une fonctionnalité temporairement coupée.
+const FROZEN_SETTINGS = new Set(["enableTgcm"]);
+
 // Schémas des tables de temps morts éditées en grille (champs structurés).
 const TM_TABLE_SCHEMAS = {
     tmScrollTable: {
@@ -1479,10 +1483,12 @@ function settingControlHtml(key) {
     const wrap   = "padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.06);";
 
     if (cfg.type === Boolean) {
-        return `<div class="scwm-set" data-key="${key}" style="${wrap}">
-            <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;font-weight:600;margin:0;">
-                <span>${cfg.name}${reload}</span>
-                <input type="checkbox" name="${key}" ${val ? "checked" : ""} style="width:18px;height:18px;flex-shrink:0;">
+        const frozen = FROZEN_SETTINGS.has(key);
+        const frozenNote = frozen ? ` <span style="color:${ACCENT};font-size:.78em;">⏸ temporairement désactivé</span>` : "";
+        return `<div class="scwm-set" data-key="${key}" style="${wrap}${frozen ? "opacity:.5;" : ""}">
+            <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:${frozen ? "not-allowed" : "pointer"};font-weight:600;margin:0;">
+                <span>${cfg.name}${reload}${frozenNote}</span>
+                <input type="checkbox" name="${key}" ${val ? "checked" : ""} ${frozen ? "disabled" : ""} style="width:18px;height:18px;flex-shrink:0;">
             </label>${hint}</div>`;
     }
 
@@ -1545,6 +1551,7 @@ function wireCategoryForm(category, root) {
     // Tout activer / désactiver
     const boolKeys = boolKeysOf(category);
     const setAll = (v) => boolKeys.forEach(k => {
+        if (FROZEN_SETTINGS.has(k)) return;   // ne pas réactiver un réglage gelé
         const el = root.querySelector(`[name="${k}"]`);
         if (el) { el.checked = v; el.disabled = false; el.closest(".scwm-set").style.opacity = "1"; }
     });
@@ -1630,6 +1637,7 @@ async function saveCategoryForm(category, root, { silent = false } = {}) {
     for (const key of category.keys) {
         const cfg = game.settings.settings.get(`${MOD}.${key}`);
         if (!cfg) continue;
+        if (FROZEN_SETTINGS.has(key)) continue;   // réglage gelé : on ne le modifie pas
 
         // Liste d'intrigues (tags) → tableau de chaînes (nettoyé, dédupliqué).
         if (key === "sessionTags") {

@@ -11,6 +11,7 @@
 // ============================================================
 
 import { MOD } from "./const.js";
+import { Dialog } from "./compat.js";
 import { getTutorialActor, grantTutorialAccess, revokeTutorialAccess } from "./demoactor.js";
 import { openCasier } from "./casier.js";
 import { openSceneCues } from "./sceneaudio.js";

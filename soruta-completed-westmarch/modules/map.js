@@ -128,6 +128,17 @@ export function MapHooks() {
         await promptRenameGroup(actor);       // c'est une copie du modèle
     });
 
+    // ---- Permissions du token/acteur de GROUPE ----
+    // Quand on ajoute (ou retire) un PJ aux membres d'un groupe, on met à jour
+    // l'OWNERSHIP du groupe : chaque joueur propriétaire d'un PJ membre passe
+    // Observateur sur le groupe → il voit le token de groupe et son brouillard.
+    Hooks.on("updateActor", async (actor, changes) => {
+        if (!game.user.isGM) return;
+        if (actor.type !== "group") return;
+        if (!foundry.utils.hasProperty(changes, "system.members")) return;
+        await syncGroupOwnership(actor);
+    });
+
     // ---- Bouton MJ : réinitialiser le brouillard (onglet WestMarch) ----
     Hooks.on("getSceneControlButtons", (controls) => {
         if (!game.user.isGM || !enabled()) return;
@@ -446,6 +457,52 @@ export async function resetExpeditionFog() {
         if (a.getFlag(MOD, FLAG_EXPLORED)) await a.unsetFlag(MOD, FLAG_EXPLORED);
     }
     drawFog();
+}
+
+// Synchronise, sur l'acteur de GROUPE, la permission des joueurs selon les
+// membres du groupe :
+//  • ajout d'un membre   → le(s) joueur(s) propriétaire(s) du PJ passent Observateur ;
+//  • retrait d'un membre → ces joueurs reviennent à la permission « défaut »
+//                           (suppression de l'entrée → héritage de ownership.default),
+// sans jamais toucher un Propriétaire ni une permission posée à la main (> Observateur).
+// Idempotent.
+async function syncGroupOwnership(groupActor) {
+    try {
+        const L = CONST.DOCUMENT_OWNERSHIP_LEVELS;
+        const memberIds = Array.from(groupActor.system?.members?.ids ?? []);
+        const ownership = groupActor.ownership ?? {};
+
+        // Ensemble des joueurs qui DOIVENT être Observateurs (propriétaires d'un
+        // PJ encore membre du groupe).
+        const shouldObserve = new Set();
+        for (const mid of memberIds) {
+            const member = game.actors.get(mid);
+            if (!member) continue;
+            for (const user of game.users) {
+                if (user.isGM) continue;
+                const owns = member.ownership?.[user.id] === L.OWNER
+                    || user.character?.id === mid
+                    || member.getFlag(MOD, "createdFor") === user.id;
+                if (owns) shouldObserve.add(user.id);
+            }
+        }
+
+        const updates = {};
+        // Octroi : membre présent, joueur pas encore Observateur.
+        for (const uid of shouldObserve) {
+            if ((ownership[uid] ?? L.NONE) < L.OBSERVER) updates[`ownership.${uid}`] = L.OBSERVER;
+        }
+        // Révocation : joueur actuellement à EXACTEMENT Observateur mais dont le PJ
+        // n'est plus membre → retour au défaut (on ne descend jamais un Propriétaire
+        // ni une permission supérieure posée manuellement).
+        for (const user of game.users) {
+            if (user.isGM) continue;
+            if (shouldObserve.has(user.id)) continue;
+            if (ownership[user.id] === L.OBSERVER) updates[`ownership.-=${user.id}`] = null;
+        }
+
+        if (Object.keys(updates).length) await groupActor.update(updates);
+    } catch (e) { console.warn(`[${MOD}] Sync permissions du groupe échoué :`, e); }
 }
 
 // Renomme un groupe fraîchement dupliqué : applique le nom à la fiche (acteur)

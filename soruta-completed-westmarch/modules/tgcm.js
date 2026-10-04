@@ -18,7 +18,13 @@ import { MOD } from "./const.js";
 // permet de protéger une instance précise sans affecter l'acteur lié.
 // ============================================================
 
+// TGCM temporairement DÉSACTIVÉ (en attente d'une décision). Le réglage est
+// grisé dans la configuration. Pour réactiver : repasser à false et retirer le
+// grisage dans settings.js (FROZEN_SETTINGS).
+const TGCM_DISABLED = true;
+
 export function TgcmHooks() {
+    if (TGCM_DISABLED) return;   // fonctionnalité coupée pour le moment
 
     // ---- Bouton HUD (GM uniquement) ----
     Hooks.on("renderTokenHUD", (hud, html) => {

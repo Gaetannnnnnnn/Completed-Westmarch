@@ -59,7 +59,10 @@ export function CombatHooks() {
 
     // ============================================================
     // SECTION : Tague le combat avec la party de son créateur, dès sa
-    // création (GM uniquement). Garantit aussi scene: null.
+    // création (GM uniquement). Le filtrage par party se fait via le FLAG,
+    // pas via la scène → on garde une scène valide pour que l'ajout de
+    // combattants fonctionne normalement (forcer scene:null le cassait en
+    // Foundry v13/v14 : « il faut lier une scène au combat »).
     // ============================================================
     Hooks.on("preCreateCombat", (combat, data, options, userId) => {
         if (!partyFeatureEnabled("enableCombatParty")) return;
@@ -71,8 +74,12 @@ export function CombatHooks() {
         // reste cohérent et permet de filtrer dès qu'il en crée une.
         const partyId = game.user.getFlag(MOD, "partyId") ?? game.user.id;
 
+        // Scène : on conserve celle de création ; à défaut, la scène vue par
+        // le GM (combat fonctionnel, combattants ajoutables).
+        const scene = combat.scene?.id ?? data?.scene ?? game.user.viewedScene ?? canvas?.scene?.id ?? null;
+
         combat.updateSource({
-            scene: null,
+            scene,
             [`flags.${MOD}.partyId`]: partyId
         });
     });

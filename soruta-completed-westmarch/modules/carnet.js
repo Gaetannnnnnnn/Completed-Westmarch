@@ -12,6 +12,7 @@
 // ============================================================
 
 import { MOD } from "./const.js";
+import { Dialog } from "./compat.js";
 import { expeditionSessionCount } from "./session.js";
 const MODULE = MOD;
 

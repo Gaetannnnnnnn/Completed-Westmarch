@@ -290,6 +290,26 @@ export function ChatHooks() {
         return msg ? !isPartyMember(msg.author) : false;
     });
 
+    // ============================================================
+    // Dice So Nice : l'animation 3D est jouée sur TOUS les clients, sans
+    // notion de party → on annule l'animation pour un jet dont l'auteur
+    // n'est pas de notre party (comme pour le son et le masquage visuel).
+    // Le hook diceSoNiceRollStart reçoit (messageId, context) ; retourner
+    // false annule l'affichage 3D chez nous.
+    // ============================================================
+    Hooks.on("diceSoNiceRollStart", (messageId, context) => {
+        try {
+            if (!partyFeatureEnabled("enableChatFilter")) return;
+            const msg = messageId ? game.messages.get(messageId) : null;
+            let author = msg?.author ?? null;
+            if (!author && context) {
+                const u = context.user ?? context.author ?? context.userId;
+                author = (u && typeof u === "object") ? u : (u ? game.users.get(u) : null);
+            }
+            if (author && !isPartyMember(author)) return false;   // autre party → pas d'animation 3D
+        } catch (e) {}
+    });
+
 }
 
 export function ReloadChat() {

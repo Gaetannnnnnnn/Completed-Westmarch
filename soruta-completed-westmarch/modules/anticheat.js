@@ -48,19 +48,28 @@ export function AntiCheatHooks() {
         const events = [];
 
         // ---- Sorts préparés ----
-        // dnd5e envoie soit system.preparation.prepared (booléen, structure
-        // "moderne"), soit system.prepared (0/1, à plat — c'est ce qu'envoie
-        // le bouton de la fiche perso) selon le point d'entrée utilisé.
-        const preparedChange = changes.system?.preparation?.prepared !== undefined
-            ? changes.system.preparation.prepared
-            : changes.system?.prepared !== undefined
-                ? !!changes.system.prepared
-                : undefined;
-
-        if (preparedChange !== undefined && item.type === "spell") {
-            const before = !!item.system.preparation?.prepared;
-            const after = preparedChange;
-            if (before !== after && item.system.preparation?.mode === "prepared") {
+        // Compatible dnd5e 5.x (system.preparation.{mode,prepared}) ET dnd5e 6.0
+        // (system.method + system.prepared en NOMBRE : l'état « préparé » vaut
+        // CONFIG.DND5E.spellPreparationStates.prepared.value, ~1). L'ancien
+        // chemin a disparu en 6.0 → d'où la non-détection.
+        if (item.type === "spell") {
+            let before, after, preparable;
+            if (changes.system?.prepared !== undefined || (changes.system?.method !== undefined && item.system?.prepared !== undefined)) {
+                // Modèle 6.0
+                const PREP = CONFIG.DND5E?.spellPreparationStates?.prepared?.value ?? 1;
+                const bNum = Number(item.system?.prepared ?? 0);
+                const aNum = changes.system?.prepared !== undefined ? Number(changes.system.prepared) : bNum;
+                before = (bNum === PREP);
+                after  = (aNum === PREP);
+                const method = changes.system?.method ?? item.system?.method;
+                preparable = !!(CONFIG.DND5E?.spellcasting?.[method]?.prepares);
+            } else if (changes.system?.preparation?.prepared !== undefined) {
+                // Modèle 5.x
+                before = !!item.system?.preparation?.prepared;
+                after  = !!changes.system.preparation.prepared;
+                preparable = item.system?.preparation?.mode === "prepared";
+            }
+            if (before !== undefined && preparable && before !== after) {
                 events.push(`${after ? "a préparé" : "a dé-préparé"} le sort <strong>${item.name}</strong>`);
             }
         }

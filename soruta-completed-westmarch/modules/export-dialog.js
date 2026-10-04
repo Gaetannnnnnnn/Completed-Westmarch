@@ -1,4 +1,5 @@
 import { MOD } from "./const.js";
+import { Dialog } from "./compat.js";
 // ============================================================
 // export-dialog.js — Export d'acteur avec choix de fiche
 //

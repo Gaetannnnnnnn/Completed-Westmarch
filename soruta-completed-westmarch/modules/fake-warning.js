@@ -1,4 +1,5 @@
 import { MOD } from "./const.js";
+import { Dialog } from "./compat.js";
 // ============================================================
 // fake-warning.js — Faux message de maintenance (farce GM)
 // Ajoute un bouton dans la barre d'outils de gauche (icônes de

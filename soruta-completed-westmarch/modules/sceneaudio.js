@@ -22,6 +22,7 @@
 // ============================================================
 
 import { MOD } from "./const.js";
+import { Dialog } from "./compat.js";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));

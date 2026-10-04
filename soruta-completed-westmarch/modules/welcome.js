@@ -3,6 +3,7 @@
 // ============================================================
 
 import { startTutorial, SECTION_LABELS, SECTION_ICONS, SETTING_KEYS, isSectionAvailable, SECTION_ESSENTIAL } from './tutorial.js';
+import { Dialog } from "./compat.js";
 
 import { MOD } from "./const.js";
 const MODULE = MOD;

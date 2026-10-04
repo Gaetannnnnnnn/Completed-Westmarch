@@ -21,6 +21,7 @@
 // ============================================================
 
 import { MOD } from "./const.js";
+import { Dialog } from "./compat.js";
 import { commonFolderNewChars, commonFolderPJ } from "./settings.js";
 
 // ---- Frontière construction / jeu -------------------------------------------

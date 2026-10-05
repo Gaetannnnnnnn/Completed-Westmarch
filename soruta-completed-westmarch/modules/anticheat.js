@@ -8,31 +8,52 @@ import { MOD } from "./const.js";
 
 export function AntiCheatHooks() {
 
-    // Helper commun : envoie le message d'alerte au(x) GM de la party
-    // concernée uniquement (pas à tous les GM de la table).
-    const notifyGM = (actor, userId, events) => {
-        if (events.length === 0) return;
+    // ------------------------------------------------------------
+    // Canal de query (Foundry v13) : c'est le GM de la party qui CRÉE le
+    // message d'alerte, pas le joueur. Indispensable pour la confidentialité :
+    // l'auteur d'un message chuchoté peut TOUJOURS le voir — si le joueur
+    // créait lui-même l'alerte (même chuchotée aux GM), il la verrait. En
+    // déléguant la création au GM via une query, le joueur n'est jamais ni
+    // auteur ni destinataire → il ne voit rien.
+    // Tous les clients enregistrent le handler ; seul un GM y donne suite.
+    // ------------------------------------------------------------
+    CONFIG.queries["westmarch.anticheat"] = async (data) => {
+        if (!game.user.isGM) return false;
+        try {
+            await ChatMessage.create({
+                content: `⚠️ <strong>Anti-Cheat</strong> — <strong>${data.actorName}</strong> (joueur : ${data.authorName}) ${(data.events ?? []).join(", ")} <em>pendant le combat</em>.`,
+                whisper: [game.user.id],
+                speaker: { alias: "Anti-Cheat" }
+            });
+            return true;
+        } catch (e) { console.error(`[${MOD}] Anti-Cheat (création message GM) :`, e); return false; }
+    };
+
+    // Helper commun : envoie l'alerte AU GM de la party concernée, qui la
+    // créera lui-même (voir le handler de query ci-dessus). Appelé côté
+    // joueur (le client qui initie la modification).
+    const reportToGm = (actor, userId, events) => {
+        if (!events || events.length === 0) return;
         const author = game.users.get(userId)?.name ?? "Inconnu";
 
         // La partyId d'un joueur correspond à l'id du GM qui a créé la party.
         const partyId = game.users.get(userId)?.getFlag(MOD, "partyId");
         const partyGm = partyId ? game.users.get(partyId) : null;
-        const gmIds = partyGm?.isGM ? [partyGm.id] : [];
+        if (!partyGm?.isGM || !partyGm.active) return;
 
-        if (gmIds.length === 0) return;
-
-        ChatMessage.create({
-            content: `⚠️ <strong>Anti-Cheat</strong> — <strong>${actor.name}</strong> (joueur : ${author}) ${events.join(", ")} <em>pendant le combat</em>.`,
-            whisper: gmIds,
-            speaker: { alias: "Anti-Cheat" }
-        });
+        partyGm.query("westmarch.anticheat", {
+            actorName: actor.name, authorName: author, events
+        }).catch(err => console.error(`[${MOD}] Anti-Cheat (query) :`, err));
     };
 
+    // Un acteur est surveillé s'il participe à UN combat démarré (quel qu'il
+    // soit — pas seulement game.combat, qui pointe sur le combat globalement
+    // actif, pas forcément celui de la party du joueur).
     const isWatchedCombatant = (actor) => {
         if (!actor || actor.type !== "character") return false;
         if (!actor.hasPlayerOwner) return false;
-        if (!game.combat || !game.combat.started) return false;
-        return game.combat.combatants.some(c => c.actorId === actor.id);
+        const combats = game.combats?.contents ?? [];
+        return combats.some(c => c.started && c.combatants.some(cb => cb.actorId === actor.id));
     };
 
     // ============================================================
@@ -113,7 +134,7 @@ export function AntiCheatHooks() {
             }
         }
 
-        notifyGM(actor, userId, events);
+        reportToGm(actor, userId, events);
     });
 
     // ============================================================
@@ -143,6 +164,31 @@ export function AntiCheatHooks() {
             }
         }
 
-        notifyGM(actor, userId, events);
+        reportToGm(actor, userId, events);
+    });
+
+    // ============================================================
+    // SECTION : Ajout d'un item pendant le combat
+    // Un joueur qui s'ajoute un sort, une arme, un objet, une aptitude…
+    // en plein combat est suspect. createItem est un hook « post » diffusé
+    // à tous les clients : on ne réagit que sur le client qui l'a initié
+    // (game.userId === userId) pour n'émettre qu'une seule alerte.
+    // ============================================================
+    const ITEM_TYPE_FR = {
+        spell: "le sort", weapon: "l'arme", equipment: "l'équipement",
+        consumable: "le consommable", feat: "l'aptitude", tool: "l'outil",
+        loot: "l'objet", container: "le conteneur", background: "l'historique",
+        class: "la classe", subclass: "la sous-classe", race: "l'espèce", feature: "l'aptitude"
+    };
+    Hooks.on("createItem", (item, options, userId) => {
+        if (game.userId !== userId) return;        // seulement le client initiateur
+        if (game.user.isGM) return;
+        if (!game.settings.get(MOD, "enableAntiCheat")) return;
+
+        const actor = item.parent;
+        if (!actor || !isWatchedCombatant(actor)) return;
+
+        const label = ITEM_TYPE_FR[item.type] ?? "l'objet";
+        reportToGm(actor, userId, [`a ajouté ${label} <strong>${item.name}</strong>`]);
     });
 }

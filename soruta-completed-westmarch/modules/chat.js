@@ -291,11 +291,17 @@ export function ChatHooks() {
     });
 
     // ============================================================
-    // Dice So Nice : l'animation 3D est jouée sur TOUS les clients, sans
-    // notion de party → on annule l'animation pour un jet dont l'auteur
-    // n'est pas de notre party (comme pour le son et le masquage visuel).
-    // Le hook diceSoNiceRollStart reçoit (messageId, context) ; retourner
-    // false annule l'affichage 3D chez nous.
+    // Dice So Nice : par défaut l'animation 3D est diffusée à TOUTE la table.
+    // ------------------------------------------------------------
+    // IMPORTANT : le hook diceSoNiceRollStart se déclenche sur le client QUI
+    // LANCE le dé — donc l'auteur y est toujours « nous-mêmes ». Tester
+    // « l'auteur est-il de MA party ? » ne marche donc jamais (on est
+    // toujours de notre propre party) : c'était le bug. La bonne approche est
+    // de définir, côté lanceur, la liste des spectateurs autorisés
+    // (context.users) = les membres de la party de l'AUTEUR. DSN ne diffuse
+    // alors l'animation 3D qu'à cette party ; les autres parties ne voient
+    // rien. Raisonnement identique quel que soit le client (basé sur le flag
+    // de l'auteur, pas sur le spectateur).
     // ============================================================
     Hooks.on("diceSoNiceRollStart", (messageId, context) => {
         try {
@@ -306,17 +312,16 @@ export function ChatHooks() {
                 const u = context.user ?? context.author ?? context.userId;
                 author = (u && typeof u === "object") ? u : (u ? game.users.get(u) : null);
             }
-            if (author && !isPartyMember(author)) {
-                // DSN n'annule PAS l'animation sur un simple `return false`
-                // (non documenté). Le moyen fiable est de restreindre la liste
-                // des spectateurs via context.users : ce hook tourne sur CHAQUE
-                // client, donc on la réduit localement à l'auteur seul → DSN
-                // voit que NOTRE utilisateur n'y figure pas et n'anime pas chez
-                // nous. Les coéquipiers de l'auteur, eux, ne passent pas dans
-                // cette branche (même party) → ils gardent l'animation.
-                if (context) context.users = [author.id];
-                return false;   // au cas où une future version gère l'annulation
-            }
+            if (!author) return;
+
+            const pid = author.getFlag(MOD, "partyId");
+            if (!pid) return;   // auteur non assigné à une party → pas de restriction
+
+            // Spectateurs = tous les utilisateurs partageant la partyId de
+            // l'auteur (le flag est commun : joueurs de la party + leur GM).
+            const viewers = game.users.filter(u => u.getFlag(MOD, "partyId") === pid).map(u => u.id);
+            if (!viewers.includes(author.id)) viewers.push(author.id);
+            if (viewers.length && context) context.users = viewers;
         } catch (e) {}
     });
 

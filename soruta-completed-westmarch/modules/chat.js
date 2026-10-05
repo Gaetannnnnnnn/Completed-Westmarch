@@ -306,7 +306,17 @@ export function ChatHooks() {
                 const u = context.user ?? context.author ?? context.userId;
                 author = (u && typeof u === "object") ? u : (u ? game.users.get(u) : null);
             }
-            if (author && !isPartyMember(author)) return false;   // autre party → pas d'animation 3D
+            if (author && !isPartyMember(author)) {
+                // DSN n'annule PAS l'animation sur un simple `return false`
+                // (non documenté). Le moyen fiable est de restreindre la liste
+                // des spectateurs via context.users : ce hook tourne sur CHAQUE
+                // client, donc on la réduit localement à l'auteur seul → DSN
+                // voit que NOTRE utilisateur n'y figure pas et n'anime pas chez
+                // nous. Les coéquipiers de l'auteur, eux, ne passent pas dans
+                // cette branche (même party) → ils gardent l'animation.
+                if (context) context.users = [author.id];
+                return false;   // au cas où une future version gère l'annulation
+            }
         } catch (e) {}
     });
 

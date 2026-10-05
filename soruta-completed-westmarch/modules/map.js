@@ -493,12 +493,15 @@ async function syncGroupOwnership(groupActor) {
             if ((ownership[uid] ?? L.NONE) < L.OBSERVER) updates[`ownership.${uid}`] = L.OBSERVER;
         }
         // Révocation : joueur actuellement à EXACTEMENT Observateur mais dont le PJ
-        // n'est plus membre → retour au défaut (on ne descend jamais un Propriétaire
-        // ni une permission supérieure posée manuellement).
+        // n'est plus membre → retour au défaut via le niveau INHERIT (-1), qui fait
+        // hériter de ownership.default. (La suppression de clé « ownership.-=id » est
+        // refusée par la validation du SchemaField.) On ne descend jamais un
+        // Propriétaire ni une permission supérieure posée manuellement.
+        const INHERIT = L.INHERIT ?? -1;
         for (const user of game.users) {
             if (user.isGM) continue;
             if (shouldObserve.has(user.id)) continue;
-            if (ownership[user.id] === L.OBSERVER) updates[`ownership.-=${user.id}`] = null;
+            if (ownership[user.id] === L.OBSERVER) updates[`ownership.${user.id}`] = INHERIT;
         }
 
         if (Object.keys(updates).length) await groupActor.update(updates);

@@ -522,7 +522,6 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             ...(cvEnabled ? [{ key: "validation", icon: "fa-id-card", label: `Validation${cvCount ? ` (${cvCount})` : ""}` }] : [])
         ];
         const statTabs = [
-            { key: "intrigues",   icon: "fa-puzzle-piece", label: "Intrigues" },
             { key: "gms",         icon: "fa-users-gear",   label: "Suivi des GM" },
             { key: "registre",    icon: "fa-address-book", label: "Registre" },
             { key: "stats",       icon: "fa-chart-pie",    label: "Statistiques" },
@@ -558,7 +557,6 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             const draft = drafts.find(d => d.id === this.#selectedId);
             detail = draft ? this.#draftDetail(draft) : `<div class="scwm-casier-placeholder"><i class="fa-solid fa-book-open"></i><p>Sélectionnez un rapport à finaliser dans le livret.</p></div>`;
         }
-        else if (this.#tab === "intrigues")   detail = this.#intriguesDetail();
         else if (this.#tab === "expeditions") detail = this.#expeditionsDetail();
         else if (this.#tab === "downtime")    detail = this.#downtimeDetail();
         else if (this.#tab === "registre")    detail = this.#registreDetail();
@@ -575,8 +573,88 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                     <div class="scwm-casier-tabs">${tabsHtml}</div>
                     <div class="scwm-casier-pages">${sideList}</div>
                 </aside>
-                <section class="scwm-casier-content">${detail}</section>
+                <section class="scwm-casier-content">${detail}${this.#resetZoneFor(this.#tab)}</section>
             </div>`;
+    }
+
+    // ---- Réinitialisation (maintenance) : un bouton par catégorie, affiché
+    // sur sa page dédiée. Portée : TOUS les MJ (réglages monde). Double
+    // confirmation (saisie du mot « RESET ») avant d'agir.
+    #resetZoneFor(tab) {
+        const zones = {
+            reports: [
+                { key: "sessionDrafts",       label: "Réinitialiser les rapports en attente" },
+                { key: "sessionForumThreads", label: "Réinitialiser les fils Discord" },
+            ],
+            attendance: [
+                { key: "sessionLog", label: "Réinitialiser le journal des sessions (présence, assiduité)" },
+            ],
+            dashboard: [
+                { key: "casierProfiles", label: "Réinitialiser les présentations des MJ" },
+            ],
+            expeditions: [
+                { key: "expeditionRevealedZones", label: "Réinitialiser les zones révélées de la carte" },
+            ],
+        };
+        const list = zones[tab];
+        if (!list?.length) return "";
+        const btn = (b) => `<button type="button" class="scwm-casier-reset" data-reset="${b.key}"`
+            + ` style="background:rgba(192,57,43,0.12);border:1px solid rgba(192,57,43,0.5);color:#c0392b;`
+            + `border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px;">`
+            + `<i class="fa-solid fa-trash-can"></i> ${esc(b.label)}</button>`;
+        return `
+            <div class="scwm-casier-reset-zone" style="margin-top:18px;padding-top:12px;border-top:1px solid rgba(192,57,43,0.35);">
+                <div style="font-size:12px;opacity:.85;margin-bottom:6px;color:#c0392b;">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Réinitialisation — tous les MJ, irréversible
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;">${list.map(btn).join("")}</div>
+            </div>`;
+    }
+
+    #resetDefs() {
+        return {
+            sessionDrafts:           { label: "les rapports en attente",        empty: [] },
+            sessionForumThreads:     { label: "les fils Discord",               empty: {} },
+            sessionLog:              { label: "le journal des sessions (présence, assiduité)", empty: [] },
+            casierProfiles:          { label: "les présentations des MJ",        empty: {} },
+            expeditionRevealedZones: { label: "les zones révélées de la carte",  empty: {} },
+        };
+    }
+
+    async #confirmReset(key) {
+        const def = this.#resetDefs()[key];
+        if (!def) return;
+        const DV2 = foundry.applications.api.DialogV2;
+        const content = `
+            <p>Tu vas effacer <strong>${esc(def.label)}</strong> pour <strong>TOUS les MJ</strong>.</p>
+            <p style="color:#c0392b;margin:.3em 0;"><i class="fa-solid fa-triangle-exclamation"></i> Action <strong>irréversible</strong>.</p>
+            <p>Tape <strong>RESET</strong> ci-dessous pour confirmer :</p>
+            <input type="text" class="scwm-reset-input" autocomplete="off" placeholder="RESET" style="width:100%;box-sizing:border-box;" />`;
+        const ok = await DV2.wait({
+            window: { title: "Réinitialiser — confirmation", icon: "fa-solid fa-trash-can" },
+            content,
+            rejectClose: false,
+            buttons: [
+                { action: "cancel", label: "Annuler", icon: "fa-solid fa-xmark", default: true },
+                {
+                    action: "reset", label: "Réinitialiser", icon: "fa-solid fa-trash-can",
+                    callback: (e, b, dlg) => ((dlg.element.querySelector(".scwm-reset-input")?.value || "").trim().toUpperCase() === "RESET")
+                },
+            ],
+        }).catch(() => "cancel");
+        if (ok !== true) {
+            if (ok === false) ui.notifications?.warn("Réinitialisation annulée : le mot « RESET » n'a pas été saisi correctement.");
+            return;
+        }
+        try {
+            await game.settings.set(MOD, key, Array.isArray(def.empty) ? [] : {});
+            ui.notifications?.info(`Casier : ${def.label} — réinitialisé.`);
+        } catch (err) {
+            console.error("[WestMarch] Réinitialisation casier :", err);
+            ui.notifications?.error("Échec de la réinitialisation (voir console).");
+        }
+        this.render();
+        refreshCasierBadge();
     }
 
     // ---- Onglet Dashboard ----
@@ -948,48 +1026,6 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             </div>`;
     }
 
-    // ---- Onglet Intrigues : rapports regroupés par tag ----
-    #intriguesDetail() {
-        const log = getSessionLog();
-        const all = (game.settings.get(MOD, "sessionTags") || []).filter(Boolean);
-        const byTag = new Map();
-        for (const e of log) for (const t of (e.tags ?? [])) {
-            if (!byTag.has(t)) byTag.set(t, []);
-            byTag.get(t).push(e);
-        }
-        const tags = [...new Set([...all, ...byTag.keys()])].sort((a, b) => a.localeCompare(b, "fr", { sensitivity: "base" }));
-
-        if (!tags.length) {
-            return `<div class="scwm-casier-detail">
-                <h2><i class="fa-solid fa-puzzle-piece"></i> Intrigues</h2>
-                <p class="scwm-casier-placeholder">Aucune intrigue définie. Ajoutez-en dans Paramètres → Système de Party, puis taguez vos rapports à la clôture de session.</p>
-            </div>`;
-        }
-
-        const sections = tags.map(t => {
-            const entries = (byTag.get(t) ?? []).slice().sort((a, b) => (a.dateISO < b.dateISO ? 1 : -1));
-            const gms = [...new Set(entries.map(e => e.gmName).filter(Boolean))];
-            const players = [...new Set(entries.flatMap(e => (e.players ?? []).map(p => p.name)))]
-                .sort((a, b) => a.localeCompare(b, "fr", { sensitivity: "base" }));
-            const rows = entries.map(e =>
-                `<li>${esc(realDateLabel(e.dateISO))} — MJ <strong>${esc(e.gmName ?? "—")}</strong> — ${(e.players ?? []).map(p => esc(p.name)).join(", ") || "—"}</li>`
-            ).join("") || "<li style='opacity:.6;'>Aucune session taguée pour l'instant.</li>";
-            return `<section class="scwm-intrigue" style="margin:0 0 16px;padding:8px 10px;border:1px solid rgba(154,123,30,0.3);border-radius:6px;">
-                <h3 style="margin:0 0 6px;"><i class="fa-solid fa-puzzle-piece"></i> ${esc(t)}
-                    <span style="opacity:.6;font-weight:400;font-size:.85em;">(${entries.length} session${entries.length > 1 ? "s" : ""})</span></h3>
-                <p style="margin:2px 0;font-size:.9em;"><strong>MJ impliqués :</strong> ${gms.map(esc).join(", ") || "—"}</p>
-                <p style="margin:2px 0;font-size:.9em;"><strong>Joueurs liés :</strong> ${players.map(esc).join(", ") || "—"}</p>
-                <ul style="margin:6px 0 0;padding-left:18px;font-size:.9em;">${rows}</ul>
-            </section>`;
-        }).join("");
-
-        return `<div class="scwm-casier-detail">
-            <h2><i class="fa-solid fa-puzzle-piece"></i> Intrigues</h2>
-            <p class="scwm-casier-meta">Rapports regroupés par intrigue — pour relier plusieurs quêtes/MJ, préparer une récompense finale ou retrouver les joueurs concernés.</p>
-            ${sections}
-        </div>`;
-    }
-
     // ---- Onglet Registre des personnages ----
     #registreDetail() {
         const lastMap = playerLastSessionMap();
@@ -1230,6 +1266,9 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
         root.querySelectorAll(".scwm-cv-return").forEach(b => b.addEventListener("click", async () => { await returnActor(b.dataset.actor); this.render(); refreshCasierBadge(); }));
         root.querySelectorAll(".scwm-cv-grantlvl").forEach(b => b.addEventListener("click", async () => { await grantLevelUp(b.dataset.actor); this.render(); refreshCasierBadge(); }));
         root.querySelectorAll(".scwm-cv-openactor").forEach(b => b.addEventListener("click", () => game.actors.get(b.dataset.actor)?.sheet.render(true)));
+
+        // ---- Boutons de réinitialisation (maintenance, par page) ----
+        root.querySelectorAll(".scwm-casier-reset").forEach(b => b.addEventListener("click", () => this.#confirmReset(b.dataset.reset)));
 
         // Onglet Temps morts embarqué : câblage + application des gains.
         if (this.#tab === "downtime") {

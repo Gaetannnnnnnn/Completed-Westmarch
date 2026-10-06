@@ -91,10 +91,60 @@ function installTrackerViewOverride() {
     } catch (e) { console.warn(`[${MOD}] Override tracker.viewed échoué :`, e); }
 }
 
+// Trouve (ou crée) le combat de MA party sur une scène donnée, puis y ajoute
+// le combattant décrit par `data`. Utilisé pour aiguiller un token ajouté au
+// combat d'un AUTRE GM vers le nôtre (voir preCreateCombatant plus bas).
+async function routeCombatantToMyCombat(sceneId, data) {
+    try {
+        const myPartyId = game.user.getFlag(MOD, "partyId") ?? game.user.id;
+        let mine = (game.combats?.contents ?? []).find(c =>
+            c.getFlag(MOD, "partyId") === myPartyId && (c.scene?.id ?? null) === (sceneId ?? null));
+        if (!mine) {
+            // active:false → on ne vole pas le combat actif de l'autre GM ;
+            // l'affichage de NOTRE combat est assuré par l'override de `viewed`.
+            mine = await Combat.create({
+                scene: sceneId ?? null,
+                active: false,
+                [`flags.${MOD}.partyId`]: myPartyId
+            });
+        }
+        if (!mine) return;
+        // Pas de doublon si le token est déjà dans notre combat.
+        if (data?.tokenId && mine.combatants.some(cb => cb.tokenId === data.tokenId)) return;
+        await mine.createEmbeddedDocuments("Combatant", [data]);
+    } catch (e) { console.error(`[${MOD}] Aiguillage combattant échoué :`, e); }
+}
+
 export function CombatHooks() {
 
     // Chaque client affiche le combat de SA party (voir ci-dessus).
     installTrackerViewOverride();
+
+    // ============================================================
+    // SECTION : Aiguillage des combattants vers le combat de SA party.
+    // Sur une scène PARTAGÉE par plusieurs GM, le clic droit « Entrer en
+    // combat » d'un token l'ajoute au combat ACTIF de la scène — qui peut
+    // être celui d'un AUTRE GM (c'est le cas vécu : le token partait dans le
+    // combat de l'autre MJ). On intercepte la création du combattant : si
+    // elle vise un combat qui n'est pas le nôtre, on l'ANNULE et on recrée le
+    // combattant dans NOTRE combat de party sur cette scène (créé au besoin).
+    // La re-création vise alors notre propre combat → isMyCombat vrai → pas
+    // de boucle.
+    // ============================================================
+    Hooks.on("preCreateCombatant", (combatant, data, options, userId) => {
+        if (!partyFeatureEnabled("enableCombatParty")) return;
+        if (game.userId !== userId) return;        // uniquement le client initiateur
+        const target = combatant.parent;           // le combat visé par Foundry
+        if (!target) return;
+        if (isMyCombat(target)) return;            // déjà notre combat → on laisse
+
+        // Combat visé appartenant à une autre party → on redirige.
+        const payload = combatant.toObject();
+        delete payload._id;
+        const sceneId = payload.sceneId ?? target.scene?.id ?? canvas?.scene?.id ?? null;
+        routeCombatantToMyCombat(sceneId, payload);
+        return false;                              // annule l'ajout au combat étranger
+    });
 
 
     // ============================================================

@@ -1,8 +1,8 @@
 {
   "id": "soruta-completed-westmarch",
   "title": "Soruta — Completed Westmarch",
-  "version": "5.9.6",
-  "changelog": "2026-10-04",
+  "version": "5.9.8",
+  "changelog": "2026-10-06",
   "authors": [
     {
       "name": "Soruta",
@@ -11,7 +11,8 @@
   ],
   "compatibility": {
     "minimum": "13",
-    "verified": "14"
+    "verified": "14",
+    "maximum": "14"
   },
   "description": "Module unifié West March pour Foundry VTT (dnd5e). Regroupe l'ancien ensemble de modules Soruta en un seul : système de party / chat / combat West March, temps morts & personnalisations serveur, toolkit (tokens, transformations, MEJ, templates), onglets de fiche Relations / Bestiaire / Carnet & Expéditions, carte des expéditions, fix de portée midi-qol et tutoriel interactif. Chaque fonctionnalité reste activable individuellement. Migration automatique des données des anciens modules au premier lancement.",
   "esmodules": [
@@ -43,7 +44,12 @@
     "requires": [
       {
         "id": "dnd5e",
-        "type": "system"
+        "type": "system",
+        "compatibility": {
+          "minimum": "6",
+          "verified": "6.0.3",
+          "maximum": "6"
+        }
       }
     ],
     "recommends": [

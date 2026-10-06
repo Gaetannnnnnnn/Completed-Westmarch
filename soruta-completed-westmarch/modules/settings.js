@@ -1002,7 +1002,9 @@ const TWEAK_TREE = {
         } }
     } },
     "Espèces": { icon: "fa-dna", children: {
-        "Goliath": { key: "enableLargeForm" }
+        "Goliath": { children: {
+            "Large Form (taille Large)": { key: "enableLargeForm" }
+        } }
     } },
     "Sorts":       { icon: "fa-wand-magic-sparkles", children: {} },
     "Features":    { icon: "fa-star",                children: {} },

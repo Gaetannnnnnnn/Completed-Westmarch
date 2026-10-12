@@ -8,6 +8,21 @@ import { MOD } from "./const.js";
 
 const INVENTORY_TYPES = ["weapon", "equipment", "consumable", "tool", "backpack", "loot"];
 
+// Autres éléments de fiche (non-inventaire) dont l'ajout/retrait est loggé
+// via l'interrupteur « Niveaux & autres éléments ».
+const ELEMENT_TYPES = ["feat", "spell", "race", "class", "subclass", "background"];
+const ELEMENT_LABELS = {
+    feat: "aptitude/don", spell: "sort", race: "espèce", class: "classe",
+    subclass: "sous-classe", background: "historique"
+};
+
+// Raccourci lecture d'un interrupteur de contenu loggé.
+const _log = (k) => game.settings.get(MOD, k);
+
+// Un acteur est-il loggé ? PJ toujours ; PNJ seulement si « Inclure les PNJ ».
+const _actorLogged = (actor) =>
+    !!actor && (actor.type === "character" || (actor.type === "npc" && _log("logIncludeNpc")));
+
 // ============================================================
 // Horodatage classique ajouté devant chaque message de log Discord :
 // jour/mois/année heure:minute:seconde.
@@ -122,19 +137,29 @@ export function DiscordLogHooks() {
     // ============================================================
     Hooks.on("createItem", (item, options, userId) => {
         const actor = item.parent;
-        if (!actor || actor.type !== "character") return;
-        if (!INVENTORY_TYPES.includes(item.type)) return;
+        if (!_actorLogged(actor)) return;
 
-        const qty = item.system?.quantity?.value;
-        sendToDiscord(`📦 **${actor.name}** a obtenu **${item.name}**${qty > 1 ? ` x${qty}` : ""}. ${authorTag(userId)}`);
+        if (INVENTORY_TYPES.includes(item.type)) {
+            if (!_log("logInventory")) return;
+            const qty = item.system?.quantity?.value;
+            sendToDiscord(`📦 **${actor.name}** a obtenu **${item.name}**${qty > 1 ? ` x${qty}` : ""}. ${authorTag(userId)}`);
+        } else if (ELEMENT_TYPES.includes(item.type)) {
+            if (!_log("logLevelsElements")) return;
+            sendToDiscord(`➕ **${actor.name}** a ajouté **${item.name}** (${ELEMENT_LABELS[item.type] ?? item.type}). ${authorTag(userId)}`);
+        }
     });
 
     Hooks.on("deleteItem", (item, options, userId) => {
         const actor = item.parent;
-        if (!actor || actor.type !== "character") return;
-        if (!INVENTORY_TYPES.includes(item.type)) return;
+        if (!_actorLogged(actor)) return;
 
-        sendToDiscord(`🗑️ **${actor.name}** a perdu **${item.name}**. ${authorTag(userId)}`);
+        if (INVENTORY_TYPES.includes(item.type)) {
+            if (!_log("logInventory")) return;
+            sendToDiscord(`🗑️ **${actor.name}** a perdu **${item.name}**. ${authorTag(userId)}`);
+        } else if (ELEMENT_TYPES.includes(item.type)) {
+            if (!_log("logLevelsElements")) return;
+            sendToDiscord(`➖ **${actor.name}** a retiré **${item.name}** (${ELEMENT_LABELS[item.type] ?? item.type}). ${authorTag(userId)}`);
+        }
     });
 
     // preUpdateItem (et non updateItem) : au moment où updateItem se
@@ -153,7 +178,7 @@ export function DiscordLogHooks() {
             ? changes.system.quantity
             : changes.system?.quantity?.value;
 
-        if (actor.type === "character" && INVENTORY_TYPES.includes(item.type) && quantityChange !== undefined) {
+        if (_log("logInventory") && _actorLogged(actor) && INVENTORY_TYPES.includes(item.type) && quantityChange !== undefined) {
             const before = typeof item.system.quantity === "number"
                 ? item.system.quantity
                 : (item.system.quantity?.value ?? 0);
@@ -164,7 +189,7 @@ export function DiscordLogHooks() {
         }
 
         // ---- Niveau (via l'item de classe) ----
-        if (item.type === "class" && changes.system?.levels !== undefined) {
+        if (_log("logLevelsElements") && _actorLogged(actor) && item.type === "class" && changes.system?.levels !== undefined) {
             const before = item.system.levels ?? 0;
             const after = changes.system.levels;
             if (before !== after) {
@@ -178,8 +203,10 @@ export function DiscordLogHooks() {
     // ============================================================
     // Même raison : preUpdateActor (avant la modif), pas updateActor.
     Hooks.on("preUpdateActor", (actor, changes, options, userId) => {
+        if (!_actorLogged(actor)) return;
+
         // ---- XP ----
-        if (changes.system?.details?.xp?.value !== undefined) {
+        if (_log("logXp") && changes.system?.details?.xp?.value !== undefined) {
             const before = actor.system.details?.xp?.value ?? 0;
             const after = changes.system.details.xp.value;
             if (before !== after) {
@@ -188,9 +215,7 @@ export function DiscordLogHooks() {
         }
 
         // ---- Monnaie ----
-        // Uniquement les PJ : les GM ajustent la bourse des PNJ
-        // (marchands, etc.) sans que ça intéresse le salon Discord.
-        if (actor.type === "character" && changes.system?.currency) {
+        if (_log("logCurrency") && changes.system?.currency) {
             const before = actor.system.currency ?? {};
             const after = changes.system.currency;
             const labels = { pp: "PP", gp: "PO", ep: "PE", sp: "PA", cp: "PC" };
@@ -209,17 +234,43 @@ export function DiscordLogHooks() {
     });
 
     // ============================================================
-    // SECTION : Création / suppression de personnages
+    // SECTION : Création / suppression de fiches (PJ, + PNJ si activé)
     // ============================================================
-    // Uniquement les PJ : les GM créent des PNJ (monstres, figurants) en
-    // permanence, ça polluerait le salon pour rien.
     Hooks.on("createActor", (actor, options, userId) => {
-        if (actor.type !== "character") return;
-        sendToDiscord(`🆕 Personnage créé : **${actor.name}**. ${authorTag(userId)}`);
+        if (!_log("logActors") || !_actorLogged(actor)) return;
+        const kind = actor.type === "npc" ? "PNJ" : "Personnage";
+        sendToDiscord(`🆕 ${kind} créé : **${actor.name}**. ${authorTag(userId)}`);
     });
 
     Hooks.on("deleteActor", (actor, options, userId) => {
-        if (actor.type !== "character") return;
-        sendToDiscord(`❌ Personnage supprimé : **${actor.name}**. ${authorTag(userId)}`);
+        if (!_log("logActors") || !_actorLogged(actor)) return;
+        const kind = actor.type === "npc" ? "PNJ" : "Personnage";
+        sendToDiscord(`❌ ${kind} supprimé : **${actor.name}**. ${authorTag(userId)}`);
+    });
+
+    // ============================================================
+    // SECTION : Création / suppression de scènes (maps)
+    // ============================================================
+    Hooks.on("createScene", (scene, options, userId) => {
+        if (!_log("logScenes")) return;
+        sendToDiscord(`🗺️ Scène créée : **${scene.name}**. ${authorTag(userId)}`);
+    });
+
+    Hooks.on("deleteScene", (scene, options, userId) => {
+        if (!_log("logScenes")) return;
+        sendToDiscord(`🗺️❌ Scène supprimée : **${scene.name}**. ${authorTag(userId)}`);
+    });
+
+    // ============================================================
+    // SECTION : Création / suppression de journaux
+    // ============================================================
+    Hooks.on("createJournalEntry", (entry, options, userId) => {
+        if (!_log("logJournals")) return;
+        sendToDiscord(`📔 Journal créé : **${entry.name}**. ${authorTag(userId)}`);
+    });
+
+    Hooks.on("deleteJournalEntry", (entry, options, userId) => {
+        if (!_log("logJournals")) return;
+        sendToDiscord(`📔❌ Journal supprimé : **${entry.name}**. ${authorTag(userId)}`);
     });
 }

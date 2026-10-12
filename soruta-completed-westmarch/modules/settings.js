@@ -280,6 +280,17 @@ export function registerSettings() {
         "Bloquer le contenu sans source identifiable",
         "Refuse tout contenu dont la source ne peut pas être déterminée (homebrew, objet créé à la main, source vide). Ne s'applique que si une liste de sources est renseignée pour le rôle concerné.",
         true));
+    // --- Monnaie (bourse) ---
+    game.settings.register(MOD, "disableElectrum", B(
+        "Retirer l'électrum (EP)",
+        "Masque le slot Électrum sur les fiches et les contenants, et force toute valeur d'EP à 0 (aucune pièce d'électrum ne peut être ajoutée). Astuce : si des personnages ont déjà de l'EP, convertissez-la en PA avant d'activer (1 EP = 5 PA).",
+        false));
+    game.settings.register(MOD, "currencyContainerBlock", {
+        name: "Pièces dans les contenants (sacs, poches…)",
+        hint: "Empêche de ranger des pièces dans un contenant : la richesse doit rester sur la bourse de la fiche. ⚠️ Si DÉSACTIVÉ, des pièces peuvent être cachées dans des sacs/poches et ne seront PAS vues par les modules qui lisent la bourse de la fiche — ex. « Temps morts » (coûts/gains de la période), les calculs de richesse, etc. → totaux faussés. Pour un fonctionnement fiable de ces modules, activez « Joueurs uniquement » (ou « Tout le monde »).",
+        scope: "world", config: false, type: String, default: "off", requiresReload: false,
+        choices: { off: "Désactivé", players: "Joueurs uniquement", all: "Tout le monde" }
+    });
     // État de pause par party (mapping partyId -> true), synchronisé sur tous
     // les clients. Non affiché dans la configuration.
     game.settings.register(MOD, "partyPauseState", {
@@ -355,6 +366,31 @@ export function registerSettings() {
     game.settings.register(MOD, "discordLogWebhookUrl", S(
         "URL du Webhook Discord (log modifications)",
         "URL du webhook Discord pour les logs de modifications. Laisser vide pour désactiver."));
+    // --- Contenu loggé (cases à cocher, sous-section « Log Discord ») ---
+    game.settings.register(MOD, "logInventory", B(
+        "Objets d'inventaire",
+        "Logge l'ajout, le retrait et les changements de quantité des objets (armes, équipement, consommables, outils, butin).", true));
+    game.settings.register(MOD, "logXp", B(
+        "XP",
+        "Logge les changements de points d'expérience.", true));
+    game.settings.register(MOD, "logCurrency", B(
+        "Pièces / monnaie",
+        "Logge les changements de bourse (PO, PA, PE, PC, PP).", true));
+    game.settings.register(MOD, "logLevelsElements", B(
+        "Niveaux & autres éléments",
+        "Logge les montées de niveau ET l'ajout/retrait de tout autre élément d'une fiche : sorts, dons, races, classes, sous-classes, historiques.", true));
+    game.settings.register(MOD, "logActors", B(
+        "Création / suppression de fiche",
+        "Logge la création et la suppression de personnages.", true));
+    game.settings.register(MOD, "logScenes", B(
+        "Création / suppression de scène (map)",
+        "Logge la création et la suppression de scènes.", false));
+    game.settings.register(MOD, "logJournals", B(
+        "Création / suppression de journal",
+        "Logge la création et la suppression de journaux.", false));
+    game.settings.register(MOD, "logIncludeNpc", B(
+        "Inclure les PNJ",
+        "Par défaut, seuls les PJ sont loggés. Activez pour tracer aussi les modifications faites sur les fiches PNJ.", false));
     game.settings.register(MOD, "downtimeWebhookUrl", S(
         "URL du Webhook Discord (changement de date)",
         "Quand le GM avance la date dans Simple Calendar, envoie un message sur ce webhook. Laisser vide pour désactiver."));
@@ -1062,6 +1098,9 @@ const CATEGORIES = [
     { firstKey: "enableCharValidation", master: "enableCharValidation", icon: "fa-id-card", title: "Création de personnages",
       desc: "Les joueurs demandent la création d'un personnage ; un GM valide depuis le Casier, puis le joueur construit et soumet sa fiche ; à la validation elle est verrouillée. Le dossier de destination se règle dans « Dossiers & Compendiums ».",
       keys: ["enableCharValidation","charMaxTotal","charMaxActive","charFreeLevelUp","charNotifyLevelUp","blockPlayerPlutonium"] },
+    { firstKey: "disableElectrum", icon: "fa-coins", title: "Monnaie",
+      desc: "Règles de bourse. ⚠️ Pour que les modules qui lisent la richesse sur la fiche (ex. Temps morts) fonctionnent correctement, forcez les pièces à rester sur la fiche (option « Pièces dans les contenants »).",
+      keys: ["disableElectrum","currencyContainerBlock"] },
     { firstKey: "enableSourceControl", master: "enableSourceControl", icon: "fa-book-skull", title: "Contrôle des sources",
       desc: "Réglemente les livres/extensions D&D (Xanathar, Tal'Dorei, etc.) autorisés sur les fiches PJ, via deux listes blanches (joueurs / MJ). Le contenu d'une source non autorisée est bloqué avec un avertissement, quelle que soit la méthode d'ajout.",
       keys: ["enableSourceControl","sourceAllowPlayers","sourceAllowGm","sourceDeny","sourceMatchField","sourceMatchExact","sourceBlockUnknown"] },
@@ -1070,7 +1109,10 @@ const CATEGORIES = [
       keys: ["enableHarvest","harvestDcBase","harvestDcPerCr","harvestBaseDraws","harvestBloodImage"] },
     { firstKey: "enableXpBlock",         icon: "fa-server",          title: "Serveur",
       desc: "Personnalisations du serveur : blocage XP / Level Up, logs Discord, webhooks.",
-      keys: ["enableXpBlock","enableFakeWarning","enableGmNotes","hidePlayerStarTab","createPantheonFolder","enableDiscordLog","discordLogWebhookUrl","downtimeWebhookUrl","tmWebhookUrl"] },
+      keys: ["enableXpBlock","enableFakeWarning","enableGmNotes","hidePlayerStarTab","createPantheonFolder","downtimeWebhookUrl","tmWebhookUrl"] },
+    { firstKey: "enableDiscordLog", master: "enableDiscordLog", icon: "fa-clipboard-list", title: "Log Discord",
+      desc: "Envoie un message Discord à chaque modification de fiche (objets, XP, pièces, niveaux…) et, en option, à la création/suppression de fiches, scènes et journaux. Cochez précisément ce qui est loggé, et si les PNJ sont inclus.",
+      keys: ["enableDiscordLog","discordLogWebhookUrl","logInventory","logXp","logCurrency","logLevelsElements","logActors","logScenes","logJournals","logIncludeNpc"] },
     { firstKey: "enableChatCards", master: "enableChatCards", icon: "fa-comment-dots", title: "Cartes de chat",
       desc: "Habillage des cartes de chat dnd5e (attaques, sorts, objets). Interrupteur général + choix de ce qui est activé. La couleur reste un choix par joueur (fenêtre « Accessibilité »).",
       keys: ["enableChatCards","chatCardsTheme","chatCardsBigButtons","chatCardsExpandDice","chatCardsFoldDescription"] },
@@ -1239,13 +1281,13 @@ function readStarTableFromForm(root) {
 // listées ici sont ajoutées automatiquement à « Divers ».
 const CONFIG_GROUPS = [
     { title: "Fiche PJ & personnages", icon: "fa-id-card",
-      cats: ["relationsEnabled", "bestiaryEnabled", "carnetEnabled", "enableCharValidation", "enableStarXp", "enableSourceControl"] },
+      cats: ["relationsEnabled", "bestiaryEnabled", "carnetEnabled", "enableCharValidation", "enableStarXp", "enableSourceControl", "disableElectrum"] },
     { title: "Party & jeu de groupe", icon: "fa-users",
       cats: ["enableParty", "enableExpeditionMap", "enableHarvest"] },
     { title: "Combat", icon: "fa-bolt",
       cats: ["enableReactReminder", "rangeFixEnabled", "enablePolymorph"] },
     { title: "Serveur & monde", icon: "fa-server",
-      cats: ["enableXpBlock", "tmSkillBase", "enableSceneCues", "commonFolderPJ"] },
+      cats: ["enableXpBlock", "enableDiscordLog", "tmSkillBase", "enableSceneCues", "commonFolderPJ"] },
     { title: "Personnalisation & interface", icon: "fa-sliders",
       cats: ["enableChatCards", "enableTokenAppearance", "uihide", "tweakTree", "companionProfiles"] },
     { title: "Aide & découverte", icon: "fa-circle-question",

@@ -53,6 +53,7 @@ import { NoteLinkHooks }  from "./modules/notelink.js";
 import { CasierHooks }    from "./modules/casier.js";
 import { CharValidationHooks } from "./modules/charvalidation.js";
 import { SourceControlHooks } from "./modules/sourcecontrol.js";
+import { CurrencyHooks } from "./modules/currency.js";
 import { HarvestHooks }       from "./modules/harvest.js";
 import { CompanionHooks }     from "./modules/companions.js";
 import { AntiCheatHooks } from "./modules/anticheat.js";
@@ -175,6 +176,7 @@ Hooks.on("init", () => {
     CasierHooks();
     CharValidationHooks();
     SourceControlHooks();
+    CurrencyHooks();
     HarvestHooks();
     CompanionHooks();
     AntiCheatHooks();

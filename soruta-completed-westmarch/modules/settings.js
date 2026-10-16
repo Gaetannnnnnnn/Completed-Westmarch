@@ -8,6 +8,7 @@
 
 import { MOD, TUTO_TOGGLES, TM_DEFAULT_SCROLL, TM_DEFAULT_MAGIC, TM_DEFAULT_ROLL, DEACTIVATION_CODE } from "./const.js";
 import { registerLicenceSettings, licenceValide, etatLicence, activerLicence, messageLicence } from "./licence.js";
+import { registerSiteSettings, URL_PAGE_MODULE } from "./site.js";
 import { applyPartyPause } from "./partypause.js";
 import { openProfilesEditor } from "./companions.js";
 import { openUiHideDialog, applyUiHiding } from "./uihide.js";
@@ -126,6 +127,7 @@ export function registerSettings() {
     // AUCUN interrupteur pour désactiver la protection.
     // ============================================================
     registerLicenceSettings();
+    registerSiteSettings();
 
     // ============================================================
     // WESTMARCH — Système de party (core)
@@ -850,6 +852,8 @@ async function openAboutDialog() {
             <div style="font-size:12px;line-height:1.6;">
                 <div><strong>Auteur :</strong> ${author}</div>
                 <div><strong>Droits :</strong> © 2026 Soruta — Tous droits réservés.</div>
+                <div><strong>Site :</strong> <a href="${URL_PAGE_MODULE}" target="_blank" rel="noopener">altheia.eu — Nos modules</a>
+                    <span style="opacity:.75;">(nouveautés, mises à jour, licence)</span></div>
                 <div style="opacity:.75;margin-top:4px;">
                     Ce module et son contenu (code, textes, ressources) sont une œuvre de
                     l'esprit protégée par le droit d'auteur. Toute redistribution, revente,

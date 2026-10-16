@@ -56,6 +56,11 @@ modules/licence.js
    injoignable → le jeton reste valable jusqu'à son échéance. Signature vérifiée
    par Web Crypto, ou en JavaScript pur sur un serveur Foundry servi en HTTP.
 
+modules/site.js
+   Lien vers la page du module sur le site (altheia.eu/foundry-modules.html) :
+   message privé aux MJ dans le chat au premier lancement puis après chaque
+   mise à jour (une fois par version et par monde), et lien dans « À propos ».
+
 modules/settings.js
    Tous les paramètres des 9 anciens modules sous un namespace unique. Les clés
    en collision ont été préfixées par domaine (relations*, bestiary*, carnet*,
@@ -193,6 +198,14 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v6.3.1 | 2026-10-16
+   - Site : au premier lancement puis après chaque mise à jour, les MJ reçoivent
+     un message privé dans le chat avec le lien de la page du module sur le site
+     d'Althéia (nouveautés, mises à jour, licence). Une fois par version et par
+     monde ; les joueurs ne le voient pas.
+   - « À propos » : ajout du lien vers la page du module.
+   - Nouveau fichier : modules/site.js.
 
 v6.3.0 | 2026-10-16
    - Licence : le code d'activation est remplacé par une CLÉ DE LICENCE

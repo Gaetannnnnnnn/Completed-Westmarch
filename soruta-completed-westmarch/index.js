@@ -13,6 +13,7 @@ import { registerSettings, migrateCommonResources } from "./modules/settings.js"
 import { MOD } from "./modules/const.js";
 import { licenceValide, noterEtatInitial, controlerLicence, proposerActivation, renouvelerJetonExpire } from "./modules/licence.js";
 import { MigrationHooks }    from "./modules/migration.js";
+import { SiteHooks }         from "./modules/site.js";
 
 // --- Phase 2 : Fiche PJ (Relations / Bestiaire / Carnet & Expéditions) ---
 import { setupCharacterSheet } from "./modules/character-sheet.js";
@@ -229,6 +230,10 @@ Hooks.on("ready", () => {
 // (Non gardée par l'activation : ne fait que recopier d'anciennes données — sans
 // intérêt pour un téléchargement neuf qui n'en a aucune.)
 MigrationHooks();
+
+// Message aux MJ (une fois par version) avec le lien de la page du module sur
+// le site d'Althéia. Non gardé par la licence : il indique aussi où l'obtenir.
+SiteHooks();
 
 // Vérifie l'activation : le module ne fonctionne qu'avec une licence valide pour ce monde.
 function scwmActivated() {

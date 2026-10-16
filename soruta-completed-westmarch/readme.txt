@@ -49,6 +49,13 @@ modules/const.js
    Constantes partagées : MOD (namespace unique), LEGACY_IDS (anciens modules,
    pour la migration), TUTO_TOGGLES (sections du tutoriel).
 
+modules/licence.js
+   Licence par clé, validée par le serveur licence.altheia.eu. Le MJ saisit sa
+   clé une fois ; le serveur renvoie un jeton signé (RSA, SHA-256) lié au monde
+   et valable 7 jours, renouvelé chaque jour par le MJ actif. Serveur
+   injoignable → le jeton reste valable jusqu'à son échéance. Signature vérifiée
+   par Web Crypto, ou en JavaScript pur sur un serveur Foundry servi en HTTP.
+
 modules/settings.js
    Tous les paramètres des 9 anciens modules sous un namespace unique. Les clés
    en collision ont été préfixées par domaine (relations*, bestiary*, carnet*,
@@ -186,6 +193,21 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v6.3.0 | 2026-10-16
+   - Licence : le code d'activation est remplacé par une CLÉ DE LICENCE
+     personnelle (ALT-XXXX-XXXX-XXXX-XXXX), vérifiée par le serveur
+     licence.altheia.eu. Chaque clé autorise un nombre limité de mondes et peut
+     être révoquée. Saisie au premier lancement (fenêtre MJ) ou depuis
+     « À propos », qui affiche aussi l'état de la licence.
+   - La clé n'est pas conservée dans le monde : seul un jeton signé, lié au
+     monde et valable 7 jours, y est stocké. Renouvellement automatique une fois
+     par jour par le MJ actif ; les joueurs ne contactent jamais le serveur.
+   - Période de grâce : si le serveur est injoignable, le module continue de
+     fonctionner jusqu'à l'échéance du jeton (avertissement au MJ 2 jours avant).
+     Un monde resté fermé plus longtemps renouvelle son jeton seul au retour du MJ.
+   - Nouveau fichier : modules/licence.js. Retrait de l'ancien code d'activation
+     (const.js). Le code de désactivation de « À propos » est inchangé.
 
 v3.2.4 | 2026-08-04
    - Reglages : bandeau "droits & version" en tete de chaque fenetre de reglages.

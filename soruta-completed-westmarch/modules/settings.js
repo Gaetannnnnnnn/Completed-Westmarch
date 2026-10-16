@@ -6,7 +6,8 @@
 // © 2026 Soruta.
 // ============================================================
 
-import { MOD, TUTO_TOGGLES, TM_DEFAULT_SCROLL, TM_DEFAULT_MAGIC, TM_DEFAULT_ROLL, ACTIVATION_CODE, DEACTIVATION_CODE } from "./const.js";
+import { MOD, TUTO_TOGGLES, TM_DEFAULT_SCROLL, TM_DEFAULT_MAGIC, TM_DEFAULT_ROLL, DEACTIVATION_CODE } from "./const.js";
+import { registerLicenceSettings, licenceValide, etatLicence, activerLicence, messageLicence } from "./licence.js";
 import { applyPartyPause } from "./partypause.js";
 import { openProfilesEditor } from "./companions.js";
 import { openUiHideDialog, applyUiHiding } from "./uihide.js";
@@ -120,13 +121,11 @@ export function registerSettings() {
 
     // ============================================================
     // À PROPOS & PROTECTION
-    // Le module ne fonctionne que si le code d'activation est correct. Il n'y a
-    // volontairement AUCUN interrupteur pour désactiver la protection (sinon on
-    // pourrait la contourner en la décochant).
+    // Le module ne fonctionne qu'avec une licence valide pour ce monde, délivrée
+    // par le serveur licence.altheia.eu (voir licence.js). Il n'y a volontairement
+    // AUCUN interrupteur pour désactiver la protection.
     // ============================================================
-    game.settings.register(MOD, "activationCode", S(
-        "Code d'activation",
-        "Code attendu par la protection. À renseigner sur ton serveur. Nécessite un rechargement."));
+    registerLicenceSettings();
 
     // ============================================================
     // WESTMARCH — Système de party (core)
@@ -804,7 +803,7 @@ export function registerSettings() {
     // enregistrés dès que le CODE D'ACTIVATION est valide — même si le module est
     // désactivé — pour que le MJ garde l'accès à ses réglages et puisse réactiver.
     // Les joueurs ne voient de toute façon que la fenêtre publique « À propos ».
-    const activated = (game.settings.get(MOD, "activationCode") ?? "").trim() === ACTIVATION_CODE;
+    const activated = licenceValide();
     if (activated) {
         registerConfigHub();   // TOUT passe par le panneau de configuration regroupé
     }
@@ -890,8 +889,9 @@ async function openAboutDialog() {
                 </details>
             </div>
             <hr style="border:none;border-top:1px solid rgba(255,255,255,.12);margin:2px 0;">
+            <div style="font-size:12px;opacity:.8;">${etatLicence()}</div>
             <label style="font-size:12px;display:block;">
-                <span style="opacity:.7;">Code</span>
+                <span style="opacity:.7;">Clé de licence ou code</span>
                 <input type="password" name="scwm-about-code" autocomplete="off"
                        placeholder="Code…" style="width:100%;box-sizing:border-box;margin-top:3px;">
             </label>
@@ -914,18 +914,22 @@ async function openAboutDialog() {
                     if (input) input.value = "";   // efface la saisie (aucun point ne subsiste)
                     if (!code) return;
 
-                    // 1) Code d'ACTIVATION → active le module (et lève toute désactivation).
-                    //    Réservé au MJ (écriture d'un réglage monde de licence).
-                    if (code === ACTIVATION_CODE) {
+                    // 1) CLÉ DE LICENCE (ALT-…) → active ce monde auprès du serveur de
+                    //    licence (et lève toute désactivation). Réservé au MJ.
+                    if (/^alt-/i.test(code)) {
                         if (!game.user?.isGM) {
                             ui.notifications?.warn("L'activation est réservée au MJ.");
                             return;
                         }
-                        await game.settings.set(MOD, "activationCode", code);
+                        const res = await activerLicence(code);
+                        if (!res.ok) {
+                            ui.notifications?.error(messageLicence(res.erreur));
+                            return;
+                        }
                         if (game.settings.get(MOD, "moduleDeactivated") === true) {
                             await game.settings.set(MOD, "moduleDeactivated", false);
                         }
-                        ui.notifications?.info("Module activé.");
+                        ui.notifications?.info("Licence activée.");
                         foundry.utils.debouncedReload();
                         return;
                     }

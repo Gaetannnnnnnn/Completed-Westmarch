@@ -10,7 +10,8 @@
 // ============================================================
 
 import { registerSettings, migrateCommonResources } from "./modules/settings.js";
-import { MOD, ACTIVATION_CODE } from "./modules/const.js";
+import { MOD } from "./modules/const.js";
+import { licenceValide, noterEtatInitial, controlerLicence, proposerActivation, renouvelerJetonExpire } from "./modules/licence.js";
 import { MigrationHooks }    from "./modules/migration.js";
 
 // --- Phase 2 : Fiche PJ (Relations / Bestiaire / Carnet & Expéditions) ---
@@ -109,26 +110,24 @@ Hooks.on("init", () => {
 
     registerSettings();
 
-    // --- Protection dissuasive (code d'activation) ---
-    // Si la protection est activée et que le code saisi ne correspond pas, on
-    // n'initialise AUCUNE fonctionnalité (les réglages restent accessibles pour
-    // saisir le code). Contournable en lisant le code source — purement dissuasif.
-    const _notActivated = (game.settings.get(MOD, "activationCode") ?? "").trim() !== ACTIVATION_CODE;
-    const _deactivated  = game.settings.get(MOD, "moduleDeactivated") === true;
-    if (_notActivated || _deactivated) {
-        console.warn(`[soruta-completed-westmarch] Module inactif (${_deactivated ? "désactivé via code" : "code d'activation manquant/invalide"}). Fonctionnalités désactivées. La fenêtre « À propos » reste accessible dans les réglages du module.`);
+    // --- Licence (validée par le serveur licence.altheia.eu, voir licence.js) ---
+    // Sans licence valide pour CE monde, on n'initialise AUCUNE fonctionnalité
+    // (la fenêtre « À propos » reste accessible). La signature du jeton est
+    // vérifiée au « ready » par controlerLicence().
+    const _licenceOk   = noterEtatInitial();
+    const _deactivated = game.settings.get(MOD, "moduleDeactivated") === true;
+    if (!_licenceOk || _deactivated) {
+        console.warn(`[soruta-completed-westmarch] Module inactif (${_deactivated ? "désactivé via code" : "licence absente, expirée ou invalide"}). Fonctionnalités désactivées. La fenêtre « À propos » reste accessible dans les réglages du module.`);
         if (_deactivated) return;   // désactivé : les réglages « À propos » suffisent (réactivation par code)
         Hooks.once("ready", async () => {
             if (!game.user?.isGM) return;
+            // Jeton simplement expiré (monde fermé > 7 jours) : renouvellement automatique.
+            if (await renouvelerJetonExpire()) return;   // licence rétablie : les clients rechargent
             ui.notifications?.error(
-                "Soruta — Completed Westmarch : ce module est protégé et n'est pas activé sur ce serveur. "
+                "Soruta — Completed Westmarch : ce module nécessite une licence et n'est pas activé sur ce monde. "
                 + "© Soruta — Tous droits réservés."
             );
-            const entered = await promptActivationCode();
-            if (entered == null) return;                       // annulé
-            await game.settings.set(MOD, "activationCode", entered.trim());
-            if (entered.trim() === ACTIVATION_CODE) foundry.utils.debouncedReload();
-            else ui.notifications?.error("Code d'activation invalide.");
+            await proposerActivation();
         });
         return;   // on arrête là : aucune feature n'est enregistrée
     }
@@ -208,6 +207,9 @@ Hooks.on("init", () => {
 Hooks.on("ready", () => {
     if (!scwmActivated()) return;   // module non activé → rien
 
+    // Licence : vérifie la signature du jeton, puis le renouvelle une fois par jour.
+    controlerLicence();
+
     // Midi Range Fix : enregistré en "ready" (pas "init") pour passer APRÈS
     // le listener canvasReady de midi-qol (qui s'inscrit lui-même en "ready").
     RangeFixHooks();
@@ -228,25 +230,8 @@ Hooks.on("ready", () => {
 // intérêt pour un téléchargement neuf qui n'en a aucune.)
 MigrationHooks();
 
-// Vérifie l'activation : le module ne fonctionne qu'avec le bon code.
+// Vérifie l'activation : le module ne fonctionne qu'avec une licence valide pour ce monde.
 function scwmActivated() {
     if (game.settings.get(MOD, "moduleDeactivated") === true) return false;
-    return (game.settings.get(MOD, "activationCode") ?? "").trim() === ACTIVATION_CODE;
-}
-
-// Fenêtre demandant le code d'activation (MJ). Retourne la saisie ou null.
-async function promptActivationCode() {
-    try {
-        return await foundry.applications.api.DialogV2.wait({
-            window: { title: "Soruta — Completed Westmarch", icon: "fas fa-shield-halved" },
-            content: `<p style="margin:0 0 8px;">Ce module est protégé. Saisissez le code d'activation pour l'activer sur ce serveur.</p>
-                      <input type="text" name="scwm-code" style="width:100%;box-sizing:border-box;" placeholder="Code d'activation" autofocus>`,
-            rejectClose: false,
-            buttons: [
-                { action: "ok", label: "Activer", icon: "fas fa-check", default: true,
-                  callback: (ev, btn) => btn.form.elements["scwm-code"]?.value ?? "" },
-                { action: "cancel", label: "Annuler", icon: "fas fa-xmark", callback: () => null }
-            ]
-        });
-    } catch (e) { return null; }
+    return licenceValide();
 }

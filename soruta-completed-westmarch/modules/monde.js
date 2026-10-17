@@ -44,9 +44,9 @@ const OBSERVER = () => CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER;
 const HISTORIQUE_AFFICHE = 30;  // lignes écrites dans le texte de la page
 
 export const TYPES = {
-    person:       { label: "PNJ",          pluriel: "PNJ",           icon: "fa-user",          dossierKey: "mondeFolderPerson", dossier: "PNJ" },
-    place:        { label: "Lieu",         pluriel: "Lieux",         icon: "fa-location-dot",  dossierKey: "mondeFolderPlace",  dossier: "Lieux" },
-    organization: { label: "Organisation", pluriel: "Organisations", icon: "fa-people-group",  dossierKey: "mondeFolderOrg",    dossier: "Organisations" }
+    person:       { label: "PNJ",          pluriel: "PNJ",           icon: "fa-user",         packKey: "mondePackPerson", packLabel: "Registre — PNJ" },
+    place:        { label: "Lieu",         pluriel: "Lieux",         icon: "fa-location-dot", dossierKey: "mondeFolderPlace", dossier: "Lieux" },
+    organization: { label: "Organisation", pluriel: "Organisations", icon: "fa-people-group", packKey: "mondePackOrg",    packLabel: "Registre — Organisations" }
 };
 
 export const RUBRIQUES_DEFAUT = {
@@ -106,14 +106,21 @@ export function registerMondeSettings() {
         name: "Son de la bannière",
         hint: "Fichier audio joué à l'apparition de la bannière (facultatif). Laisser vide pour aucun son."
     }));
-    game.settings.register(MOD, "mondeFolderPerson", w(String, "PNJ", {
-        name: "Dossier des fiches PNJ", hint: "Dossier de journaux où ranger les nouvelles fiches PNJ (créé s'il n'existe pas)."
+    game.settings.register(MOD, "mondeEpinglesPartout", w(Boolean, true, {
+        name: "Épingles visibles dans tous les modes",
+        hint: "Sur la carte du monde, les épingles des lieux restent affichées quel que soit l'outil choisi (jetons, mesures…), pas seulement dans « Notes de journal ». Le nom du lieu s'affiche au survol de l'épingle. Les joueurs ne voient que les lieux qu'ils ont découverts."
+    }));
+    game.settings.register(MOD, "mondePackPerson", w(String, "", {
+        name: "Compendium des fiches PNJ",
+        hint: "Compendium de journaux (monde) où ranger les fiches PNJ. Chargé seulement à la demande, il n'alourdit pas la connexion. Vide : le module crée « Registre — PNJ » au premier besoin."
+    }));
+    game.settings.register(MOD, "mondePackOrg", w(String, "", {
+        name: "Compendium des fiches d'organisations",
+        hint: "Compendium de journaux (monde) où ranger les fiches d'organisations. Vide : le module crée « Registre — Organisations » au premier besoin."
     }));
     game.settings.register(MOD, "mondeFolderPlace", w(String, "Lieux", {
-        name: "Dossier des fiches de lieux", hint: "Dossier de journaux où ranger les nouvelles fiches de lieux (créé s'il n'existe pas)."
-    }));
-    game.settings.register(MOD, "mondeFolderOrg", w(String, "Organisations", {
-        name: "Dossier des fiches d'organisations", hint: "Dossier de journaux où ranger les nouvelles fiches d'organisations (créé s'il n'existe pas)."
+        name: "Dossier des fiches de lieux",
+        hint: "Nom du dossier de journaux (dans le monde) où ranger les nouvelles fiches de lieux, créé s'il n'existe pas. Les lieux restent dans le monde : une épingle de carte ne peut pas pointer vers un compendium."
     }));
     game.settings.register(MOD, "mondeRubriques", w(Object, RUBRIQUES_DEFAUT, { name: "Rubriques des fiches" }));
 }
@@ -219,19 +226,67 @@ export function typeDe(entry) {
     const t = page?.getFlag?.(MEJ, "type") ?? entry?.getFlag?.(MEJ, "type");
     return TYPES[t] ? t : null;
 }
+// Fiches du MONDE seulement (les lieux, et d'éventuelles anciennes fiches PNJ /
+// organisations pas encore rangées en compendium). Synchrone.
 export function toutesLesFiches() {
     return (game.journal?.contents ?? []).filter(e => typeDe(e)).map(e => ({ entry: e, page: pageDe(e), type: typeDe(e) }));
+}
+
+// Compendium configuré pour un type (null pour les lieux, ou si non réglé).
+export function packDe(type) {
+    const k = TYPES[type]?.packKey;
+    const id = k ? lire(k, "") : "";
+    return id ? (game.packs?.get(id) ?? null) : null;
+}
+// Compendium d'un type, créé (compendium du monde) s'il n'existe pas encore.
+async function packPour(type) {
+    let p = packDe(type);
+    if (p) return p;
+    const label = TYPES[type].packLabel;
+    p = game.packs.find(x => x.documentName === "JournalEntry" && x.metadata?.packageType === "world" && (x.metadata?.label === label || x.title === label)) ?? null;
+    if (!p) {
+        const Cls = foundry.documents?.collections?.CompendiumCollection ?? globalThis.CompendiumCollection;
+        p = await Cls.createCompendium({ label, type: "JournalEntry" });
+    }
+    await game.settings.set(MOD, TYPES[type].packKey, p.collection);
+    return p;
+}
+function verifierDeverrouille(pack) {
+    if (pack?.locked) throw new Error(`Le compendium « ${pack.title ?? pack.collection} » est verrouillé : déverrouille-le (clic droit sur le compendium) pour y écrire.`);
+}
+
+// Toutes les fiches : monde + compendiums PNJ / organisations (chargés ici,
+// seulement quand on en a besoin : onglet Monde, « Actualiser », recherche).
+export async function chargerFiches() {
+    const out = toutesLesFiches();
+    const vus = new Set();
+    for (const type of ["person", "organization"]) {
+        const p = packDe(type);
+        if (!p || vus.has(p.collection)) continue;
+        vus.add(p.collection);
+        try {
+            for (const d of await p.getDocuments()) if (typeDe(d)) out.push({ entry: d, page: pageDe(d), type: typeDe(d) });
+        } catch (e) { console.warn(`[${MOD}] lecture du compendium ${p.collection}`, e); }
+    }
+    return out;
 }
 export const ficheDe = (page) => foundry.utils.deepClone(page?.getFlag?.(MOD, "fiche") ?? {});
 export const rubriques = () => normaliserRubriques(lire("mondeRubriques", RUBRIQUES_DEFAUT));
 
-// Fiche PNJ d'un acteur : lien posé par le module, sinon lien natif MEJ.
-export function ficheDeActeur(actor) {
+// Fiche PNJ d'un acteur : lien posé par le module, sinon lien natif MEJ
+// (recherché dans le monde puis dans le compendium des PNJ).
+export async function ficheDeActeur(actor) {
     if (!actor) return null;
     const uuid = actor.getFlag?.(MOD, "fichePage");
-    const viaFlag = uuid ? fromUuidSync(uuid) : null;
+    let viaFlag = null;
+    try { viaFlag = uuid ? await fromUuid(uuid) : null; } catch {}
     if (viaFlag && typeDe(viaFlag) === "person") return viaFlag;
-    return game.journal.find(e => typeDe(e) === "person" && pageDe(e)?.getFlag(MEJ, "actor")?.id === actor.id) ?? null;
+    const lie = (e) => typeDe(e) === "person" && pageDe(e)?.getFlag(MEJ, "actor")?.id === actor.id;
+    const monde = game.journal.find(lie);
+    if (monde) return monde;
+    const p = packDe("person");
+    if (!p) return null;
+    try { return (await p.getDocuments()).find(lie) ?? null; } catch { return null; }
 }
 // Fiche lieu d'une scène.
 export function ficheDeScene(scene) {
@@ -310,18 +365,109 @@ export async function voirSurLaCarte(entry) {
     try { canvas.ping?.({ x: p.note.x, y: p.note.y }); } catch {}
 }
 
-// Pose une épingle sur une carte du monde (au centre de la vue si la carte est
-// affichée, sinon au centre de la carte), puis l'affiche pour la déplacer.
+// Attend un clic gauche sur la carte affichée : renvoie { x, y } (coordonnées
+// de la scène) ou null (clic droit, Échap ou 2 minutes sans clic).
+function attendreClicCarte() {
+    return new Promise((resolve) => {
+        const vue = canvas?.app?.view;
+        if (!vue) { resolve(null); return; }
+        let fini = false;
+        const finir = (r) => {
+            if (fini) return; fini = true;
+            window.removeEventListener("pointerdown", surClic, true);
+            window.removeEventListener("keydown", surTouche, true);
+            window.removeEventListener("contextmenu", bloquer, true);
+            clearTimeout(minuterie);
+            document.body.classList.remove("scwm-pose-epingle");
+            vue.style.cursor = "";
+            resolve(r);
+        };
+        const bloquer = (ev) => { if (ev.target === vue) { ev.preventDefault(); ev.stopPropagation(); } };
+        const surClic = (ev) => {
+            if (ev.target !== vue) return;            // clic dans une fenêtre : ignoré
+            ev.preventDefault(); ev.stopPropagation();
+            if (ev.button !== 0) { finir(null); return; }
+            let pt = null;
+            try { pt = canvas.canvasCoordinatesFromClient({ x: ev.clientX, y: ev.clientY }); } catch {}
+            if (!pt) {
+                const r = vue.getBoundingClientRect();
+                pt = canvas.stage.worldTransform.applyInverse({ x: ev.clientX - r.left, y: ev.clientY - r.top });
+            }
+            finir({ x: pt.x, y: pt.y });
+        };
+        const surTouche = (ev) => { if (ev.key === "Escape") { ev.preventDefault(); ev.stopPropagation(); finir(null); } };
+        const minuterie = setTimeout(() => finir(null), 120000);
+        window.addEventListener("pointerdown", surClic, true);
+        window.addEventListener("keydown", surTouche, true);
+        window.addEventListener("contextmenu", bloquer, true);
+        vue.style.cursor = "crosshair";
+    });
+}
+
+// Centre de la case (hex) d'un point, pour que l'épingle tombe pile sur la case cliquée.
+function centreCase(scene, x, y) {
+    try { const c = canvas.grid.getCenterPoint(scene.grid.getOffset({ x, y })); if (Number.isFinite(c?.x)) return c; } catch {}
+    return { x, y };
+}
+
+// Icône des épingles de lieux : petite épingle fine plantée dans la carte,
+// pointe au centre de l'image (donc pile sur le point de la note).
+// Le nom du lieu s'affiche au survol (étiquette native de la note).
+export const ICONE_EPINGLE = `modules/${MOD}/assets/epingle.svg`;
+const TAILLE_EPINGLE = 32;   // minimum accepté par Foundry pour une note
+const ICONES_PAR_DEFAUT = new Set(["icons/svg/book.svg"]);
+
+// Anciennes épingles posées par le module (icône livre) → épingle dorée.
+async function convertirIcones(entry) {
+    for (const { scene, note } of epinglesDe(entry)) {
+        if (!estCarteDuMonde(scene.id) || !ICONES_PAR_DEFAUT.has(note.texture?.src) && !(note.texture?.src === ICONE_EPINGLE && note.iconSize !== TAILLE_EPINGLE)) continue;
+        await scene.updateEmbeddedDocuments("Note", [{ _id: note.id, "texture.src": ICONE_EPINGLE, iconSize: TAILLE_EPINGLE }]);
+    }
+}
+
+// Épingles visibles hors du mode « Notes de journal » sur la carte du monde.
+// Foundry cache les notes quand leur calque n'est pas actif (sauf si l'option
+// « Afficher les notes » est cochée) : on fait comme cette option, mais
+// seulement sur la carte du monde. Les épingles restent survolables (nom au
+// survol) ; elles sont assez petites pour ne pas gêner les jetons.
+export function afficherEpinglesPartout() {
+    try {
+        const calque = canvas?.notes;
+        if (!calque || !canvas.scene || calque.active) return;
+        if (!mondeActif() || lire("mondeEpinglesPartout", true) !== true || !estCarteDuMonde(canvas.scene.id)) return;
+        let toggle = false;
+        try { toggle = game.settings.get("core", "notesDisplayToggle") === true; } catch {}
+        if (toggle) return;   // déjà affichées (et cliquables) par Foundry
+        if (calque.objects) calque.objects.visible = true;
+        calque.interactiveChildren = true;
+    } catch (e) { console.warn(`[${MOD}] épingles`, e); }
+}
+
+export async function viderEtiquettes(entry, ancien) {
+    for (const { scene, note } of epinglesDe(entry)) {
+        const t = String(note.text ?? "");
+        if (!t) continue;
+        const fige = ancien !== undefined ? t === ancien : (t !== entry.name && /^Nouveau (lieu|pnj|organisation)$/i.test(t));
+        if (fige) await scene.updateEmbeddedDocuments("Note", [{ _id: note.id, text: "" }]);
+    }
+}
+
+// Pose une épingle sur une carte du monde : affiche la carte, puis le MJ
+// clique à l'endroit du lieu (Échap / clic droit = annuler). L'étiquette de
+// l'épingle n'est pas figée : elle suit le nom du journal.
 export async function placerSurLaCarte(entry, sceneId) {
     const scene = game.scenes.get(sceneId ?? cartesDuMonde()[0]);
-    if (!scene) { ui.notifications?.warn("Aucune carte du monde : déclare-la dans Paramètres → Carte des expéditions."); return; }
-    let x, y;
-    if (canvas?.scene?.id === scene.id) ({ x, y } = canvas.stage.pivot);
-    else { const d = scene.dimensions ?? {}; x = (d.sceneX ?? 0) + (d.sceneWidth ?? d.width ?? 2000) / 2; y = (d.sceneY ?? 0) + (d.sceneHeight ?? d.height ?? 2000) / 2; }
-    const icone = CONFIG.JournalEntry?.noteIcons?.Book ?? "icons/svg/book.svg";
-    await scene.createEmbeddedDocuments("Note", [{ entryId: entry.id, x: Math.round(x), y: Math.round(y), text: entry.name, texture: { src: icone }, iconSize: 40 }]);
-    await voirSurLaCarte(entry);
-    ui.notifications?.info(`Épingle de « ${entry.name} » posée : déplace-la à sa place sur la carte.`);
+    if (!scene) { ui.notifications?.warn("Aucune carte du monde : déclare-la dans Paramètres → Carte des expéditions."); return false; }
+    if (canvas?.scene?.id !== scene.id) await scene.view();
+    ui.notifications?.info(`Clique sur la carte à l'emplacement de « ${entry.name} » (Échap ou clic droit pour annuler).`);
+    const pt = await attendreClicCarte();
+    if (!pt) { ui.notifications?.info("Pose de l'épingle annulée."); return false; }
+    const { x, y } = centreCase(scene, pt.x, pt.y);
+    _silencieux.add(entry.id);   // poser une épingle n'est pas une découverte par le groupe
+    await scene.createEmbeddedDocuments("Note", [{ entryId: entry.id, x: Math.round(x), y: Math.round(y), texture: { src: ICONE_EPINGLE }, iconSize: TAILLE_EPINGLE }]);
+    try { canvas.ping?.({ x, y }); } catch {}
+    ui.notifications?.info(`Épingle de « ${entry.name} » posée.`);
+    return true;
 }
 
 // ============================================================
@@ -359,6 +505,12 @@ export function joueursAyantDecouvert(entry) {
 
 // Applique la découverte à toutes les fiches de lieux. Seul le MJ actif écrit.
 // Le module ne retire que les accès qu'il a lui-même donnés (decouvertPar).
+// Lieux dont l'épingle vient d'être posée ou déplacée par le MJ : leur
+// prochain calcul donne les accès sans bannière ni message (ce n'est pas le
+// groupe qui a découvert le lieu, c'est le MJ qui l'a placé).
+const _silencieux = new Set();
+export const marquerSilencieux = (entryId) => { if (entryId) _silencieux.add(entryId); };
+
 export async function appliquerDecouverte({ notifier = true } = {}) {
     if (!game.user?.isGM || !decouverteActive()) return 0;
     const actif = game.users.activeGM;
@@ -370,6 +522,7 @@ export async function appliquerDecouverte({ notifier = true } = {}) {
         if (mode === "tous") continue;
         const f = ficheDe(page);
         const premiereFois = !Array.isArray(f.decouvertPar);
+        const silence = premiereFois || _silencieux.delete(entry.id);
         const geres = new Set(f.decouvertPar ?? []);
         const cible = mode === "auto" ? joueursAyantDecouvert(entry) : new Set();
         const update = {};
@@ -395,7 +548,7 @@ export async function appliquerDecouverte({ notifier = true } = {}) {
         aPrevenir.forEach(uid => prevenus.add(uid));
         await page.update({ [`flags.${MOD}.fiche.decouvertPar`]: liste, [`flags.${MOD}.fiche.prevenus`]: [...prevenus] });
         n++;
-        if (notifier && !premiereFois && aPrevenir.length && lire("mondeBanniere", true)) {
+        if (notifier && !silence && aPrevenir.length && lire("mondeBanniere", true)) {
             const son = String(lire("mondeBanniereSon", "") || "");
             for (const uid of aPrevenir) {
                 const u = game.users.get(uid);
@@ -403,7 +556,7 @@ export async function appliquerDecouverte({ notifier = true } = {}) {
                 u.query("westmarch.lieuDecouvert", { nom: entry.name, son }, { timeout: 10000 }).catch(() => {});
             }
         }
-        if (notifier && !premiereFois && aPrevenir.length && lire("mondeDecouverteMessage", true)) {
+        if (notifier && !silence && aPrevenir.length && lire("mondeDecouverteMessage", true)) {
             try {
                 await ChatMessage.create({
                     whisper: aPrevenir, speaker: { alias: "Carte du monde" },
@@ -483,6 +636,7 @@ export function enregistrerQueryBanniere() {
 // Écriture
 // ============================================================
 async function dossier(type) {
+    if (!TYPES[type]?.dossierKey) return null;
     const nom = String(lire(TYPES[type].dossierKey, TYPES[type].dossier) || "").trim();
     if (!nom) return null;
     const existant = game.folders.find(f => f.type === "JournalEntry" && f.name === nom && !f.folder);
@@ -494,7 +648,9 @@ async function dossier(type) {
 // portant le type MEJ dans ses flags. Réservée aux MJ (ownership par défaut : aucun).
 export async function creerFiche(type, { name, img, actor, scene } = {}) {
     if (!TYPES[type]) throw new Error(`type inconnu : ${type}`);
-    const folder = await dossier(type);
+    const pack = TYPES[type].packKey ? await packPour(type) : null;
+    verifierDeverrouille(pack);
+    const folder = pack ? null : await dossier(type);
     const flagsMej = { type, relationships: {} };
     if (type === "person") flagsMej.attributes = {};
     if (actor) flagsMej.actor = { id: actor.id, uuid: actor.uuid, img: actor.img, name: actor.name };
@@ -502,7 +658,7 @@ export async function creerFiche(type, { name, img, actor, scene } = {}) {
     const fiche = { rubriques: {}, historique: [], scenes: scene ? [scene.id] : [] };
     const entry = await JournalEntry.create({
         name: nom,
-        folder: folder?.id ?? null,
+        ...(pack ? {} : { folder: folder?.id ?? null }),
         ownership: { default: NONE() },
         flags: { [MEJ]: { img: `modules/${MEJ}/assets/${type}.png` } },
         pages: [{
@@ -511,7 +667,7 @@ export async function creerFiche(type, { name, img, actor, scene } = {}) {
             text: { content: "" },
             flags: { [MEJ]: flagsMej, [MOD]: { fiche } }
         }]
-    });
+    }, { renderSheet: false, ...(pack ? { pack: pack.collection } : {}) });
     if (actor) await actor.setFlag(MOD, "fichePage", entry.uuid);
     if (scene) await scene.setFlag(MOD, "fichePage", entry.uuid);
     return entry;
@@ -540,7 +696,7 @@ async function lierPnjDesCartes(entry, sceneIds) {
             const a = t.actor;
             if (!a || a.hasPlayerOwner || vus.has(a.id)) continue;
             vus.add(a.id);
-            const fp = ficheDeActeur(game.actors.get(a.id) ?? a);
+            const fp = await ficheDeActeur(game.actors.get(a.id) ?? a);
             if (fp) await lierMej(entry, fp);
         }
     }
@@ -549,6 +705,7 @@ async function lierPnjDesCartes(entry, sceneIds) {
 // Réécrit le texte de la page à partir des données (fiche). force = écraser
 // même si la page a été modifiée à la main (choix explicite dans « Rédiger »).
 export async function ecrireFiche(entry, fiche, { force = false } = {}) {
+    if (entry?.pack) verifierDeverrouille(game.packs.get(entry.pack));
     const page = pageDe(entry);
     const type = typeDe(entry);
     if (!page || !type) return false;
@@ -590,6 +747,10 @@ export async function ouvrirFiche(entry) {
 }
 
 export async function basculerVisibilite(entry) {
+    if (entry?.pack) {
+        ui.notifications?.info(`« ${entry.name} » est rangée en compendium : réservée aux MJ (les joueurs ne voient pas ce compendium).`);
+        return false;
+    }
     if (typeDe(entry) === "place" && decouverteActive()) {
         const suivant = { auto: "tous", tous: "cache", cache: "auto" }[modeVisibilite(entry)];
         await definirModeLieu(entry, suivant);
@@ -720,9 +881,10 @@ export async function redigerFiche(entry) {
             </select>
         </div>
         <p style="margin:2px 0 0 128px;font-size:.8em;opacity:.7;">Auto : visible pour un joueur dès qu'un de ses personnages a exploré la case de l'épingle (${joueursAyantDecouvert(entry).size} joueur(s) actuellement). Les rubriques « secret MJ » restent toujours cachées.</p>` : `
+        ${entry.pack ? `<p style="margin:10px 0 0;font-size:.85em;opacity:.8;"><i class="fa-solid fa-box-archive"></i> Fiche rangée dans le compendium « ${esc(game.packs.get(entry.pack)?.title ?? entry.pack)} » : réservée aux MJ.</p>` : `
         <label style="display:flex;gap:6px;align-items:center;margin-top:10px;cursor:pointer;">
             <input type="checkbox" class="scwm-monde-visible" ${visible ? "checked" : ""}>
-            Visible par les joueurs <span style="font-size:.8em;opacity:.7;">(les rubriques « secret MJ » restent toujours cachées)</span></label>`}
+            Visible par les joueurs <span style="font-size:.8em;opacity:.7;">(les rubriques « secret MJ » restent toujours cachées)</span></label>`}`}
         <p style="margin:8px 0 0;font-size:.8em;opacity:.7;">Phrases courtes. Ligne vide = nouveau paragraphe ; « - » en début de ligne = liste. Glisse un acteur, un journal ou une scène dans une rubrique pour y insérer un lien.</p>
         ${champs}
     </div>`;
@@ -769,9 +931,14 @@ export async function redigerFiche(entry) {
         if (ouvrir) ouvrirFiche(entry);
     };
 
-    const cabler = () => {
+    let dialogue = null;
+    const cabler = (_ev, dlg) => {
         const root = document.getElementById(uid);
         if (!root) return;
+        dialogue = dlg ?? null;
+        // Si Foundry / Monk's ouvre le journal juste créé, la fenêtre de
+        // rédaction repasse devant.
+        for (const ms of [150, 600, 1200]) setTimeout(() => { try { dialogue?.bringToFront?.(); } catch {} }, ms);
         const TE = foundry.applications?.ux?.TextEditor?.implementation ?? globalThis.TextEditor;
         const donnees = (ev) => { try { return TE.getDragEventData(ev); } catch { return null; } };
         // Glisser un document dans une rubrique → lien @UUID.
@@ -791,8 +958,16 @@ export async function redigerFiche(entry) {
         root.querySelector(".scwm-monde-voir")?.addEventListener("click", (e) => { e.preventDefault(); voirSurLaCarte(entry); });
         root.querySelector(".scwm-monde-placer")?.addEventListener("click", async (e) => {
             e.preventDefault();
-            await placerSurLaCarte(entry, root.querySelector(".scwm-monde-carte")?.value);
-            e.target.outerHTML = `<span style="color:#7fd1a0;">Épingle posée.</span>`;
+            const bouton = e.currentTarget;
+            // Le nom tapé est appliqué tout de suite (l'épingle affiche le nom du journal).
+            const nom = root.querySelector(".scwm-monde-nom")?.value.trim();
+            if (nom && nom !== entry.name) { await entry.update({ name: nom }); await page.update({ name: nom }); }
+            // La fenêtre se réduit le temps de cliquer sur la carte.
+            try { await dialogue?.minimize?.(); } catch {}
+            let pose = false;
+            try { pose = await placerSurLaCarte(entry, root.querySelector(".scwm-monde-carte")?.value); }
+            finally { try { await dialogue?.maximize?.(); dialogue?.bringToFront?.(); } catch {} }
+            if (pose && bouton?.isConnected) bouton.outerHTML = `<span style="color:#7fd1a0;">Épingle posée.</span>`;
         });
         // Glisser un acteur sur la zone « Acteur lié ».
         const zone = root.querySelector(".scwm-monde-acteur");
@@ -813,7 +988,7 @@ export async function redigerFiche(entry) {
         position: { width: 560 },
         rejectClose: false,
         content,
-        render: cabler,
+        render: (ev, dlg) => cabler(ev, dlg),
         buttons: [
             { action: "save", label: "Enregistrer", icon: "fa-solid fa-save", default: true, callback: () => enregistrer(false) },
             { action: "open", label: "Enregistrer et ouvrir", icon: "fa-solid fa-book-open", callback: () => enregistrer(true) },
@@ -824,7 +999,7 @@ export async function redigerFiche(entry) {
 
 // Ouvre (ou crée) la fiche d'un acteur / d'une scène, puis « Rédiger ».
 export async function ficheActeur(actor) {
-    let entry = ficheDeActeur(actor);
+    let entry = await ficheDeActeur(actor);
     if (!entry) entry = await creerFiche("person", { actor });
     if (entry) await redigerFiche(entry);
 }
@@ -851,23 +1026,32 @@ const modifieLe = (f) => Math.max(f.page?._stats?.modifiedTime ?? 0, f.entry?._s
 const nomUtilisateur = (id) => game.users.get(id)?.name ?? "";
 
 function iconeVisibilite(f, visible) {
+    if (f.entry.pack) return `<i class="fa-solid fa-box-archive" style="opacity:.6;" title="Rangée dans le compendium « ${esc(game.packs.get(f.entry.pack)?.title ?? f.entry.pack)} » : réservée aux MJ"></i>`;
     if (f.type === "place" && decouverteActive()) {
         const mode = modeVisibilite(f.entry);
         const nb = mode === "auto" ? (ficheDe(f.page).decouvertPar ?? []).length : 0;
         const ic = { auto: ["fa-binoculars", "color:#c9a227;"], tous: ["fa-eye", "color:#7fd1a0;"], cache: ["fa-eye-slash", "opacity:.6;"] }[mode];
-        return `<a class="scwm-monde-visible" data-id="${f.entry.id}" title="Joueurs : ${LIBELLE_MODE[mode]}${mode === "auto" ? ` — découvert par ${nb} joueur(s)` : ""}. Cliquer pour changer.">
+        return `<a class="scwm-monde-visible" data-uuid="${f.entry.uuid}" title="Joueurs : ${LIBELLE_MODE[mode]}${mode === "auto" ? ` — découvert par ${nb} joueur(s)` : ""}. Cliquer pour changer.">
             <i class="fa-solid ${ic[0]}" style="${ic[1]}"></i>${mode === "auto" && nb ? `<sup>${nb}</sup>` : ""}</a>`;
     }
-    return `<a class="scwm-monde-visible" data-id="${f.entry.id}" title="${visible ? "Visible par les joueurs — cliquer pour réserver aux MJ" : "Réservée aux MJ — cliquer pour révéler aux joueurs"}">
+    return `<a class="scwm-monde-visible" data-uuid="${f.entry.uuid}" title="${visible ? "Visible par les joueurs — cliquer pour réserver aux MJ" : "Réservée aux MJ — cliquer pour révéler aux joueurs"}">
         <i class="fa-solid ${visible ? "fa-eye" : "fa-eye-slash"}" style="${visible ? "color:#7fd1a0;" : "opacity:.6;"}"></i></a>`;
 }
 
-export function ongletMondeHtml(etat = {}) {
+// Coquille affichée tout de suite ; le contenu (qui charge les compendiums)
+// est rempli par cablerOngletMonde.
+export function ongletMondeHtml() {
+    return `<div class="scwm-monde-hote"><div class="scwm-casier-detail"><h2><i class="fa-solid fa-book-atlas"></i> Monde — PNJ, lieux, organisations</h2>
+        <p style="opacity:.7;"><i class="fa-solid fa-spinner fa-spin"></i> Chargement des fiches…</p></div></div>`;
+}
+
+async function contenuMondeHtml(etat = {}) {
     if (!mejActif()) return `<div class="scwm-casier-detail"><h2><i class="fa-solid fa-book-atlas"></i> Monde</h2>
         <p>Monk's Enhanced Journal n'est pas actif : le registre du monde s'appuie sur ses fiches.</p></div>`;
     const derniere = derniereSessionDe(game.user.id);
     const depuis = derniere ? Date.parse(derniere) : 0;
-    const fiches = toutesLesFiches().sort((a, b) => a.entry.name.localeCompare(b.entry.name, "fr"));
+    const fiches = (await chargerFiches()).sort((a, b) => a.entry.name.localeCompare(b.entry.name, "fr"));
+    const aRanger = fiches.filter(f => f.type !== "place" && !f.entry.pack).length;
     const rubs = rubriques();
     const lignes = fiches.map(f => {
         const fiche = ficheDe(f.page);
@@ -883,19 +1067,19 @@ export function ongletMondeHtml(etat = {}) {
         if (f.type === "person") { const a = acteurDe(f.page); if (a) lien = `<a class="scwm-monde-acteur-ouvrir" data-actor="${a.id}" title="Ouvrir l'acteur"><i class="fa-solid fa-user"></i></a>`; }
         if (f.type === "place") {
             const pins = epinglesMonde(f.entry).length || epinglesDe(f.entry).length;
-            if (pins) lien = `<a class="scwm-monde-epingle" data-id="${f.entry.id}" title="Voir sur la carte"><i class="fa-solid fa-location-dot"></i></a>`;
+            if (pins) lien = `<a class="scwm-monde-epingle" data-uuid="${f.entry.uuid}" title="Voir sur la carte"><i class="fa-solid fa-location-dot"></i></a>`;
             if ((fiche.scenes ?? []).length) lien += ` <a class="scwm-monde-scene-ouvrir" data-scene="${fiche.scenes[0]}" title="Ouvrir la carte locale"><i class="fa-solid fa-map"></i></a>`;
             if (!pins) lien = `<i class="fa-solid fa-location-dot" style="opacity:.25;" title="Pas d'épingle sur une carte"></i> ` + lien;
         }
         return `<tr class="scwm-monde-ligne" data-type="${f.type}" data-recent="${recent ? 1 : 0}"
                     data-texte="${esc((f.entry.name + " " + Object.values(fiche.rubriques ?? {}).join(" ")).toLowerCase())}">
             <td title="${t.label}"><i class="fa-solid ${t.icon}"></i></td>
-            <td><a class="scwm-monde-ouvrir" data-id="${f.entry.id}"><strong>${esc(f.entry.name)}</strong></a>${avert}
+            <td><a class="scwm-monde-ouvrir" data-uuid="${f.entry.uuid}"><strong>${esc(f.entry.name)}</strong></a>${avert}
                 ${resume ? `<div style="font-size:.85em;opacity:.75;">${esc(resume)}</div>` : ""}</td>
             <td style="white-space:nowrap;font-size:.85em;">${mod ? new Date(mod).toLocaleDateString("fr-FR") : ""}${par ? `<br><span style="opacity:.7;">${esc(par)}</span>` : ""}${recent ? ` <i class="fa-solid fa-circle" style="color:#e67e22;font-size:.6em;" title="Modifiée depuis ta dernière session"></i>` : ""}</td>
             <td style="white-space:nowrap;text-align:right;">
                 ${lien}
-                <a class="scwm-monde-rediger" data-id="${f.entry.id}" title="Rédiger la fiche"><i class="fa-solid fa-pen"></i></a>
+                <a class="scwm-monde-rediger" data-uuid="${f.entry.uuid}" title="Rédiger la fiche"><i class="fa-solid fa-pen"></i></a>
                 ${iconeVisibilite(f, visible)}
             </td>
         </tr>`;
@@ -914,6 +1098,10 @@ export function ongletMondeHtml(etat = {}) {
             <span style="flex:1 1 auto;"></span>
             <button type="button" class="scwm-monde-actualiser" title="Recalcule les relations PJ et les cartes de toutes les fiches"><i class="fa-solid fa-rotate"></i> Actualiser</button>
         </div>
+        ${aRanger ? `<div style="margin:4px 0 8px;padding:6px 8px;border:1px solid rgba(201,162,39,.45);border-radius:4px;background:rgba(201,162,39,.08);font-size:.9em;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <span style="flex:1 1 250px;"><i class="fa-solid fa-box-archive"></i> ${aRanger} fiche(s) PNJ / organisation encore dans le monde. Les ranger dans les compendiums allège la connexion.</span>
+            <button type="button" class="scwm-monde-ranger"><i class="fa-solid fa-box-archive"></i> Ranger dans les compendiums</button>
+        </div>` : ""}
         <div class="scwm-reg-toolbar" style="flex-wrap:wrap;gap:6px;">
             <input type="text" class="scwm-monde-recherche" placeholder="Rechercher (nom ou contenu)…" style="flex:1 1 200px;">
             ${btnType("", `Tous (${fiches.length})`)}${btnType("person", `PNJ (${compte("person")})`)}${btnType("place", `Lieux (${compte("place")})`)}${btnType("organization", `Organisations (${compte("organization")})`)}
@@ -927,9 +1115,15 @@ export function ongletMondeHtml(etat = {}) {
     </div>`;
 }
 
-export function cablerOngletMonde(root, rerendre, etat = {}) {
+export async function cablerOngletMonde(root, rerendre, etat = {}) {
+    const hote = root?.querySelector(".scwm-monde-hote");
+    if (hote) {
+        try { hote.innerHTML = await contenuMondeHtml(etat); }
+        catch (e) { console.warn(`[${MOD}] onglet Monde`, e); hote.innerHTML = `<p style="color:#e58f8f;">Impossible de charger les fiches : ${esc(e.message)}</p>`; return; }
+    }
     const box = root?.querySelector(".scwm-monde");
     if (!box) return;
+    box.querySelector(".scwm-monde-ranger")?.addEventListener("click", async () => { if (await rangerDansCompendiums()) rerendre(); });
     const appliquer = () => {
         const q = (box.querySelector(".scwm-monde-recherche")?.value ?? "").trim().toLowerCase();
         const recent = !!box.querySelector(".scwm-monde-recent")?.checked;
@@ -943,10 +1137,13 @@ export function cablerOngletMonde(root, rerendre, etat = {}) {
     box.querySelector(".scwm-monde-recherche")?.addEventListener("input", appliquer);
     box.querySelector(".scwm-monde-recent")?.addEventListener("change", appliquer);
     box.querySelectorAll(".scwm-monde-filtre-type").forEach(b => b.addEventListener("click", () => { etat.type = b.dataset.type; rerendre(); }));
-    box.querySelectorAll(".scwm-monde-nouveau").forEach(b => b.addEventListener("click", async () => { await nouvelleFiche(b.dataset.type); rerendre(); }));
+    box.querySelectorAll(".scwm-monde-nouveau").forEach(b => b.addEventListener("click", async () => {
+        try { await nouvelleFiche(b.dataset.type); } catch (e) { ui.notifications?.error(e.message); }
+        rerendre();
+    }));
     box.querySelector(".scwm-monde-actualiser")?.addEventListener("click", async () => {
         let n = 0, sautees = 0;
-        for (const f of toutesLesFiches()) {
+        for (const f of await chargerFiches()) {
             if (f.type === "place") await lierPnjDesCartes(f.entry, ficheDe(f.page).scenes);
             if (!ficheDe(f.page).hash) continue;          // jamais rédigée ici : on n'y touche pas
             (await actualiserFiche(f.entry)) ? n++ : sautees++;
@@ -959,7 +1156,7 @@ export function cablerOngletMonde(root, rerendre, etat = {}) {
         const a = ev.target.closest("a");
         if (!a || !box.contains(a)) return;
         ev.preventDefault();
-        const entry = a.dataset.id ? game.journal.get(a.dataset.id) : null;
+        const entry = a.dataset.uuid ? await fromUuid(a.dataset.uuid) : null;
         if (a.classList.contains("scwm-monde-ouvrir")) ouvrirFiche(entry);
         else if (a.classList.contains("scwm-monde-rediger")) { await redigerFiche(entry); rerendre(); }
         else if (a.classList.contains("scwm-monde-visible")) { await basculerVisibilite(entry); rerendre(); }
@@ -968,6 +1165,75 @@ export function cablerOngletMonde(root, rerendre, etat = {}) {
         else if (a.classList.contains("scwm-monde-epingle")) voirSurLaCarte(entry);
     });
     appliquer();
+}
+
+// ============================================================
+// Rangement des fiches PNJ / organisations du monde dans les compendiums
+// ============================================================
+export async function rangerDansCompendiums() {
+    const aDeplacer = toutesLesFiches().filter(f => f.type !== "place");
+    if (!aDeplacer.length) return false;
+    const epinglees = aDeplacer.filter(f => epinglesDe(f.entry).length);
+    const ok = await foundry.applications.api.DialogV2.confirm({
+        window: { title: "Ranger dans les compendiums" },
+        content: `<p>${aDeplacer.length} fiche(s) PNJ / organisation vont être déplacées dans leurs compendiums (chargés seulement à la demande).</p>
+            <p>Les liens sont conservés : acteurs, relations Monk's, liens @UUID dans les fiches. Les fiches du monde sont ensuite supprimées.</p>
+            ${epinglees.length ? `<p style="color:#e0a96d;"><i class="fa-solid fa-triangle-exclamation"></i> ${epinglees.length} d'entre elles ont une épingle sur une carte (${epinglees.map(f => esc(f.entry.name)).join(", ")}) : une épingle ne peut pas pointer vers un compendium, elle ne fonctionnera plus.</p>` : ""}`
+    });
+    if (!ok) return false;
+    const correspondances = new Map();   // ancien uuid → nouveau document
+    try {
+        for (const f of aDeplacer) {
+            const pack = await packPour(f.type);
+            verifierDeverrouille(pack);
+            const data = f.entry.toObject();
+            delete data.folder;
+            const neuf = await JournalEntry.create(data, { pack: pack.collection, keepId: true });
+            correspondances.set(f.entry.uuid, neuf);
+        }
+    } catch (e) {
+        ui.notifications?.error(`Rangement interrompu : ${e.message}`);
+        console.warn(`[${MOD}] rangement`, e);
+        return false;
+    }
+    // Remplace les anciens uuid partout : relations Monk's, liens @UUID, acteurs.
+    const remplacer = (txt) => {
+        let t = String(txt ?? "");
+        for (const [ancien, neuf] of correspondances) t = t.split(ancien).join(neuf.uuid);
+        return t;
+    };
+    for (const f of await chargerFiches()) {
+        const page = pageDe(f.entry);
+        if (!page) continue;
+        const update = {};
+        const rel = foundry.utils.deepClone(page.getFlag(MEJ, "relationships") ?? {});
+        let relModif = false;
+        if (!Array.isArray(rel)) for (const r of Object.values(rel)) {
+            const n = correspondances.get(r?.uuid);
+            if (n) { r.uuid = n.uuid; relModif = true; }
+        }
+        if (relModif) update[`flags.${MEJ}.relationships`] = rel;
+        const contenu = page.text?.content ?? "";
+        const nouveau = remplacer(contenu);
+        if (nouveau !== contenu) update["text.content"] = nouveau;
+        const fiche = ficheDe(page);
+        if (fiche.rubriques) {
+            const r2 = Object.fromEntries(Object.entries(fiche.rubriques).map(([k, v]) => [k, remplacer(v)]));
+            if (JSON.stringify(r2) !== JSON.stringify(fiche.rubriques)) update[`flags.${MOD}.fiche.rubriques`] = r2;
+            // le texte a été réécrit ici même : l'empreinte suit pour ne pas le croire « modifié à la main »
+            if (update["text.content"] && fiche.hash === empreinte(contenu)) update[`flags.${MOD}.fiche.hash`] = empreinte(nouveau);
+        }
+        if (Object.keys(update).length) {
+            try { await page.update(update); } catch (e) { console.warn(`[${MOD}] mise à jour des liens de ${f.entry.name}`, e); }
+        }
+    }
+    for (const a of game.actors) {
+        const n = correspondances.get(a.getFlag(MOD, "fichePage"));
+        if (n) await a.setFlag(MOD, "fichePage", n.uuid);
+    }
+    for (const f of aDeplacer) await f.entry.delete();
+    ui.notifications?.info(`${aDeplacer.length} fiche(s) rangée(s) dans les compendiums.`);
+    return true;
 }
 
 // ============================================================
@@ -1057,7 +1323,7 @@ export function MondeHooks() {
             const root = (element instanceof HTMLElement) ? element : element?.[0];
             const header = root?.querySelector(".window-header");
             if (!header || header.querySelector(".scwm-monde-btn")) return;
-            const lie = !!ficheDeActeur(actor);
+            const lie = !!actor.getFlag(MOD, "fichePage");
             const btn = document.createElement("button");
             btn.type = "button";
             btn.classList.add("header-control", "icon", "fa-solid", "fa-book-atlas", "scwm-monde-btn");
@@ -1108,7 +1374,36 @@ export function MondeHooks() {
     const siDecouverte = (f) => (...args) => { if (game.user?.isGM && decouverteActive() && f(...args)) planifierDecouverte(); };
     Hooks.on("updateActor", siDecouverte((a, ch) =>
         foundry.utils.hasProperty(ch, `flags.${MOD}.exploredHexes`) || "ownership" in (ch ?? {})));
-    for (const h of ["createNote", "updateNote", "deleteNote"]) Hooks.on(h, siDecouverte(() => true));
+    // Épingle posée ou déplacée par le MJ : accès donnés sans bannière.
+    Hooks.on("createNote", siDecouverte((n) => { marquerSilencieux(n?.entryId); return true; }));
+    Hooks.on("updateNote", siDecouverte((n, ch) => {
+        if ("x" in (ch ?? {}) || "y" in (ch ?? {}) || "entryId" in (ch ?? {})) marquerSilencieux(n?.entryId);
+        return true;
+    }));
+    Hooks.on("deleteNote", siDecouverte(() => true));
+
+    // Étiquette d'épingle figée sur l'ancien nom (ex. « Nouveau lieu ») :
+    // vidée pour qu'elle suive le nom du journal.
+    Hooks.on("preUpdateJournalEntry", (entry, ch) => {
+        if (!game.user?.isGM || !("name" in (ch ?? {})) || ch.name === entry.name) return;
+        const ancien = entry.name;
+        setTimeout(() => viderEtiquettes(entry, ancien).catch(() => {}), 0);
+    });
+    Hooks.once("ready", () => {
+        if (!game.user?.isGM || !mondeActif() || (game.users.activeGM && game.users.activeGM.id !== game.user.id)) return;
+        for (const { entry, type } of toutesLesFiches()) if (type === "place") {
+            viderEtiquettes(entry).catch(() => {});
+            convertirIcones(entry).catch(() => {});
+        }
+    });
+
+    // Épingles du monde visibles dans tous les modes (chaque client).
+    const reafficher = () => setTimeout(afficherEpinglesPartout, 0);
+    Hooks.on("canvasReady", reafficher);
+    Hooks.on("deactivateNotesLayer", reafficher);
+    Hooks.on("renderSceneControls", reafficher);
+    Hooks.on("createNote", reafficher);
+    Hooks.on("updateSetting", (st) => { if (String(st?.key ?? "").startsWith(`${MOD}.monde`) || st?.key === "core.notesDisplayToggle") reafficher(); });
     Hooks.on("updateSetting", siDecouverte((st) => st?.key === `${MOD}.expeditionRevealedZones`));
     Hooks.on("updateUser", siDecouverte((u, ch) => "character" in (ch ?? {})));
     Hooks.once("ready", () => { if (game.user?.isGM && decouverteActive()) planifierDecouverte(); });

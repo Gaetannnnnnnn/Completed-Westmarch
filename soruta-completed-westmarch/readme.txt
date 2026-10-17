@@ -212,6 +212,55 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
 
+v6.5.5 | 2026-10-17
+   - Épingle d'un lieu : « Placer sur la carte » affiche la carte du monde et
+     attend un clic à l'emplacement voulu (curseur en croix, Échap ou clic
+     droit pour annuler) ; l'épingle est centrée sur la case cliquée. La
+     fenêtre « Rédiger » se réduit pendant la pose, puis revient.
+   - L'épingle n'a plus d'étiquette figée : elle affiche le nom du journal (le
+     nom tapé dans « Rédiger » est appliqué avant la pose). Les épingles
+     restées sur « Nouveau lieu » ou sur un ancien nom sont corrigées.
+   - Poser ou déplacer une épingle n'est pas une découverte par le groupe :
+     les joueurs qui avaient déjà exploré la case reçoivent l'accès sans
+     bannière ni message. La bannière reste réservée au groupe qui arrive sur
+     la case.
+   - Création d'une fiche : la fenêtre « Rédiger » repasse devant si Monk's
+     ouvre le journal tout juste créé.
+   - Épingles des lieux : nouvelle icône, une petite épingle fine plantée dans
+     la carte (32 px, la pointe tombe sur le point exact) ; le nom du lieu
+     s'affiche au survol. Les anciennes épingles posées par le module (icône
+     livre) sur la carte du monde sont converties.
+   - Nouveau réglage « Épingles visibles dans tous les modes »
+     (mondeEpinglesPartout, activé par défaut) : sur la carte du monde, les
+     épingles restent affichées quel que soit l'outil (jetons, mesures…), et
+     plus seulement en mode « Notes de journal », et restent survolables
+     (nom au survol). Les joueurs ne voient que les lieux découverts.
+   - « Où ranger quoi ? » : l'onglet du Casier est retiré. À la place, bouton
+     « Générer le journal » dans Paramètres → Dossiers & Compendiums : il
+     enregistre les réglages de la fenêtre puis crée (ou met à jour) le
+     journal « 📌 Où ranger quoi ? (MJ) », réservé aux MJ, avec deux pages :
+     le guide (dossiers et compendiums réglés) et la vérification du monde
+     (ce qui est mal rangé, avec liens). Le journal se met à jour tout seul
+     quand ces réglages changent.
+
+v6.5.4 | 2026-10-17
+   - Registre du monde : les fiches PNJ et Organisation sont rangées dans des
+     compendiums de journaux du monde (« Registre — PNJ », « Registre —
+     Organisations », créés automatiquement à la première fiche) au lieu de
+     dossiers, pour alléger le chargement du monde. Les fiches Lieu restent
+     des journaux du monde (dossier « Lieux ») car les épingles de carte et la
+     découverte par le brouillard ont besoin de journaux du monde.
+     Réglages : mondePackPerson, mondePackOrg (choix du compendium),
+     mondeFolderPlace ; mondeFolderPerson et mondeFolderOrg ne sont plus
+     utilisés. Une fiche en compendium n'a pas de droits par joueur : elle est
+     réservée aux MJ (pour la montrer, l'importer dans le monde).
+   - Onglet Monde du Casier : bouton « Ranger dans les compendiums » pour
+     déplacer les fiches PNJ / Organisation existantes du monde (même id,
+     relations, liens @UUID et fiches d'acteurs mis à jour). Le compendium
+     doit être déverrouillé pour créer ou modifier une fiche.
+   - « Où ranger quoi ? » indique les compendiums du registre et signale les
+     fiches PNJ / Organisation restées dans le monde.
+
 v6.5.3 | 2026-10-17
    - Progression XP (D&D 5e) : les paliers sont désormais, PAR DÉFAUT, ceux de
      D&D 5e (le module affiche le temps qu'il faut en sessions et en mois avec
@@ -221,6 +270,26 @@ v6.5.3 | 2026-10-17
      donc d'un niveau à l'autre (fin du « même nombre de sessions par
      niveau » de la 6.5.2). Nouveau réglage : xpThresholdMode (« dnd » par
      défaut, ou « objectif »). Voir le détail dans l'entrée v6.4.0.
+   - Tableau des paliers : colonne « Hausse % » modifiable niveau par niveau
+     (hausse de l'XP pour monter par rapport au niveau précédent ; vide =
+     hausse de D&D). Elle remplace la surcharge « XP pour monter » en XP
+     (réglage xpGrowthOverrides au lieu de xpStepOverrides). Le palier de D&D
+     s'affiche au survol. Arrondi plus fin (10 / 50 / 100 XP) pour respecter
+     les pourcentages ; les paliers de D&D non modifiés restent exacts.
+   - Objectif en mois : curseur jusqu'à 120 mois (10 ans).
+   - Bonus d'XP de plage : champ « ≈ 1 fois toutes les N sessions »
+     (récurrence théorique, vide = non compté). Utilisé UNIQUEMENT dans les
+     calculs de durée du tableau : colonne « XP moy. / sess. » (XP par
+     session + bonus ÷ récurrence, selon la plage du niveau), sessions, mois,
+     et mise à l'échelle en mode objectif. Rien n'est imposé aux MJ : la
+     clôture de session propose toujours les bonus à cocher librement.
+   - « Recaler l'XP des PJ » corrigé : le module retient sur quels paliers
+     l'XP des PJ est comptée (réglage xpCalibration, D&D par défaut) et
+     convertit depuis ceux-là, quel que soit l'ordre des changements. La
+     fenêtre affiche la liste des changements (PJ, niveau, XP avant → après)
+     avant validation, explique pourquoi il n'y a rien à faire le cas échéant,
+     et prévient si les paliers affichés ne sont pas encore enregistrés.
+     Recaler après être revenu aux paliers de D&D restaure l'XP d'origine.
 
 v6.5.2 | 2026-10-17
    - Progression XP (D&D 5e) refondue : l'XP par session est un nombre unique
@@ -332,21 +401,24 @@ v6.4.0 | 2026-10-16
        · PALIERS de niveau, au choix :
            - « Paliers officiels de D&D » (PAR DÉFAUT) : le module affiche le
              temps qu'il faut (sessions et mois réels) avec l'XP par session ;
-           - « Paliers ajustés à un objectif en mois » (1 à 120 mois) : les
-             paliers de D&D sont multipliés par un facteur = (sessions sur la
-             période × XP par session) ÷ palier D&D du niveau max. La courbe
+           - « Paliers ajustés à un objectif en mois » (1 à 120 mois) : la
+             courbe (D&D ou hausses modifiées) est multipliée par le facteur
+             qui fait atteindre le niveau max en autant de sessions que la
+             période en compte, XP moyenne par session (bonus compris). La courbe
              reste celle de D&D : peu de sessions pour les premiers niveaux,
              beaucoup pour les derniers.
-         Chaque niveau est surchargeable dans le tableau (palier, XP pour
-         monter, sessions, cumul en mois, palier D&D pour comparaison).
+         Tableau : palier, XP pour monter, hausse % (modifiable), XP moyenne
+         par session (bonus compris selon leur récurrence), sessions, cumul en
+         mois.
        · Les paliers en vigueur REMPLACENT ceux du système dnd5e
          (CONFIG.DND5E.CHARACTER_EXP_LEVELS) quand la progression est activée :
          le bouton de montée de niveau de la fiche les suit. Désactiver la
          progression restaure les paliers officiels. Le rapport de session
          utilise aussi ces paliers pour signaler les montées de niveau.
-       · « Recaler l'XP des PJ » : ramène l'XP des PJ de joueurs (comptée sur
-         l'ancien barème) sur les paliers enregistrés, en gardant leur niveau
-         et leur progression dans le niveau (confirmation demandée).
+       · « Recaler l'XP des PJ » : convertit l'XP des PJ de joueurs depuis les
+         paliers sur lesquels elle est comptée vers les paliers enregistrés, en
+         gardant leur niveau et leur progression dans le niveau (aperçu des
+         changements et confirmation).
        · Plages de niveaux (par défaut 1–4, 5–10, 11–16, 17–20), chacune avec
          ses bonus d'XP (nom + montant), ajoutables et supprimables.
    - « Clore la session » (interrupteur de la catégorie actif, étoiles éteintes) :
@@ -360,7 +432,7 @@ v6.4.0 | 2026-10-16
      refusée, MJ compris (classe ou multiclasse). Le système d'étoiles s'arrête
      aussi à ce niveau. Un PJ déjà au niveau max reçoit 0 XP à la clôture.
    - Nouveaux réglages (monde) : xpProgEnabled, xpLevelCap, xpPerSession,
-     xpThresholdMode, xpMonthsToCap, xpSessionsPerWeek, xpStepOverrides,
+     xpThresholdMode, xpMonthsToCap, xpSessionsPerWeek, xpGrowthOverrides,
      xpBonusRanges.
    - Nouveau fichier : modules/xpprogress.js. Modifiés : settings.js,
      session.js, starxp.js, index.js.

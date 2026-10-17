@@ -4,11 +4,11 @@
 // Les fonctions du module ne reconnaissent un PJ, un PNJ ou une créature que
 // s'ils sont rangés au bon endroit (dossiers et compendiums communs). Ce
 // fichier produit, à partir des RÉGLAGES RÉELS du monde :
-//   - un guide lisible (onglet « Rangement » du Casier), toujours à jour ;
-//   - une VÉRIFICATION : ce qui est mal rangé dans le monde (PJ hors du dossier
-//     des PJ, jetons de PNJ ou de créatures non reconnus, réglages vides…) ;
-//   - un JOURNAL « Où ranger quoi ? (MJ) », réservé aux MJ, publié à la demande
-//     et remis à jour tout seul quand les réglages concernés changent.
+//   - un JOURNAL « Où ranger quoi ? (MJ) », réservé aux MJ, généré par un
+//     bouton des paramètres (catégorie « Dossiers & Compendiums ») et remis à
+//     jour tout seul quand les réglages concernés changent ;
+//   - page 1 : le guide ; page 2 : une VÉRIFICATION de ce qui est mal rangé
+//     (PJ hors du dossier des PJ, jetons non reconnus, réglages vides…).
 //
 // © 2026 Soruta.
 // ============================================================
@@ -25,7 +25,7 @@ const FLAG_GUIDE = "guideRangement";
 const CLES_SUIVIES = ["commonFolderPJ", "commonFolderPNJ", "commonFolderNewChars", "commonPackPNJ", "commonPackCemetery",
     "commonPackCreatures", "commonPackCraft", "gmAutoFolderParent", "autoPlayerFolder", "relationsEnabled", "bestiaryEnabled",
     "enableCharValidation", "tmEnabled", "enableHarvest", "enableExpeditionMap", "expeditionMapSceneId", "expeditionMapSceneIds",
-    "expeditionMapTemplateFolder", "mondeEnabled", "mondeFolderPerson", "mondeFolderPlace", "mondeFolderOrg"];
+    "expeditionMapTemplateFolder", "mondeEnabled", "mondePackPerson", "mondePackOrg", "mondeFolderPlace"];
 
 // ---- Résolution des réglages (id ou nom) ----------------------------------
 function dossierActeurs(val) {
@@ -51,6 +51,11 @@ function valeur(val, nom, existe = true) {
     if (!existe) return `<span class="scwm-rg-ko"><i class="fa-solid fa-triangle-exclamation"></i> « ${esc(val)} » introuvable</span>`;
     return `<strong>${esc(nom)}</strong>`;
 }
+
+const nomPackRegistre = (cle, defaut) => {
+    const id = lire(cle);
+    return id ? valeur(id, nomPack(id), !!game.packs.get(id)) : `<strong>${esc(defaut)}</strong> (créé au premier besoin)`;
+};
 
 // ============================================================
 // Le guide (HTML, sans la vérification)
@@ -79,7 +84,7 @@ export function guideHtml() {
             <li><strong>Relations</strong> : un PNJ rangé dans ce dossier s'ajoute tout seul aux relations d'un PJ dès que son jeton est vu par ce PJ. Hors de ce dossier, il n'apparaît jamais.</li>
             <li>PNJ en compendium : ${valeur(packPnj, nomPack(packPnj), !!game.packs.get(packPnj))}. Ils sont proposés dans l'ajout manuel d'une relation.</li>
             <li>Un PNJ à ne jamais montrer dans les relations (déguisement, espion) : bouton « Exclure » de sa fiche.</li>
-            ${actif("mondeEnabled") ? `<li>Sa fiche du monde (Monk's) : bouton <i class="fa-solid fa-book-atlas"></i> de sa fiche d'acteur ; elle est rangée dans le dossier de journaux <strong>${esc(lire("mondeFolderPerson", "PNJ"))}</strong>.</li>` : ""}
+            ${actif("mondeEnabled") ? `<li>Sa fiche du monde (Monk's) : bouton <i class="fa-solid fa-book-atlas"></i> de sa fiche d'acteur ; elle est rangée dans le compendium ${nomPackRegistre("mondePackPerson", "Registre — PNJ")}.</li>` : ""}
         </ul>`);
 
     section("fa-dragon", "Créatures et monstres", `
@@ -94,8 +99,9 @@ export function guideHtml() {
     if (actif("mondeEnabled")) {
         section("fa-book-atlas", "Lieux, PNJ et organisations (registre du monde)", `
             <ul>
-                <li>Fiches Monk's rangées dans les dossiers de journaux <strong>${esc(lire("mondeFolderPerson", "PNJ"))}</strong>, <strong>${esc(lire("mondeFolderPlace", "Lieux"))}</strong> et <strong>${esc(lire("mondeFolderOrg", "Organisations"))}</strong> (créés au besoin).</li>
-                <li>Un lieu = une fiche « Lieu » de Monk's + <strong>une épingle sur la carte du monde</strong> (bouton « Placer sur la carte » de « Rédiger la fiche »). Sans épingle, le lieu n'est jamais découvert par les joueurs.</li>
+                <li>Fiches PNJ : compendium ${nomPackRegistre("mondePackPerson", "Registre — PNJ")}. Fiches d'organisations : compendium ${nomPackRegistre("mondePackOrg", "Registre — Organisations")}. Ils ne sont chargés qu'à la demande (onglet Monde, « Rédiger ») et n'alourdissent pas la connexion. Pour y écrire, ils doivent être déverrouillés.</li>
+                <li>Fiches de lieux : dossier de journaux <strong>${esc(lire("mondeFolderPlace", "Lieux"))}</strong> du monde (une épingle de carte ne peut pas pointer vers un compendium).</li>
+                <li>Un lieu = une fiche « Lieu » de Monk's + <strong>une épingle sur la carte du monde</strong> (bouton « Placer sur la carte » de « Rédiger la fiche », puis clic sur la carte à l'emplacement du lieu). Sans épingle, le lieu n'est jamais découvert par les joueurs.</li>
                 <li>Rédiger : onglet « Monde » du Casier, ou clic droit sur le journal → « Rédiger la fiche ».</li>
             </ul>`);
     }
@@ -188,8 +194,12 @@ export async function verifierRangement() {
         `${doubles.length} créature(s) rangée(s) dans le dossier des PNJ : elles apparaîtront dans les relations ET le bestiaire.`,
         doubles.map(x => ({ uuid: x.a.uuid, nom: x.a.name, info: x.a.folder ? cheminDossier(x.a.folder) : "" })));
 
-    // Registre du monde : lieux sans épingle.
+    // Registre du monde : lieux sans épingle, PNJ / organisations encore dans le monde.
     if (actif("mondeEnabled")) {
+        const typeMej = (e) => e.pages?.contents?.[0]?.getFlag?.("monks-enhanced-journal", "type");
+        const dehors = game.journal.filter(e => ["person", "organization"].includes(typeMej(e)));
+        if (dehors.length) ajouter("attention", `${dehors.length} fiche(s) PNJ / organisation sont encore des journaux du monde (chargés à chaque connexion). Onglet Monde → « Ranger dans les compendiums ».`,
+            dehors.map(e => ({ uuid: e.uuid, nom: e.name, info: e.folder?.name ?? "" })));
         const lieux = game.journal.filter(e => e.pages?.contents?.[0]?.getFlag?.("monks-enhanced-journal", "type") === "place");
         const sansEpingle = lieux.filter(e => !game.scenes.some(s => s.notes.some(n => n.entryId === e.id)));
         if (sansEpingle.length) ajouter("attention", `${sansEpingle.length} fiche(s) de lieu sans épingle sur une carte : elles ne seront jamais découvertes par les joueurs.`,
@@ -198,91 +208,46 @@ export async function verifierRangement() {
     return pbs;
 }
 
-function verificationHtml(pbs) {
-    if (!pbs.length) return `<p class="scwm-rg-ok"><i class="fa-solid fa-circle-check"></i> Tout est bien rangé.</p>`;
-    return pbs.map(p => `
-        <div class="scwm-rg-pb scwm-rg-${p.niveau}">
-            <div><i class="fa-solid ${p.niveau === "ko" ? "fa-circle-xmark" : "fa-triangle-exclamation"}"></i> ${esc(p.titre)}</div>
-            ${p.details.length ? `<details><summary>Voir la liste (${p.details.length})</summary><ul>
-                ${p.details.slice(0, 100).map(d => `<li><a class="scwm-rg-ouvrir" data-uuid="${esc(d.uuid)}">${esc(d.nom)}</a> <span style="opacity:.7;">— ${esc(d.info)}</span></li>`).join("")}
-                ${p.details.length > 100 ? `<li>… et ${p.details.length - 100} autre(s)</li>` : ""}
-            </ul></details>` : ""}
-        </div>`).join("");
-}
-
-const STYLE = `<style>
-    .scwm-rg h2 { font-size: 15px; margin: 14px 0 4px; border-bottom: 1px solid rgba(201,162,39,.35); }
-    .scwm-rg-ko { color: #e58f8f; font-weight: 600; }
-    .scwm-rg-ok { color: #7fd1a0; font-weight: 600; }
-    .scwm-rg-pb { margin: 6px 0; padding: 6px 8px; border-radius: 5px; font-size: 13px; }
-    .scwm-rg-pb.scwm-rg-ko { background: rgba(192,57,43,.12); border: 1px solid rgba(192,57,43,.45); color: inherit; font-weight: 400; }
-    .scwm-rg-pb.scwm-rg-attention { background: rgba(230,126,34,.10); border: 1px solid rgba(230,126,34,.45); }
-    .scwm-rg-pb summary { cursor: pointer; margin-top: 3px; opacity: .85; }
-    .scwm-rg a.scwm-rg-ouvrir { cursor: pointer; }
-</style>`;
-
-// ============================================================
-// Onglet « Rangement » du Casier
-// ============================================================
-export function ongletRangementHtml() {
-    const guide = trouverGuide();
-    return `${STYLE}
-    <div class="scwm-casier-detail scwm-rg">
-        <h2 style="font-size:18px;"><i class="fa-solid fa-boxes-stacked"></i> Où ranger quoi ?</h2>
-        <div class="scwm-reg-toolbar" style="flex-wrap:wrap;gap:6px;">
-            <button type="button" class="scwm-rg-publier"><i class="fa-solid fa-book"></i> ${guide ? "Ouvrir le journal « Où ranger quoi ? »" : "Publier dans les journaux (MJ)"}</button>
-            <button type="button" class="scwm-rg-verifier"><i class="fa-solid fa-magnifying-glass"></i> Revérifier</button>
-            <button type="button" class="scwm-rg-reglages"><i class="fa-solid fa-gear"></i> Régler les dossiers</button>
-        </div>
-        <h2><i class="fa-solid fa-stethoscope"></i> Vérification du monde</h2>
-        <div class="scwm-rg-verif"><p style="opacity:.7;"><i class="fa-solid fa-spinner fa-spin"></i> Vérification en cours…</p></div>
-        ${guideHtml()}
-    </div>`;
-}
-
-export function cablerOngletRangement(root, rerendre) {
-    const box = root?.querySelector(".scwm-rg");
-    if (!box) return;
-    const sortie = box.querySelector(".scwm-rg-verif");
-    const verifier = async () => {
-        if (sortie) sortie.innerHTML = `<p style="opacity:.7;"><i class="fa-solid fa-spinner fa-spin"></i> Vérification en cours…</p>`;
-        try { if (sortie) sortie.innerHTML = verificationHtml(await verifierRangement()); }
-        catch (e) { console.warn(`[${MOD}] vérification du rangement`, e); if (sortie) sortie.innerHTML = `<p class="scwm-rg-ko">Échec de la vérification.</p>`; }
-    };
-    verifier();
-    box.querySelector(".scwm-rg-verifier")?.addEventListener("click", verifier);
-    box.querySelector(".scwm-rg-publier")?.addEventListener("click", async () => {
-        const e = trouverGuide() ?? await publierGuide();
-        e?.sheet?.render(true);
-        rerendre?.();
-    });
-    box.querySelector(".scwm-rg-reglages")?.addEventListener("click", () => {
-        try { new (game.settings.menus.get(`${MOD}.menu-commonFolderPJ`)?.type)().render(true); }
-        catch { ui.notifications?.info("Paramètres du jeu → Configurer les modules → Soruta — Completed Westmarch → Dossiers & Compendiums."); }
-    });
-    box.addEventListener("click", async (ev) => {
-        const a = ev.target.closest("a.scwm-rg-ouvrir");
-        if (!a) return;
-        ev.preventDefault();
-        (await fromUuid(a.dataset.uuid))?.sheet?.render(true);
-    });
+// Vérification au format journal (liens @UUID, couleurs en ligne).
+function verificationJournalHtml(pbs) {
+    const date = new Date().toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" });
+    const entete = `<p><em>État du monde au ${esc(date)} (régénéré à chaque clic sur le bouton des paramètres et à chaque changement des dossiers).</em></p>`;
+    if (!pbs.length) return `${entete}<p style="color:#2e8b57;font-weight:600;"><i class="fa-solid fa-circle-check"></i> Tout est bien rangé.</p>`;
+    return entete + pbs.map(p => `
+        <h3 style="color:${p.niveau === "ko" ? "#c0392b" : "#d35400"};"><i class="fa-solid ${p.niveau === "ko" ? "fa-circle-xmark" : "fa-triangle-exclamation"}"></i> ${esc(p.titre)}</h3>
+        ${p.details.length ? `<ul>
+            ${p.details.slice(0, 100).map(d => `<li>@UUID[${d.uuid}]{${esc(d.nom)}} — ${esc(d.info)}</li>`).join("")}
+            ${p.details.length > 100 ? `<li>… et ${p.details.length - 100} autre(s)</li>` : ""}
+        </ul>` : ""}`).join("");
 }
 
 // ============================================================
-// Journal « Où ranger quoi ? (MJ) »
+// Journal « Où ranger quoi ? (MJ) » — généré depuis les paramètres
+// (catégorie « Dossiers & Compendiums »), réservé aux MJ.
 // ============================================================
 export function trouverGuide() {
     return game.journal?.find(e => e.getFlag?.(MOD, FLAG_GUIDE) === true) ?? null;
 }
 
+const PAGE_GUIDE = "Où ranger quoi ?";
+const PAGE_VERIF = "Vérification du monde";
+
 export async function publierGuide() {
     if (!game.user?.isGM) return null;
-    const contenu = guideHtml();
+    const pages = [
+        { name: PAGE_GUIDE, type: "text", text: { content: guideHtml() } },
+        { name: PAGE_VERIF, type: "text", text: { content: verificationJournalHtml(await verifierRangement()) } }
+    ];
     const existant = trouverGuide();
     if (existant) {
-        const page = existant.pages.contents[0];
-        if (page) await page.update({ "text.content": contenu });
-        else await existant.createEmbeddedDocuments("JournalEntryPage", [{ name: existant.name, type: "text", text: { content: contenu } }]);
+        const maj = [], neuves = [];
+        for (const [i, pg] of pages.entries()) {
+            const p = existant.pages.contents.find(x => x.name === pg.name) ?? (i === 0 ? existant.pages.contents[0] : null);
+            if (p) maj.push({ _id: p.id, name: pg.name, "text.content": pg.text.content, sort: (i + 1) * 100000 });
+            else neuves.push({ ...pg, sort: (i + 1) * 100000 });
+        }
+        if (maj.length) await existant.updateEmbeddedDocuments("JournalEntryPage", maj);
+        if (neuves.length) await existant.createEmbeddedDocuments("JournalEntryPage", neuves);
         return existant;
     }
     return JournalEntry.create({
@@ -290,8 +255,35 @@ export async function publierGuide() {
         ownership: { default: CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE },
         sort: -100000,
         flags: { [MOD]: { [FLAG_GUIDE]: true } },
-        pages: [{ name: "Où ranger quoi ?", type: "text", text: { content: contenu } }]
-    });
+        pages: pages.map((pg, i) => ({ ...pg, sort: (i + 1) * 100000 }))
+    }, { renderSheet: false });
+}
+
+// Bouton des paramètres : (re)génère le journal puis l'ouvre.
+export async function genererEtOuvrirGuide() {
+    try {
+        const deja = !!trouverGuide();
+        const e = await publierGuide();
+        if (!e) return null;
+        ui.notifications?.info(deja ? "Journal « Où ranger quoi ? » mis à jour." : "Journal « Où ranger quoi ? » créé (réservé aux MJ).");
+        e.sheet?.render(true);
+        return e;
+    } catch (err) {
+        console.warn(`[${MOD}] guide de rangement`, err);
+        ui.notifications?.error("Échec de la génération du journal « Où ranger quoi ? ».");
+        return null;
+    }
+}
+
+// Bloc affiché dans la catégorie « Dossiers & Compendiums » des paramètres.
+export function blocGuideReglagesHtml() {
+    const guide = trouverGuide();
+    return `
+    <div class="scwm-rg-bloc" style="margin:10px 4px 4px;padding:8px 10px;border:1px solid rgba(201,162,39,.45);border-radius:5px;background:rgba(201,162,39,.07);">
+        <div style="font-weight:600;"><i class="fa-solid fa-boxes-stacked"></i> Guide « Où ranger quoi ? » pour les MJ</div>
+        <p style="margin:3px 0 6px;font-size:.8em;color:#aaa;">Crée un journal réservé aux MJ qui explique où ranger PJ, PNJ, créatures, lieux… avec les dossiers et compendiums réglés ici, plus une vérification de ce qui est mal rangé dans le monde. Les réglages de cette fenêtre sont enregistrés avant. Le journal se met ensuite à jour tout seul quand ces réglages changent.</p>
+        <button type="button" class="scwm-rg-generer"><i class="fa-solid fa-book"></i> ${guide ? "Mettre à jour et ouvrir le journal" : "Générer le journal"}</button>
+    </div>`;
 }
 
 // Journal publié : régénéré (MJ actif, différé) quand un réglage suivi change.

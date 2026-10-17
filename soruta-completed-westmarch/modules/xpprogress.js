@@ -45,14 +45,14 @@ const DEFAUT = {
         { id: "p4", min: 17, max: 20, bonus: [] }
     ]
 };
-const MOIS_MIN = 1, MOIS_MAX = 120, MOIS_CURSEUR_MAX = 60, MOIS_PAS = 0.5;
+const MOIS_MIN = 1, MOIS_MAX = 120, MOIS_CURSEUR_MAX = 120, MOIS_PAS = 0.5;
 const SEMAINE_MIN = 0.25, SEMAINE_MAX = 7, SEMAINE_PAS = 0.25;
 const XP_SESSION_MAX = 1000000;
 
 // Clés de réglages dessinées par ce fichier dans la catégorie (le reste,
 // xpProgEnabled, est une case à cocher classique).
-export const XP_PROG_KEYS = new Set(["xpLevelCap", "xpPerSession", "xpThresholdMode", "xpMonthsToCap", "xpSessionsPerWeek", "xpStepOverrides", "xpBonusRanges"]);
-const CLES_PALIERS = ["xpProgEnabled", "xpLevelCap", "xpPerSession", "xpThresholdMode", "xpMonthsToCap", "xpSessionsPerWeek", "xpStepOverrides"];
+export const XP_PROG_KEYS = new Set(["xpLevelCap", "xpPerSession", "xpThresholdMode", "xpMonthsToCap", "xpSessionsPerWeek", "xpGrowthOverrides", "xpBonusRanges"]);
+const CLES_PALIERS = ["xpProgEnabled", "xpLevelCap", "xpPerSession", "xpThresholdMode", "xpMonthsToCap", "xpSessionsPerWeek", "xpGrowthOverrides", "xpBonusRanges"];
 
 // ============================================================
 // Réglages
@@ -68,7 +68,10 @@ export function registerXpProgressSettings() {
     game.settings.register(MOD, "xpThresholdMode",   monde(String, DEFAUT.mode,       { name: "Paliers de niveau (D&D ou objectif en mois)" }));
     game.settings.register(MOD, "xpMonthsToCap",     monde(Number, DEFAUT.mois,       { name: "Mois réels pour atteindre le niveau max" }));
     game.settings.register(MOD, "xpSessionsPerWeek", monde(Number, DEFAUT.parSemaine, { name: "Sessions par semaine" }));
-    game.settings.register(MOD, "xpStepOverrides",   monde(Array,  [],                { name: "XP pour monter, par niveau (surcharges)" }));
+    // Paliers sur lesquels l'XP des PJ est actuellement comptée (vide = D&D).
+    // Mis à jour par « Recaler l'XP des PJ ».
+    game.settings.register(MOD, "xpCalibration",     monde(Array,  [],                { name: "Paliers de référence de l'XP des PJ" }));
+    game.settings.register(MOD, "xpGrowthOverrides", monde(Array,  [],                { name: "Hausse d'XP par niveau, en % (surcharges)" }));
     game.settings.register(MOD, "xpBonusRanges",     monde(Array,  DEFAUT.plages,     { name: "Plages de niveaux et bonus d'XP" }));
 }
 
@@ -91,10 +94,18 @@ export const normaliserMode = (v) => (v === "objectif" ? "objectif" : "dnd");
 
 // Sessions totales visées et sessions par niveau (calculées, jamais saisies).
 export function sessionsVisees(r) { return normaliserMois(r.mois) * SEMAINES_PAR_MOIS * normaliserParSemaine(r.parSemaine); }
-// 19 entrées (niveau 1 → 19) ; 0 = automatique.
-export function normaliserSurcharges(raw) {
+// Hausse de l'XP pour monter, en %, par rapport au niveau précédent : 19
+// entrées (niveau 1 → 19), la 1re est toujours null (pas de niveau précédent).
+// null = hausse de D&D 5e.
+export function normaliserHausses(raw) {
     const src = Array.isArray(raw) ? raw : [];
-    return Array.from({ length: NIVEAU_MAX - 1 }, (_, i) => Math.max(0, entier(src[i], 0)));
+    return Array.from({ length: NIVEAU_MAX - 1 }, (_, i) => {
+        if (i === 0) return null;
+        const v = src[i];
+        if (v === null || v === undefined || v === "") return null;
+        const n = Number(String(v).replace(",", "."));
+        return Number.isFinite(n) ? Math.round(borne(n, -90, 1000) * 10) / 10 : null;
+    });
 }
 export function normaliserPlages(raw) {
     const src = Array.isArray(raw) ? raw : DEFAUT.plages;
@@ -106,41 +117,73 @@ export function normaliserPlages(raw) {
             .map((b, j) => ({
                 id: String(b?.id || `b${i}-${j}`),
                 label: String(b?.label ?? "").trim().slice(0, 80),
-                montant: Math.max(0, entier(b?.montant, 0))
+                montant: Math.max(0, entier(b?.montant, 0)),
+                // Récurrence THÉORIQUE : « environ 1 fois toutes les N sessions »
+                // (0 = non compté). Sert seulement aux calculs du module.
+                tous: Math.max(0, Math.round((Number(String(b?.tous ?? 0).replace(",", ".")) || 0) * 10) / 10)
             }))
             .filter(b => b.label && b.montant > 0);
         return { id: String(p.id || `p${i}`), min, max, bonus };
     });
 }
 
-// Arrondi « lisible » : 10, 50, 100 ou 500 selon l'ordre de grandeur.
+// Arrondi « lisible » : 10, 50 ou 100 selon l'ordre de grandeur (assez fin pour
+// respecter les pourcentages choisis).
 export function arrondiXp(x) {
     if (!(x > 0)) return 0;
-    const pas = x < 200 ? 10 : x < 2000 ? 50 : x < 20000 ? 100 : 500;
+    const pas = x < 1000 ? 10 : x < 10000 ? 50 : 100;
     return Math.max(pas, Math.round(x / pas) * pas);
 }
 
-// Facteur appliqué aux paliers de D&D : 1 en mode « D&D » ; en mode
-// « Objectif », XP totale visée (sessions × XP par session) ÷ palier D&D du
-// niveau max.
+// XP pour monter de chaque niveau dans D&D 5e, et hausse en % d'un niveau à l'autre.
+export const ECARTS_DND = Array.from({ length: NIVEAU_MAX - 1 }, (_, i) => XP_SEUILS[i + 1] - XP_SEUILS[i]);
+export const HAUSSES_DND = ECARTS_DND.map((e, i) => i === 0 ? null : (e / ECARTS_DND[i - 1] - 1) * 100);
+
+// Forme de la courbe : on part des 300 XP du niveau 1 et on applique, niveau
+// par niveau, la hausse choisie (ou celle de D&D).
+export function forme(r) {
+    const h = normaliserHausses(r.hausses);
+    const out = [ECARTS_DND[0]];
+    for (let i = 1; i < NIVEAU_MAX - 1; i++) {
+        const sansSurcharge = h[i] === null && out[i - 1] === ECARTS_DND[i - 1];
+        out.push(sansSurcharge ? ECARTS_DND[i] : out[i - 1] * (1 + (h[i] ?? HAUSSES_DND[i]) / 100));
+    }
+    return out;
+}
+
+// XP moyenne gagnée par session pour un personnage du niveau L (1 → 19) :
+// XP par session + bonus des plages de ce niveau, chacun divisé par sa
+// récurrence théorique (« 1 fois toutes les N sessions »). Purement théorique.
+export function xpMoyenneParNiveau(r) {
+    const base = normaliserXpSession(r.xpSession);
+    const plages = normaliserPlages(r.plages ?? []);
+    return Array.from({ length: NIVEAU_MAX - 1 }, (_, i) => {
+        const L = i + 1;
+        let x = base;
+        for (const p of plages) {
+            if (L < p.min || L > p.max) continue;
+            for (const b of p.bonus) if (b.tous > 0) x += b.montant / b.tous;
+        }
+        return x;
+    });
+}
+
+// Facteur appliqué à la forme : 1 en mode « D&D » ; en mode « Objectif »,
+// choisi pour que la somme des sessions jusqu'au niveau max (XP pour monter ÷
+// XP moyenne par session) égale les sessions de la période visée.
 export function facteurPaliers(r) {
     if (normaliserMode(r.mode) !== "objectif") return 1;
     const plafond = normaliserPlafond(r.plafond);
     if (plafond <= 1) return 1;
-    return sessionsVisees(r) * normaliserXpSession(r.xpSession) / XP_SEUILS[plafond - 1];
+    const f = forme(r), moy = xpMoyenneParNiveau(r);
+    let somme = 0;
+    for (let i = 0; i < plafond - 1; i++) somme += f[i] / moy[i];
+    return somme > 0 ? sessionsVisees(r) / somme : 1;
 }
-// XP pour monter de chaque niveau (1→2 … 19→20), calculée (sans surcharge).
-export function ecartsAuto(r) {
-    const k = facteurPaliers(r);
-    return Array.from({ length: NIVEAU_MAX - 1 }, (_, i) => {
-        const ecart = XP_SEUILS[i + 1] - XP_SEUILS[i];
-        return k === 1 ? ecart : arrondiXp(ecart * k);
-    });
-}
-// XP pour monter de chaque niveau, surcharges comprises.
+// XP pour monter de chaque niveau (1→2 … 19→20).
 export function ecarts(r) {
-    const auto = ecartsAuto(r);
-    return normaliserSurcharges(r.surcharges).map((s, i) => s > 0 ? s : auto[i]);
+    const k = facteurPaliers(r);
+    return forme(r).map((x, i) => (k === 1 && x === ECARTS_DND[i]) ? x : arrondiXp(x * k));
 }
 // Paliers : index i = XP totale pour être niveau i+1 (même forme que dnd5e).
 export function paliers(r) {
@@ -149,28 +192,35 @@ export function paliers(r) {
     return out;
 }
 
-// Lignes du tableau + totaux. r = { plafond, xpSession, mois, parSemaine, surcharges }.
+// Lignes du tableau + totaux. r = { plafond, xpSession, mode, mois, parSemaine, hausses, plages }.
 export function calculerProgression(r) {
     const plafond = normaliserPlafond(r.plafond);
     const xpSession = normaliserXpSession(r.xpSession);
-    const surcharges = normaliserSurcharges(r.surcharges);
-    const autos = ecartsAuto(r);
+    const hausses = normaliserHausses(r.hausses);
+    const moy = xpMoyenneParNiveau(r);
+    const ec = ecarts(r);
     const seuils = paliers(r);
     const sessionsParMois = SEMAINES_PAR_MOIS * normaliserParSemaine(r.parSemaine);
     let cumul = 0;
     const lignes = [];
     for (let L = 1; L < NIVEAU_MAX; L++) {
-        const aGagner = seuils[L] - seuils[L - 1];
-        const sessions = aGagner / xpSession;
+        const i = L - 1;
+        const aGagner = ec[i];
+        const sessions = aGagner / moy[i];
         const bloque = L >= plafond;
         if (!bloque) cumul += sessions;
-        lignes.push({ niveau: L, seuil: seuils[L - 1], aGagner, auto: autos[L - 1], surcharge: surcharges[L - 1], standard: XP_SEUILS[L] - XP_SEUILS[L - 1],
-            sessions, cumul: bloque ? null : cumul, cumulMois: bloque ? null : cumul / sessionsParMois, bloque });
+        lignes.push({
+            niveau: L, seuil: seuils[i], aGagner,
+            hausse: i === 0 ? null : (ec[i] / ec[i - 1] - 1) * 100,     // hausse réelle (après arrondi)
+            hausseDnd: HAUSSES_DND[i], hausseSurcharge: hausses[i],
+            xpMoyenne: moy[i], sessions, cumul: bloque ? null : cumul, cumulMois: bloque ? null : cumul / sessionsParMois, bloque
+        });
     }
     return {
         plafond, lignes, xpSession, seuils, mode: normaliserMode(r.mode), facteur: facteurPaliers(r),
         totalSessions: cumul, totalMois: cumul / sessionsParMois,
-        objectifMois: normaliserMois(r.mois), objectifSessions: sessionsVisees(r)
+        objectifMois: normaliserMois(r.mois), objectifSessions: sessionsVisees(r),
+        avecBonus: moy.some(x => x > xpSession)
     };
 }
 
@@ -191,12 +241,14 @@ export function xpLimite(xpActuelle, plafond, seuils = XP_SEUILS) {
 export function xpRecalee(xp, niveau, nouveaux, anciens = XP_SEUILS) {
     const L = borne(entier(niveau, 1), 1, NIVEAU_MAX);
     xp = Number(xp) || 0;
-    const bas = nouveaux[L - 1], haut = L < NIVEAU_MAX ? nouveaux[L] : Infinity;
-    if (xp >= bas && xp < haut) return null;                      // déjà dans le bon palier
-    if (L >= NIVEAU_MAX) return bas;
-    const aBas = anciens[L - 1], aHaut = anciens[L];
-    const frac = (xp >= aBas && xp < aHaut) ? (xp - aBas) / (aHaut - aBas) : 0;
-    return Math.round(bas + Math.min(frac, 0.99) * (haut - bas));
+    let v;
+    if (L >= NIVEAU_MAX) v = nouveaux[L - 1];
+    else {
+        const aBas = anciens[L - 1], aHaut = anciens[L];
+        const frac = aHaut > aBas ? borne((xp - aBas) / (aHaut - aBas), 0, 0.99) : 0;
+        v = Math.round(nouveaux[L - 1] + frac * (nouveaux[L] - nouveaux[L - 1]));
+    }
+    return v === Math.round(xp) ? null : v;
 }
 
 // Plages contenant le niveau de référence (arrondi du niveau moyen).
@@ -222,7 +274,7 @@ export function reglagesXp() {
         mode:       normaliserMode(lire("xpThresholdMode", DEFAUT.mode)),
         mois:       normaliserMois(lire("xpMonthsToCap", DEFAUT.mois)),
         parSemaine: normaliserParSemaine(lire("xpSessionsPerWeek", DEFAUT.parSemaine)),
-        surcharges: normaliserSurcharges(lire("xpStepOverrides", [])),
+        hausses:    normaliserHausses(lire("xpGrowthOverrides", [])),
         plages:     normaliserPlages(lire("xpBonusRanges", DEFAUT.plages))
     };
 }
@@ -246,18 +298,35 @@ export function appliquerPaliersDnd() {
     return true;
 }
 
-// Recale l'XP des PJ de joueurs sur les paliers en vigueur (MJ).
-export async function recalerXpDesPJ() {
-    const nouveaux = seuilsActifs();
-    let n = 0;
+// Paliers sur lesquels l'XP des PJ est comptée aujourd'hui.
+export function paliersDeReference() {
+    const c = lire("xpCalibration", []);
+    return Array.isArray(c) && c.length === NIVEAU_MAX ? c.map(Number) : XP_SEUILS;
+}
+const memesPaliers = (a, b) => a.length === b.length && a.every((x, i) => Number(x) === Number(b[i]));
+
+// Aperçu du recalage : [{ actor, nom, niveau, avant, apres }] pour les PJ à modifier.
+export function apercuRecalage() {
+    const anciens = paliersDeReference(), nouveaux = seuilsActifs();
+    const out = [];
+    if (memesPaliers(anciens, nouveaux)) return { anciens, nouveaux, changements: out, identiques: true };
     for (const a of game.actors ?? []) {
         if (a.type !== "character" || !a.hasPlayerOwner) continue;
-        const v = xpRecalee(a.system?.details?.xp?.value, a.system?.details?.level, nouveaux);
-        if (v === null) continue;
-        await a.update({ "system.details.xp.value": v });
-        n++;
+        const avant = Number(a.system?.details?.xp?.value) || 0;
+        const niveau = Number(a.system?.details?.level) || 1;
+        const v = xpRecalee(avant, niveau, nouveaux, anciens);
+        if (v !== null) out.push({ actor: a, nom: a.name, niveau, avant, apres: v });
     }
-    return n;
+    return { anciens, nouveaux, changements: out, identiques: false };
+}
+
+// Recale l'XP des PJ de joueurs sur les paliers en vigueur, puis retient ces
+// paliers comme nouvelle référence (MJ).
+export async function recalerXpDesPJ() {
+    const { nouveaux, changements } = apercuRecalage();
+    for (const c of changements) await c.actor.update({ "system.details.xp.value": c.apres });
+    await game.settings.set(MOD, "xpCalibration", [...nouveaux]);
+    return changements.length;
 }
 
 // Données pour « Clore la session » à partir des acteurs de la party.
@@ -349,23 +418,25 @@ export function xpProgControlHtml(key) {
     if (!XP_PROG_KEYS.has(key)) return null;
     if (key === "xpMonthsToCap") return panneauProgressionHtml();
     if (key === "xpBonusRanges") return panneauPlagesHtml();
-    return "";   // xpLevelCap, xpPerSession, xpSessionsPerWeek, xpStepOverrides : dans le panneau
+    return "";   // xpLevelCap, xpPerSession, xpSessionsPerWeek, xpGrowthOverrides : dans le panneau
 }
 
 function panneauProgressionHtml() {
     const r = reglagesXp();
     const calc = calculerProgression(r);
+    const pct = (v) => v === null || v === undefined ? "" : String(Math.round(v * 10) / 10);
     const lignes = calc.lignes.map(l => `
         <tr class="scwm-xpp-ligne" data-niveau="${l.niveau}" style="${l.bloque ? "opacity:.4;" : ""}">
             <td style="white-space:nowrap;padding:2px 4px 2px 0;">${l.niveau} → ${l.niveau + 1}${l.bloque ? ' <i class="fa-solid fa-lock" title="Au-delà du niveau max"></i>' : ""}</td>
-            <td class="scwm-xpp-palier" style="text-align:right;padding:2px 4px;">${nombreFr(calc.seuils[l.niveau])}</td>
-            <td style="padding:1px 4px;"><input type="number" min="0" step="50" class="scwm-xpp-surcharge"
-                name="xpStepOverrides__${l.niveau - 1}" value="${l.surcharge > 0 ? l.surcharge : ""}"
-                placeholder="${l.auto}" title="Vide = calcul automatique (${nombreFr(l.auto)} XP)"
-                style="width:100%;box-sizing:border-box;text-align:right;"></td>
+            <td class="scwm-xpp-palier" style="text-align:right;padding:2px 4px;" title="Palier de D&amp;D 5e : ${nombreFr(XP_SEUILS[l.niveau])} XP">${nombreFr(calc.seuils[l.niveau])}</td>
+            <td class="scwm-xpp-montee" style="text-align:right;padding:2px 4px;">${nombreFr(l.aGagner)}</td>
+            <td style="padding:1px 4px;">${l.niveau === 1 ? `<span style="display:block;text-align:center;opacity:.5;">—</span>` : `<input type="number" step="1" min="-90" max="1000" class="scwm-xpp-hausse"
+                name="xpGrowthOverrides__${l.niveau - 1}" value="${pct(l.hausseSurcharge)}"
+                placeholder="${pct(l.hausseDnd)}" title="Hausse de l'XP pour monter par rapport au niveau précédent. Vide = hausse de D&amp;D (${nombreFr(l.hausseDnd, 1)} %)."
+                style="width:100%;box-sizing:border-box;text-align:right;">`}</td>
+            <td class="scwm-xpp-moy" style="text-align:right;padding:2px 4px;"></td>
             <td class="scwm-xpp-sessions" style="text-align:right;padding:2px 4px;"></td>
-            <td class="scwm-xpp-cumul" style="text-align:right;padding:2px 4px;color:#aaa;"></td>
-            <td style="text-align:right;padding:2px 0 2px 4px;color:#777;" title="Palier de D&D 5e pour comparaison">${nombreFr(XP_SEUILS[l.niveau])}</td>
+            <td class="scwm-xpp-cumul" style="text-align:right;padding:2px 0 2px 4px;color:#aaa;"></td>
         </tr>`).join("");
     const th = (t, align = "right", title = "") => `<th style="text-align:${align};font-size:.72em;color:#888;font-weight:600;padding:0 4px 3px;" ${title ? `title="${title}"` : ""}>${t}</th>`;
 
@@ -414,15 +485,15 @@ function panneauProgressionHtml() {
 
     <div class="scwm-set" style="${BLOC}">
         <label style="display:block;font-weight:600;margin:0 0 2px;">Paliers d'XP</label>
-        <p style="margin:0 0 6px;font-size:.8em;color:#999;">Les paliers en vigueur sur la fiche quand la progression est activée : le bouton de montée de niveau s'active quand l'XP atteint le palier. Le nombre grisé de « XP pour monter » est la valeur automatique (D&amp;D ou mise à l'échelle) : tape un nombre pour l'imposer à ce niveau, vide la case pour revenir à l'automatique.</p>
+        <p style="margin:0 0 6px;font-size:.8em;color:#999;">Les paliers en vigueur sur la fiche quand la progression est activée : le bouton de montée de niveau s'active quand l'XP atteint le palier. La colonne « Hausse % » règle de combien l'XP pour monter augmente par rapport au niveau précédent : le nombre grisé est la hausse de D&amp;D, tape un pourcentage pour le changer, vide la case pour revenir à D&amp;D. « XP moy. / sess. » ajoute à l'XP par session les bonus de la plage, selon leur récurrence théorique.</p>
         <table style="width:100%;border-collapse:collapse;font-size:.85em;">
-            <thead><tr>${th("Niveau", "left")}${th("Palier (XP totale)", "right", "XP totale à atteindre pour passer au niveau suivant")}${th("XP pour monter")}${th("Sessions")}${th("Cumul (mois)")}${th("D&amp;D", "right", "Palier de D&D 5e, pour comparaison")}</tr></thead>
+            <thead><tr>${th("Niveau", "left")}${th("Palier", "right", "XP totale à atteindre pour passer au niveau suivant (survol : palier de D&D)")}${th("XP pour monter")}${th("Hausse %", "right", "Hausse de l'XP pour monter par rapport au niveau précédent")}${th("XP moy. / sess.", "right", "XP par session + bonus de la plage selon leur récurrence théorique")}${th("Sessions")}${th("Cumul (mois)")}</tr></thead>
             <tbody>${lignes}</tbody>
         </table>
         <div class="scwm-xpp-total" style="margin-top:8px;padding-top:6px;border-top:1px solid rgba(201,162,39,0.4);font-weight:700;color:${OR};"></div>
         <div style="margin-top:8px;display:flex;gap:8px;align-items:flex-start;">
             <button type="button" class="scwm-xpp-recaler" style="flex:0 0 auto;padding:3px 10px;${BTN_AJOUT}"><i class="fa-solid fa-scale-balanced"></i> Recaler l'XP des PJ</button>
-            <span style="font-size:.8em;color:#999;">Les PJ existants ont une XP comptée sur l'ancien barème. « Recaler » la ramène sur les paliers <strong>enregistrés</strong>, en gardant leur niveau et leur progression dans le niveau. Enregistre d'abord tes réglages.</span>
+            <span style="font-size:.8em;color:#999;">Après un changement de paliers, l'XP des PJ est encore comptée sur les anciens. « Recaler » la convertit vers les paliers <strong>enregistrés</strong>, en gardant leur niveau et leur progression dans le niveau. Une liste des changements s'affiche avant de valider.</span>
         </div>
     </div>`;
 }
@@ -432,7 +503,9 @@ function ligneBonusHtml(b = {}) {
         <input type="text" class="scwm-xpb-label" value="${esc(b.label || "")}" placeholder="Nom du bonus (ex. Boss vaincu)" style="flex:1 1 auto;min-width:0;">
         <span style="align-self:center;">+</span>
         <input type="number" class="scwm-xpb-montant" min="0" step="10" value="${b.montant || ""}" placeholder="0" style="width:80px;text-align:right;">
-        <span style="align-self:center;font-size:.85em;">XP</span>
+        <span style="align-self:center;font-size:.85em;">XP, ≈ 1 fois / </span>
+        <input type="number" class="scwm-xpb-tous" min="0" step="0.5" value="${b.tous || ""}" placeholder="—" title="Récurrence théorique : environ une fois toutes les N sessions. Sert uniquement aux calculs de durée du module ; vide ou 0 = non compté." style="width:56px;text-align:right;">
+        <span style="align-self:center;font-size:.85em;">sess.</span>
         <button type="button" class="scwm-xpb-suppr-bonus" title="Retirer ce bonus" style="${BTN_SUPPR}"><i class="fa-solid fa-xmark"></i></button>
     </div>`;
 }
@@ -458,7 +531,7 @@ function panneauPlagesHtml() {
     const plages = reglagesXp().plages;
     return `<div class="scwm-set scwm-xpb" data-key="xpBonusRanges" style="${BLOC}">
         <label style="display:block;font-weight:600;margin:0 0 2px;">Plages de niveaux et bonus d'XP</label>
-        <p style="margin:0 0 4px;font-size:.8em;color:#999;">À la clôture de session, le niveau moyen de la party (arrondi) désigne la ou les plages concernées. Leurs bonus sont proposés en cases à cocher, non cochées : le MJ choisit ceux qui s'appliquent, et chacun s'ajoute à l'XP de tous les PJ.</p>
+        <p style="margin:0 0 4px;font-size:.8em;color:#999;">À la clôture de session, le niveau moyen de la party (arrondi) désigne la ou les plages concernées. Leurs bonus sont proposés en cases à cocher, non cochées : le MJ choisit ceux qui s'appliquent, et chacun s'ajoute à l'XP de tous les PJ. La récurrence (« ≈ 1 fois toutes les N sessions ») sert uniquement aux calculs de durée du tableau ; elle n'impose rien aux MJ.</p>
         <div class="scwm-xpb-plages">${plages.map(plageHtml).join("")}</div>
         <button type="button" class="scwm-xpb-ajout-plage" style="margin-top:4px;padding:3px 10px;${BTN_AJOUT}">
             <i class="fa-solid fa-plus"></i> Ajouter une plage</button>
@@ -478,15 +551,22 @@ export function wireXpProg(root) {
         const modes = [...root.querySelectorAll(".scwm-xpp-mode")];
         const ligneMois = q(".scwm-xpp-ligne-mois");
         const mode = () => normaliserMode(modes.find(m => m.checked)?.value);
-        const surcharges = [...root.querySelectorAll(".scwm-xpp-surcharge")];
-
+        const hausses = [...root.querySelectorAll(".scwm-xpp-hausse")];
+        const lireHausses = () => {
+            const out = Array(NIVEAU_MAX - 1).fill(null);
+            hausses.forEach(i => { const k = Number(i.name.split("__")[1]); out[k] = i.value === "" ? null : i.value; });
+            return out;
+        };
+        // Case « Progression par l'XP de base » de la même fenêtre (si présente).
+        const xpProgEnabledForm = () => { const c = root.querySelector('[name="xpProgEnabled"]'); return c ? c.checked : null; };
         const lireForm = () => ({
             plafond: normaliserPlafond(plafondSel.value),
             xpSession: normaliserXpSession(xN.value),
             mode: mode(),
             mois: normaliserMois(mN.value),
             parSemaine: normaliserParSemaine(sN.value),
-            surcharges: surcharges.map(i => i.value === "" ? 0 : Math.max(0, Math.round(Number(i.value) || 0)))
+            hausses: lireHausses(),
+            plages: q(".scwm-xpb") ? readXpProg("xpBonusRanges", root) : reglagesXp().plages
         });
 
         const redessiner = () => {
@@ -495,9 +575,14 @@ export function wireXpProg(root) {
                 const tr = root.querySelector(`.scwm-xpp-ligne[data-niveau="${l.niveau}"]`);
                 if (!tr) continue;
                 tr.style.opacity = l.bloque ? ".4" : "";
-                const inp = tr.querySelector(".scwm-xpp-surcharge");
-                if (inp) { inp.placeholder = String(l.auto); inp.title = `Vide = calcul automatique (${nombreFr(l.auto)} XP)`; }
                 tr.querySelector(".scwm-xpp-palier").textContent = nombreFr(calc.seuils[l.niveau]);
+                tr.querySelector(".scwm-xpp-montee").textContent = nombreFr(l.aGagner);
+                const inp = tr.querySelector(".scwm-xpp-hausse");
+                if (inp && inp.value === "") inp.placeholder = String(Math.round(l.hausseDnd * 10) / 10);
+                if (inp) inp.title = `Hausse réelle après arrondi : ${nombreFr(l.hausse, 1)} %. Vide = hausse de D&D (${nombreFr(l.hausseDnd, 1)} %).`;
+                const moy = tr.querySelector(".scwm-xpp-moy");
+                moy.textContent = nombreFr(l.xpMoyenne);
+                moy.style.color = l.xpMoyenne > calc.xpSession ? OR : "";
                 tr.querySelector(".scwm-xpp-sessions").textContent = l.sessions > 0 && l.sessions < 0.1 ? "< 0,1" : nombreFr(l.sessions, 1);
                 tr.querySelector(".scwm-xpp-cumul").textContent = l.cumulMois === null ? "🔒" : nombreFr(l.cumulMois, 1);
             }
@@ -506,8 +591,8 @@ export function wireXpProg(root) {
             if (calcul) calcul.innerHTML = calc.plafond <= 1
                 ? "Niveau max = 1 : aucune montée de niveau possible."
                 : calc.mode === "objectif"
-                    ? `Objectif ${nombreFr(calc.objectifMois, 1)} mois ≈ <strong>${nombreFr(calc.objectifSessions, 1)} sessions</strong> à ${nombreFr(calc.xpSession)} XP → paliers de D&amp;D × <strong>${nombreFr(calc.facteur, 3)}</strong> (niveau ${calc.plafond} à ${nombreFr(calc.seuils[calc.plafond - 1])} XP au lieu de ${nombreFr(XP_SEUILS[calc.plafond - 1])}).`
-                    : `Paliers officiels de D&amp;D : à ${nombreFr(calc.xpSession)} XP par session, il faut <strong>${nombreFr(calc.totalSessions, 1)} sessions</strong>, soit <strong>≈ ${nombreFr(calc.totalMois, 1)} mois</strong>, pour atteindre le niveau ${calc.plafond}.`;
+                    ? `Objectif ${nombreFr(calc.objectifMois, 1)} mois ≈ <strong>${nombreFr(calc.objectifSessions, 1)} sessions</strong> à ${nombreFr(calc.xpSession)} XP${calc.avecBonus ? " + bonus" : ""} → courbe × <strong>${nombreFr(calc.facteur, 3)}</strong> (niveau ${calc.plafond} à ${nombreFr(calc.seuils[calc.plafond - 1])} XP).`
+                    : `Paliers de D&amp;D${hausses.some(i => i.value !== "") ? " (hausses modifiées)" : ""} : à ${nombreFr(calc.xpSession)} XP par session${calc.avecBonus ? " + bonus" : ""}, il faut <strong>${nombreFr(calc.totalSessions, 1)} sessions</strong>, soit <strong>≈ ${nombreFr(calc.totalMois, 1)} mois</strong>, pour atteindre le niveau ${calc.plafond}.`;
             const total = q(".scwm-xpp-total");
             if (total) total.textContent = calc.plafond <= 1 ? ""
                 : `Niveau ${calc.plafond} atteint à ${nombreFr(calc.seuils[calc.plafond - 1])} XP, en ≈ ${nombreFr(calc.totalMois, 1)} mois (${nombreFr(calc.totalSessions, 1)} sessions)${calc.mode === "objectif" && Math.abs(calc.totalMois - calc.objectifMois) >= 0.5 ? ` — objectif : ${nombreFr(calc.objectifMois, 1)} mois` : ""}.`;
@@ -527,15 +612,43 @@ export function wireXpProg(root) {
         plafondSel.addEventListener("change", redessiner);
         q(".scwm-xpp-recaler")?.addEventListener("click", async (e) => {
             e.preventDefault();
+            const ap = apercuRecalage();
+            // Réglages affichés ≠ réglages enregistrés ?
+            const affiches = (xpProgEnabledForm() ?? xpProgEnabled()) ? paliers(lireForm()) : XP_SEUILS;
+            const nonEnregistre = !memesPaliers(affiches, ap.nouveaux);
+            const alerte = nonEnregistre
+                ? `<p style="color:#e0a96d;"><i class="fa-solid fa-triangle-exclamation"></i> Les paliers affichés ne sont <strong>pas encore enregistrés</strong>. Le recalage utilise les paliers <strong>enregistrés</strong> : clique d'abord sur « Enregistrer », puis rouvre cette fenêtre.</p>` : "";
+            const source = !xpProgEnabled() ? "paliers officiels de D&amp;D (progression désactivée)"
+                : memesPaliers(ap.nouveaux, XP_SEUILS) ? "paliers officiels de D&amp;D" : "paliers de la progression (enregistrés)";
+            if (ap.identiques || !ap.changements.length) {
+                await foundry.applications.api.DialogV2.prompt({
+                    window: { title: "Recaler l'XP des PJ" },
+                    content: `${alerte}<p>Rien à recaler : ${ap.identiques
+                        ? `l'XP des PJ est déjà comptée sur les ${source}.`
+                        : "tous les PJ sont déjà au bon endroit sur les paliers en vigueur."}</p>`,
+                    ok: { label: "Fermer" }
+                });
+                return;
+            }
+            const lignes = ap.changements.map(c => `<tr><td>${esc(c.nom)}</td><td style="text-align:center;">${c.niveau}</td><td style="text-align:right;">${nombreFr(c.avant)}</td><td style="text-align:center;">→</td><td style="text-align:right;"><strong>${nombreFr(c.apres)}</strong></td></tr>`).join("");
             const ok = await foundry.applications.api.DialogV2.confirm({
                 window: { title: "Recaler l'XP des PJ" },
-                content: `<p>Ramène l'XP de tous les personnages de joueurs sur les paliers <strong>enregistrés</strong>${xpProgEnabled() ? "" : " (progression désactivée : paliers de D&amp;D)"}, en gardant leur niveau et leur progression dans le niveau.</p><p>Les PJ déjà dans le bon palier ne sont pas touchés.</p>`
+                position: { width: 460 },
+                content: `${alerte}<p>L'XP des PJ passe des paliers de référence actuels aux ${source}, en gardant leur niveau et leur progression dans le niveau :</p>
+                    <div style="max-height:300px;overflow-y:auto;"><table style="width:100%;font-size:.9em;"><thead><tr><th style="text-align:left;">PJ</th><th>Niv.</th><th style="text-align:right;">Avant</th><th></th><th style="text-align:right;">Après</th></tr></thead><tbody>${lignes}</tbody></table></div>`
             });
             if (!ok) return;
             const n = await recalerXpDesPJ();
             ui.notifications?.info(`XP recalée pour ${n} personnage(s).`);
         });
-        surcharges.forEach(i => i.addEventListener("input", redessiner));
+        hausses.forEach(i => i.addEventListener("input", redessiner));
+        // Bonus (nom, montant, récurrence, plages) : recalcul en direct aussi.
+        const boxBonus = q(".scwm-xpb");
+        if (boxBonus) {
+            boxBonus.addEventListener("input", redessiner);
+            boxBonus.addEventListener("change", redessiner);
+            boxBonus.addEventListener("click", () => setTimeout(redessiner, 0));
+        }
         redessiner();
     }
 
@@ -588,12 +701,12 @@ export function readXpProg(key, root) {
             const el = q('[name="xpSessionsPerWeek"]');
             return el ? normaliserParSemaine(el.value) : undefined;
         }
-        case "xpStepOverrides": {
-            if (!q(".scwm-xpp-surcharge")) return undefined;
-            return Array.from({ length: NIVEAU_MAX - 1 }, (_, i) => {
-                const el = q(`[name="xpStepOverrides__${i}"]`);
-                return el && el.value !== "" ? Math.max(0, Math.round(Number(el.value) || 0)) : 0;
-            });
+        case "xpGrowthOverrides": {
+            const els = [...root.querySelectorAll(".scwm-xpp-hausse")];
+            if (!els.length) return undefined;
+            const out = Array(NIVEAU_MAX - 1).fill(null);
+            els.forEach(i => { const k = Number(i.name.split("__")[1]); out[k] = i.value === "" ? null : i.value; });
+            return normaliserHausses(out);
         }
         case "xpBonusRanges": {
             const box = q(".scwm-xpb");
@@ -605,7 +718,8 @@ export function readXpProg(key, root) {
                 bonus: [...p.querySelectorAll(".scwm-xpb-bonus")].map(b => ({
                     id: b.dataset.id || foundry.utils.randomID(),
                     label: b.querySelector(".scwm-xpb-label")?.value,
-                    montant: b.querySelector(".scwm-xpb-montant")?.value
+                    montant: b.querySelector(".scwm-xpb-montant")?.value,
+                    tous: b.querySelector(".scwm-xpb-tous")?.value
                 }))
             })));
         }

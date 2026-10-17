@@ -13,6 +13,7 @@ import { applyPartyPause } from "./partypause.js";
 import { openProfilesEditor } from "./companions.js";
 import { openUiHideDialog, applyUiHiding } from "./uihide.js";
 import { applyChatCardPrefs } from "./chat.js";
+import { blocGuideReglagesHtml, genererEtOuvrirGuide } from "./rangement.js";
 import { registerXpProgressSettings, XP_PROG_KEYS, xpProgControlHtml, wireXpProg, readXpProg } from "./xpprogress.js";
 import { registerMondeSettings, MONDE_KEYS, mondeControlHtml, cablerMonde, lireMonde, afficherBanniere } from "./monde.js";
 
@@ -1118,10 +1119,10 @@ const CATEGORIES = [
       keys: ["enableStarXp","starXpLevels"] },
     { firstKey: "xpProgEnabled", master: "xpProgEnabled", icon: "fa-chart-line", title: "Progression XP (D&D 5e)",
       desc: "Pour jouer avec l'XP de base : niveau max, XP par session (proposée dans « Clore la session » avec les bonus de plage), sessions par semaine, et paliers de niveau : ceux de D&D par défaut (le module montre le temps qu'il faut) ou mis à l'échelle d'un objectif en mois réels, en gardant la courbe de D&D. Tableau modifiable niveau par niveau. Le niveau max autorisé s'applique toujours, même interrupteur éteint et même avec le système d'étoiles.",
-      keys: ["xpProgEnabled","xpLevelCap","xpPerSession","xpThresholdMode","xpMonthsToCap","xpSessionsPerWeek","xpStepOverrides","xpBonusRanges"] },
+      keys: ["xpProgEnabled","xpLevelCap","xpPerSession","xpThresholdMode","xpMonthsToCap","xpSessionsPerWeek","xpGrowthOverrides","xpBonusRanges"] },
     { firstKey: "mondeEnabled", master: "mondeEnabled", icon: "fa-book-atlas", title: "Registre du monde",
-      desc: "Fiches de PNJ, lieux et organisations dans Monk's Enhanced Journal, rédigées sur un modèle commun (rubriques ci-dessous), reliées aux acteurs, aux scènes, à la carte du monde et entre elles. Tout se retrouve dans l'onglet « Monde » du Casier. Nécessite Monk's Enhanced Journal.",
-      keys: ["mondeEnabled","mondeDecouverte","mondeDecouverteMessage","mondeBanniere","mondeBanniereSon","mondeFolderPerson","mondeFolderPlace","mondeFolderOrg","mondeRubriques"] },
+      desc: "Fiches de PNJ, lieux et organisations dans Monk's Enhanced Journal, rédigées sur un modèle commun (rubriques ci-dessous), reliées aux acteurs, aux scènes, à la carte du monde et entre elles. PNJ et organisations sont rangés dans des compendiums (chargés à la demande), les lieux dans un dossier du monde (pour leurs épingles). Tout se retrouve dans l'onglet « Monde » du Casier. Nécessite Monk's Enhanced Journal.",
+      keys: ["mondeEnabled","mondeDecouverte","mondeDecouverteMessage","mondeBanniere","mondeBanniereSon","mondeEpinglesPartout","mondePackPerson","mondePackOrg","mondeFolderPlace","mondeRubriques"] },
     { firstKey: "enableCharValidation", master: "enableCharValidation", icon: "fa-id-card", title: "Création de personnages",
       desc: "Les joueurs demandent la création d'un personnage ; un GM valide depuis le Casier, puis le joueur construit et soumet sa fiche ; à la validation elle est verrouillée. Le dossier de destination se règle dans « Dossiers & Compendiums ».",
       keys: ["enableCharValidation","charMaxTotal","charMaxActive","charFreeLevelUp","charNotifyLevelUp","blockPlayerPlutonium"] },
@@ -1523,6 +1524,7 @@ function buildCategoryForm(category, uid, { banner = true } = {}) {
         ${category.desc ? `<p style="margin:0 0 8px;font-size:.85em;color:#aaa;font-style:italic;">${category.desc}</p>` : ""}
         ${toggleBar}
         ${category.tree ? renderTweakTree(category.tree) : category.keys.map(settingControlHtml).join("")}
+        ${category.firstKey === "commonFolderPJ" ? blocGuideReglagesHtml() : ""}
     </div>`;
 }
 
@@ -1584,6 +1586,12 @@ function settingControlHtml(key) {
         // Nom de dossier saisi librement (PAS un sélecteur : le même nom sert
         // dans Acteurs, Journaux et Scènes).
         control = `<input type="text" name="${key}" value="${escapeAttr(val ?? "")}" placeholder="Nom du dossier parent (ex. Game Master)" style="width:100%;">`;
+    } else if (key === "mondeFolderPlace") {
+        // Registre du monde : NOM du dossier de journaux (créé au besoin).
+        control = `<input type="text" name="${key}" value="${escapeAttr(val ?? "")}" placeholder="Lieux" style="width:100%;">`;
+    } else if (key === "mondePackPerson" || key === "mondePackOrg") {
+        // Registre du monde : compendium de JOURNAUX (vide = créé automatiquement).
+        control = `<select name="${key}" style="width:100%;">${packOptionsHtml(val, "JournalEntry").replace("— aucun —", "— créé automatiquement —")}</select>`;
     } else if (key.includes("Folder")) {
         control = `<select name="${key}" style="width:100%;">${folderOptionsHtml(val)}</select>`;
     } else if (key.includes("Pack")) {
@@ -1629,6 +1637,17 @@ function settingControlHtml(key) {
 
 function wireCategoryForm(category, root) {
     if (!root) return;
+
+    // Dossiers & Compendiums : générer le journal « Où ranger quoi ? ».
+    root.querySelector(".scwm-rg-generer")?.addEventListener("click", async (e) => {
+        e.preventDefault();
+        const btn = e.currentTarget;
+        btn.disabled = true;
+        try {
+            await saveCategoryForm(category, root, { silent: true });   // le guide lit les réglages enregistrés
+            if (await genererEtOuvrirGuide()) btn.innerHTML = `<i class="fa-solid fa-book"></i> Mettre à jour et ouvrir le journal`;
+        } finally { btn.disabled = false; }
+    });
 
     // Tout activer / désactiver
     const boolKeys = boolKeysOf(category);

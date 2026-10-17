@@ -23,7 +23,6 @@ import {
 } from "./charvalidation.js";
 import { downtimeContentHtml, wireDowntime, applyDowntimeFromRoot } from "./tm.js";
 import { mondeActif, ongletMondeHtml, cablerOngletMonde } from "./monde.js";
-import { ongletRangementHtml, cablerOngletRangement } from "./rangement.js";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -523,8 +522,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             { key: "expeditions", icon: "fa-route",      label: "Expéditions" },
             ...(tmEnabled ? [{ key: "downtime", icon: "fa-hourglass-half", label: `Temps morts${tmDeclared ? ` (${tmDeclared})` : ""}` }] : []),
             ...(cvEnabled ? [{ key: "validation", icon: "fa-id-card", label: `Validation${cvCount ? ` (${cvCount})` : ""}` }] : []),
-            ...(mondeActif() ? [{ key: "monde", icon: "fa-book-atlas", label: "Monde" }] : []),
-            { key: "rangement", icon: "fa-boxes-stacked", label: "Où ranger quoi ?" }
+            ...(mondeActif() ? [{ key: "monde", icon: "fa-book-atlas", label: "Monde" }] : [])
         ];
         const statTabs = [
             { key: "gms",         icon: "fa-users-gear",   label: "Suivi des GM" },
@@ -571,7 +569,6 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
         else if (this.#tab === "attendance")  detail = this.#attendanceDetail();
         else if (this.#tab === "validation")  detail = this.#validationDetail();
         else if (this.#tab === "monde")       detail = ongletMondeHtml(this.#mondeEtat);
-        else if (this.#tab === "rangement")   detail = ongletRangementHtml();
         else                                  detail = this.#gmsDetail();
 
         return `
@@ -1184,8 +1181,6 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
 
         // ---- Onglet Monde : fiches PNJ / lieux / organisations ----
         if (this.#tab === "monde") cablerOngletMonde(root, () => this.render(), this.#mondeEtat);
-        // ---- Onglet Où ranger quoi ? : guide + vérification du monde ----
-        if (this.#tab === "rangement") cablerOngletRangement(root, () => this.render());
 
         // ---- Onglet Poids des scènes : calcul asynchrone + remplissage ----
         if (this.#tab === "scenesize") {

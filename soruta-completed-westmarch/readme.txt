@@ -212,15 +212,23 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
 
+v6.5.3 | 2026-10-17
+   - Progression XP (D&D 5e) : les paliers sont désormais, PAR DÉFAUT, ceux de
+     D&D 5e (le module affiche le temps qu'il faut en sessions et en mois avec
+     l'XP par session). Option « Paliers ajustés à un objectif en mois » : les
+     paliers de D&D sont mis à l'échelle pour atteindre le niveau max dans le
+     délai voulu, en gardant la courbe de D&D ; le nombre de sessions varie
+     donc d'un niveau à l'autre (fin du « même nombre de sessions par
+     niveau » de la 6.5.2). Nouveau réglage : xpThresholdMode (« dnd » par
+     défaut, ou « objectif »). Voir le détail dans l'entrée v6.4.0.
+
 v6.5.2 | 2026-10-17
    - Progression XP (D&D 5e) refondue : l'XP par session est un nombre unique
-     réglé par le staff (proposé à la clôture) ; ce sont les PALIERS de niveau
-     qui sont calculés (mois réels visés × sessions par semaine × XP par
-     session) et appliqués à la fiche dnd5e à la place des paliers officiels.
-     Bouton « Recaler l'XP des PJ ». Voir le détail dans l'entrée v6.4.0.
-     Réglages : xpPerSession (500), xpMonthsToCap (12), xpSessionsPerWeek (1),
-     xpStepOverrides ; xpSessionsPerLevel, xpQuantity et xpDefaultOverrides
-     ne sont plus utilisés.
+     réglé par le staff (proposé à la clôture) ; les paliers de niveau sont
+     calculés (même nombre de sessions par niveau) et appliqués à la fiche
+     dnd5e. Bouton « Recaler l'XP des PJ ». Réglages : xpPerSession (500),
+     xpMonthsToCap (12), xpSessionsPerWeek (1), xpStepOverrides ;
+     xpSessionsPerLevel, xpQuantity et xpDefaultOverrides ne sont plus utilisés.
    - Registre du monde : bannière « Nouveau lieu découvert ». Quand un lieu
      devient visible pour un joueur (découverte par le brouillard), son nom
      s'affiche en grand au centre de son écran, en lettres dorées sans fond ni
@@ -320,17 +328,18 @@ v6.4.0 | 2026-10-16
      l'XP de base (le système d'étoiles reste disponible à la place) :
        · XP PAR SESSION : un seul nombre réglé par le staff (500 par défaut).
          C'est l'XP proposée par défaut dans « Clore la session ».
-       · Rythme : objectif en MOIS RÉELS pour atteindre le niveau max (curseur
-         + champ, 1 à 120 mois) et SESSIONS PAR SEMAINE (0,25 à 7 ; 0,5 = une
-         toutes les deux semaines).
-       · PALIERS CALCULÉS (dynamiques) : sessions sur la période = mois × 52/12
-         × sessions par semaine ; sessions par niveau = sessions ÷ (niveau max
-         − 1) ; XP pour monter d'un niveau = sessions par niveau × XP par
-         session (arrondie). Chaque niveau est surchargeable dans le tableau
-         (palier, XP pour monter, sessions, cumul en mois, palier D&D pour
-         comparaison). Le total indique l'XP et le nombre de mois réels pour
-         atteindre le niveau max.
-       · Ces paliers REMPLACENT ceux de D&D dans le système dnd5e
+       · Sessions par semaine (0,25 à 7 ; 0,5 = une toutes les deux semaines).
+       · PALIERS de niveau, au choix :
+           - « Paliers officiels de D&D » (PAR DÉFAUT) : le module affiche le
+             temps qu'il faut (sessions et mois réels) avec l'XP par session ;
+           - « Paliers ajustés à un objectif en mois » (1 à 120 mois) : les
+             paliers de D&D sont multipliés par un facteur = (sessions sur la
+             période × XP par session) ÷ palier D&D du niveau max. La courbe
+             reste celle de D&D : peu de sessions pour les premiers niveaux,
+             beaucoup pour les derniers.
+         Chaque niveau est surchargeable dans le tableau (palier, XP pour
+         monter, sessions, cumul en mois, palier D&D pour comparaison).
+       · Les paliers en vigueur REMPLACENT ceux du système dnd5e
          (CONFIG.DND5E.CHARACTER_EXP_LEVELS) quand la progression est activée :
          le bouton de montée de niveau de la fiche les suit. Désactiver la
          progression restaure les paliers officiels. Le rapport de session
@@ -351,7 +360,8 @@ v6.4.0 | 2026-10-16
      refusée, MJ compris (classe ou multiclasse). Le système d'étoiles s'arrête
      aussi à ce niveau. Un PJ déjà au niveau max reçoit 0 XP à la clôture.
    - Nouveaux réglages (monde) : xpProgEnabled, xpLevelCap, xpPerSession,
-     xpMonthsToCap, xpSessionsPerWeek, xpStepOverrides, xpBonusRanges.
+     xpThresholdMode, xpMonthsToCap, xpSessionsPerWeek, xpStepOverrides,
+     xpBonusRanges.
    - Nouveau fichier : modules/xpprogress.js. Modifiés : settings.js,
      session.js, starxp.js, index.js.
 

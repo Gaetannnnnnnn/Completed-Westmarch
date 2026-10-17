@@ -110,6 +110,7 @@ export function registerMondeSettings() {
         name: "Épingles visibles dans tous les modes",
         hint: "Sur la carte du monde, les épingles des lieux restent affichées quel que soit l'outil choisi (jetons, mesures…), pas seulement dans « Notes de journal ». Le nom du lieu s'affiche au survol de l'épingle. Les joueurs ne voient que les lieux qu'ils ont découverts."
     }));
+    game.settings.register(MOD, "mondeEpinglesMigrees", w(Boolean, false, { name: "Épingles de lieux converties (interne)" }));
     game.settings.register(MOD, "mondePackPerson", w(String, "", {
         name: "Compendium des fiches PNJ",
         hint: "Compendium de journaux (monde) où ranger les fiches PNJ. Chargé seulement à la demande, il n'alourdit pas la connexion. Vide : le module crée « Registre — PNJ » au premier besoin."
@@ -415,14 +416,24 @@ function centreCase(scene, x, y) {
 // Le nom du lieu s'affiche au survol (étiquette native de la note).
 export const ICONE_EPINGLE = `modules/${MOD}/assets/epingle.svg`;
 const TAILLE_EPINGLE = 32;   // minimum accepté par Foundry pour une note
-const ICONES_PAR_DEFAUT = new Set(["icons/svg/book.svg"]);
 
-// Anciennes épingles posées par le module (icône livre) → épingle dorée.
+// Notes de lieux sur la carte du monde → épingle fine, quelle que soit leur
+// icône (livre, logo de Monk's…). Faite UNE fois pour les notes existantes
+// (réglage caché mondeEpinglesMigrees), puis à la création de chaque note de
+// lieu : une icône changée ensuite à la main par le MJ est respectée.
 async function convertirIcones(entry) {
     for (const { scene, note } of epinglesDe(entry)) {
-        if (!estCarteDuMonde(scene.id) || !ICONES_PAR_DEFAUT.has(note.texture?.src) && !(note.texture?.src === ICONE_EPINGLE && note.iconSize !== TAILLE_EPINGLE)) continue;
+        if (!estCarteDuMonde(scene.id)) continue;
+        if (note.texture?.src === ICONE_EPINGLE && note.iconSize === TAILLE_EPINGLE) continue;
         await scene.updateEmbeddedDocuments("Note", [{ _id: note.id, "texture.src": ICONE_EPINGLE, iconSize: TAILLE_EPINGLE }]);
     }
+}
+export async function migrerEpingles() {
+    if (lire("mondeEpinglesMigrees", false) === true) return 0;
+    let n = 0;
+    for (const { entry, type } of toutesLesFiches()) if (type === "place") { await convertirIcones(entry); n++; }
+    await game.settings.set(MOD, "mondeEpinglesMigrees", true);
+    return n;
 }
 
 // Épingles visibles hors du mode « Notes de journal » sur la carte du monde.
@@ -441,6 +452,18 @@ export function afficherEpinglesPartout() {
         if (calque.objects) calque.objects.visible = true;
         calque.interactiveChildren = true;
     } catch (e) { console.warn(`[${MOD}] épingles`, e); }
+}
+
+// Foundry dessine chaque note sur un carré sombre (fond de la ControlIcon) :
+// on le masque pour nos épingles, qui apparaissent seules sur la carte. Le
+// cadre de survol reste visible en mode « Notes de journal » (pour éditer).
+export function epingleSansFond(note) {
+    try {
+        const ci = note?.controlIcon;
+        if (!ci || note?.document?.texture?.src !== ICONE_EPINGLE) return;
+        if (ci.bg) { ci.bg.visible = false; ci.bg.alpha = 0; }
+        if (ci.border && !note.layer?.active) ci.border.visible = false;
+    } catch {}
 }
 
 export async function viderEtiquettes(entry, ancien) {
@@ -1391,14 +1414,23 @@ export function MondeHooks() {
     });
     Hooks.once("ready", () => {
         if (!game.user?.isGM || !mondeActif() || (game.users.activeGM && game.users.activeGM.id !== game.user.id)) return;
-        for (const { entry, type } of toutesLesFiches()) if (type === "place") {
-            viderEtiquettes(entry).catch(() => {});
-            convertirIcones(entry).catch(() => {});
-        }
+        for (const { entry, type } of toutesLesFiches()) if (type === "place") viderEtiquettes(entry).catch(() => {});
+        migrerEpingles().catch(e => console.warn(`[${MOD}] épingles`, e));
+    });
+    // Note d'un lieu posée sur la carte du monde (glisser-déposer du journal,
+    // outil Notes…) → épingle fine, par le client qui l'a créée.
+    Hooks.on("createNote", (note, _o, userId) => {
+        if (userId !== game.user?.id || !mondeActif() || !note?.parent || !estCarteDuMonde(note.parent.id)) return;
+        if (note.texture?.src === ICONE_EPINGLE) return;
+        const entry = game.journal.get(note.entryId);
+        if (!entry || typeDe(entry) !== "place") return;
+        note.update({ "texture.src": ICONE_EPINGLE, iconSize: TAILLE_EPINGLE }).catch(() => {});
     });
 
     // Épingles du monde visibles dans tous les modes (chaque client).
     const reafficher = () => setTimeout(afficherEpinglesPartout, 0);
+    Hooks.on("drawNote", epingleSansFond);
+    Hooks.on("refreshNote", epingleSansFond);
     Hooks.on("canvasReady", reafficher);
     Hooks.on("deactivateNotesLayer", reafficher);
     Hooks.on("renderSceneControls", reafficher);

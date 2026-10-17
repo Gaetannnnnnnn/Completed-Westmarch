@@ -94,17 +94,23 @@ export const normaliserMode = (v) => (v === "objectif" ? "objectif" : "dnd");
 
 // Sessions totales visées et sessions par niveau (calculées, jamais saisies).
 export function sessionsVisees(r) { return normaliserMois(r.mois) * SEMAINES_PAR_MOIS * normaliserParSemaine(r.parSemaine); }
-// Hausse de l'XP pour monter, en %, par rapport au niveau précédent : 19
-// entrées (niveau 1 → 19), la 1re est toujours null (pas de niveau précédent).
-// null = hausse de D&D 5e.
+// Courbe des paliers (réglage xpGrowthOverrides), 19 entrées (niveau 1 → 19) :
+//   - entrée 0 : XP pour monter du niveau 1 (« base » de la courbe, en XP ;
+//     null = 300 comme D&D) ;
+//   - entrées 1 → 18 : hausse de l'XP pour monter, en %, par rapport au
+//     niveau précédent (null = hausse de D&D 5e).
+// Le tableau des réglages édite indifféremment l'XP ou le % : l'un est
+// recalculé à partir de l'autre.
+export const BASE_MIN = 10, BASE_MAX = 1000000;
 export function normaliserHausses(raw) {
     const src = Array.isArray(raw) ? raw : [];
     return Array.from({ length: NIVEAU_MAX - 1 }, (_, i) => {
-        if (i === 0) return null;
         const v = src[i];
         if (v === null || v === undefined || v === "") return null;
         const n = Number(String(v).replace(",", "."));
-        return Number.isFinite(n) ? Math.round(borne(n, -90, 1000) * 10) / 10 : null;
+        if (!Number.isFinite(n)) return null;
+        if (i === 0) return Math.round(borne(n, BASE_MIN, BASE_MAX));
+        return Math.round(borne(n, -90, 1000) * 100) / 100;
     });
 }
 export function normaliserPlages(raw) {
@@ -143,7 +149,7 @@ export const HAUSSES_DND = ECARTS_DND.map((e, i) => i === 0 ? null : (e / ECARTS
 // par niveau, la hausse choisie (ou celle de D&D).
 export function forme(r) {
     const h = normaliserHausses(r.hausses);
-    const out = [ECARTS_DND[0]];
+    const out = [h[0] ?? ECARTS_DND[0]];
     for (let i = 1; i < NIVEAU_MAX - 1; i++) {
         const sansSurcharge = h[i] === null && out[i - 1] === ECARTS_DND[i - 1];
         out.push(sansSurcharge ? ECARTS_DND[i] : out[i - 1] * (1 + (h[i] ?? HAUSSES_DND[i]) / 100));
@@ -424,13 +430,15 @@ export function xpProgControlHtml(key) {
 function panneauProgressionHtml() {
     const r = reglagesXp();
     const calc = calculerProgression(r);
-    const pct = (v) => v === null || v === undefined ? "" : String(Math.round(v * 10) / 10);
+    const pct = (v) => v === null || v === undefined ? "" : String(Math.round(v * 100) / 100);
     const lignes = calc.lignes.map(l => `
         <tr class="scwm-xpp-ligne" data-niveau="${l.niveau}" style="${l.bloque ? "opacity:.4;" : ""}">
             <td style="white-space:nowrap;padding:2px 4px 2px 0;">${l.niveau} → ${l.niveau + 1}${l.bloque ? ' <i class="fa-solid fa-lock" title="Au-delà du niveau max"></i>' : ""}</td>
             <td class="scwm-xpp-palier" style="text-align:right;padding:2px 4px;" title="Palier de D&amp;D 5e : ${nombreFr(XP_SEUILS[l.niveau])} XP">${nombreFr(calc.seuils[l.niveau])}</td>
-            <td class="scwm-xpp-montee" style="text-align:right;padding:2px 4px;">${nombreFr(l.aGagner)}</td>
-            <td style="padding:1px 4px;">${l.niveau === 1 ? `<span style="display:block;text-align:center;opacity:.5;">—</span>` : `<input type="number" step="1" min="-90" max="1000" class="scwm-xpp-hausse"
+            <td style="padding:1px 4px;"><input type="number" step="10" min="${BASE_MIN}" class="scwm-xpp-montee" data-i="${l.niveau - 1}" value="${l.aGagner}"
+                title="XP pour monter au niveau suivant. Modifier ce nombre recalcule la hausse % de la ligne ; les niveaux suivants gardent leur XP."
+                style="width:100%;box-sizing:border-box;text-align:right;"></td>
+            <td style="padding:1px 4px;">${l.niveau === 1 ? `<input type="hidden" class="scwm-xpp-hausse" name="xpGrowthOverrides__0" value="${pct(l.hausseSurcharge)}"><span style="display:block;text-align:center;opacity:.5;">—</span>` : `<input type="number" step="1" min="-90" max="1000" class="scwm-xpp-hausse"
                 name="xpGrowthOverrides__${l.niveau - 1}" value="${pct(l.hausseSurcharge)}"
                 placeholder="${pct(l.hausseDnd)}" title="Hausse de l'XP pour monter par rapport au niveau précédent. Vide = hausse de D&amp;D (${nombreFr(l.hausseDnd, 1)} %)."
                 style="width:100%;box-sizing:border-box;text-align:right;">`}</td>
@@ -485,7 +493,7 @@ function panneauProgressionHtml() {
 
     <div class="scwm-set" style="${BLOC}">
         <label style="display:block;font-weight:600;margin:0 0 2px;">Paliers d'XP</label>
-        <p style="margin:0 0 6px;font-size:.8em;color:#999;">Les paliers en vigueur sur la fiche quand la progression est activée : le bouton de montée de niveau s'active quand l'XP atteint le palier. La colonne « Hausse % » règle de combien l'XP pour monter augmente par rapport au niveau précédent : le nombre grisé est la hausse de D&amp;D, tape un pourcentage pour le changer, vide la case pour revenir à D&amp;D. « XP moy. / sess. » ajoute à l'XP par session les bonus de la plage, selon leur récurrence théorique.</p>
+        <p style="margin:0 0 6px;font-size:.8em;color:#999;">Les paliers en vigueur sur la fiche quand la progression est activée : le bouton de montée de niveau s'active quand l'XP atteint le palier. « XP pour monter » et « Hausse % » sont liées : change l'un, l'autre se recalcule. Modifier l'XP d'un niveau ne change pas l'XP des niveaux suivants ; modifier un % décale les niveaux suivants (ils gardent leur %). En mode objectif, la durée totale est fixe : les autres niveaux s'ajustent pour la respecter. Dans la colonne %, le nombre grisé est la hausse de D&amp;D : vide la case pour y revenir. « XP moy. / sess. » ajoute à l'XP par session les bonus de la plage, selon leur récurrence théorique.</p>
         <table style="width:100%;border-collapse:collapse;font-size:.85em;">
             <thead><tr>${th("Niveau", "left")}${th("Palier", "right", "XP totale à atteindre pour passer au niveau suivant (survol : palier de D&D)")}${th("XP pour monter")}${th("Hausse %", "right", "Hausse de l'XP pour monter par rapport au niveau précédent")}${th("XP moy. / sess.", "right", "XP par session + bonus de la plage selon leur récurrence théorique")}${th("Sessions")}${th("Cumul (mois)")}</tr></thead>
             <tbody>${lignes}</tbody>
@@ -576,8 +584,9 @@ export function wireXpProg(root) {
                 if (!tr) continue;
                 tr.style.opacity = l.bloque ? ".4" : "";
                 tr.querySelector(".scwm-xpp-palier").textContent = nombreFr(calc.seuils[l.niveau]);
-                tr.querySelector(".scwm-xpp-montee").textContent = nombreFr(l.aGagner);
-                const inp = tr.querySelector(".scwm-xpp-hausse");
+                const xpIn = tr.querySelector(".scwm-xpp-montee");
+                if (xpIn && xpIn !== document.activeElement) xpIn.value = String(l.aGagner);
+                const inp = tr.querySelector('.scwm-xpp-hausse:not([type="hidden"])');
                 if (inp && inp.value === "") inp.placeholder = String(Math.round(l.hausseDnd * 10) / 10);
                 if (inp) inp.title = `Hausse réelle après arrondi : ${nombreFr(l.hausse, 1)} %. Vide = hausse de D&D (${nombreFr(l.hausseDnd, 1)} %).`;
                 const moy = tr.querySelector(".scwm-xpp-moy");
@@ -642,6 +651,51 @@ export function wireXpProg(root) {
             ui.notifications?.info(`XP recalée pour ${n} personnage(s).`);
         });
         hausses.forEach(i => i.addEventListener("input", redessiner));
+
+        // « XP pour monter » modifiée → hausse % recalculée : la ligne prend
+        // l'XP tapée, la ligne suivante garde son XP (son % est ajusté).
+        const champHausse = (i) => root.querySelector(`[name="xpGrowthOverrides__${i}"]`);
+        const ecrireHausse = (i, v) => {
+            const c = champHausse(i);
+            if (!c) return;
+            c.value = v === null ? "" : String(i === 0 ? Math.round(v) : Math.round(borne(v, -90, 1000) * 100) / 100);
+        };
+        root.querySelectorAll(".scwm-xpp-montee").forEach(xpIn => xpIn.addEventListener("change", () => {
+            const i = Number(xpIn.dataset.i);
+            const r = lireForm();
+            const k = facteurPaliers(r) || 1;
+            const f = forme(r);
+            const tape = Number(String(xpIn.value).replace(",", "."));
+            if (!(tape > 0)) { redessiner(); return; }
+            // Valeur sur la courbe (avant mise à l'échelle). En mode objectif, la
+            // durée totale est fixe : on résout pour que la ligne tombe sur la
+            // valeur tapée APRÈS remise à l'échelle (les autres niveaux s'ajustent).
+            let cible = tape / k;
+            const plafond = normaliserPlafond(r.plafond);
+            if (normaliserMode(r.mode) === "objectif" && i < plafond - 1) {
+                const moy = xpMoyenneParNiveau(r);
+                let autres = 0;
+                for (let j = 0; j < plafond - 1; j++) if (j !== i) autres += f[j] / moy[j];
+                const reste = sessionsVisees(r) - tape / moy[i];
+                if (!(reste > 0) || !(autres > 0)) {
+                    ui.notifications?.warn(`Impossible : ${nombreFr(tape)} XP pour ce seul niveau dépasse la durée de l'objectif. Augmente le nombre de mois ou baisse cette valeur.`);
+                    redessiner();
+                    return;
+                }
+                cible = tape * autres / reste;
+            }
+            cible = Math.max(BASE_MIN, cible);
+            const suivante = f[i + 1];                     // XP du niveau suivant, à conserver
+            if (i === 0) ecrireHausse(0, cible);
+            else ecrireHausse(i, (cible / f[i - 1] - 1) * 100);
+            if (suivante !== undefined) {
+                // Recalcule la forme avec la nouvelle valeur pour viser exactement la suivante.
+                const f2 = forme(lireForm());
+                ecrireHausse(i + 1, (suivante / f2[i] - 1) * 100);
+            }
+            xpIn.value = String(tape);
+            redessiner();
+        }));
         // Bonus (nom, montant, récurrence, plages) : recalcul en direct aussi.
         const boxBonus = q(".scwm-xpb");
         if (boxBonus) {

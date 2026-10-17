@@ -212,6 +212,27 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
 
+v6.5.6 | 2026-10-17
+   - Progression XP, tableau des paliers : la colonne « XP pour monter » est
+     de nouveau modifiable, en plus de « Hausse % », et les deux sont liées.
+     Changer l'XP d'un niveau recalcule sa hausse % ; le niveau suivant garde
+     son XP (son % est ajusté). Changer un % décale les niveaux suivants (ils
+     gardent leur %). L'XP du niveau 1 (300 par défaut) est aussi modifiable :
+     elle est la base de la courbe. En mode objectif, la valeur tapée est
+     respectée et les autres niveaux s'ajustent pour tenir la durée visée.
+     Réglage xpGrowthOverrides : entrée 0 = XP du niveau 1, puis les hausses
+     en % (précision 0,01 %).
+   - Épingles des lieux : le carré sombre que Foundry dessine derrière
+     chaque note est masqué ; seule l'épingle apparaît sur la carte (le cadre
+     de survol reste visible en mode « Notes de journal », pour la déplacer).
+   - Toutes les notes de lieux de la carte du monde deviennent des épingles
+     fines, quelle que soit leur icône (livre, logo de Monk's…) : conversion
+     faite une seule fois au démarrage (réglage interne
+     mondeEpinglesMigrees), puis à chaque nouvelle note de lieu posée sur la
+     carte du monde (glisser-déposer du journal compris). Une icône changée
+     ensuite à la main est respectée. Les notes qui ne sont pas des lieux ne
+     changent pas.
+
 v6.5.5 | 2026-10-17
    - Épingle d'un lieu : « Placer sur la carte » affiche la carte du monde et
      attend un clic à l'emplacement voulu (curseur en croix, Échap ou clic

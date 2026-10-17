@@ -212,6 +212,17 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
 
+v6.5.1 | 2026-10-17
+   - Progression XP (D&D 5e) : le rythme se règle en MOIS RÉELS pour atteindre
+     le niveau max et en SESSIONS PAR SEMAINE ; le nombre de sessions par
+     niveau n'est plus saisi mais calculé, et l'XP par session est donnée en
+     nombre d'XP (fin du curseur en %). Voir le détail dans l'entrée v6.4.0.
+     Réglages remplacés : xpSessionsPerLevel et xpQuantity → xpMonthsToCap
+     (12 mois par défaut) et xpSessionsPerWeek (1 par défaut).
+   - Casier : retrait du bouton « Réinitialiser les présentations des MJ »
+     (onglet Dashboard). Les présentations ne peuvent plus être effacées en
+     masse ; chaque MJ garde la sienne.
+
 v6.5.0 | 2026-10-17
    - Nouveau : onglet « Où ranger quoi ? » dans le Casier (toujours présent).
        · Guide généré à partir des réglages réels (dossiers et compendiums
@@ -292,13 +303,18 @@ v6.4.0 | 2026-10-16
    - Nouvelle catégorie de réglages « Progression XP (D&D 5e) », pour jouer avec
      l'XP de base (le système d'étoiles reste disponible à la place) :
        · Tableau dynamique, une ligne par niveau : palier, XP à gagner, XP par
-         session, sessions et cumul. Recalculé en direct.
-       · Curseur « Sessions par niveau », lié au curseur « Niveau max atteint
-         en … sessions » (objectif = rythme × (niveau max − 1)).
-       · Curseur « Quantité d'XP par session » (25 à 300 %).
-       · XP adaptée au niveau : écart entre deux paliers ÷ rythme × quantité,
-         arrondie (10 / 50 / 100 / 500). Chaque ligne est surchargeable : une
-         valeur saisie remplace le calcul, un champ vide revient à l'auto.
+         session, sessions et cumul en mois. Recalculé en direct.
+       · Rythme : objectif en MOIS RÉELS pour atteindre le niveau max (curseur
+         + champ, 1 à 120 mois) et nombre de SESSIONS PAR SEMAINE (0,25 à 7 ;
+         0,5 = une toutes les deux semaines). Le module CALCULE le reste :
+         sessions sur la période = mois × 52/12 × sessions par semaine ;
+         sessions par niveau = sessions ÷ (niveau max − 1).
+       · XP par session adaptée au niveau, en nombre d'XP : XP à gagner pour le
+         niveau ÷ sessions par niveau, arrondie (10 / 50 / 100 / 500). Chaque
+         ligne est surchargeable : un nombre saisi remplace le calcul, une case
+         vide revient à l'automatique. Les colonnes Sessions et Cumul (mois)
+         montrent le résultat réel, et le total indique en combien de mois le
+         niveau max est atteint (avec l'objectif s'il diffère).
        · Plages de niveaux (par défaut 1–4, 5–10, 11–16, 17–20), chacune avec
          ses bonus d'XP (nom + montant), ajoutables et supprimables.
    - « Clore la session » (interrupteur de la catégorie actif, étoiles éteintes) :
@@ -311,8 +327,8 @@ v6.4.0 | 2026-10-16
      ce niveau (sans retirer d'XP déjà acquise), toute montée au-delà est
      refusée, MJ compris (classe ou multiclasse). Le système d'étoiles s'arrête
      aussi à ce niveau. Un PJ déjà au niveau max reçoit 0 XP à la clôture.
-   - Nouveaux réglages (monde) : xpProgEnabled, xpLevelCap, xpSessionsPerLevel,
-     xpQuantity, xpDefaultOverrides, xpBonusRanges.
+   - Nouveaux réglages (monde) : xpProgEnabled, xpLevelCap, xpMonthsToCap,
+     xpSessionsPerWeek, xpDefaultOverrides, xpBonusRanges.
    - Nouveau fichier : modules/xpprogress.js. Modifiés : settings.js,
      session.js, starxp.js, index.js.
 

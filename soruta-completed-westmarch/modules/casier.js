@@ -596,9 +596,6 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             attendance: [
                 { key: "sessionLog", label: "Réinitialiser le journal des sessions (présence, assiduité)" },
             ],
-            dashboard: [
-                { key: "casierProfiles", label: "Réinitialiser les présentations des MJ" },
-            ],
             expeditions: [
                 { key: "expeditionRevealedZones", label: "Réinitialiser les zones révélées de la carte" },
             ],
@@ -623,7 +620,6 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             sessionDrafts:           { label: "les rapports en attente",        empty: [] },
             sessionForumThreads:     { label: "les fils Discord",               empty: {} },
             sessionLog:              { label: "le journal des sessions (présence, assiduité)", empty: [] },
-            casierProfiles:          { label: "les présentations des MJ",        empty: {} },
             expeditionRevealedZones: { label: "les zones révélées de la carte",  empty: {} },
         };
     }

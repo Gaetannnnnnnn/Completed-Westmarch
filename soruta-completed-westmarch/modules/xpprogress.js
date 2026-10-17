@@ -4,8 +4,9 @@
 // Complète le système d'XP natif (quand le système d'étoiles est éteint) :
 //   - un TABLEAU dynamique dans les réglages (niveau → palier, XP à gagner,
 //     XP proposée par session, sessions et cumul), recalculé en direct ;
-//   - des CURSEURS : rythme (sessions par niveau ↔ objectif pour atteindre le
-//     niveau max) et quantité d'XP par session (en %) ;
+//   - des RÉGLAGES : objectif en MOIS réels pour atteindre le niveau max et
+//     nombre de SESSIONS PAR SEMAINE ; le module en déduit le nombre de
+//     sessions par niveau et l'XP par session de chaque niveau ;
 //   - une XP PAR DÉFAUT éditable niveau par niveau, proposée dans « Clore la
 //     session » selon le niveau moyen de la party ;
 //   - des PLAGES de niveaux, chacune avec ses BONUS d'XP (nom + montant),
@@ -14,11 +15,13 @@
 //     est bloquée (MJ compris) et l'XP est plafonnée au palier de ce niveau.
 //     Ce verrou s'applique aussi au système d'étoiles.
 //
+// Calcul : sessions totales = mois × (52 / 12) × sessions par semaine ;
+// sessions par niveau = sessions totales ÷ (niveau max − 1) ;
+// XP par session au niveau L = (palier L+1 − palier L) ÷ sessions par niveau.
 // Pourquoi une XP « adaptée au niveau » : les paliers de D&D 5e ne sont pas
 // réguliers (300 XP pour le niveau 2, 50 000 pour le 20). Une XP fixe ferait
-// monter très vite au début et très lentement à la fin. Ici, l'XP proposée
-// est l'écart entre deux paliers divisé par le nombre de sessions visé : chaque
-// niveau prend à peu près le même nombre de sessions.
+// monter très vite au début et très lentement à la fin ; ici chaque niveau
+// prend à peu près le même nombre de sessions.
 //
 // © 2026 Soruta.
 // ============================================================
@@ -30,10 +33,11 @@ export const XP_SEUILS = [0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 6
     85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000];
 export const NIVEAU_MAX = 20;
 
+export const SEMAINES_PAR_MOIS = 52 / 12;
 const DEFAUT = {
     plafond: NIVEAU_MAX,   // niveau max autorisé (20 = aucun verrou)
-    rythme: 3,             // sessions par niveau visées
-    quantite: 100,         // % de l'XP calculée réellement proposée
+    mois: 12,              // mois réels visés pour atteindre le niveau max
+    parSemaine: 1,         // sessions par semaine
     plages: [
         { id: "p1", min: 1,  max: 4,  bonus: [] },
         { id: "p2", min: 5,  max: 10, bonus: [] },
@@ -41,12 +45,12 @@ const DEFAUT = {
         { id: "p4", min: 17, max: 20, bonus: [] }
     ]
 };
-const RYTHME_MIN = 0.5, RYTHME_MAX = 10, RYTHME_PAS = 0.5;
-const QUANTITE_MIN = 25, QUANTITE_MAX = 300, QUANTITE_PAS = 5;
+const MOIS_MIN = 1, MOIS_MAX = 120, MOIS_CURSEUR_MAX = 60, MOIS_PAS = 0.5;
+const SEMAINE_MIN = 0.25, SEMAINE_MAX = 7, SEMAINE_PAS = 0.25;
 
 // Clés de réglages dessinées par ce fichier dans la catégorie (le reste,
 // xpProgEnabled, est une case à cocher classique).
-export const XP_PROG_KEYS = new Set(["xpLevelCap", "xpSessionsPerLevel", "xpQuantity", "xpDefaultOverrides", "xpBonusRanges"]);
+export const XP_PROG_KEYS = new Set(["xpLevelCap", "xpMonthsToCap", "xpSessionsPerWeek", "xpDefaultOverrides", "xpBonusRanges"]);
 
 // ============================================================
 // Réglages
@@ -58,8 +62,8 @@ export function registerXpProgressSettings() {
         hint: "Active le tableau ci-dessous dans « Clore la session » : XP proposée selon le niveau moyen de la party, et bonus de plage à cocher. Sans effet quand le système d'étoiles est actif."
     }));
     game.settings.register(MOD, "xpLevelCap",         monde(Number, DEFAUT.plafond, { name: "Niveau max autorisé sur le serveur" }));
-    game.settings.register(MOD, "xpSessionsPerLevel", monde(Number, DEFAUT.rythme,  { name: "Rythme (sessions par niveau)" }));
-    game.settings.register(MOD, "xpQuantity",         monde(Number, DEFAUT.quantite,{ name: "Quantité d'XP par session (%)" }));
+    game.settings.register(MOD, "xpMonthsToCap",      monde(Number, DEFAUT.mois,       { name: "Mois réels pour atteindre le niveau max" }));
+    game.settings.register(MOD, "xpSessionsPerWeek",  monde(Number, DEFAUT.parSemaine, { name: "Sessions par semaine" }));
     game.settings.register(MOD, "xpDefaultOverrides", monde(Array,  [],             { name: "XP par défaut, par niveau" }));
     game.settings.register(MOD, "xpBonusRanges",      monde(Array,  DEFAUT.plages,  { name: "Plages de niveaux et bonus d'XP" }));
 }
@@ -71,15 +75,19 @@ const borne = (v, min, max) => Math.min(max, Math.max(min, v));
 const entier = (v, def = 0) => { const n = Math.round(Number(v)); return Number.isFinite(n) ? n : def; };
 
 export function normaliserPlafond(v) { return borne(entier(v, NIVEAU_MAX), 1, NIVEAU_MAX); }
-export function normaliserRythme(v) {
-    const n = Number(v);
-    if (!Number.isFinite(n) || n <= 0) return DEFAUT.rythme;
-    return borne(Math.round(n / RYTHME_PAS) * RYTHME_PAS, RYTHME_MIN, RYTHME_MAX);
-}
-export function normaliserQuantite(v) {
-    const n = Number(v);
-    if (!Number.isFinite(n) || n <= 0) return DEFAUT.quantite;
-    return borne(Math.round(n / QUANTITE_PAS) * QUANTITE_PAS, QUANTITE_MIN, QUANTITE_MAX);
+const pas = (v, def, p, min, max) => {
+    const n = Number(String(v ?? "").replace(",", "."));
+    if (!Number.isFinite(n) || n <= 0) return def;
+    return borne(Math.round(n / p) * p, min, max);
+};
+export const normaliserMois = (v) => pas(v, DEFAUT.mois, MOIS_PAS, MOIS_MIN, MOIS_MAX);
+export const normaliserParSemaine = (v) => pas(v, DEFAUT.parSemaine, SEMAINE_PAS, SEMAINE_MIN, SEMAINE_MAX);
+
+// Sessions totales visées et sessions par niveau (calculées, jamais saisies).
+export function sessionsVisees(r) { return normaliserMois(r.mois) * SEMAINES_PAR_MOIS * normaliserParSemaine(r.parSemaine); }
+export function sessionsParNiveau(r) {
+    const niveaux = normaliserPlafond(r.plafond) - 1;
+    return niveaux > 0 ? sessionsVisees(r) / niveaux : 0;
 }
 // 19 entrées (niveau 1 → 19) ; 0 = automatique.
 export function normaliserSurcharges(raw) {
@@ -117,27 +125,33 @@ export function arrondiXp(x) {
 }
 
 // XP par session calculée pour un personnage de niveau L.
-export function xpAuto(L, rythme, quantite) {
-    return arrondiXp(ecartNiveau(L) / normaliserRythme(rythme) * normaliserQuantite(quantite) / 100);
+export function xpAuto(L, r) {
+    const spl = sessionsParNiveau(r);
+    return spl > 0 ? arrondiXp(ecartNiveau(L) / spl) : 0;
 }
 
-// Lignes du tableau + totaux. r = { plafond, rythme, quantite, surcharges }.
+// Lignes du tableau + totaux. r = { plafond, mois, parSemaine, surcharges }.
 export function calculerProgression(r) {
     const plafond = normaliserPlafond(r.plafond);
     const surcharges = normaliserSurcharges(r.surcharges);
+    const sessionsParMois = SEMAINES_PAR_MOIS * normaliserParSemaine(r.parSemaine);
     let cumul = 0;
     const lignes = [];
     for (let L = 1; L < NIVEAU_MAX; L++) {
         const aGagner = ecartNiveau(L);
-        const auto = xpAuto(L, r.rythme, r.quantite);
+        const auto = xpAuto(L, r);
         const xpSession = surcharges[L - 1] > 0 ? surcharges[L - 1] : auto;
         const sessions = xpSession > 0 ? aGagner / xpSession : Infinity;
         const bloque = L >= plafond;
         if (!bloque) cumul += sessions;
         lignes.push({ niveau: L, seuil: XP_SEUILS[L - 1], aGagner, auto, surcharge: surcharges[L - 1],
-            xpSession, sessions, cumul: bloque ? null : cumul, bloque });
+            xpSession, sessions, cumul: bloque ? null : cumul, cumulMois: bloque ? null : cumul / sessionsParMois, bloque });
     }
-    return { plafond, lignes, totalSessions: cumul, objectif: normaliserRythme(r.rythme) * (plafond - 1) };
+    return {
+        plafond, lignes,
+        totalSessions: cumul, totalMois: cumul / sessionsParMois,
+        objectifMois: normaliserMois(r.mois), objectifSessions: sessionsVisees(r), sessionsParNiveau: sessionsParNiveau(r)
+    };
 }
 
 // XP par défaut proposée pour un niveau (0 au niveau max ou au-delà).
@@ -146,7 +160,7 @@ export function xpParDefaut(L, r) {
     L = borne(entier(L, 1), 1, NIVEAU_MAX);
     if (L >= plafond) return 0;
     const s = normaliserSurcharges(r.surcharges)[L - 1];
-    return s > 0 ? s : xpAuto(L, r.rythme, r.quantite);
+    return s > 0 ? s : xpAuto(L, r);
 }
 
 // XP maximale qu'un personnage peut détenir : le palier du niveau max,
@@ -174,8 +188,8 @@ export function niveauMaxServeur() { return normaliserPlafond(lire("xpLevelCap",
 export function reglagesXp() {
     return {
         plafond:    niveauMaxServeur(),
-        rythme:     normaliserRythme(lire("xpSessionsPerLevel", DEFAUT.rythme)),
-        quantite:   normaliserQuantite(lire("xpQuantity", DEFAUT.quantite)),
+        mois:       normaliserMois(lire("xpMonthsToCap", DEFAUT.mois)),
+        parSemaine: normaliserParSemaine(lire("xpSessionsPerWeek", DEFAUT.parSemaine)),
         surcharges: normaliserSurcharges(lire("xpDefaultOverrides", [])),
         plages:     normaliserPlages(lire("xpBonusRanges", DEFAUT.plages))
     };
@@ -260,9 +274,9 @@ const optionsNiveaux = (sel) => Array.from({ length: NIVEAU_MAX }, (_, i) => i +
 // ou null si la clé n'est pas à nous.
 export function xpProgControlHtml(key) {
     if (!XP_PROG_KEYS.has(key)) return null;
-    if (key === "xpSessionsPerLevel") return panneauProgressionHtml();
+    if (key === "xpMonthsToCap") return panneauProgressionHtml();
     if (key === "xpBonusRanges") return panneauPlagesHtml();
-    return "";   // xpLevelCap, xpQuantity, xpDefaultOverrides : dans le panneau
+    return "";   // xpLevelCap, xpSessionsPerWeek, xpDefaultOverrides : dans le panneau
 }
 
 function panneauProgressionHtml() {
@@ -283,7 +297,7 @@ function panneauProgressionHtml() {
     const th = (t, align = "right") => `<th style="text-align:${align};font-size:.72em;color:#888;font-weight:600;padding:0 4px 3px;">${t}</th>`;
 
     return `
-    <div class="scwm-set scwm-xpp" data-key="xpSessionsPerLevel" style="${BLOC}">
+    <div class="scwm-set scwm-xpp" data-key="xpMonthsToCap" style="${BLOC}">
         <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;font-weight:600;margin:0;">
             <span><i class="fa-solid fa-lock"></i> Niveau max autorisé sur le serveur</span>
             <select name="xpLevelCap" class="scwm-xpp-plafond" style="width:80px;">${optionsNiveaux(r.plafond)}</select>
@@ -294,34 +308,26 @@ function panneauProgressionHtml() {
     <div class="scwm-set" style="${BLOC}">
         <label style="display:block;font-weight:600;margin:0 0 4px;">Rythme de progression</label>
         <div style="display:flex;align-items:center;gap:8px;">
-            <span style="flex:0 0 150px;font-size:.85em;">Sessions par niveau</span>
-            <input type="range" class="scwm-xpp-rythme" min="${RYTHME_MIN}" max="${RYTHME_MAX}" step="${RYTHME_PAS}" value="${r.rythme}" style="flex:1 1 auto;">
-            <input type="number" name="xpSessionsPerLevel" class="scwm-xpp-rythme-n" min="${RYTHME_MIN}" max="${RYTHME_MAX}" step="${RYTHME_PAS}" value="${r.rythme}" style="width:64px;">
+            <span style="flex:0 0 190px;font-size:.85em;">Niveau max atteint en</span>
+            <input type="range" class="scwm-xpp-mois" min="${MOIS_MIN}" max="${MOIS_CURSEUR_MAX}" step="${MOIS_PAS}" value="${Math.min(r.mois, MOIS_CURSEUR_MAX)}" style="flex:1 1 auto;">
+            <input type="number" name="xpMonthsToCap" class="scwm-xpp-mois-n" min="${MOIS_MIN}" max="${MOIS_MAX}" step="${MOIS_PAS}" value="${r.mois}" style="width:64px;">
+            <span style="font-size:.85em;">mois</span>
         </div>
         <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
-            <span style="flex:0 0 150px;font-size:.85em;">Niveau max atteint en</span>
-            <input type="range" class="scwm-xpp-objectif" min="1" max="${RYTHME_MAX * (NIVEAU_MAX - 1)}" step="1" value="${Math.round(calc.objectif)}" style="flex:1 1 auto;">
-            <input type="number" class="scwm-xpp-objectif-n" min="1" step="1" value="${Math.round(calc.objectif)}" style="width:64px;">
-            <span style="font-size:.85em;">sess.</span>
+            <span style="flex:0 0 190px;font-size:.85em;">Sessions par semaine</span>
+            <input type="range" class="scwm-xpp-semaine" min="${SEMAINE_MIN}" max="${SEMAINE_MAX}" step="${SEMAINE_PAS}" value="${r.parSemaine}" style="flex:1 1 auto;">
+            <input type="number" name="xpSessionsPerWeek" class="scwm-xpp-semaine-n" min="${SEMAINE_MIN}" max="${SEMAINE_MAX}" step="${SEMAINE_PAS}" value="${r.parSemaine}" style="width:64px;">
+            <span style="font-size:.85em;">/ sem.</span>
         </div>
-        <p style="${AIDE}">Les deux curseurs sont liés : l'objectif = sessions par niveau × (niveau max − 1). L'XP proposée est l'écart entre deux paliers divisé par ce rythme, si bien que chaque niveau prend à peu près le même nombre de sessions.</p>
-    </div>
-
-    <div class="scwm-set" style="${BLOC}">
-        <label style="display:block;font-weight:600;margin:0 0 4px;">Quantité d'XP par session</label>
-        <div style="display:flex;align-items:center;gap:8px;">
-            <input type="range" class="scwm-xpp-quantite" min="${QUANTITE_MIN}" max="${QUANTITE_MAX}" step="${QUANTITE_PAS}" value="${r.quantite}" style="flex:1 1 auto;">
-            <input type="number" name="xpQuantity" class="scwm-xpp-quantite-n" min="${QUANTITE_MIN}" max="${QUANTITE_MAX}" step="${QUANTITE_PAS}" value="${r.quantite}" style="width:64px;">
-            <span style="font-size:.85em;">%</span>
-        </div>
-        <p style="${AIDE}">100 % = exactement le rythme visé. Au-dessus, les joueurs montent plus vite ; en dessous, plus lentement. Le tableau montre le résultat réel.</p>
+        <div class="scwm-xpp-calcul" style="margin-top:6px;padding:5px 8px;border-left:3px solid ${OR};background:rgba(201,162,39,0.08);font-size:.88em;"></div>
+        <p style="${AIDE}">Mois réels, pour un personnage qui joue à chaque session. 0,5 session par semaine = une toutes les deux semaines. Le nombre de sessions par niveau est calculé : sessions sur la période ÷ niveaux à gagner. L'XP par session de chaque niveau = XP à gagner pour ce niveau ÷ sessions par niveau.</p>
     </div>
 
     <div class="scwm-set" style="${BLOC}">
         <label style="display:block;font-weight:600;margin:0 0 2px;">XP par défaut proposée à la clôture de session</label>
-        <p style="margin:0 0 6px;font-size:.8em;color:#999;">« Clore la session » propose l'XP de la ligne qui correspond au niveau moyen de la party. Le champ grisé est le calcul automatique : tape une valeur pour l'imposer, vide-le pour revenir à l'automatique.</p>
+        <p style="margin:0 0 6px;font-size:.8em;color:#999;">« Clore la session » propose l'XP de la ligne qui correspond au niveau moyen de la party. Le nombre grisé est le calcul automatique : tape un nombre pour l'imposer, vide la case pour revenir à l'automatique. Les colonnes Sessions et Mois montrent le résultat réel.</p>
         <table style="width:100%;border-collapse:collapse;font-size:.85em;">
-            <thead><tr>${th("Niveau", "left")}${th("Palier")}${th("À gagner")}${th("XP / session")}${th("Sessions")}${th("Cumul")}</tr></thead>
+            <thead><tr>${th("Niveau", "left")}${th("Palier")}${th("À gagner")}${th("XP / session")}${th("Sessions")}${th("Cumul (mois)")}</tr></thead>
             <tbody>${lignes}</tbody>
         </table>
         <div class="scwm-xpp-total" style="margin-top:8px;padding-top:6px;border-top:1px solid rgba(201,162,39,0.4);font-weight:700;color:${OR};"></div>
@@ -373,15 +379,14 @@ export function wireXpProg(root) {
 
     const plafondSel = q(".scwm-xpp-plafond");
     if (plafondSel) {
-        const rR = q(".scwm-xpp-rythme"), rN = q(".scwm-xpp-rythme-n");
-        const oR = q(".scwm-xpp-objectif"), oN = q(".scwm-xpp-objectif-n");
-        const qR = q(".scwm-xpp-quantite"), qN = q(".scwm-xpp-quantite-n");
+        const mR = q(".scwm-xpp-mois"), mN = q(".scwm-xpp-mois-n");
+        const sR = q(".scwm-xpp-semaine"), sN = q(".scwm-xpp-semaine-n");
         const surcharges = [...root.querySelectorAll(".scwm-xpp-surcharge")];
 
         const lireForm = () => ({
             plafond: normaliserPlafond(plafondSel.value),
-            rythme: normaliserRythme(rN.value),
-            quantite: normaliserQuantite(qN.value),
+            mois: normaliserMois(mN.value),
+            parSemaine: normaliserParSemaine(sN.value),
             surcharges: surcharges.map(i => i.value === "" ? 0 : Math.max(0, Math.round(Number(i.value) || 0)))
         });
 
@@ -394,45 +399,26 @@ export function wireXpProg(root) {
                 const inp = tr.querySelector(".scwm-xpp-surcharge");
                 if (inp) { inp.placeholder = String(l.auto); inp.title = `Vide = calcul automatique (${nombreFr(l.auto)} XP)`; }
                 tr.querySelector(".scwm-xpp-sessions").textContent = Number.isFinite(l.sessions) ? nombreFr(l.sessions, 1) : "—";
-                tr.querySelector(".scwm-xpp-cumul").textContent = l.cumul === null ? "🔒" : nombreFr(l.cumul, 1);
+                tr.querySelector(".scwm-xpp-cumul").textContent = l.cumulMois === null ? "🔒" : nombreFr(l.cumulMois, 1);
             }
-            const total = q(".scwm-xpp-total");
-            if (total) total.textContent = calc.plafond <= 1
+            const calcul = q(".scwm-xpp-calcul");
+            if (calcul) calcul.innerHTML = calc.plafond <= 1
                 ? "Niveau max = 1 : aucune montée de niveau possible."
-                : `Niveau ${calc.plafond} atteint en ≈ ${nombreFr(calc.totalSessions, 1)} sessions (objectif : ${nombreFr(calc.objectif, 1)}).`;
+                : `≈ <strong>${nombreFr(calc.objectifSessions, 1)}</strong> sessions en ${nombreFr(calc.objectifMois, 1)} mois, soit <strong>${nombreFr(calc.sessionsParNiveau, 1)} sessions par niveau</strong> (calculé).`;
+            const total = q(".scwm-xpp-total");
+            if (total) total.textContent = calc.plafond <= 1 ? ""
+                : `Niveau ${calc.plafond} atteint en ≈ ${nombreFr(calc.totalMois, 1)} mois (${nombreFr(calc.totalSessions, 1)} sessions)${Math.abs(calc.totalMois - calc.objectifMois) >= 0.5 ? ` — objectif : ${nombreFr(calc.objectifMois, 1)} mois` : ""}.`;
         };
 
-        // Rythme ↔ objectif : objectif = rythme × (niveau max − 1).
-        const niveaux = () => Math.max(1, normaliserPlafond(plafondSel.value) - 1);
-        const depuisRythme = (v) => {
-            const r = normaliserRythme(v);
-            rR.value = rN.value = String(r);
-            oR.value = oN.value = String(Math.round(r * niveaux()));
-            redessiner();
+        // Curseur ↔ champ numérique (le champ accepte au-delà du curseur).
+        const lier = (curseur, champ, norme) => {
+            curseur.addEventListener("input", () => { champ.value = String(norme(curseur.value)); redessiner(); });
+            champ.addEventListener("input", () => { curseur.value = String(norme(champ.value)); redessiner(); });
+            champ.addEventListener("change", () => { champ.value = String(norme(champ.value)); redessiner(); });
         };
-        const depuisObjectif = (v) => {
-            const o = Math.max(1, Math.round(Number(v) || 1));
-            const r = normaliserRythme(o / niveaux());
-            rR.value = rN.value = String(r);
-            oR.value = String(o);
-            if (document.activeElement !== oN) oN.value = String(o);
-            redessiner();
-        };
-        const depuisQuantite = (v) => {
-            const n = normaliserQuantite(v);
-            qR.value = String(n);
-            if (document.activeElement !== qN) qN.value = String(n);
-            redessiner();
-        };
-
-        rR.addEventListener("input", () => depuisRythme(rR.value));
-        rN.addEventListener("change", () => depuisRythme(rN.value));
-        oR.addEventListener("input", () => depuisObjectif(oR.value));
-        oN.addEventListener("change", () => depuisObjectif(oN.value));
-        qR.addEventListener("input", () => depuisQuantite(qR.value));
-        qN.addEventListener("input", () => depuisQuantite(qN.value));
-        qN.addEventListener("change", () => { qN.value = String(normaliserQuantite(qN.value)); });
-        plafondSel.addEventListener("change", () => depuisRythme(rN.value));
+        lier(mR, mN, normaliserMois);
+        lier(sR, sN, normaliserParSemaine);
+        plafondSel.addEventListener("change", redessiner);
         surcharges.forEach(i => i.addEventListener("input", redessiner));
         redessiner();
     }
@@ -470,13 +456,13 @@ export function readXpProg(key, root) {
             const el = q('[name="xpLevelCap"]');
             return el ? normaliserPlafond(el.value) : undefined;
         }
-        case "xpSessionsPerLevel": {
-            const el = q('[name="xpSessionsPerLevel"]');
-            return el ? normaliserRythme(el.value) : undefined;
+        case "xpMonthsToCap": {
+            const el = q('[name="xpMonthsToCap"]');
+            return el ? normaliserMois(el.value) : undefined;
         }
-        case "xpQuantity": {
-            const el = q('[name="xpQuantity"]');
-            return el ? normaliserQuantite(el.value) : undefined;
+        case "xpSessionsPerWeek": {
+            const el = q('[name="xpSessionsPerWeek"]');
+            return el ? normaliserParSemaine(el.value) : undefined;
         }
         case "xpDefaultOverrides": {
             if (!q(".scwm-xpp-surcharge")) return undefined;

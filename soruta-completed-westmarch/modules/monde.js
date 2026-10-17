@@ -16,8 +16,6 @@
 //     lieu principal d'un PNJ et PNJ présents sur les cartes d'un lieu, écrits
 //     dans les relations natives de MEJ (onglet Relations) ;
 //   - les RELATIONS PJ ↔ PNJ du module (relations.js), recopiées sur la fiche ;
-//   - un HISTORIQUE : à « Clore la session », le MJ coche les fiches concernées
-//     (celles de la scène sont pré-cochées) et chacune reçoit une ligne datée ;
 //   - un onglet « Monde » dans le Casier pour tout retrouver ;
 //   - les ÉPINGLES : un lieu est représenté par une note posée sur la carte du
 //     monde (les scènes de « Carte des expéditions »). Le module la retrouve
@@ -30,7 +28,7 @@
 //   { rubriques: {id: texte}, historique: [...], texteLibre, scenes: [ids],
 //     hash, maj, majPar }
 // Rien n'est jamais écrasé en silence : si le texte d'une page a été modifié
-// directement dans MEJ, les mises à jour automatiques (historique, relations)
+// directement dans MEJ, les mises à jour automatiques (« Actualiser »)
 // ne réécrivent pas le texte ; la fenêtre « Rédiger » prévient et propose de
 // garder l'ancien texte dans « Notes ».
 //
@@ -43,7 +41,6 @@ import { expeditionSceneIds, getExplored, zonesMap } from "./map.js";
 const MEJ = "monks-enhanced-journal";
 const NONE = () => CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE;
 const OBSERVER = () => CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER;
-const HISTORIQUE_MAX = 200;     // lignes conservées par fiche
 const HISTORIQUE_AFFICHE = 30;  // lignes écrites dans le texte de la page
 
 export const TYPES = {
@@ -91,11 +88,7 @@ export function registerMondeSettings() {
     const w = (type, def, extra = {}) => ({ scope: "world", config: false, type, default: def, requiresReload: false, ...extra });
     game.settings.register(MOD, "mondeEnabled", w(Boolean, false, {
         name: "Registre du monde",
-        hint: "Fiches de PNJ, lieux et organisations rédigées sur un modèle commun dans Monk's Enhanced Journal, reliées aux acteurs et aux scènes, avec un historique alimenté à la clôture de session. Nécessite Monk's Enhanced Journal."
-    }));
-    game.settings.register(MOD, "mondeHistoryOnClose", w(Boolean, true, {
-        name: "Historique à la clôture de session",
-        hint: "« Clore la session » propose de cocher les fiches concernées (celles de la scène sont pré-cochées) ; chacune reçoit une ligne datée dans son historique."
+        hint: "Fiches de PNJ, lieux et organisations rédigées sur un modèle commun dans Monk's Enhanced Journal, reliées aux acteurs, aux scènes et à la carte du monde. Nécessite Monk's Enhanced Journal."
     }));
     game.settings.register(MOD, "mondeDecouverte", w(Boolean, true, {
         name: "Découverte des lieux par le brouillard",
@@ -104,6 +97,14 @@ export function registerMondeSettings() {
     game.settings.register(MOD, "mondeDecouverteMessage", w(Boolean, true, {
         name: "Prévenir le joueur d'un lieu découvert",
         hint: "Message privé au joueur dans le chat (« Nouveau lieu découvert : … ») quand un lieu devient visible pour lui."
+    }));
+    game.settings.register(MOD, "mondeBanniere", w(Boolean, true, {
+        name: "Bannière « Nouveau lieu découvert »",
+        hint: "Quand un lieu devient visible pour un joueur, son nom s'affiche en grand, en lettres dorées sans fond, au centre de son écran, puis disparaît en fondu (façon jeu en monde ouvert). Seuls les joueurs concernés et connectés la voient."
+    }));
+    game.settings.register(MOD, "mondeBanniereSon", w(String, "", {
+        name: "Son de la bannière",
+        hint: "Fichier audio joué à l'apparition de la bannière (facultatif). Laisser vide pour aucun son."
     }));
     game.settings.register(MOD, "mondeFolderPerson", w(String, "PNJ", {
         name: "Dossier des fiches PNJ", hint: "Dossier de journaux où ranger les nouvelles fiches PNJ (créé s'il n'existe pas)."
@@ -394,6 +395,14 @@ export async function appliquerDecouverte({ notifier = true } = {}) {
         aPrevenir.forEach(uid => prevenus.add(uid));
         await page.update({ [`flags.${MOD}.fiche.decouvertPar`]: liste, [`flags.${MOD}.fiche.prevenus`]: [...prevenus] });
         n++;
+        if (notifier && !premiereFois && aPrevenir.length && lire("mondeBanniere", true)) {
+            const son = String(lire("mondeBanniereSon", "") || "");
+            for (const uid of aPrevenir) {
+                const u = game.users.get(uid);
+                if (!u?.active) continue;   // joueur hors ligne : pas de bannière (le message reste dans le chat)
+                u.query("westmarch.lieuDecouvert", { nom: entry.name, son }, { timeout: 10000 }).catch(() => {});
+            }
+        }
         if (notifier && !premiereFois && aPrevenir.length && lire("mondeDecouverteMessage", true)) {
             try {
                 await ChatMessage.create({
@@ -411,6 +420,63 @@ export function planifierDecouverte() {
     if (!game.user?.isGM) return;
     clearTimeout(_minuterieDecouverte);
     _minuterieDecouverte = setTimeout(() => appliquerDecouverte().catch(e => console.warn(`[${MOD}] découverte`, e)), 1500);
+}
+
+// ============================================================
+// Bannière « Nouveau lieu découvert » (affichée chez le joueur)
+// ============================================================
+const CSS_BANNIERE = `
+.scwm-decouverte { position: fixed; left: 0; right: 0; top: 20%; z-index: 10000; pointer-events: none;
+    text-align: center; opacity: 0; transform: scale(.97); transition: opacity 1.2s ease, transform 4.5s ease-out; }
+.scwm-decouverte.visible { opacity: 1; transform: scale(1); }
+.scwm-decouverte-sur { font-family: "Signika", sans-serif; font-size: 20px; letter-spacing: .4em; text-transform: uppercase;
+    color: #ecd89a; text-shadow: 0 0 4px #000, 0 0 12px #000, 0 0 24px rgba(0,0,0,.8); }
+.scwm-decouverte-nom { font-family: "Enchanted Land", "Modesto Condensed", serif; font-size: clamp(64px, 9vw, 128px); line-height: 1.05;
+    margin-top: .05em; padding: 0 .3em;
+    background: linear-gradient(180deg, #fff6cf 0%, #f0cd5a 40%, #c8961f 75%, #8f6412 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 2px 2px rgba(0,0,0,.95)) drop-shadow(0 0 14px rgba(0,0,0,.75)); }`;
+
+const _fileBannieres = [];
+let _bannierEnCours = false;
+
+// Affiche (à la suite, si plusieurs) le nom d'un lieu découvert, sans fond.
+export function afficherBanniere(nom, son = "") {
+    _fileBannieres.push({ nom: String(nom ?? ""), son: String(son ?? "") });
+    if (!_bannierEnCours) _suivante();
+}
+function _suivante() {
+    const b = _fileBannieres.shift();
+    if (!b) { _bannierEnCours = false; return; }
+    _bannierEnCours = true;
+    if (!document.getElementById("scwm-decouverte-css")) {
+        const st = document.createElement("style");
+        st.id = "scwm-decouverte-css";
+        st.textContent = CSS_BANNIERE;
+        document.head.appendChild(st);
+    }
+    const el = document.createElement("div");
+    el.className = "scwm-decouverte";
+    el.setAttribute("aria-live", "polite");
+    el.innerHTML = `<div class="scwm-decouverte-sur">Nouveau lieu découvert</div><div class="scwm-decouverte-nom">${esc(b.nom)}</div>`;
+    document.body.appendChild(el);
+    if (b.son) {
+        try {
+            const AH = foundry.audio?.AudioHelper ?? globalThis.AudioHelper;
+            let vol = 0.8;
+            try { vol = game.settings.get("core", "globalInterfaceVolume") ?? 0.8; } catch {}
+            AH?.play?.({ src: b.son, volume: vol, autoplay: true, loop: false }, false);
+        } catch (e) { console.warn(`[${MOD}] son de la bannière`, e); }
+    }
+    requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add("visible")));
+    setTimeout(() => el.classList.remove("visible"), 1200 + 2800);          // apparition + affichage
+    setTimeout(() => { el.remove(); _suivante(); }, 1200 + 2800 + 1300);    // fondu de sortie
+}
+
+// À enregistrer sur tous les clients : le MJ actif cible chaque joueur concerné.
+export function enregistrerQueryBanniere() {
+    try { CONFIG.queries["westmarch.lieuDecouvert"] = async ({ nom, son }) => { afficherBanniere(nom, son); return true; }; }
+    catch (e) { console.warn(`[${MOD}] query bannière`, e); }
 }
 
 // ============================================================
@@ -774,116 +840,6 @@ export async function nouvelleFiche(type) {
 }
 
 // ============================================================
-// Historique (« Clore la session »)
-// ============================================================
-// Fiches pré-cochées : lieux liés à la scène + PNJ dont un jeton y est posé.
-function fichesDeLaScene(scene) {
-    const out = new Map();
-    if (!scene) return out;
-    const lieu = ficheDeScene(scene);
-    if (lieu) out.set(lieu.id, lieu);
-    // Carte du monde : lieux dont l'épingle est à moins de 2 cases d'un jeton de groupe.
-    if (estCarteDuMonde(scene.id)) {
-        const taille = scene.grid?.size ?? 100;
-        const groupes = (scene.tokens ?? []).filter(t => t.actor?.type === "group");
-        for (const note of scene.notes ?? []) {
-            const e = game.journal.get(note.entryId);
-            if (typeDe(e) !== "place") continue;
-            const proche = groupes.some(t => {
-                const cx = t.x + (t.width ?? 1) * taille / 2, cy = t.y + (t.height ?? 1) * taille / 2;
-                return Math.hypot(cx - note.x, cy - note.y) <= 2.5 * taille;
-            });
-            if (proche) out.set(e.id, e);
-        }
-    }
-    for (const t of scene.tokens ?? []) {
-        const a = t.actor;
-        if (!a || a.hasPlayerOwner) continue;
-        const f = ficheDeActeur(game.actors.get(a.id) ?? a);
-        if (f) out.set(f.id, f);
-    }
-    return out;
-}
-
-const puceFiche = (entry, coche) => {
-    const t = typeDe(entry);
-    return `<label style="display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border:1px solid rgba(154,123,30,0.5);border-radius:12px;cursor:pointer;font-size:.9em;">
-        <input type="checkbox" class="scwm-monde-hist" value="${entry.id}" ${coche ? "checked" : ""}>
-        <i class="fa-solid ${TYPES[t]?.icon ?? "fa-book"}"></i> ${esc(entry.name)}</label>`;
-};
-
-export function blocClotureMonde(sceneId) {
-    if (!mondeActif() || !lire("mondeHistoryOnClose", true)) return "";
-    const scene = game.scenes.get(sceneId) ?? canvas?.scene ?? null;
-    const proposees = fichesDeLaScene(scene);
-    const autres = toutesLesFiches().filter(f => !proposees.has(f.entry.id))
-        .sort((a, b) => a.entry.name.localeCompare(b.entry.name, "fr"));
-    return `
-    <div class="scwm-monde-cloture" style="margin-top:10px;">
-        <label style="display:block;font-weight:bold;margin-bottom:4px;"><i class="fa-solid fa-book-atlas"></i> Fiches du monde concernées</label>
-        <div class="scwm-monde-puces" style="display:flex;flex-wrap:wrap;gap:6px;">
-            ${[...proposees.values()].map(e => puceFiche(e, true)).join("") || `<span style="font-size:.8em;opacity:.6;">Aucune fiche liée à la scène.</span>`}
-        </div>
-        ${autres.length ? `<div style="display:flex;gap:4px;margin-top:6px;">
-            <select class="scwm-monde-autre" style="flex:1 1 auto;min-width:0;">
-                <option value="">Ajouter une autre fiche…</option>
-                ${autres.map(f => `<option value="${f.entry.id}">${esc(TYPES[f.type].label)} — ${esc(f.entry.name)}</option>`).join("")}
-            </select>
-            <button type="button" class="scwm-monde-ajout" style="flex:0 0 auto;padding:2px 10px;border-radius:4px;cursor:pointer;border:1px solid rgba(201,162,39,0.4);background:rgba(201,162,39,0.12);color:#c9a227;">
-                <i class="fa-solid fa-plus"></i></button>
-        </div>` : ""}
-        <textarea class="scwm-monde-resume" rows="2" style="width:100%;box-sizing:border-box;margin-top:6px;"
-            placeholder="Ce qui s'est passé, en une ligne (sinon : début des notes de session)"></textarea>
-    </div>`;
-}
-
-export function cablerClotureMonde(root) {
-    const box = root?.querySelector(".scwm-monde-cloture");
-    if (!box) return;
-    box.querySelector(".scwm-monde-ajout")?.addEventListener("click", (e) => {
-        e.preventDefault();
-        const sel = box.querySelector(".scwm-monde-autre");
-        const entry = game.journal.get(sel?.value);
-        if (!entry) return;
-        if (!box.querySelector(`.scwm-monde-hist[value="${entry.id}"]`)) {
-            const puces = box.querySelector(".scwm-monde-puces");
-            if (puces && !puces.querySelector(".scwm-monde-hist")) puces.innerHTML = "";
-            puces?.insertAdjacentHTML("beforeend", puceFiche(entry, true));
-        }
-        sel.querySelector(`option[value="${entry.id}"]`)?.remove();
-        sel.value = "";
-    });
-}
-
-export function lireClotureMonde(root) {
-    const box = root?.querySelector(".scwm-monde-cloture");
-    if (!box) return null;
-    const ids = [...box.querySelectorAll(".scwm-monde-hist:checked")].map(c => c.value);
-    if (!ids.length) return null;
-    return { ids, resume: box.querySelector(".scwm-monde-resume")?.value.trim() ?? "" };
-}
-
-// Ajoute une ligne datée à chaque fiche cochée (texte réécrit sauf si la page
-// a été modifiée à la main : la ligne est alors gardée dans les données).
-export async function ajouterHistorique(sel, { notes = "", pj = [], mj = game.user.name } = {}) {
-    if (!sel?.ids?.length) return 0;
-    const resume = sel.resume || String(notes ?? "").replace(/\s+/g, " ").trim().slice(0, 300);
-    const now = new Date();
-    let n = 0;
-    for (const id of sel.ids) {
-        const entry = game.journal.get(id);
-        const page = pageDe(entry);
-        if (!entry || !page) continue;
-        const f = ficheDe(page);
-        f.historique = [...(f.historique ?? []), {
-            dateISO: now.toISOString(), date: now.toLocaleDateString("fr-FR"), mj, pj, texte: resume
-        }].slice(-HISTORIQUE_MAX);
-        try { await ecrireFiche(entry, f); n++; } catch (e) { console.warn(`[${MOD}] historique ${entry.name}`, e); }
-    }
-    return n;
-}
-
-// ============================================================
 // Onglet « Monde » du Casier
 // ============================================================
 function derniereSessionDe(gmId) {
@@ -1091,6 +1047,7 @@ export function lireMonde(key, root) {
 const estPnj = (a) => a instanceof Actor && !a.pack && !a.hasPlayerOwner && (a.type === "npc" || a.type === "character");
 
 export function MondeHooks() {
+    enregistrerQueryBanniere();
     // Bouton d'en-tête « Fiche du monde » sur les fiches de PNJ (MJ).
     Hooks.on("renderApplicationV2", (app, element) => {
         try {

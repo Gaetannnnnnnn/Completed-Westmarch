@@ -2,26 +2,22 @@
 // xpprogress.js — Progression par l'XP de base de D&D 5e
 //
 // Complète le système d'XP natif (quand le système d'étoiles est éteint) :
-//   - un TABLEAU dynamique dans les réglages (niveau → palier, XP à gagner,
-//     XP proposée par session, sessions et cumul), recalculé en direct ;
-//   - des RÉGLAGES : objectif en MOIS réels pour atteindre le niveau max et
-//     nombre de SESSIONS PAR SEMAINE ; le module en déduit le nombre de
-//     sessions par niveau et l'XP par session de chaque niveau ;
-//   - une XP PAR DÉFAUT éditable niveau par niveau, proposée dans « Clore la
-//     session » selon le niveau moyen de la party ;
+//   - une XP PAR SESSION unique (ex. 500), réglée par le staff : c'est l'XP
+//     proposée par défaut dans « Clore la session » ;
+//   - un objectif en MOIS réels pour atteindre le niveau max et un nombre de
+//     SESSIONS PAR SEMAINE ;
+//   - des PALIERS calculés à partir de ces réglages (ce sont eux qui sont
+//     dynamiques) : sessions sur la période = mois × 52/12 × sessions par
+//     semaine ; sessions par niveau = sessions ÷ (niveau max − 1) ; XP pour
+//     monter d'un niveau = sessions par niveau × XP par session. Chaque niveau
+//     est modifiable dans le tableau. Ces paliers REMPLACENT ceux de D&D dans
+//     le système dnd5e (CONFIG.DND5E.CHARACTER_EXP_LEVELS) : le bouton de
+//     montée de niveau de la fiche suit donc les nouveaux paliers ;
 //   - des PLAGES de niveaux, chacune avec ses BONUS d'XP (nom + montant),
 //     proposés (non cochés) dans « Clore la session » ;
 //   - un NIVEAU MAX autorisé sur le serveur : au-delà, toute montée de niveau
 //     est bloquée (MJ compris) et l'XP est plafonnée au palier de ce niveau.
 //     Ce verrou s'applique aussi au système d'étoiles.
-//
-// Calcul : sessions totales = mois × (52 / 12) × sessions par semaine ;
-// sessions par niveau = sessions totales ÷ (niveau max − 1) ;
-// XP par session au niveau L = (palier L+1 − palier L) ÷ sessions par niveau.
-// Pourquoi une XP « adaptée au niveau » : les paliers de D&D 5e ne sont pas
-// réguliers (300 XP pour le niveau 2, 50 000 pour le 20). Une XP fixe ferait
-// monter très vite au début et très lentement à la fin ; ici chaque niveau
-// prend à peu près le même nombre de sessions.
 //
 // © 2026 Soruta.
 // ============================================================
@@ -36,6 +32,7 @@ export const NIVEAU_MAX = 20;
 export const SEMAINES_PAR_MOIS = 52 / 12;
 const DEFAUT = {
     plafond: NIVEAU_MAX,   // niveau max autorisé (20 = aucun verrou)
+    xpSession: 500,        // XP donnée par session (proposée à la clôture)
     mois: 12,              // mois réels visés pour atteindre le niveau max
     parSemaine: 1,         // sessions par semaine
     plages: [
@@ -47,10 +44,12 @@ const DEFAUT = {
 };
 const MOIS_MIN = 1, MOIS_MAX = 120, MOIS_CURSEUR_MAX = 60, MOIS_PAS = 0.5;
 const SEMAINE_MIN = 0.25, SEMAINE_MAX = 7, SEMAINE_PAS = 0.25;
+const XP_SESSION_MAX = 1000000;
 
 // Clés de réglages dessinées par ce fichier dans la catégorie (le reste,
 // xpProgEnabled, est une case à cocher classique).
-export const XP_PROG_KEYS = new Set(["xpLevelCap", "xpMonthsToCap", "xpSessionsPerWeek", "xpDefaultOverrides", "xpBonusRanges"]);
+export const XP_PROG_KEYS = new Set(["xpLevelCap", "xpPerSession", "xpMonthsToCap", "xpSessionsPerWeek", "xpStepOverrides", "xpBonusRanges"]);
+const CLES_PALIERS = ["xpProgEnabled", "xpLevelCap", "xpPerSession", "xpMonthsToCap", "xpSessionsPerWeek", "xpStepOverrides"];
 
 // ============================================================
 // Réglages
@@ -59,13 +58,14 @@ export function registerXpProgressSettings() {
     const monde = (type, def, extra = {}) => ({ scope: "world", config: false, type, default: def, requiresReload: false, ...extra });
     game.settings.register(MOD, "xpProgEnabled", monde(Boolean, false, {
         name: "Progression par l'XP de base",
-        hint: "Active le tableau ci-dessous dans « Clore la session » : XP proposée selon le niveau moyen de la party, et bonus de plage à cocher. Sans effet quand le système d'étoiles est actif."
+        hint: "Remplace les paliers d'XP de D&D par les paliers calculés ci-dessous (la fiche les utilise pour la montée de niveau) et propose l'XP par session, avec les bonus de plage, dans « Clore la session ». Sans effet quand le système d'étoiles est actif."
     }));
-    game.settings.register(MOD, "xpLevelCap",         monde(Number, DEFAUT.plafond, { name: "Niveau max autorisé sur le serveur" }));
-    game.settings.register(MOD, "xpMonthsToCap",      monde(Number, DEFAUT.mois,       { name: "Mois réels pour atteindre le niveau max" }));
-    game.settings.register(MOD, "xpSessionsPerWeek",  monde(Number, DEFAUT.parSemaine, { name: "Sessions par semaine" }));
-    game.settings.register(MOD, "xpDefaultOverrides", monde(Array,  [],             { name: "XP par défaut, par niveau" }));
-    game.settings.register(MOD, "xpBonusRanges",      monde(Array,  DEFAUT.plages,  { name: "Plages de niveaux et bonus d'XP" }));
+    game.settings.register(MOD, "xpLevelCap",        monde(Number, DEFAUT.plafond,    { name: "Niveau max autorisé sur le serveur" }));
+    game.settings.register(MOD, "xpPerSession",      monde(Number, DEFAUT.xpSession,  { name: "XP par session" }));
+    game.settings.register(MOD, "xpMonthsToCap",     monde(Number, DEFAUT.mois,       { name: "Mois réels pour atteindre le niveau max" }));
+    game.settings.register(MOD, "xpSessionsPerWeek", monde(Number, DEFAUT.parSemaine, { name: "Sessions par semaine" }));
+    game.settings.register(MOD, "xpStepOverrides",   monde(Array,  [],                { name: "XP pour monter, par niveau (surcharges)" }));
+    game.settings.register(MOD, "xpBonusRanges",     monde(Array,  DEFAUT.plages,     { name: "Plages de niveaux et bonus d'XP" }));
 }
 
 // ============================================================
@@ -82,6 +82,7 @@ const pas = (v, def, p, min, max) => {
 };
 export const normaliserMois = (v) => pas(v, DEFAUT.mois, MOIS_PAS, MOIS_MIN, MOIS_MAX);
 export const normaliserParSemaine = (v) => pas(v, DEFAUT.parSemaine, SEMAINE_PAS, SEMAINE_MIN, SEMAINE_MAX);
+export const normaliserXpSession = (v) => pas(v, DEFAUT.xpSession, 1, 1, XP_SESSION_MAX);
 
 // Sessions totales visées et sessions par niveau (calculées, jamais saisies).
 export function sessionsVisees(r) { return normaliserMois(r.mois) * SEMAINES_PAR_MOIS * normaliserParSemaine(r.parSemaine); }
@@ -111,12 +112,6 @@ export function normaliserPlages(raw) {
     });
 }
 
-// XP à gagner pour passer du niveau L au niveau L+1.
-export function ecartNiveau(L) {
-    if (L < 1 || L >= NIVEAU_MAX) return 0;
-    return XP_SEUILS[L] - XP_SEUILS[L - 1];
-}
-
 // Arrondi « lisible » : 10, 50, 100 ou 500 selon l'ordre de grandeur.
 export function arrondiXp(x) {
     if (!(x > 0)) return 0;
@@ -124,49 +119,71 @@ export function arrondiXp(x) {
     return Math.max(pas, Math.round(x / pas) * pas);
 }
 
-// XP par session calculée pour un personnage de niveau L.
-export function xpAuto(L, r) {
+// XP pour monter d'un niveau, calculée : sessions par niveau × XP par session.
+export function xpParNiveauAuto(r) {
     const spl = sessionsParNiveau(r);
-    return spl > 0 ? arrondiXp(ecartNiveau(L) / spl) : 0;
+    return spl > 0 ? arrondiXp(spl * normaliserXpSession(r.xpSession)) : arrondiXp(normaliserXpSession(r.xpSession));
+}
+// XP pour monter de chaque niveau (1→2 … 19→20), surcharges comprises.
+export function ecarts(r) {
+    const auto = xpParNiveauAuto(r);
+    return normaliserSurcharges(r.surcharges).map(s => s > 0 ? s : auto);
+}
+// Paliers : index i = XP totale pour être niveau i+1 (même forme que dnd5e).
+export function paliers(r) {
+    const out = [0];
+    for (const e of ecarts(r)) out.push(out.at(-1) + e);
+    return out;
 }
 
-// Lignes du tableau + totaux. r = { plafond, mois, parSemaine, surcharges }.
+// Lignes du tableau + totaux. r = { plafond, xpSession, mois, parSemaine, surcharges }.
 export function calculerProgression(r) {
     const plafond = normaliserPlafond(r.plafond);
+    const xpSession = normaliserXpSession(r.xpSession);
     const surcharges = normaliserSurcharges(r.surcharges);
+    const auto = xpParNiveauAuto(r);
+    const seuils = paliers(r);
     const sessionsParMois = SEMAINES_PAR_MOIS * normaliserParSemaine(r.parSemaine);
     let cumul = 0;
     const lignes = [];
     for (let L = 1; L < NIVEAU_MAX; L++) {
-        const aGagner = ecartNiveau(L);
-        const auto = xpAuto(L, r);
-        const xpSession = surcharges[L - 1] > 0 ? surcharges[L - 1] : auto;
-        const sessions = xpSession > 0 ? aGagner / xpSession : Infinity;
+        const aGagner = seuils[L] - seuils[L - 1];
+        const sessions = aGagner / xpSession;
         const bloque = L >= plafond;
         if (!bloque) cumul += sessions;
-        lignes.push({ niveau: L, seuil: XP_SEUILS[L - 1], aGagner, auto, surcharge: surcharges[L - 1],
-            xpSession, sessions, cumul: bloque ? null : cumul, cumulMois: bloque ? null : cumul / sessionsParMois, bloque });
+        lignes.push({ niveau: L, seuil: seuils[L - 1], aGagner, auto, surcharge: surcharges[L - 1], standard: XP_SEUILS[L] - XP_SEUILS[L - 1],
+            sessions, cumul: bloque ? null : cumul, cumulMois: bloque ? null : cumul / sessionsParMois, bloque });
     }
     return {
-        plafond, lignes,
+        plafond, lignes, xpSession, xpParNiveau: auto, seuils,
         totalSessions: cumul, totalMois: cumul / sessionsParMois,
         objectifMois: normaliserMois(r.mois), objectifSessions: sessionsVisees(r), sessionsParNiveau: sessionsParNiveau(r)
     };
 }
 
-// XP par défaut proposée pour un niveau (0 au niveau max ou au-delà).
+// XP par défaut proposée à la clôture (0 au niveau max ou au-delà).
 export function xpParDefaut(L, r) {
-    const plafond = normaliserPlafond(r.plafond);
     L = borne(entier(L, 1), 1, NIVEAU_MAX);
-    if (L >= plafond) return 0;
-    const s = normaliserSurcharges(r.surcharges)[L - 1];
-    return s > 0 ? s : xpAuto(L, r);
+    return L >= normaliserPlafond(r.plafond) ? 0 : normaliserXpSession(r.xpSession);
 }
 
 // XP maximale qu'un personnage peut détenir : le palier du niveau max,
 // sans jamais retirer d'XP déjà acquise.
-export function xpLimite(xpActuelle, plafond) {
-    return Math.max(XP_SEUILS[normaliserPlafond(plafond) - 1], Number(xpActuelle) || 0);
+export function xpLimite(xpActuelle, plafond, seuils = XP_SEUILS) {
+    return Math.max(seuils[normaliserPlafond(plafond) - 1], Number(xpActuelle) || 0);
+}
+
+// Recalage d'une XP comptée sur l'ancien barème vers les nouveaux paliers, en
+// gardant le niveau et la progression dans le niveau. null = rien à changer.
+export function xpRecalee(xp, niveau, nouveaux, anciens = XP_SEUILS) {
+    const L = borne(entier(niveau, 1), 1, NIVEAU_MAX);
+    xp = Number(xp) || 0;
+    const bas = nouveaux[L - 1], haut = L < NIVEAU_MAX ? nouveaux[L] : Infinity;
+    if (xp >= bas && xp < haut) return null;                      // déjà dans le bon palier
+    if (L >= NIVEAU_MAX) return bas;
+    const aBas = anciens[L - 1], aHaut = anciens[L];
+    const frac = (xp >= aBas && xp < aHaut) ? (xp - aBas) / (aHaut - aBas) : 0;
+    return Math.round(bas + Math.min(frac, 0.99) * (haut - bas));
 }
 
 // Plages contenant le niveau de référence (arrondi du niveau moyen).
@@ -188,11 +205,45 @@ export function niveauMaxServeur() { return normaliserPlafond(lire("xpLevelCap",
 export function reglagesXp() {
     return {
         plafond:    niveauMaxServeur(),
+        xpSession:  normaliserXpSession(lire("xpPerSession", DEFAUT.xpSession)),
         mois:       normaliserMois(lire("xpMonthsToCap", DEFAUT.mois)),
         parSemaine: normaliserParSemaine(lire("xpSessionsPerWeek", DEFAUT.parSemaine)),
-        surcharges: normaliserSurcharges(lire("xpDefaultOverrides", [])),
+        surcharges: normaliserSurcharges(lire("xpStepOverrides", [])),
         plages:     normaliserPlages(lire("xpBonusRanges", DEFAUT.plages))
     };
+}
+// Paliers en vigueur : calculés si la progression est active, sinon ceux de D&D.
+export function seuilsActifs() { return xpProgEnabled() ? paliers(reglagesXp()) : XP_SEUILS; }
+
+// ---- Paliers appliqués au système dnd5e ----
+let _seuilsDnd = null;   // table d'origine du système, gardée pour la restaurer
+export function appliquerPaliersDnd() {
+    const cfg = globalThis.CONFIG?.DND5E;
+    if (!cfg || !Array.isArray(cfg.CHARACTER_EXP_LEVELS)) return false;
+    _seuilsDnd ??= [...cfg.CHARACTER_EXP_LEVELS];
+    const cible = xpProgEnabled() ? paliers(reglagesXp()) : _seuilsDnd;
+    if (JSON.stringify(cfg.CHARACTER_EXP_LEVELS) === JSON.stringify(cible)) return false;
+    cfg.CHARACTER_EXP_LEVELS = [...cible];
+    // Recalcule l'XP « max » des personnages et rafraîchit les fiches ouvertes.
+    for (const a of game.actors ?? []) {
+        if (a.type !== "character") continue;
+        try { a.reset(); if (a.sheet?.rendered) a.sheet.render(); } catch {}
+    }
+    return true;
+}
+
+// Recale l'XP des PJ de joueurs sur les paliers en vigueur (MJ).
+export async function recalerXpDesPJ() {
+    const nouveaux = seuilsActifs();
+    let n = 0;
+    for (const a of game.actors ?? []) {
+        if (a.type !== "character" || !a.hasPlayerOwner) continue;
+        const v = xpRecalee(a.system?.details?.xp?.value, a.system?.details?.level, nouveaux);
+        if (v === null) continue;
+        await a.update({ "system.details.xp.value": v });
+        n++;
+    }
+    return n;
 }
 
 // Données pour « Clore la session » à partir des acteurs de la party.
@@ -218,6 +269,14 @@ function avertirPlafond(plafond) {
 }
 
 export function XpProgressHooks() {
+    // Paliers calculés appliqués au système dnd5e (tous les clients), puis
+    // réappliqués à chaque changement de réglage concerné.
+    Hooks.once("setup", () => appliquerPaliersDnd());
+    Hooks.once("ready", () => appliquerPaliersDnd());
+    Hooks.on("updateSetting", (st) => {
+        if (CLES_PALIERS.some(k => st?.key === `${MOD}.${k}`)) appliquerPaliersDnd();
+    });
+
     // XP : plafonnée au palier du niveau max (sans retirer d'XP déjà acquise).
     Hooks.on("preUpdateActor", (actor, changes) => {
         if (!estPJ(actor)) return;
@@ -226,7 +285,7 @@ export function XpProgressHooks() {
         const plat = "system.details.xp.value";
         const nouvelle = foundry.utils.getProperty(changes, plat) ?? changes?.[plat];
         if (nouvelle === undefined || nouvelle === null) return;
-        const limite = xpLimite(actor.system?.details?.xp?.value, plafond);
+        const limite = xpLimite(actor.system?.details?.xp?.value, plafond, seuilsActifs());
         if (Number(nouvelle) <= limite) return;
         if (plat in changes) changes[plat] = limite;
         else foundry.utils.setProperty(changes, plat, limite);
@@ -276,7 +335,7 @@ export function xpProgControlHtml(key) {
     if (!XP_PROG_KEYS.has(key)) return null;
     if (key === "xpMonthsToCap") return panneauProgressionHtml();
     if (key === "xpBonusRanges") return panneauPlagesHtml();
-    return "";   // xpLevelCap, xpSessionsPerWeek, xpDefaultOverrides : dans le panneau
+    return "";   // xpLevelCap, xpPerSession, xpSessionsPerWeek, xpStepOverrides : dans le panneau
 }
 
 function panneauProgressionHtml() {
@@ -285,24 +344,32 @@ function panneauProgressionHtml() {
     const lignes = calc.lignes.map(l => `
         <tr class="scwm-xpp-ligne" data-niveau="${l.niveau}" style="${l.bloque ? "opacity:.4;" : ""}">
             <td style="white-space:nowrap;padding:2px 4px 2px 0;">${l.niveau} → ${l.niveau + 1}${l.bloque ? ' <i class="fa-solid fa-lock" title="Au-delà du niveau max"></i>' : ""}</td>
-            <td style="text-align:right;padding:2px 4px;">${nombreFr(l.seuil)}</td>
-            <td style="text-align:right;padding:2px 4px;">${nombreFr(l.aGagner)}</td>
-            <td style="padding:1px 4px;"><input type="number" min="0" step="10" class="scwm-xpp-surcharge"
-                name="xpDefaultOverrides__${l.niveau - 1}" value="${l.surcharge > 0 ? l.surcharge : ""}"
+            <td class="scwm-xpp-palier" style="text-align:right;padding:2px 4px;">${nombreFr(calc.seuils[l.niveau])}</td>
+            <td style="padding:1px 4px;"><input type="number" min="0" step="50" class="scwm-xpp-surcharge"
+                name="xpStepOverrides__${l.niveau - 1}" value="${l.surcharge > 0 ? l.surcharge : ""}"
                 placeholder="${l.auto}" title="Vide = calcul automatique (${nombreFr(l.auto)} XP)"
                 style="width:100%;box-sizing:border-box;text-align:right;"></td>
             <td class="scwm-xpp-sessions" style="text-align:right;padding:2px 4px;"></td>
-            <td class="scwm-xpp-cumul" style="text-align:right;padding:2px 0 2px 4px;color:#aaa;"></td>
+            <td class="scwm-xpp-cumul" style="text-align:right;padding:2px 4px;color:#aaa;"></td>
+            <td style="text-align:right;padding:2px 0 2px 4px;color:#777;" title="Palier de D&D 5e pour comparaison">${nombreFr(XP_SEUILS[l.niveau])}</td>
         </tr>`).join("");
-    const th = (t, align = "right") => `<th style="text-align:${align};font-size:.72em;color:#888;font-weight:600;padding:0 4px 3px;">${t}</th>`;
+    const th = (t, align = "right", title = "") => `<th style="text-align:${align};font-size:.72em;color:#888;font-weight:600;padding:0 4px 3px;" ${title ? `title="${title}"` : ""}>${t}</th>`;
 
     return `
     <div class="scwm-set scwm-xpp" data-key="xpMonthsToCap" style="${BLOC}">
         <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;font-weight:600;margin:0;">
             <span><i class="fa-solid fa-lock"></i> Niveau max autorisé sur le serveur</span>
-            <select name="xpLevelCap" class="scwm-xpp-plafond" style="width:80px;">${optionsNiveaux(r.plafond)}</select>
+            <select name="xpLevelCap" class="scwm-xpp-plafond" style="width:90px;">${optionsNiveaux(r.plafond)}</select>
         </label>
         <p style="${AIDE}">Arrivé à ce niveau, un personnage ne peut plus monter (MJ compris) et son XP s'arrête au palier de ce niveau. Vaut aussi pour le système d'étoiles. 20 = pas de verrou.</p>
+    </div>
+
+    <div class="scwm-set" style="${BLOC}">
+        <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;font-weight:600;margin:0;">
+            <span>XP par session</span>
+            <span><input type="number" name="xpPerSession" class="scwm-xpp-xp" min="1" step="1" value="${r.xpSession}" style="width:90px;text-align:right;"> XP</span>
+        </label>
+        <p style="${AIDE}">L'XP gagnée à chaque session. C'est l'XP proposée par défaut dans « Clore la session » (le MJ peut toujours la changer au moment de clore), et la base du calcul des paliers.</p>
     </div>
 
     <div class="scwm-set" style="${BLOC}">
@@ -320,17 +387,21 @@ function panneauProgressionHtml() {
             <span style="font-size:.85em;">/ sem.</span>
         </div>
         <div class="scwm-xpp-calcul" style="margin-top:6px;padding:5px 8px;border-left:3px solid ${OR};background:rgba(201,162,39,0.08);font-size:.88em;"></div>
-        <p style="${AIDE}">Mois réels, pour un personnage qui joue à chaque session. 0,5 session par semaine = une toutes les deux semaines. Le nombre de sessions par niveau est calculé : sessions sur la période ÷ niveaux à gagner. L'XP par session de chaque niveau = XP à gagner pour ce niveau ÷ sessions par niveau.</p>
+        <p style="${AIDE}">Mois réels, pour un personnage qui joue à chaque session (0,5 par semaine = une toutes les deux semaines). Le module calcule : sessions sur la période ÷ niveaux à gagner = sessions par niveau ; sessions par niveau × XP par session = XP pour monter d'un niveau.</p>
     </div>
 
     <div class="scwm-set" style="${BLOC}">
-        <label style="display:block;font-weight:600;margin:0 0 2px;">XP par défaut proposée à la clôture de session</label>
-        <p style="margin:0 0 6px;font-size:.8em;color:#999;">« Clore la session » propose l'XP de la ligne qui correspond au niveau moyen de la party. Le nombre grisé est le calcul automatique : tape un nombre pour l'imposer, vide la case pour revenir à l'automatique. Les colonnes Sessions et Mois montrent le résultat réel.</p>
+        <label style="display:block;font-weight:600;margin:0 0 2px;">Paliers d'XP (calculés)</label>
+        <p style="margin:0 0 6px;font-size:.8em;color:#999;">Ces paliers remplacent ceux de D&amp;D sur la fiche quand la progression est activée : le bouton de montée de niveau s'active quand l'XP atteint le palier. Le nombre grisé de « XP pour monter » est le calcul automatique : tape un nombre pour l'imposer à ce niveau, vide la case pour revenir à l'automatique.</p>
         <table style="width:100%;border-collapse:collapse;font-size:.85em;">
-            <thead><tr>${th("Niveau", "left")}${th("Palier")}${th("À gagner")}${th("XP / session")}${th("Sessions")}${th("Cumul (mois)")}</tr></thead>
+            <thead><tr>${th("Niveau", "left")}${th("Palier (XP totale)", "right", "XP totale à atteindre pour passer au niveau suivant")}${th("XP pour monter")}${th("Sessions")}${th("Cumul (mois)")}${th("D&amp;D", "right", "Palier de D&D 5e, pour comparaison")}</tr></thead>
             <tbody>${lignes}</tbody>
         </table>
         <div class="scwm-xpp-total" style="margin-top:8px;padding-top:6px;border-top:1px solid rgba(201,162,39,0.4);font-weight:700;color:${OR};"></div>
+        <div style="margin-top:8px;display:flex;gap:8px;align-items:flex-start;">
+            <button type="button" class="scwm-xpp-recaler" style="flex:0 0 auto;padding:3px 10px;${BTN_AJOUT}"><i class="fa-solid fa-scale-balanced"></i> Recaler l'XP des PJ</button>
+            <span style="font-size:.8em;color:#999;">Les PJ existants ont une XP comptée sur l'ancien barème. « Recaler » la ramène sur les paliers <strong>enregistrés</strong>, en gardant leur niveau et leur progression dans le niveau. Enregistre d'abord tes réglages.</span>
+        </div>
     </div>`;
 }
 
@@ -381,10 +452,12 @@ export function wireXpProg(root) {
     if (plafondSel) {
         const mR = q(".scwm-xpp-mois"), mN = q(".scwm-xpp-mois-n");
         const sR = q(".scwm-xpp-semaine"), sN = q(".scwm-xpp-semaine-n");
+        const xN = q(".scwm-xpp-xp");
         const surcharges = [...root.querySelectorAll(".scwm-xpp-surcharge")];
 
         const lireForm = () => ({
             plafond: normaliserPlafond(plafondSel.value),
+            xpSession: normaliserXpSession(xN.value),
             mois: normaliserMois(mN.value),
             parSemaine: normaliserParSemaine(sN.value),
             surcharges: surcharges.map(i => i.value === "" ? 0 : Math.max(0, Math.round(Number(i.value) || 0)))
@@ -398,16 +471,17 @@ export function wireXpProg(root) {
                 tr.style.opacity = l.bloque ? ".4" : "";
                 const inp = tr.querySelector(".scwm-xpp-surcharge");
                 if (inp) { inp.placeholder = String(l.auto); inp.title = `Vide = calcul automatique (${nombreFr(l.auto)} XP)`; }
-                tr.querySelector(".scwm-xpp-sessions").textContent = Number.isFinite(l.sessions) ? nombreFr(l.sessions, 1) : "—";
+                tr.querySelector(".scwm-xpp-palier").textContent = nombreFr(calc.seuils[l.niveau]);
+                tr.querySelector(".scwm-xpp-sessions").textContent = nombreFr(l.sessions, 1);
                 tr.querySelector(".scwm-xpp-cumul").textContent = l.cumulMois === null ? "🔒" : nombreFr(l.cumulMois, 1);
             }
             const calcul = q(".scwm-xpp-calcul");
             if (calcul) calcul.innerHTML = calc.plafond <= 1
                 ? "Niveau max = 1 : aucune montée de niveau possible."
-                : `≈ <strong>${nombreFr(calc.objectifSessions, 1)}</strong> sessions en ${nombreFr(calc.objectifMois, 1)} mois, soit <strong>${nombreFr(calc.sessionsParNiveau, 1)} sessions par niveau</strong> (calculé).`;
+                : `≈ <strong>${nombreFr(calc.objectifSessions, 1)}</strong> sessions en ${nombreFr(calc.objectifMois, 1)} mois → <strong>${nombreFr(calc.sessionsParNiveau, 1)} sessions par niveau</strong> → <strong>${nombreFr(calc.xpParNiveau)} XP pour monter d'un niveau</strong> (à ${nombreFr(calc.xpSession)} XP par session).`;
             const total = q(".scwm-xpp-total");
             if (total) total.textContent = calc.plafond <= 1 ? ""
-                : `Niveau ${calc.plafond} atteint en ≈ ${nombreFr(calc.totalMois, 1)} mois (${nombreFr(calc.totalSessions, 1)} sessions)${Math.abs(calc.totalMois - calc.objectifMois) >= 0.5 ? ` — objectif : ${nombreFr(calc.objectifMois, 1)} mois` : ""}.`;
+                : `Niveau ${calc.plafond} atteint à ${nombreFr(calc.seuils[calc.plafond - 1])} XP, en ≈ ${nombreFr(calc.totalMois, 1)} mois (${nombreFr(calc.totalSessions, 1)} sessions)${Math.abs(calc.totalMois - calc.objectifMois) >= 0.5 ? ` — objectif : ${nombreFr(calc.objectifMois, 1)} mois` : ""}.`;
         };
 
         // Curseur ↔ champ numérique (le champ accepte au-delà du curseur).
@@ -418,7 +492,19 @@ export function wireXpProg(root) {
         };
         lier(mR, mN, normaliserMois);
         lier(sR, sN, normaliserParSemaine);
+        xN.addEventListener("input", redessiner);
+        xN.addEventListener("change", () => { xN.value = String(normaliserXpSession(xN.value)); redessiner(); });
         plafondSel.addEventListener("change", redessiner);
+        q(".scwm-xpp-recaler")?.addEventListener("click", async (e) => {
+            e.preventDefault();
+            const ok = await foundry.applications.api.DialogV2.confirm({
+                window: { title: "Recaler l'XP des PJ" },
+                content: `<p>Ramène l'XP de tous les personnages de joueurs sur les paliers <strong>enregistrés</strong>${xpProgEnabled() ? "" : " (progression désactivée : paliers de D&amp;D)"}, en gardant leur niveau et leur progression dans le niveau.</p><p>Les PJ déjà dans le bon palier ne sont pas touchés.</p>`
+            });
+            if (!ok) return;
+            const n = await recalerXpDesPJ();
+            ui.notifications?.info(`XP recalée pour ${n} personnage(s).`);
+        });
         surcharges.forEach(i => i.addEventListener("input", redessiner));
         redessiner();
     }
@@ -456,6 +542,10 @@ export function readXpProg(key, root) {
             const el = q('[name="xpLevelCap"]');
             return el ? normaliserPlafond(el.value) : undefined;
         }
+        case "xpPerSession": {
+            const el = q('[name="xpPerSession"]');
+            return el ? normaliserXpSession(el.value) : undefined;
+        }
         case "xpMonthsToCap": {
             const el = q('[name="xpMonthsToCap"]');
             return el ? normaliserMois(el.value) : undefined;
@@ -464,10 +554,10 @@ export function readXpProg(key, root) {
             const el = q('[name="xpSessionsPerWeek"]');
             return el ? normaliserParSemaine(el.value) : undefined;
         }
-        case "xpDefaultOverrides": {
+        case "xpStepOverrides": {
             if (!q(".scwm-xpp-surcharge")) return undefined;
             return Array.from({ length: NIVEAU_MAX - 1 }, (_, i) => {
-                const el = q(`[name="xpDefaultOverrides__${i}"]`);
+                const el = q(`[name="xpStepOverrides__${i}"]`);
                 return el && el.value !== "" ? Math.max(0, Math.round(Number(el.value) || 0)) : 0;
             });
         }
@@ -524,8 +614,8 @@ export function blocClotureHtml(pcs, actors) {
 
     return `
         <div class="scwm-xp-prog" data-moyenne="${prop.moyenne}" style="margin-bottom:8px;padding:6px 8px;border:1px solid rgba(201,162,39,0.35);border-radius:5px;font-size:.88em;">
-            Niveau moyen de la party : <strong>${nombreFr(prop.moyenne, 1)}</strong> (ligne ${prop.reference} du tableau)
-            · XP proposée : <strong>${nombreFr(prop.xp)}</strong>${prop.reference >= plafond ? ` <span style="color:#e58f8f;">(niveau max ${plafond} atteint)</span>` : ""}
+            Niveau moyen de la party : <strong>${nombreFr(prop.moyenne, 1)}</strong>
+            · XP par session : <strong>${nombreFr(prop.xp)}</strong>${prop.reference >= plafond ? ` <span style="color:#e58f8f;">(niveau max ${plafond} atteint)</span>` : ""}
         </div>
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
             <label style="flex:1;font-weight:bold;">XP pour tous</label>

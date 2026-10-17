@@ -6,8 +6,7 @@ import { MOD } from "./const.js";
 
 import { partyFeatureEnabled } from './settings.js';
 import { starXpEnabled, starAwardBlockHtml, wireStarAwardBlock, readStarAward, awardStars, progressFor } from './starxp.js';
-import { xpProgEnabled, blocClotureHtml, wireBlocCloture, lireDetailCloture, texteDetailRapport } from './xpprogress.js';
-import { blocClotureMonde, cablerClotureMonde, lireClotureMonde, ajouterHistorique } from './monde.js';
+import { xpProgEnabled, blocClotureHtml, wireBlocCloture, lireDetailCloture, texteDetailRapport, seuilsActifs } from './xpprogress.js';
 
 // Données capturées en début de session
 var sessionData = {
@@ -326,7 +325,6 @@ function promptSessionClose(partyId) {
                     placeholder="Résumé, événements marquants… (peut être complété plus tard dans le Casier)"></textarea>
             </div>
             ${tagsBlock}
-            ${blocClotureMonde(sessionData.sceneId)}
             ${pcs.length ? `
             <label style="display:flex;align-items:flex-start;gap:8px;margin-top:10px;cursor:pointer;">
                 <input type="checkbox" class="scwm-defer-award" style="margin-top:2px;flex:0 0 auto;">
@@ -379,9 +377,8 @@ function promptSessionClose(partyId) {
                     const tags = await readTags(root);
                     const award = readAward(root);
                     const starN = award.type === "stars" ? award.n : 0;
-                    const monde = lireClotureMonde(root);
                     if (!defer) await applyDeferredAward(award);   // appliqué de suite si non différé
-                    resolveFn({ action: "send", notes, starN, defer, award, tags, monde, pj: pcs.map(p => p.name) });
+                    resolveFn({ action: "send", notes, starN, defer, award, tags });
                 }
             },
             {
@@ -393,9 +390,8 @@ function promptSessionClose(partyId) {
                     const tags = await readTags(root);
                     const award = readAward(root);
                     const starN = award.type === "stars" ? award.n : 0;
-                    const monde = lireClotureMonde(root);
                     if (!defer) await applyDeferredAward(award);   // non différé : appliqué même en brouillon
-                    resolveFn({ action: "draft", notes, starN, defer, award, tags, monde, pj: pcs.map(p => p.name) });
+                    resolveFn({ action: "draft", notes, starN, defer, award, tags });
                 }
             }
         ],
@@ -426,7 +422,6 @@ function promptSessionClose(partyId) {
             newInput.value = "";
         };
         root?.querySelector(".scwm-close-addtag")?.addEventListener("click", (e) => { e.preventDefault(); addTag(); });
-        try { cablerClotureMonde(root); } catch (e) {}   // fiches du monde concernées
         newInput?.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addTag(); } });
 
         if (starOn) { try { wireStarAwardBlock(root); } catch (e) {} return; }
@@ -752,14 +747,6 @@ async function closeSession(playerListApp) {
     // Attribution différée : on la range dans le rapport pour l'appliquer à l'envoi.
     if (res.defer) reportData.pendingAward = res.award;
 
-    // Historique des fiches du monde cochées (PNJ, lieux, organisations).
-    if (res.monde) {
-        try {
-            const n = await ajouterHistorique(res.monde, { notes: res.notes, pj: res.pj ?? [], mj: game.user.name });
-            if (n) ui.notifications.info(`Historique ajouté à ${n} fiche(s) du monde.`);
-        } catch (e) { console.warn(`[${MOD}] historique des fiches`, e); }
-    }
-
     // Journalise la session clôturée (assiduité) — envoyée OU brouillon.
     await appendSessionLog(reportData);
 
@@ -805,7 +792,7 @@ async function closeSession(playerListApp) {
 // SECTION : Calcul du niveau à partir de l'XP (D&D 5e)
 // ============================================================
 function getLevelFromXp(xp) {
-    const thresholds = [0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000];
+    const thresholds = seuilsActifs();   // paliers calculés (Progression XP) ou ceux de D&D 5e
     let level = 1;
     for (let i = 0; i < thresholds.length; i++) {
         if (xp >= thresholds[i]) level = i + 1;

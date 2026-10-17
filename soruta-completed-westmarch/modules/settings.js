@@ -14,7 +14,7 @@ import { openProfilesEditor } from "./companions.js";
 import { openUiHideDialog, applyUiHiding } from "./uihide.js";
 import { applyChatCardPrefs } from "./chat.js";
 import { registerXpProgressSettings, XP_PROG_KEYS, xpProgControlHtml, wireXpProg, readXpProg } from "./xpprogress.js";
-import { registerMondeSettings, MONDE_KEYS, mondeControlHtml, cablerMonde, lireMonde } from "./monde.js";
+import { registerMondeSettings, MONDE_KEYS, mondeControlHtml, cablerMonde, lireMonde, afficherBanniere } from "./monde.js";
 
 // ============================================================
 // Ressources communes — accès centralisé (avec repli sur les anciennes clés
@@ -1117,11 +1117,11 @@ const CATEGORIES = [
       desc: "XP par étoiles : le MJ attribue 1 à 3 étoiles à la clôture de session ; le tableau fixe le coût en étoiles de chaque niveau (avec le total = nombre de sessions). Sur la fiche, l'XP est remplacée par un compteur d'étoiles.",
       keys: ["enableStarXp","starXpLevels"] },
     { firstKey: "xpProgEnabled", master: "xpProgEnabled", icon: "fa-chart-line", title: "Progression XP (D&D 5e)",
-      desc: "Pour jouer avec l'XP de base : niveau max, objectif en mois réels et sessions par semaine ; le module calcule les sessions par niveau et l'XP par session de chaque niveau (tableau modifiable), proposée avec les bonus de plage dans « Clore la session ». Le niveau max autorisé s'applique toujours, même interrupteur éteint et même avec le système d'étoiles.",
-      keys: ["xpProgEnabled","xpLevelCap","xpMonthsToCap","xpSessionsPerWeek","xpDefaultOverrides","xpBonusRanges"] },
+      desc: "Pour jouer avec l'XP de base : niveau max, XP par session (proposée dans « Clore la session » avec les bonus de plage), objectif en mois réels et sessions par semaine. Le module calcule les PALIERS de niveau (tableau modifiable) et les applique à la fiche D&D à la place des paliers officiels. Le niveau max autorisé s'applique toujours, même interrupteur éteint et même avec le système d'étoiles.",
+      keys: ["xpProgEnabled","xpLevelCap","xpPerSession","xpMonthsToCap","xpSessionsPerWeek","xpStepOverrides","xpBonusRanges"] },
     { firstKey: "mondeEnabled", master: "mondeEnabled", icon: "fa-book-atlas", title: "Registre du monde",
-      desc: "Fiches de PNJ, lieux et organisations dans Monk's Enhanced Journal, rédigées sur un modèle commun (rubriques ci-dessous), reliées aux acteurs, aux scènes et entre elles, avec un historique alimenté à la clôture de session. Tout se retrouve dans l'onglet « Monde » du Casier. Nécessite Monk's Enhanced Journal.",
-      keys: ["mondeEnabled","mondeHistoryOnClose","mondeFolderPerson","mondeFolderPlace","mondeFolderOrg","mondeRubriques"] },
+      desc: "Fiches de PNJ, lieux et organisations dans Monk's Enhanced Journal, rédigées sur un modèle commun (rubriques ci-dessous), reliées aux acteurs, aux scènes, à la carte du monde et entre elles. Tout se retrouve dans l'onglet « Monde » du Casier. Nécessite Monk's Enhanced Journal.",
+      keys: ["mondeEnabled","mondeDecouverte","mondeDecouverteMessage","mondeBanniere","mondeBanniereSon","mondeFolderPerson","mondeFolderPlace","mondeFolderOrg","mondeRubriques"] },
     { firstKey: "enableCharValidation", master: "enableCharValidation", icon: "fa-id-card", title: "Création de personnages",
       desc: "Les joueurs demandent la création d'un personnage ; un GM valide depuis le Casier, puis le joueur construit et soumet sa fiche ; à la validation elle est verrouillée. Le dossier de destination se règle dans « Dossiers & Compendiums ».",
       keys: ["enableCharValidation","charMaxTotal","charMaxActive","charFreeLevelUp","charNotifyLevelUp","blockPlayerPlutonium"] },
@@ -1606,6 +1606,13 @@ function settingControlHtml(key) {
     } else if (key === "activationCode") {
         // Champ masqué (comme un mot de passe) — la valeur ne s'affiche pas en clair.
         control = `<input type="password" name="${key}" value="${escapeAttr(val ?? "")}" autocomplete="new-password" style="width:100%;">`;
+    } else if (key.endsWith("Son")) {
+        // Chemin audio avec « Parcourir » (FilePicker audio) et « Tester ».
+        control = `<div style="display:flex;gap:4px;">
+            <input type="text" name="${key}" value="${escapeAttr(val ?? "")}" placeholder="Aucun son" style="flex:1 1 auto;min-width:0;">
+            <button type="button" class="scwm-filepicker" data-target="${key}" data-fptype="audio" title="Parcourir" style="flex:0 0 auto;width:34px;"><i class="fa-solid fa-file-audio"></i></button>
+            ${key === "mondeBanniereSon" ? `<button type="button" class="scwm-test-banniere" data-target="${key}" title="Tester la bannière (sur ton écran)" style="flex:0 0 auto;width:34px;"><i class="fa-solid fa-play"></i></button>` : ""}
+        </div>`;
     } else if (key.endsWith("Image")) {
         // Chemin d'image avec bouton « Parcourir » (FilePicker).
         control = `<div style="display:flex;gap:4px;">
@@ -1640,6 +1647,12 @@ function wireCategoryForm(category, root) {
         if (!input) return;
         const FP = foundry.applications?.apps?.FilePicker?.implementation ?? globalThis.FilePicker;
         new FP({ type: btn.dataset.fptype || "image", current: input.value, callback: (path) => { input.value = path; } }).browse();
+    }));
+
+    // Registre du monde : aperçu de la bannière « Nouveau lieu découvert ».
+    root.querySelectorAll(".scwm-test-banniere").forEach(btn => btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        afficherBanniere("Port de Brume", root.querySelector(`[name="${btn.dataset.target}"]`)?.value ?? "");
     }));
 
     // Liste dynamique de cartes d'expédition : + ajoute une ligne, × retire.

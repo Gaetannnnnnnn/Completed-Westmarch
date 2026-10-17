@@ -212,13 +212,35 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
 
+v6.5.2 | 2026-10-17
+   - Progression XP (D&D 5e) refondue : l'XP par session est un nombre unique
+     réglé par le staff (proposé à la clôture) ; ce sont les PALIERS de niveau
+     qui sont calculés (mois réels visés × sessions par semaine × XP par
+     session) et appliqués à la fiche dnd5e à la place des paliers officiels.
+     Bouton « Recaler l'XP des PJ ». Voir le détail dans l'entrée v6.4.0.
+     Réglages : xpPerSession (500), xpMonthsToCap (12), xpSessionsPerWeek (1),
+     xpStepOverrides ; xpSessionsPerLevel, xpQuantity et xpDefaultOverrides
+     ne sont plus utilisés.
+   - Registre du monde : bannière « Nouveau lieu découvert ». Quand un lieu
+     devient visible pour un joueur (découverte par le brouillard), son nom
+     s'affiche en grand au centre de son écran, en lettres dorées sans fond ni
+     fenêtre (police Enchanted Land), puis disparaît en fondu (≈ 5 s, sans
+     bloquer les clics). Plusieurs découvertes s'enchaînent. Seuls les joueurs
+     concernés ET connectés la voient (envoi ciblé par query, le message du
+     chat reste la trace pour les absents). Réglages : mondeBanniere (afficher
+     ou non, actif par défaut) et mondeBanniereSon (fichier audio facultatif,
+     avec « Parcourir » et « Tester » qui montre la bannière sur ton écran).
+   - Correctif : les réglages « Découverte des lieux par le brouillard » et
+     « Prévenir le joueur d'un lieu découvert » apparaissent enfin dans la
+     fenêtre « Registre du monde » (ils étaient enregistrés mais invisibles).
+   - « Clore la session » : retrait du bloc « Fiches du monde concernées »
+     (historique des fiches alimenté à la clôture) et de son réglage
+     mondeHistoryOnClose. Les historiques déjà écrits restent sur les fiches.
+
 v6.5.1 | 2026-10-17
-   - Progression XP (D&D 5e) : le rythme se règle en MOIS RÉELS pour atteindre
-     le niveau max et en SESSIONS PAR SEMAINE ; le nombre de sessions par
-     niveau n'est plus saisi mais calculé, et l'XP par session est donnée en
-     nombre d'XP (fin du curseur en %). Voir le détail dans l'entrée v6.4.0.
-     Réglages remplacés : xpSessionsPerLevel et xpQuantity → xpMonthsToCap
-     (12 mois par défaut) et xpSessionsPerWeek (1 par défaut).
+   - Progression XP (D&D 5e) : le rythme se règle en mois réels pour atteindre
+     le niveau max et en sessions par semaine ; le nombre de sessions par
+     niveau est calculé (remplacé en 6.5.2 par les paliers calculés).
    - Casier : retrait du bouton « Réinitialiser les présentations des MJ »
      (onglet Dashboard). Les présentations ne peuvent plus être effacées en
      masse ; chaque MJ garde la sienne.
@@ -265,10 +287,6 @@ v6.5.0 | 2026-10-17
          « modifiées depuis ma dernière session », date et auteur de la
          dernière modification, accès à l'acteur / la carte, bascule de
          visibilité, « Actualiser » (relations PJ, cartes, PNJ des cartes).
-       · « Clore la session » : fiches concernées à cocher (lieu de la scène
-         et PNJ posés dessus pré-cochés, autres ajoutables) + résumé d'une
-         ligne ; chaque fiche reçoit une ligne datée (MJ, PJ présents) dans
-         son historique (bloc secret, 30 dernières lignes affichées).
        · Épingles : un lieu est représenté par une note (épingle) posée sur la
          carte du monde (= les scènes de « Carte des expéditions »). « Voir sur
          la carte » (Casier, Rédiger) centre la vue sur l'épingle et la signale ;
@@ -286,14 +304,12 @@ v6.5.0 | 2026-10-17
          donnés lui-même ; un accès donné à la main n'est jamais touché.
          Message privé « Nouveau lieu découvert » au joueur, une seule fois par
          lieu (réglage mondeDecouverteMessage) ; aucun message au premier calcul.
-       · Clôture sur la carte du monde : les lieux dont l'épingle est à moins
-         de 2 cases d'un jeton de groupe sont pré-cochés pour l'historique.
        · Sécurité des textes : une page déjà écrite dans Monk's n'est jamais
          écrasée en silence. « Rédiger » prévient et propose de garder l'ancien
-         texte dans « Notes » ; les mises à jour automatiques (historique,
-         Actualiser) ne réécrivent pas une page modifiée à la main (les
+         texte dans « Notes » ; les mises à jour automatiques (« Actualiser »)
+         ne réécrivent pas une page modifiée à la main (les
          données sont gardées et réappliquées à la prochaine rédaction).
-     Nouveaux réglages (monde) : mondeEnabled, mondeHistoryOnClose,
+     Nouveaux réglages (monde) : mondeEnabled,
      mondeDecouverte, mondeDecouverteMessage, mondeFolderPerson / Place / Org
      (dossiers créés au besoin, rangement par type), mondeRubriques.
      Nouveau fichier : modules/monde.js. Modifiés : settings.js, session.js,
@@ -302,24 +318,31 @@ v6.5.0 | 2026-10-17
 v6.4.0 | 2026-10-16
    - Nouvelle catégorie de réglages « Progression XP (D&D 5e) », pour jouer avec
      l'XP de base (le système d'étoiles reste disponible à la place) :
-       · Tableau dynamique, une ligne par niveau : palier, XP à gagner, XP par
-         session, sessions et cumul en mois. Recalculé en direct.
+       · XP PAR SESSION : un seul nombre réglé par le staff (500 par défaut).
+         C'est l'XP proposée par défaut dans « Clore la session ».
        · Rythme : objectif en MOIS RÉELS pour atteindre le niveau max (curseur
-         + champ, 1 à 120 mois) et nombre de SESSIONS PAR SEMAINE (0,25 à 7 ;
-         0,5 = une toutes les deux semaines). Le module CALCULE le reste :
-         sessions sur la période = mois × 52/12 × sessions par semaine ;
-         sessions par niveau = sessions ÷ (niveau max − 1).
-       · XP par session adaptée au niveau, en nombre d'XP : XP à gagner pour le
-         niveau ÷ sessions par niveau, arrondie (10 / 50 / 100 / 500). Chaque
-         ligne est surchargeable : un nombre saisi remplace le calcul, une case
-         vide revient à l'automatique. Les colonnes Sessions et Cumul (mois)
-         montrent le résultat réel, et le total indique en combien de mois le
-         niveau max est atteint (avec l'objectif s'il diffère).
+         + champ, 1 à 120 mois) et SESSIONS PAR SEMAINE (0,25 à 7 ; 0,5 = une
+         toutes les deux semaines).
+       · PALIERS CALCULÉS (dynamiques) : sessions sur la période = mois × 52/12
+         × sessions par semaine ; sessions par niveau = sessions ÷ (niveau max
+         − 1) ; XP pour monter d'un niveau = sessions par niveau × XP par
+         session (arrondie). Chaque niveau est surchargeable dans le tableau
+         (palier, XP pour monter, sessions, cumul en mois, palier D&D pour
+         comparaison). Le total indique l'XP et le nombre de mois réels pour
+         atteindre le niveau max.
+       · Ces paliers REMPLACENT ceux de D&D dans le système dnd5e
+         (CONFIG.DND5E.CHARACTER_EXP_LEVELS) quand la progression est activée :
+         le bouton de montée de niveau de la fiche les suit. Désactiver la
+         progression restaure les paliers officiels. Le rapport de session
+         utilise aussi ces paliers pour signaler les montées de niveau.
+       · « Recaler l'XP des PJ » : ramène l'XP des PJ de joueurs (comptée sur
+         l'ancien barème) sur les paliers enregistrés, en gardant leur niveau
+         et leur progression dans le niveau (confirmation demandée).
        · Plages de niveaux (par défaut 1–4, 5–10, 11–16, 17–20), chacune avec
          ses bonus d'XP (nom + montant), ajoutables et supprimables.
    - « Clore la session » (interrupteur de la catégorie actif, étoiles éteintes) :
      calcule le niveau moyen de la party, pré-remplit « XP pour tous » avec l'XP
-     de la ligne correspondante, propose les bonus de la plage en cases à cocher
+     par session, propose les bonus de la plage (selon le niveau moyen) en cases à cocher
      (non cochées) et affiche le total par PJ. Le rapport Discord gagne un champ
      « XP de la session » (base + bonus cochés + niveau moyen).
    - Niveau max autorisé sur le serveur (liste 1 à 20 ; 20 = aucun verrou),
@@ -327,8 +350,8 @@ v6.4.0 | 2026-10-16
      ce niveau (sans retirer d'XP déjà acquise), toute montée au-delà est
      refusée, MJ compris (classe ou multiclasse). Le système d'étoiles s'arrête
      aussi à ce niveau. Un PJ déjà au niveau max reçoit 0 XP à la clôture.
-   - Nouveaux réglages (monde) : xpProgEnabled, xpLevelCap, xpMonthsToCap,
-     xpSessionsPerWeek, xpDefaultOverrides, xpBonusRanges.
+   - Nouveaux réglages (monde) : xpProgEnabled, xpLevelCap, xpPerSession,
+     xpMonthsToCap, xpSessionsPerWeek, xpStepOverrides, xpBonusRanges.
    - Nouveau fichier : modules/xpprogress.js. Modifiés : settings.js,
      session.js, starxp.js, index.js.
 

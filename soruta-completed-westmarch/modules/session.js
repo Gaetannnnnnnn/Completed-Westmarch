@@ -6,6 +6,8 @@ import { MOD } from "./const.js";
 
 import { partyFeatureEnabled } from './settings.js';
 import { starXpEnabled, starAwardBlockHtml, wireStarAwardBlock, readStarAward, awardStars, progressFor } from './starxp.js';
+import { xpProgEnabled, blocClotureHtml, wireBlocCloture, lireDetailCloture, texteDetailRapport } from './xpprogress.js';
+import { blocClotureMonde, cablerClotureMonde, lireClotureMonde, ajouterHistorique } from './monde.js';
 
 // Données capturées en début de session
 var sessionData = {
@@ -294,7 +296,12 @@ function promptSessionClose(partyId) {
             </div>
         </div>`;
 
-    const xpBlock = pcs.length ? `
+    // Progression XP active : XP proposée selon le niveau moyen + bonus de plage.
+    const progBlock = (!starOn && xpProgEnabled() && pcs.length)
+        ? blocClotureHtml(pcs, pcs.map(p => game.actors.get(p.actorId)).filter(Boolean))
+        : null;
+
+    const xpBlock = progBlock ? progBlock : pcs.length ? `
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;
                         padding-bottom:8px;border-bottom:1px solid var(--color-border-light-tertiary,#bbb);">
                 <label style="flex:1;font-weight:bold;">XP pour tous</label>
@@ -319,6 +326,7 @@ function promptSessionClose(partyId) {
                     placeholder="Résumé, événements marquants… (peut être complété plus tard dans le Casier)"></textarea>
             </div>
             ${tagsBlock}
+            ${blocClotureMonde(sessionData.sceneId)}
             ${pcs.length ? `
             <label style="display:flex;align-items:flex-start;gap:8px;margin-top:10px;cursor:pointer;">
                 <input type="checkbox" class="scwm-defer-award" style="margin-top:2px;flex:0 0 auto;">
@@ -341,7 +349,8 @@ function promptSessionClose(partyId) {
             const gain = Math.max(0, Math.round(Number(input.value) || 0));
             if (gain) perActor[input.dataset.actorId] = gain;
         }
-        return { type: "xp", perActor, actorIds: pcs.map(p => p.actorId) };
+        const detail = lireDetailCloture(root);
+        return { type: "xp", perActor, actorIds: pcs.map(p => p.actorId), ...(detail ? { detail } : {}) };
     };
 
     // Récupère les tags cochés ET persiste les nouveaux tags PERSO (tapés à la
@@ -370,8 +379,9 @@ function promptSessionClose(partyId) {
                     const tags = await readTags(root);
                     const award = readAward(root);
                     const starN = award.type === "stars" ? award.n : 0;
+                    const monde = lireClotureMonde(root);
                     if (!defer) await applyDeferredAward(award);   // appliqué de suite si non différé
-                    resolveFn({ action: "send", notes, starN, defer, award, tags });
+                    resolveFn({ action: "send", notes, starN, defer, award, tags, monde, pj: pcs.map(p => p.name) });
                 }
             },
             {
@@ -383,8 +393,9 @@ function promptSessionClose(partyId) {
                     const tags = await readTags(root);
                     const award = readAward(root);
                     const starN = award.type === "stars" ? award.n : 0;
+                    const monde = lireClotureMonde(root);
                     if (!defer) await applyDeferredAward(award);   // non différé : appliqué même en brouillon
-                    resolveFn({ action: "draft", notes, starN, defer, award, tags });
+                    resolveFn({ action: "draft", notes, starN, defer, award, tags, monde, pj: pcs.map(p => p.name) });
                 }
             }
         ],
@@ -415,9 +426,11 @@ function promptSessionClose(partyId) {
             newInput.value = "";
         };
         root?.querySelector(".scwm-close-addtag")?.addEventListener("click", (e) => { e.preventDefault(); addTag(); });
+        try { cablerClotureMonde(root); } catch (e) {}   // fiches du monde concernées
         newInput?.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addTag(); } });
 
         if (starOn) { try { wireStarAwardBlock(root); } catch (e) {} return; }
+        if (wireBlocCloture(root)) return;   // progression XP : base + bonus → chaque PJ
         const allInput = root?.querySelector(".scwm-xp-all");
         if (allInput) {
             allInput.addEventListener("input", () => {
@@ -548,6 +561,7 @@ export function buildSessionEmbed(data) {
         return l;
     });
     const fields = [{ name: "Joueurs", value: trunc(playersLines.join("\n") || "—") }];
+    if (data.xpDetail) fields.push({ name: "✨ XP de la session", value: trunc(texteDetailRapport(data.xpDetail)) });
 
     if ((data.tags ?? []).length > 0) {
         fields.push({ name: "🧩 Intrigues", value: trunc(data.tags.map(t => `\`${t}\``).join(" · ")) });
@@ -734,8 +748,17 @@ async function closeSession(playerListApp) {
     // Données du rapport construites AVANT le reset de sessionData.
     const reportData = buildReportData(partyId, xpBeforeById, res.notes, res.starN ?? 0);
     reportData.tags = Array.isArray(res.tags) ? res.tags : [];
+    if (res.award?.detail) reportData.xpDetail = res.award.detail;
     // Attribution différée : on la range dans le rapport pour l'appliquer à l'envoi.
     if (res.defer) reportData.pendingAward = res.award;
+
+    // Historique des fiches du monde cochées (PNJ, lieux, organisations).
+    if (res.monde) {
+        try {
+            const n = await ajouterHistorique(res.monde, { notes: res.notes, pj: res.pj ?? [], mj: game.user.name });
+            if (n) ui.notifications.info(`Historique ajouté à ${n} fiche(s) du monde.`);
+        } catch (e) { console.warn(`[${MOD}] historique des fiches`, e); }
+    }
 
     // Journalise la session clôturée (assiduité) — envoyée OU brouillon.
     await appendSessionLog(reportData);

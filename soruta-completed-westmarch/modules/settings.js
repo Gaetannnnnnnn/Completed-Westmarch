@@ -13,6 +13,8 @@ import { applyPartyPause } from "./partypause.js";
 import { openProfilesEditor } from "./companions.js";
 import { openUiHideDialog, applyUiHiding } from "./uihide.js";
 import { applyChatCardPrefs } from "./chat.js";
+import { registerXpProgressSettings, XP_PROG_KEYS, xpProgControlHtml, wireXpProg, readXpProg } from "./xpprogress.js";
+import { registerMondeSettings, MONDE_KEYS, mondeControlHtml, cablerMonde, lireMonde } from "./monde.js";
 
 // ============================================================
 // Ressources communes — accès centralisé (avec repli sur les anciennes clés
@@ -210,6 +212,17 @@ export function registerSettings() {
     game.settings.register(MOD, "starXpLevels", {
         scope: "world", config: false, type: Array, default: Array.from({ length: 19 }, () => 3)
     });
+
+    // ============================================================
+    // PROGRESSION PAR L'XP DE BASE (D&D 5e) — voir xpprogress.js
+    // Tableau dynamique, curseurs, XP par défaut, plages de bonus, niveau max.
+    // ============================================================
+    registerXpProgressSettings();
+
+    // ============================================================
+    // REGISTRE DU MONDE (PNJ, lieux, organisations) — voir monde.js
+    // ============================================================
+    registerMondeSettings();
     // Profils de Casier par GM (présentation du dashboard, etc.). Non affiché.
     game.settings.register(MOD, "casierProfiles", {
         scope: "world", config: false, type: Object, default: {}
@@ -1103,6 +1116,12 @@ const CATEGORIES = [
     { firstKey: "enableStarXp", master: "enableStarXp", icon: "fa-star", title: "Système d'étoiles",
       desc: "XP par étoiles : le MJ attribue 1 à 3 étoiles à la clôture de session ; le tableau fixe le coût en étoiles de chaque niveau (avec le total = nombre de sessions). Sur la fiche, l'XP est remplacée par un compteur d'étoiles.",
       keys: ["enableStarXp","starXpLevels"] },
+    { firstKey: "xpProgEnabled", master: "xpProgEnabled", icon: "fa-chart-line", title: "Progression XP (D&D 5e)",
+      desc: "Pour jouer avec l'XP de base : tableau de progression niveau par niveau, curseurs de rythme et de quantité d'XP, XP par défaut et bonus de plage proposés dans « Clore la session ». Le niveau max autorisé s'applique toujours, même interrupteur éteint et même avec le système d'étoiles.",
+      keys: ["xpProgEnabled","xpLevelCap","xpSessionsPerLevel","xpQuantity","xpDefaultOverrides","xpBonusRanges"] },
+    { firstKey: "mondeEnabled", master: "mondeEnabled", icon: "fa-book-atlas", title: "Registre du monde",
+      desc: "Fiches de PNJ, lieux et organisations dans Monk's Enhanced Journal, rédigées sur un modèle commun (rubriques ci-dessous), reliées aux acteurs, aux scènes et entre elles, avec un historique alimenté à la clôture de session. Tout se retrouve dans l'onglet « Monde » du Casier. Nécessite Monk's Enhanced Journal.",
+      keys: ["mondeEnabled","mondeHistoryOnClose","mondeFolderPerson","mondeFolderPlace","mondeFolderOrg","mondeRubriques"] },
     { firstKey: "enableCharValidation", master: "enableCharValidation", icon: "fa-id-card", title: "Création de personnages",
       desc: "Les joueurs demandent la création d'un personnage ; un GM valide depuis le Casier, puis le joueur construit et soumet sa fiche ; à la validation elle est verrouillée. Le dossier de destination se règle dans « Dossiers & Compendiums ».",
       keys: ["enableCharValidation","charMaxTotal","charMaxActive","charFreeLevelUp","charNotifyLevelUp","blockPlayerPlutonium"] },
@@ -1289,13 +1308,13 @@ function readStarTableFromForm(root) {
 // listées ici sont ajoutées automatiquement à « Divers ».
 const CONFIG_GROUPS = [
     { title: "Fiche PJ & personnages", icon: "fa-id-card",
-      cats: ["relationsEnabled", "bestiaryEnabled", "carnetEnabled", "enableCharValidation", "enableStarXp", "enableSourceControl", "disableElectrum"] },
+      cats: ["relationsEnabled", "bestiaryEnabled", "carnetEnabled", "enableCharValidation", "enableStarXp", "xpProgEnabled", "enableSourceControl", "disableElectrum"] },
     { title: "Party & jeu de groupe", icon: "fa-users",
       cats: ["enableParty", "enableExpeditionMap", "enableHarvest"] },
     { title: "Combat", icon: "fa-bolt",
       cats: ["enableReactReminder", "rangeFixEnabled", "enablePolymorph"] },
     { title: "Serveur & monde", icon: "fa-server",
-      cats: ["enableXpBlock", "enableDiscordLog", "tmSkillBase", "enableSceneCues", "commonFolderPJ"] },
+      cats: ["enableXpBlock", "mondeEnabled", "enableDiscordLog", "tmSkillBase", "enableSceneCues", "commonFolderPJ"] },
     { title: "Personnalisation & interface", icon: "fa-sliders",
       cats: ["enableChatCards", "enableTokenAppearance", "uihide", "tweakTree", "companionProfiles"] },
     { title: "Aide & découverte", icon: "fa-circle-question",
@@ -1527,6 +1546,10 @@ function settingControlHtml(key) {
     const cfg = game.settings.settings.get(`${MOD}.${key}`);
     if (!cfg) return "";
     if (key === "starXpLevels") return starTableHtml(cfg);
+    const xpProg = xpProgControlHtml(key);
+    if (xpProg !== null) return xpProg;
+    const monde = mondeControlHtml(key);
+    if (monde !== null) return monde;
     if (key === "sessionTags") return tagListControlHtml();
     if (TM_TABLE_SCHEMAS[key]) return tableControlHtml(key, cfg);
     const val    = game.settings.get(MOD, key);
@@ -1667,6 +1690,11 @@ function wireCategoryForm(category, root) {
         recompute();
     }
 
+    // Progression XP : curseurs liés et tableau recalculé en direct.
+    wireXpProg(root);
+    // Registre du monde : éditeur des rubriques.
+    cablerMonde(root);
+
     // Cascade Party : grise les sous-options quand le maître est décoché.
     const master = root.querySelector(`[name="enableParty"]`);
     if (master) {
@@ -1711,6 +1739,15 @@ async function saveCategoryForm(category, root, { silent = false } = {}) {
             const arr = readStarTableFromForm(root);
             if (JSON.stringify(game.settings.get(MOD, key)) !== JSON.stringify(arr)) {
                 await game.settings.set(MOD, key, arr);
+            }
+            continue;
+        }
+
+        // Progression XP (niveau max, curseurs, XP par défaut, plages de bonus).
+        if (XP_PROG_KEYS.has(key) || MONDE_KEYS.has(key)) {
+            const v = XP_PROG_KEYS.has(key) ? readXpProg(key, root) : lireMonde(key, root);
+            if (v !== undefined && JSON.stringify(game.settings.get(MOD, key)) !== JSON.stringify(v)) {
+                await game.settings.set(MOD, key, v);
             }
             continue;
         }

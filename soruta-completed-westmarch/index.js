@@ -67,6 +67,9 @@ import { PartyPauseHooks } from "./modules/partypause.js";
 // --- Phase 5 : Serveur ---
 import { SocketHooks as ServeurSocketHooks } from "./modules/serveur-socket.js";
 import { XpHooks }          from "./modules/xp.js";
+import { XpProgressHooks }  from "./modules/xpprogress.js";
+import { MondeHooks }       from "./modules/monde.js";
+import { RangementHooks }   from "./modules/rangement.js";
 import { CalDateHooks }     from "./modules/caldate.js";
 import { DiscordLogHooks }  from "./modules/discordlog.js";
 import { FakeWarningHooks } from "./modules/fake-warning.js";
@@ -188,6 +191,9 @@ Hooks.on("init", () => {
     // --- Phase 5 : Serveur (ordre d'origine) ---
     ServeurSocketHooks();
     XpHooks();
+    XpProgressHooks();      // niveau max du serveur (XP plafonnée, montée bloquée)
+    MondeHooks();           // registre du monde : boutons et menus des fiches PNJ / lieux
+    RangementHooks();       // « Où ranger quoi ? » : journal guide régénéré si les réglages changent
     CalDateHooks();
     DiscordLogHooks();
     FakeWarningHooks();

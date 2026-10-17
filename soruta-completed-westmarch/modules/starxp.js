@@ -18,6 +18,7 @@
 // ============================================================
 
 import { MOD } from "./const.js";
+import { niveauMaxServeur } from "./xpprogress.js";
 
 const MAX_LEVEL   = 20;
 const DEFAULT_STARS = 3;   // coût par défaut d'un niveau (éditable)
@@ -47,7 +48,7 @@ export function starLevelTable() {
 export function thresholdForLevel(L) {
     L = Math.round(Number(L) || 1);
     if (L < 1) L = 1;
-    if (L >= MAX_LEVEL) return Infinity;
+    if (L >= MAX_LEVEL || L >= niveauMaxServeur()) return Infinity;   // niveau max du serveur
     return starLevelTable()[L - 1];
 }
 
@@ -196,7 +197,7 @@ export function progressFor(actor) {
     const level     = charLevel(actor);
     const stars     = getStars(actor);
     const threshold = thresholdForLevel(level);
-    const max       = level >= MAX_LEVEL;
+    const max       = level >= Math.min(MAX_LEVEL, niveauMaxServeur());
     return { level, stars, threshold, ready: !max && stars >= threshold, max };
 }
 

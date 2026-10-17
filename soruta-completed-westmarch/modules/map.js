@@ -28,7 +28,7 @@ const extraSceneIds = () => {
     return Array.isArray(v) ? v.filter(Boolean) : [];
 };
 // Ensemble des scènes traitées comme carte : scène principale + supplémentaires.
-const expeditionSceneIds = () => {
+export const expeditionSceneIds = () => {
     const s = new Set(extraSceneIds());
     const leg = legacySceneId();
     if (leg) s.add(leg);
@@ -40,12 +40,12 @@ const onExpeditionCanvas = () => enabled() && isExpeditionScene(currentSceneId()
 
 // ── Brouillard exploré, stocké PAR SCÈNE sur l'acteur : { [sceneId]: [clés] }.
 //    Compat : un ancien tableau plat est rattaché à la scène principale héritée.
-function exploredMap(actor) {
+export function exploredMap(actor) {
     const raw = actor?.getFlag(MOD, FLAG_EXPLORED);
     if (Array.isArray(raw)) { const leg = legacySceneId(); return leg ? { [leg]: raw } : {}; }
     return (raw && typeof raw === "object") ? raw : {};
 }
-function getExplored(actor, sid) {
+export function getExplored(actor, sid) {
     if (!sid) return [];
     const m = exploredMap(actor);
     return Array.isArray(m[sid]) ? m[sid] : [];
@@ -58,7 +58,7 @@ async function setExplored(actor, sid, keysArr) {
 }
 
 // ── Zones toujours éclairées (villes), PAR SCÈNE : { [sceneId]: [clés] }.
-function zonesMap() {
+export function zonesMap() {
     const raw = game.settings.get(MOD, "expeditionRevealedZones");
     if (Array.isArray(raw)) { const leg = legacySceneId(); return leg ? { [leg]: raw } : {}; }
     return (raw && typeof raw === "object") ? raw : {};

@@ -95,7 +95,16 @@ WESTMARCH CORE
 GESTION DES PERSONNAGES & MENEUR
    casier.js         — Tableau de bord du MJ (bouton WestMarch) : onglets
                        Dashboard, Rapports, Expéditions, Temps morts (validation
-                       embarquée), Validation des personnages, Suivi des GM.
+                       embarquée), Validation des personnages, Monde, Où ranger
+                       quoi ?, Suivi des GM.
+   rangement.js      — « Où ranger quoi ? » : guide de rangement des PJ, PNJ,
+                       créatures, lieux… généré depuis les réglages réels, avec
+                       vérification du monde et journal MJ tenu à jour.
+   monde.js          — Registre du monde : fiches PNJ / lieux / organisations de
+                       Monk's Enhanced Journal rédigées sur un modèle commun
+                       (rubriques réglables, secrets MJ natifs), liées aux acteurs,
+                       aux scènes et entre elles (relations MEJ), relations PJ
+                       recopiées, historique alimenté à la clôture de session.
    charvalidation.js — Cycle de vie des PJ : demande de création → validation GM
                        (acteur créé dans « Joueurs / <joueur> », propriétaire =
                        joueur), construction, soumission, verrouillage sélectif
@@ -113,6 +122,10 @@ SERVEUR
                    de l'objet fabriqué depuis un compendium ; validation dans le Casier).
    xp.js         — Blocage XP / Level Up côté joueur (levé pendant la création d'un
                    perso et lors d'une montée de niveau validée par le MJ).
+   xpprogress.js — Progression par l'XP de base (D&D 5e) : tableau de progression
+                   dynamique, curseurs de rythme et de quantité d'XP, XP par défaut
+                   et bonus de plage dans « Clore la session », niveau max du
+                   serveur (XP plafonnée, montée bloquée, étoiles comprises).
    caldate.js    — Notification Discord au changement de date (API calendrier
                    native game.time.calendar — Mini Calendar, etc.).
    discordlog.js — Logs Discord des modifications (objets, monnaie, XP, persos).
@@ -198,6 +211,110 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v6.5.0 | 2026-10-17
+   - Nouveau : onglet « Où ranger quoi ? » dans le Casier (toujours présent).
+       · Guide généré à partir des réglages réels (dossiers et compendiums
+         communs, registre du monde, carte des expéditions, temps morts,
+         dossiers des MJ) : où ranger les PJ, les PNJ récurrents, les
+         créatures, les anciens PJ, les lieux, les objets craftables, et ce que
+         chaque fonction (Relations, Bestiaire, Validation…) en fait.
+       · Vérification du monde : réglages vides ou dossiers disparus, PJ de
+         joueurs hors du dossier des PJ, acteurs posés sur une scène qui ne sont
+         ni PNJ (dossier) ni créatures reconnues (compendium ou nom identique),
+         créatures rangées dans le dossier des PNJ, lieux sans épingle. Chaque
+         entrée s'ouvre d'un clic.
+       · « Publier dans les journaux (MJ) » : crée le journal « 📌 Où ranger
+         quoi ? (MJ) », réservé aux MJ, placé en tête de liste ; il est
+         régénéré tout seul quand un réglage concerné change.
+       · Nouveau fichier : modules/rangement.js. Modifiés : casier.js, index.js.
+   - Nouveau : Registre du monde (catégorie de réglages « Registre du monde »,
+     interrupteur éteint par défaut ; nécessite Monk's Enhanced Journal).
+     Les fiches restent des fiches Monk's (PNJ = « person », lieu = « place »,
+     organisation = « organization »), créées comme Monk's le fait lui-même.
+       · « Rédiger la fiche » : une rubrique courte par case (réglables par type
+         dans les paramètres : ajout, retrait, ordre, secret MJ). Le texte de
+         la page est généré : rubriques vides omises, rubriques secrètes en
+         blocs secrets natifs (jamais vus des joueurs, même page révélée ;
+         l'état « révélé » d'un bloc est conservé). Glisser un acteur, un
+         journal ou une scène dans une rubrique insère un lien @UUID.
+         Rôle / Où le trouver alimentent aussi les champs natifs de Monk's.
+       · Liens : acteur ↔ fiche PNJ (lien natif Monk's + flag fichePage),
+         scène ↔ fiche lieu, lieu principal d'un PNJ et PNJ posés sur les
+         cartes d'un lieu écrits dans les relations natives de Monk's.
+       · Relations PJ ↔ PNJ (onglet Relations des fiches PJ) recopiées sur la
+         fiche du PNJ, en bloc secret.
+       · Visible par les joueurs : case à cocher (ownership par défaut
+         Observateur) ; par défaut, fiches réservées aux MJ.
+       · Points d'entrée : bouton d'en-tête « Fiche du monde » sur les fiches
+         de PNJ, menus contextuels des acteurs, scènes (« Fiche du lieu ») et
+         journaux (« Rédiger la fiche »), onglet « Monde » du Casier.
+       · Onglet « Monde » du Casier : création (PNJ, lieu, organisation),
+         recherche dans le nom et le contenu, filtre par type, filtre
+         « modifiées depuis ma dernière session », date et auteur de la
+         dernière modification, accès à l'acteur / la carte, bascule de
+         visibilité, « Actualiser » (relations PJ, cartes, PNJ des cartes).
+       · « Clore la session » : fiches concernées à cocher (lieu de la scène
+         et PNJ posés dessus pré-cochés, autres ajoutables) + résumé d'une
+         ligne ; chaque fiche reçoit une ligne datée (MJ, PJ présents) dans
+         son historique (bloc secret, 30 dernières lignes affichées).
+       · Épingles : un lieu est représenté par une note (épingle) posée sur la
+         carte du monde (= les scènes de « Carte des expéditions »). « Voir sur
+         la carte » (Casier, Rédiger) centre la vue sur l'épingle et la signale ;
+         « Placer sur la carte » pose une épingle à déplacer ensuite. Le lien
+         « scène ↔ lieu » ne sert plus qu'aux cartes LOCALES (intérieurs,
+         donjons) ; « Fiche du lieu » n'est plus proposé sur la carte du monde.
+       · Découverte par le brouillard (réglage mondeDecouverte, actif) : un lieu
+         dont l'épingle est sur une case explorée par un personnage d'un joueur
+         (ou sur une zone toujours éclairée) devient lisible par ce joueur
+         (Observateur sur l'entrée : épingle visible, rubriques non secrètes).
+         Mode par lieu : auto / toujours caché / visible par tous (Rédiger, ou
+         clic sur l'icône du Casier). Recalcul automatique (MJ actif, différé)
+         à chaque exploration, déplacement d'épingle, zone éclairée ou
+         changement de propriétaire. Le module ne retire que les accès qu'il a
+         donnés lui-même ; un accès donné à la main n'est jamais touché.
+         Message privé « Nouveau lieu découvert » au joueur, une seule fois par
+         lieu (réglage mondeDecouverteMessage) ; aucun message au premier calcul.
+       · Clôture sur la carte du monde : les lieux dont l'épingle est à moins
+         de 2 cases d'un jeton de groupe sont pré-cochés pour l'historique.
+       · Sécurité des textes : une page déjà écrite dans Monk's n'est jamais
+         écrasée en silence. « Rédiger » prévient et propose de garder l'ancien
+         texte dans « Notes » ; les mises à jour automatiques (historique,
+         Actualiser) ne réécrivent pas une page modifiée à la main (les
+         données sont gardées et réappliquées à la prochaine rédaction).
+     Nouveaux réglages (monde) : mondeEnabled, mondeHistoryOnClose,
+     mondeDecouverte, mondeDecouverteMessage, mondeFolderPerson / Place / Org
+     (dossiers créés au besoin, rangement par type), mondeRubriques.
+     Nouveau fichier : modules/monde.js. Modifiés : settings.js, session.js,
+     casier.js, index.js, map.js (lecture de l'exploration exportée).
+
+v6.4.0 | 2026-10-16
+   - Nouvelle catégorie de réglages « Progression XP (D&D 5e) », pour jouer avec
+     l'XP de base (le système d'étoiles reste disponible à la place) :
+       · Tableau dynamique, une ligne par niveau : palier, XP à gagner, XP par
+         session, sessions et cumul. Recalculé en direct.
+       · Curseur « Sessions par niveau », lié au curseur « Niveau max atteint
+         en … sessions » (objectif = rythme × (niveau max − 1)).
+       · Curseur « Quantité d'XP par session » (25 à 300 %).
+       · XP adaptée au niveau : écart entre deux paliers ÷ rythme × quantité,
+         arrondie (10 / 50 / 100 / 500). Chaque ligne est surchargeable : une
+         valeur saisie remplace le calcul, un champ vide revient à l'auto.
+       · Plages de niveaux (par défaut 1–4, 5–10, 11–16, 17–20), chacune avec
+         ses bonus d'XP (nom + montant), ajoutables et supprimables.
+   - « Clore la session » (interrupteur de la catégorie actif, étoiles éteintes) :
+     calcule le niveau moyen de la party, pré-remplit « XP pour tous » avec l'XP
+     de la ligne correspondante, propose les bonus de la plage en cases à cocher
+     (non cochées) et affiche le total par PJ. Le rapport Discord gagne un champ
+     « XP de la session » (base + bonus cochés + niveau moyen).
+   - Niveau max autorisé sur le serveur (liste 1 à 20 ; 20 = aucun verrou),
+     actif même interrupteur éteint : l'XP d'un PJ est plafonnée au palier de
+     ce niveau (sans retirer d'XP déjà acquise), toute montée au-delà est
+     refusée, MJ compris (classe ou multiclasse). Le système d'étoiles s'arrête
+     aussi à ce niveau. Un PJ déjà au niveau max reçoit 0 XP à la clôture.
+   - Nouveaux réglages (monde) : xpProgEnabled, xpLevelCap, xpSessionsPerLevel,
+     xpQuantity, xpDefaultOverrides, xpBonusRanges.
+   - Nouveau fichier : modules/xpprogress.js. Modifiés : settings.js,
+     session.js, starxp.js, index.js.
 
 v6.3.1 | 2026-10-16
    - Site : au premier lancement puis après chaque mise à jour, les MJ reçoivent

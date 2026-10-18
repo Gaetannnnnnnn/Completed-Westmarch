@@ -1122,7 +1122,7 @@ const CATEGORIES = [
       keys: ["xpProgEnabled","xpLevelCap","xpPerSession","xpThresholdMode","xpMonthsToCap","xpSessionsPerWeek","xpGrowthOverrides","xpBonusRanges"] },
     { firstKey: "mondeEnabled", master: "mondeEnabled", icon: "fa-book-atlas", title: "Registre du monde",
       desc: "Fiches de PNJ, lieux et organisations dans Monk's Enhanced Journal, rédigées sur un modèle commun (rubriques ci-dessous), reliées aux acteurs, aux scènes, à la carte du monde et entre elles. PNJ et organisations sont rangés dans des compendiums (chargés à la demande), les lieux dans un dossier du monde (pour leurs épingles). Tout se retrouve dans l'onglet « Monde » du Casier. Nécessite Monk's Enhanced Journal.",
-      keys: ["mondeEnabled","mondeDecouverte","mondeDecouverteMessage","mondeBanniere","mondeBanniereSon","mondeEpinglesPartout","mondePackPerson","mondePackOrg","mondeFolderPlace","mondeRubriques"] },
+      keys: ["mondeEnabled","mondeDecouverte","mondeDecouverteMessage","mondeBanniere","mondeBanniereSon","mondeEpinglesPartout","mondeTailleEpingle","mondePackPerson","mondePackOrg","mondeFolderPlace","mondeRubriques"] },
     { firstKey: "enableCharValidation", master: "enableCharValidation", icon: "fa-id-card", title: "Création de personnages",
       desc: "Les joueurs demandent la création d'un personnage ; un GM valide depuis le Casier, puis le joueur construit et soumet sa fiche ; à la validation elle est verrouillée. Le dossier de destination se règle dans « Dossiers & Compendiums ».",
       keys: ["enableCharValidation","charMaxTotal","charMaxActive","charFreeLevelUp","charNotifyLevelUp","blockPlayerPlutonium"] },
@@ -1586,6 +1586,12 @@ function settingControlHtml(key) {
         // Nom de dossier saisi librement (PAS un sélecteur : le même nom sert
         // dans Acteurs, Journaux et Scènes).
         control = `<input type="text" name="${key}" value="${escapeAttr(val ?? "")}" placeholder="Nom du dossier parent (ex. Game Master)" style="width:100%;">`;
+    } else if (key === "mondeTailleEpingle") {
+        // Curseur + valeur affichée (8 à 512 px).
+        const v = Math.min(512, Math.max(8, Number(val) || 32));
+        control = `<div style="display:flex;align-items:center;gap:8px;">
+            <input type="range" name="${key}" class="scwm-taille-epingle" min="8" max="512" step="4" value="${v}" style="flex:1;">
+            <span class="scwm-taille-epingle-v" style="flex:0 0 56px;text-align:right;">${v} px</span></div>`;
     } else if (key === "mondeFolderPlace") {
         // Registre du monde : NOM du dossier de journaux (créé au besoin).
         control = `<input type="text" name="${key}" value="${escapeAttr(val ?? "")}" placeholder="Lieux" style="width:100%;">`;
@@ -1666,6 +1672,12 @@ function wireCategoryForm(category, root) {
         if (!input) return;
         const FP = foundry.applications?.apps?.FilePicker?.implementation ?? globalThis.FilePicker;
         new FP({ type: btn.dataset.fptype || "image", current: input.value, callback: (path) => { input.value = path; } }).browse();
+    }));
+
+    // Registre du monde : taille des épingles (valeur affichée à côté du curseur).
+    root.querySelectorAll(".scwm-taille-epingle").forEach(r => r.addEventListener("input", () => {
+        const v = r.parentElement?.querySelector(".scwm-taille-epingle-v");
+        if (v) v.textContent = `${r.value} px`;
     }));
 
     // Registre du monde : aperçu de la bannière « Nouveau lieu découvert ».

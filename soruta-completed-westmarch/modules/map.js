@@ -319,6 +319,23 @@ function drawHexInto(g, key) {
     if (verts?.length) g.drawPolygon(verts.flatMap(p => [p.x, p.y]));
 }
 
+// Hauteur du calque de brouillard : au-dessus du reste de l'interface, mais
+// SOUS les notes de journal, pour que le nom d'un lieu découvert (affiché au
+// survol de son épingle) ne soit pas coupé par le noir des cases voisines.
+// Les joueurs ne voient de toute façon que les notes des lieux qu'ils ont le
+// droit de voir.
+function fogZIndex() {
+    const parent = canvas.interface ?? canvas.stage;
+    const notes = canvas.notes;
+    if (!notes || notes.parent !== parent || !Number.isFinite(notes.zIndex) || notes.zIndex > 900) return 900;
+    const z = notes.zIndex - 0.5;
+    // Sécurité : si un autre calque (dessins, gabarits…) est rangé au-dessus
+    // des notes, le brouillard doit le couvrir → on garde la hauteur d'origine.
+    const auDessus = (parent.children ?? []).some(c =>
+        c !== notes && c !== _fogLayer && c !== canvas.controls && Number.isFinite(c?.zIndex) && c.zIndex >= z && c.zIndex <= 900);
+    return auDessus ? 900 : z;
+}
+
 function drawFog() {
     clearFogLayer();
     if (!onExpeditionCanvas()) return;
@@ -333,7 +350,7 @@ function drawFog() {
         g.beginFill(0xffcc00, 0.15);
         for (const key of zones) drawHexInto(g, key);
         g.endFill();
-        g.zIndex = 900;
+        g.zIndex = fogZIndex();
         _fogLayer = g;
         (canvas.interface ?? canvas.stage).addChild(g);
         return;
@@ -355,7 +372,7 @@ function drawFog() {
         g.endHole();
     }
     g.endFill();
-    g.zIndex = 900;
+    g.zIndex = fogZIndex();
     _fogLayer = g;
     (canvas.interface ?? canvas.stage).addChild(g);
 }

@@ -110,6 +110,11 @@ export function registerMondeSettings() {
         name: "Épingles visibles dans tous les modes",
         hint: "Sur la carte du monde, les épingles des lieux restent affichées quel que soit l'outil choisi (jetons, mesures…), pas seulement dans « Notes de journal ». Le nom du lieu s'affiche au survol de l'épingle. Les joueurs ne voient que les lieux qu'ils ont découverts."
     }));
+    game.settings.register(MOD, "mondeTailleEpingle", w(Number, 32, {
+        name: "Taille des épingles de lieux",
+        hint: "Taille affichée des épingles sur la carte, en pixels de carte (8 à 512 ; 32 par défaut). Chaque client l'applique aussitôt, sans recharger.",
+        onChange: () => rafraichirEpingles()
+    }));
     game.settings.register(MOD, "mondeEpinglesMigrees", w(Boolean, false, { name: "Épingles de lieux converties (interne)" }));
     game.settings.register(MOD, "mondePackPerson", w(String, "", {
         name: "Compendium des fiches PNJ",
@@ -463,7 +468,24 @@ export function epingleSansFond(note) {
         if (!ci || note?.document?.texture?.src !== ICONE_EPINGLE) return;
         if (ci.bg) { ci.bg.visible = false; ci.bg.alpha = 0; }
         if (ci.border && !note.layer?.active) ci.border.visible = false;
+        // Taille affichée (réglage mondeTailleEpingle) : Foundry impose 32 px
+        // minimum à une note, on met donc l'icône à l'échelle à l'affichage,
+        // centrée sur le point de la note (là où tombe la pointe).
+        const taille = tailleEpingle();
+        const base = Number(note.document.iconSize) || TAILLE_EPINGLE;
+        const k = taille / base;
+        ci.scale?.set?.(k, k);
+        ci.position?.set?.(-base * k / 2, -base * k / 2);
     } catch {}
+}
+export const TAILLE_MIN = 8, TAILLE_MAX = 512;
+export function tailleEpingle() {
+    const n = Number(lire("mondeTailleEpingle", TAILLE_EPINGLE));
+    return Number.isFinite(n) ? Math.min(TAILLE_MAX, Math.max(TAILLE_MIN, Math.round(n))) : TAILLE_EPINGLE;
+}
+// Réapplique la taille / le fond à toutes les épingles affichées.
+export function rafraichirEpingles() {
+    try { for (const n of canvas?.notes?.placeables ?? []) epingleSansFond(n); } catch {}
 }
 
 export async function viderEtiquettes(entry, ancien) {

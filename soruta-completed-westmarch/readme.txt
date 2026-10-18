@@ -232,6 +232,15 @@ v6.5.6 | 2026-10-17
      carte du monde (glisser-déposer du journal compris). Une icône changée
      ensuite à la main est respectée. Les notes qui ne sont pas des lieux ne
      changent pas.
+   - Carte des expéditions : le brouillard des joueurs passe juste sous les
+     notes de journal, pour que le nom d'un lieu découvert (au survol de son
+     épingle) ne soit plus coupé par le noir des cases voisines. Les joueurs
+     ne voient toujours que les notes des lieux qu'ils ont le droit de voir.
+   - Nouveau réglage « Taille des épingles de lieux » (mondeTailleEpingle,
+     Registre du monde) : curseur de 8 à 512 px, 32 par défaut. La taille est
+     appliquée à l'affichage par chaque client, tout de suite, sans recharger
+     (Foundry impose 32 px minimum à une note : l'icône est mise à l'échelle,
+     la pointe reste sur le point exact).
 
 v6.5.5 | 2026-10-17
    - Épingle d'un lieu : « Placer sur la carte » affiche la carte du monde et

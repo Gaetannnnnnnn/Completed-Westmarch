@@ -3,7 +3,8 @@
 //
 // Stockage : flag scope MOD → "list" sur chaque acteur PJ
 //            [ { id, targetId, targetName, targetImg,
-//                hostility(-2→+2), note, firstScene } ]
+//                hostility(-2→+2), note, firstScene, lastPosition,
+//                ca (estimation), degats { type: faiblesse|resistance|immunite } } ]
 // Interface : onglet "Bestiaire" sur la fiche personnage (PJ uniquement)
 // Auto-det. : canvasReady / createToken / updateToken (GM only)
 //             → créatures issues du compendium configuré (ou importées de celui-ci)
@@ -52,6 +53,81 @@ function hostilitySelector(current, canEdit) {
     return `<div class="bst-hostility-selector">
         <span class="bst-h-label" style="color:${cur.color};">${cur.label}</span>
         ${btns}
+    </div>`;
+}
+
+// ---- Options (désactivables dans les réglages) -------------
+
+const opt = (k) => { try { return game.settings.get(MOD, k) !== false; } catch { return true; } };
+const escB = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+// Types de dégâts (identifiants dnd5e) et leur nom affiché.
+const DEGATS = [
+    ["acid", "Acide"], ["bludgeoning", "Contondant"], ["cold", "Froid"], ["fire", "Feu"],
+    ["force", "Force"], ["lightning", "Foudre"], ["necrotic", "Nécrotique"], ["piercing", "Perforant"],
+    ["poison", "Poison"], ["psychic", "Psychique"], ["radiant", "Radiant"], ["slashing", "Tranchant"],
+    ["thunder", "Tonnerre"]
+];
+// Les 4 états d'une étiquette, dans l'ordre des clics. Chacun a sa forme :
+// neutre = pointillés gris ; faiblesse = rouge, coins carrés ; résistance =
+// bleu, arrondi ; immunité = doré, plein, en forme de pilule.
+const ETATS_DEGATS = ["", "faiblesse", "resistance", "immunite"];
+const STYLE_ETAT = {
+    "":          { icon: "",                   label: "non noté",   css: "border:1px dashed rgba(255,255,255,.25);color:#888;background:transparent;border-radius:3px;" },
+    faiblesse:   { icon: "fa-heart-crack",     label: "Faiblesse",  css: "border:1px solid #c0392b;color:#ff8a7a;background:rgba(192,57,43,.18);border-radius:0;" },
+    resistance:  { icon: "fa-shield-halved",   label: "Résistance", css: "border:1px solid #2e86c1;color:#8cc8f0;background:rgba(46,134,193,.18);border-radius:6px;" },
+    immunite:    { icon: "fa-shield",          label: "Immunité",   css: "border:1px solid #c9a227;color:#1b1406;background:#c9a227;border-radius:999px;font-weight:700;" }
+};
+const etatSuivant = (e) => ETATS_DEGATS[(ETATS_DEGATS.indexOf(e ?? "") + 1) % ETATS_DEGATS.length];
+
+function etiquetteDegatHtml(cle, nom, etat, canEdit) {
+    const st = STYLE_ETAT[etat ?? ""] ?? STYLE_ETAT[""];
+    const titre = canEdit ? `${nom} : ${st.label} (cliquer pour changer)` : `${nom} : ${st.label}`;
+    return `<a class="bst-dmg${canEdit ? " bst-dmg-edit" : ""}" data-dmg="${cle}" data-etat="${etat ?? ""}" title="${escB(titre)}"
+        style="display:inline-flex;align-items:center;gap:3px;padding:1px 6px;margin:2px;font-size:11px;line-height:16px;cursor:${canEdit ? "pointer" : "default"};user-select:none;${st.css}">${st.icon ? `<i class="fa-solid ${st.icon}" style="font-size:9px;"></i>` : ""}${escB(nom)}</a>`;
+}
+
+function blocDegatsHtml(entry, canEdit) {
+    const d = entry.degats ?? {};
+    const liste = canEdit ? DEGATS : DEGATS.filter(([k]) => d[k]);
+    const legende = `<span style="font-size:10px;opacity:.65;margin-left:4px;">
+        <i class="fa-solid fa-heart-crack" style="color:#ff8a7a;"></i> faiblesse ·
+        <i class="fa-solid fa-shield-halved" style="color:#8cc8f0;"></i> résistance ·
+        <i class="fa-solid fa-shield" style="color:#c9a227;"></i> immunité</span>`;
+    return `<div class="bst-dmg-row" style="margin:6px 0;">
+        <div style="display:flex;align-items:center;gap:6px;"><i class="fa-solid fa-burst"></i>
+            <span class="bst-field-label">Dégâts :</span>${legende}</div>
+        <div class="bst-dmg-list" data-bst-id="${entry.id}" style="display:flex;flex-wrap:wrap;margin-top:2px;">
+            ${liste.length ? liste.map(([k, nom]) => etiquetteDegatHtml(k, nom, d[k], canEdit)).join("") : `<em style="font-size:11px;opacity:.7;">Rien de noté.</em>`}
+        </div>
+    </div>`;
+}
+
+// Classe d'armure estimée par le joueur.
+const CA_NIVEAUX = [
+    ["", "— inconnue —"], ["tres-faible", "Très faible (13 ou moins)"], ["faible", "Faible (14–15)"],
+    ["moyenne", "Moyenne (16–17)"], ["elevee", "Élevée (18–19)"], ["tres-elevee", "Très élevée (20–21)"],
+    ["extreme", "Extrême (22 ou plus)"]
+];
+function blocCaHtml(entry, canEdit) {
+    const val = entry.ca ?? "";
+    const lib = (CA_NIVEAUX.find(([k]) => k === val) ?? CA_NIVEAUX[0])[1];
+    return `<div class="bst-ca-row" style="display:flex;align-items:center;gap:6px;margin:6px 0;">
+        <i class="fa-solid fa-shield-heart"></i>
+        <span class="bst-field-label">CA :</span>
+        ${canEdit
+            ? `<select class="bst-ca-input" data-bst-id="${entry.id}" style="flex:1;">${CA_NIVEAUX.map(([k, l]) => `<option value="${k}" ${k === val ? "selected" : ""}>${l}</option>`).join("")}</select>`
+            : `<span>${val ? escB(lib) : "<em>Inconnue</em>"}</span>`}
+    </div>`;
+}
+
+function blocDernierePositionHtml(entry, canEdit) {
+    return `<div class="bst-scene-row">
+        <i class="fa-solid fa-location-crosshairs"></i>
+        <span class="bst-field-label">Dernière position :</span>
+        ${canEdit
+            ? `<input class="bst-last-input" type="text" data-bst-id="${entry.id}" value="${escB(entry.lastPosition ?? entry.firstScene ?? "")}" placeholder="Scène, lieu…">`
+            : `<span class="bst-scene-value">${escB(entry.lastPosition ?? entry.firstScene ?? "") || "<em>Inconnue</em>"}</span>`}
     </div>`;
 }
 
@@ -200,6 +276,9 @@ function buildRowHtml(entry, actor, canEdit) {
                     : `<span class="bst-scene-value">${entry.firstScene || "<em>Inconnue</em>"}</span>`
                 }
             </div>
+            ${opt("bestiaryLastPosition") ? blocDernierePositionHtml(entry, canEdit) : ""}
+            ${opt("bestiaryArmorClass") ? blocCaHtml(entry, canEdit) : ""}
+            ${opt("bestiaryDamageTags") ? blocDegatsHtml(entry, canEdit) : ""}
             ${canEdit ? `
             <textarea class="bst-note-input" data-bst-id="${entry.id}"
                 placeholder="Notes sur cette créature…">${entry.note ?? ""}</textarea>
@@ -338,6 +417,7 @@ async function openAddDialog(actor) {
                         hostility:  0,
                         note:       "",
                         firstScene: game.scenes.current?.name ?? "",
+                        lastPosition: game.scenes.current?.name ?? "",
                         revealed:   !(target?.getFlag?.(MOD, "anonymous") ?? false),
                     };
                 }
@@ -450,6 +530,32 @@ export function wireTab(actor, $html) {
         }
     });
 
+    // Dernière position (modifiable par le joueur)
+    $tab.on("blur", ".bst-last-input", async function () {
+        await beastUpdate(actor, String($(this).data("bst-id")), { lastPosition: this.value.trim() });
+    });
+
+    // CA estimée
+    $tab.on("change", ".bst-ca-input", async function () {
+        await beastUpdate(actor, String($(this).data("bst-id")), { ca: this.value });
+    });
+
+    // Étiquettes de dégâts : neutre → faiblesse → résistance → immunité → neutre
+    $tab.on("click", ".bst-dmg-edit", async function (e) {
+        e.preventDefault();
+        const $tag = $(this);
+        const id   = String($tag.closest(".bst-dmg-list").data("bst-id"));
+        const cle  = String($tag.data("dmg"));
+        const nom  = (DEGATS.find(([k]) => k === cle) ?? [cle, cle])[1];
+        const suivant = etatSuivant(String($tag.attr("data-etat") ?? ""));
+        $tag.replaceWith(etiquetteDegatHtml(cle, nom, suivant, true));
+        const entry = beastList(actor).find(en => en.id === id);
+        if (!entry) return;
+        const degats = { ...(entry.degats ?? {}) };
+        if (suivant) degats[cle] = suivant; else delete degats[cle];
+        await beastUpdate(actor, id, { degats });
+    });
+
     // Auto-save première rencontre
     $tab.on("blur", ".bst-scene-input", async function () {
         await beastUpdate(actor, String($(this).data("bst-id")), { firstScene: this.value.trim() });
@@ -495,6 +601,16 @@ export function wireTab(actor, $html) {
     });
 }
 
+// Met à jour le champ « Dernière position » dans les fiches ouvertes (sans
+// re-rendu, l'update se fait avec render:false).
+function _rafraichirPosition(actor, targetId, scene) {
+    const entry = beastList(actor).find(e => e.targetId === targetId);
+    if (!entry) return;
+    document.querySelectorAll(`.bst-tab[data-actor-id="${actor.id}"] .bst-last-input[data-bst-id="${entry.id}"]`).forEach(el => {
+        if (el !== document.activeElement) el.value = scene;
+    });
+}
+
 // ---- Détection automatique (GM only) -----------------------
 
 async function scanVisibleTokens() {
@@ -521,6 +637,17 @@ async function scanVisibleTokens() {
 
         const existing = new Set(beastList(myActor).map(e => e.targetId));
         const seenIds  = new Set();
+
+        // Dernière position : créatures déjà connues que le personnage revoit.
+        if (opt("bestiaryLastPosition") && sceneName) {
+            const revues = new Set(tokens.filter(t => t.actor?.id && existing.has(t.actor.id) && voit(myToken, t)).map(t => t.actor.id));
+            const liste = beastList(myActor);
+            if (liste.some(e => revues.has(e.targetId) && e.lastPosition !== sceneName)) {
+                await myActor.update({ [`flags.${MOD}.bestiaryList`]: liste.map(e =>
+                    revues.has(e.targetId) && e.lastPosition !== sceneName ? { ...e, lastPosition: sceneName } : e) }, { render: false });
+                for (const id of revues) _rafraichirPosition(myActor, id, sceneName);
+            }
+        }
         const toAdd = tokens.filter(t => {
             if (!t.actor?.id) return false;
             if (t.actor.id === myActor.id) return false;
@@ -547,6 +674,7 @@ async function scanVisibleTokens() {
                 hostility:  0,
                 note:       "",
                 firstScene: sceneName,
+                lastPosition: sceneName,
                 revealed:   !(t.actor.getFlag(MOD, "anonymous") ?? false),
             };
         });

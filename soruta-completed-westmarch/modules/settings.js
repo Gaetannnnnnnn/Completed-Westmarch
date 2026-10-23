@@ -646,6 +646,15 @@ export function registerSettings() {
     game.settings.register(MOD, "bestiaryAnonymization", B(
         "Bestiaire — Anonymisation",
         "Boutons 'Révéler'/'Masquer' dans l'en-tête des fiches (GM). Utilisé si Relations est désactivé."));
+    game.settings.register(MOD, "bestiaryLastPosition", B(
+        "Bestiaire — Dernière position",
+        "Champ « Dernière position » sur chaque créature : rempli avec la scène où le personnage l'a vue en dernier (mis à jour automatiquement), modifiable par le joueur."));
+    game.settings.register(MOD, "bestiaryDamageTags", B(
+        "Bestiaire — Faiblesses, résistances, immunités",
+        "Une étiquette par type de dégâts sur chaque créature. Chaque clic change son état : neutre → faiblesse → résistance → immunité → neutre. Le joueur note ce qu'il a découvert."));
+    game.settings.register(MOD, "bestiaryArmorClass", B(
+        "Bestiaire — Classe d'armure estimée",
+        "Liste « CA » sur chaque créature (très faible → extrême) que le joueur remplit selon ce qu'il a constaté en combat."));
     game.settings.register(MOD, "bestiaryFolderPJ", S(
         "Bestiaire — Dossier des PJ",
         "Dossier acteur des joueurs. Chaque joueur voit les créatures rencontrées par son personnage."));
@@ -1161,7 +1170,7 @@ const CATEGORIES = [
       keys: ["relationsEnabled","relationsAnonymization"] },
     { firstKey: "bestiaryEnabled", master: "bestiaryEnabled",       icon: "fa-dragon",          title: "Fiche PJ — Bestiaire",
       desc: "Onglet Bestiaire : créatures rencontrées, répertoriées par personnage.",
-      keys: ["bestiaryEnabled","bestiaryAnonymization"] },
+      keys: ["bestiaryEnabled","bestiaryAnonymization","bestiaryLastPosition","bestiaryDamageTags","bestiaryArmorClass"] },
     { firstKey: "carnetEnabled", master: "carnetEnabled",         icon: "fa-book-open",       title: "Fiche PJ — Carnet & Expéditions",
       desc: "Onglets Carnet (notes enrichies) et Expéditions (dates + durée).",
       keys: ["carnetEnabled","enablePcStatus"] },

@@ -212,6 +212,21 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
 
+v6.5.8 | 2026-10-23
+   - Bestiaire, trois nouveaux champs par créature (chacun désactivable
+     dans Paramètres → Bestiaire) :
+       · « Dernière position » (bestiaryLastPosition) : scène où le
+         personnage a vu la créature en dernier, mise à jour automatiquement
+         quand il la revoit, modifiable par le joueur ;
+       · « CA » estimée (bestiaryArmorClass) : liste très faible (≤ 13),
+         faible (14–15), moyenne (16–17), élevée (18–19), très élevée
+         (20–21), extrême (≥ 22) ;
+       · « Dégâts » (bestiaryDamageTags) : une étiquette par type de dégâts
+         (13 types) ; chaque clic change son état et sa forme : neutre
+         (pointillés) → faiblesse (rouge, carrée) → résistance (bleue,
+         arrondie) → immunité (dorée, pleine) → neutre. En lecture seule,
+         seules les étiquettes notées s'affichent.
+
 v6.5.7 | 2026-10-18
    - Relations, ajout automatique : seul le personnage sur lequel le joueur
      est connecté (Configuration du joueur → personnage) détecte, et

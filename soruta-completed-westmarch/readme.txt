@@ -212,6 +212,15 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
 
+v6.5.9 | 2026-10-23
+   - Bestiaire : « Dernière position » n'est plus modifiable à la main
+     (texte simple, mis à jour automatiquement quand le personnage revoit
+     la créature, aussi dans une fiche déjà ouverte).
+   - Bestiaire : la CA estimée n'est plus une liste déroulante mais une
+     jauge de 6 barres dorées dans le style du bestiaire (clic pour choisir,
+     re-clic sur la barre choisie pour revenir à « inconnue » ; niveau et
+     fourchette au survol). Les valeurs déjà notées sont conservées.
+
 v6.5.8 | 2026-10-23
    - Bestiaire, trois nouveaux champs par créature (chacun désactivable
      dans Paramètres → Bestiaire) :

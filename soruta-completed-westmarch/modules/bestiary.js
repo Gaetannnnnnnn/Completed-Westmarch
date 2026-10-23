@@ -109,25 +109,38 @@ const CA_NIVEAUX = [
     ["moyenne", "Moyenne (16–17)"], ["elevee", "Élevée (18–19)"], ["tres-elevee", "Très élevée (20–21)"],
     ["extreme", "Extrême (22 ou plus)"]
 ];
+// Jauge de CA : 6 barres de hauteur croissante, remplies jusqu'au niveau
+// choisi (style du bestiaire, pas de liste déroulante native). Cliquer sur
+// la barre déjà choisie remet « inconnue ».
+function jaugeCaHtml(val, canEdit) {
+    const niv = CA_NIVEAUX.findIndex(([k]) => k === val);   // 0 = inconnue
+    const barres = CA_NIVEAUX.slice(1).map(([k, l], i) => {
+        const rempli = niv > 0 && i + 1 <= niv;
+        const h = 7 + i * 3;
+        return `<a class="bst-ca-bar${canEdit ? " bst-ca-edit" : ""}" data-ca="${k}" title="${escB(l)}"
+            style="display:inline-block;width:11px;height:${h}px;margin-right:3px;border-radius:2px 2px 0 0;cursor:${canEdit ? "pointer" : "default"};
+                   background:${rempli ? "linear-gradient(180deg,#f0d27a,#c9a227)" : "rgba(255,255,255,0.08)"};
+                   border:1px solid ${rempli ? "#c9a227" : "rgba(201,162,39,0.3)"};box-sizing:border-box;"></a>`;
+    }).join("");
+    const lib = niv > 0 ? CA_NIVEAUX[niv][1] : "Inconnue";
+    return `<span class="bst-ca-jauge" style="display:inline-flex;align-items:flex-end;height:24px;">${barres}</span>
+        <span class="bst-ca-label" style="font-size:12px;color:${niv > 0 ? "#e0c169" : "#888"};${niv > 0 ? "" : "font-style:italic;"}">${escB(lib)}</span>`;
+}
 function blocCaHtml(entry, canEdit) {
-    const val = entry.ca ?? "";
-    const lib = (CA_NIVEAUX.find(([k]) => k === val) ?? CA_NIVEAUX[0])[1];
-    return `<div class="bst-ca-row" style="display:flex;align-items:center;gap:6px;margin:6px 0;">
+    return `<div class="bst-ca-row" data-bst-id="${entry.id}" style="display:flex;align-items:center;gap:8px;margin:6px 0;">
         <i class="fa-solid fa-shield-heart"></i>
         <span class="bst-field-label">CA :</span>
-        ${canEdit
-            ? `<select class="bst-ca-input" data-bst-id="${entry.id}" style="flex:1;">${CA_NIVEAUX.map(([k, l]) => `<option value="${k}" ${k === val ? "selected" : ""}>${l}</option>`).join("")}</select>`
-            : `<span>${val ? escB(lib) : "<em>Inconnue</em>"}</span>`}
+        ${jaugeCaHtml(entry.ca ?? "", canEdit)}
     </div>`;
 }
 
-function blocDernierePositionHtml(entry, canEdit) {
+// Dernière position : remplie automatiquement, jamais modifiable à la main.
+function blocDernierePositionHtml(entry) {
+    const val = escB(entry.lastPosition ?? entry.firstScene ?? "");
     return `<div class="bst-scene-row">
         <i class="fa-solid fa-location-crosshairs"></i>
         <span class="bst-field-label">Dernière position :</span>
-        ${canEdit
-            ? `<input class="bst-last-input" type="text" data-bst-id="${entry.id}" value="${escB(entry.lastPosition ?? entry.firstScene ?? "")}" placeholder="Scène, lieu…">`
-            : `<span class="bst-scene-value">${escB(entry.lastPosition ?? entry.firstScene ?? "") || "<em>Inconnue</em>"}</span>`}
+        <span class="bst-last-value" data-bst-id="${entry.id}" title="Mise à jour automatiquement quand le personnage revoit la créature">${val || "<em>Inconnue</em>"}</span>
     </div>`;
 }
 
@@ -276,7 +289,7 @@ function buildRowHtml(entry, actor, canEdit) {
                     : `<span class="bst-scene-value">${entry.firstScene || "<em>Inconnue</em>"}</span>`
                 }
             </div>
-            ${opt("bestiaryLastPosition") ? blocDernierePositionHtml(entry, canEdit) : ""}
+            ${opt("bestiaryLastPosition") ? blocDernierePositionHtml(entry) : ""}
             ${opt("bestiaryArmorClass") ? blocCaHtml(entry, canEdit) : ""}
             ${opt("bestiaryDamageTags") ? blocDegatsHtml(entry, canEdit) : ""}
             ${canEdit ? `
@@ -530,14 +543,18 @@ export function wireTab(actor, $html) {
         }
     });
 
-    // Dernière position (modifiable par le joueur)
-    $tab.on("blur", ".bst-last-input", async function () {
-        await beastUpdate(actor, String($(this).data("bst-id")), { lastPosition: this.value.trim() });
-    });
-
-    // CA estimée
-    $tab.on("change", ".bst-ca-input", async function () {
-        await beastUpdate(actor, String($(this).data("bst-id")), { ca: this.value });
+    // CA estimée : clic sur une barre (re-clic sur la barre choisie = inconnue)
+    $tab.on("click", ".bst-ca-edit", async function (e) {
+        e.preventDefault();
+        const $row = $(this).closest(".bst-ca-row");
+        const id   = String($row.data("bst-id"));
+        const entry = beastList(actor).find(en => en.id === id);
+        if (!entry) return;
+        const choisi = String($(this).data("ca"));
+        const ca = entry.ca === choisi ? "" : choisi;
+        $row.find(".bst-ca-jauge, .bst-ca-label").remove();
+        $row.append(jaugeCaHtml(ca, true));
+        await beastUpdate(actor, id, { ca });
     });
 
     // Étiquettes de dégâts : neutre → faiblesse → résistance → immunité → neutre
@@ -606,8 +623,8 @@ export function wireTab(actor, $html) {
 function _rafraichirPosition(actor, targetId, scene) {
     const entry = beastList(actor).find(e => e.targetId === targetId);
     if (!entry) return;
-    document.querySelectorAll(`.bst-tab[data-actor-id="${actor.id}"] .bst-last-input[data-bst-id="${entry.id}"]`).forEach(el => {
-        if (el !== document.activeElement) el.value = scene;
+    document.querySelectorAll(`.bst-tab[data-actor-id="${actor.id}"] .bst-last-value[data-bst-id="${entry.id}"]`).forEach(el => {
+        el.textContent = scene;
     });
 }
 

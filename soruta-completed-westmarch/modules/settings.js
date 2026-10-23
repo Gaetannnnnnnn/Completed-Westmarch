@@ -648,7 +648,7 @@ export function registerSettings() {
         "Boutons 'Révéler'/'Masquer' dans l'en-tête des fiches (GM). Utilisé si Relations est désactivé."));
     game.settings.register(MOD, "bestiaryLastPosition", B(
         "Bestiaire — Dernière position",
-        "Champ « Dernière position » sur chaque créature : rempli avec la scène où le personnage l'a vue en dernier (mis à jour automatiquement), modifiable par le joueur."));
+        "Champ « Dernière position » sur chaque créature : rempli avec la scène où le personnage l'a vue en dernier, mis à jour automatiquement (non modifiable)."));
     game.settings.register(MOD, "bestiaryDamageTags", B(
         "Bestiaire — Faiblesses, résistances, immunités",
         "Une étiquette par type de dégâts sur chaque créature. Chaque clic change son état : neutre → faiblesse → résistance → immunité → neutre. Le joueur note ce qu'il a découvert."));

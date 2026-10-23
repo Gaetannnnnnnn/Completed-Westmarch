@@ -44,9 +44,9 @@ const OBSERVER = () => CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER;
 const HISTORIQUE_AFFICHE = 30;  // lignes écrites dans le texte de la page
 
 export const TYPES = {
-    person:       { label: "PNJ",          pluriel: "PNJ",           icon: "fa-user",         packKey: "mondePackPerson", packLabel: "Registre — PNJ" },
+    person:       { label: "PNJ",          pluriel: "PNJ",           icon: "fa-user",         packKey: "mondePackPerson", packFolderKey: "mondePackPersonFolder", packLabel: "Registre — PNJ" },
     place:        { label: "Lieu",         pluriel: "Lieux",         icon: "fa-location-dot", dossierKey: "mondeFolderPlace", dossier: "Lieux" },
-    organization: { label: "Organisation", pluriel: "Organisations", icon: "fa-people-group", packKey: "mondePackOrg",    packLabel: "Registre — Organisations" }
+    organization: { label: "Organisation", pluriel: "Organisations", icon: "fa-people-group", packKey: "mondePackOrg", packFolderKey: "mondePackOrgFolder", packLabel: "Registre — Organisations" }
 };
 
 export const RUBRIQUES_DEFAUT = {
@@ -123,6 +123,14 @@ export function registerMondeSettings() {
     game.settings.register(MOD, "mondePackOrg", w(String, "", {
         name: "Compendium des fiches d'organisations",
         hint: "Compendium de journaux (monde) où ranger les fiches d'organisations. Vide : le module crée « Registre — Organisations » au premier besoin."
+    }));
+    game.settings.register(MOD, "mondePackPersonFolder", w(String, "", {
+        name: "Dossier des fiches PNJ dans le compendium",
+        hint: "Nom d'un dossier DANS le compendium des PNJ où ranger les nouvelles fiches (créé s'il n'existe pas). Vide : racine du compendium."
+    }));
+    game.settings.register(MOD, "mondePackOrgFolder", w(String, "", {
+        name: "Dossier des fiches d'organisations dans le compendium",
+        hint: "Nom d'un dossier DANS le compendium des organisations (créé s'il n'existe pas). Vide : racine du compendium."
     }));
     game.settings.register(MOD, "mondeFolderPlace", w(String, "Lieux", {
         name: "Dossier des fiches de lieux",
@@ -689,13 +697,35 @@ async function dossier(type) {
     return Folder.create({ name: nom, type: "JournalEntry" });
 }
 
+// Dossier (par son nom) DANS le compendium d'un type, créé au besoin. null = racine.
+export async function dossierDansPack(type, pack) {
+    const cle = TYPES[type]?.packFolderKey;
+    const nom = cle ? String(lire(cle, "") || "").trim() : "";
+    if (!nom || !pack) return null;
+    const existant = [...(pack.folders ?? [])].find(f => f.name === nom && !f.folder);
+    if (existant) return existant;
+    return Folder.create({ name: nom, type: "JournalEntry" }, { pack: pack.collection });
+}
+
+// Dossier des lieux : créé dès que le registre est actif, et les fiches de
+// lieux restées à la racine des journaux y sont rangées.
+export async function preparerDossierLieux() {
+    if (!game.user?.isGM || !mondeActif()) return null;
+    const f = await dossier("place");
+    if (!f) return null;
+    const aRanger = toutesLesFiches().filter(x => x.type === "place" && !x.entry.folder && !x.entry.pack);
+    for (const { entry } of aRanger) await entry.update({ folder: f.id });
+    if (aRanger.length) ui.notifications?.info(`${aRanger.length} fiche(s) de lieu rangée(s) dans le dossier « ${f.name} ».`);
+    return f;
+}
+
 // Crée une fiche MEJ comme MEJ le fait lui-même : une entrée, une page texte
 // portant le type MEJ dans ses flags. Réservée aux MJ (ownership par défaut : aucun).
 export async function creerFiche(type, { name, img, actor, scene } = {}) {
     if (!TYPES[type]) throw new Error(`type inconnu : ${type}`);
     const pack = TYPES[type].packKey ? await packPour(type) : null;
     verifierDeverrouille(pack);
-    const folder = pack ? null : await dossier(type);
+    const folder = pack ? await dossierDansPack(type, pack) : await dossier(type);
     const flagsMej = { type, relationships: {} };
     if (type === "person") flagsMej.attributes = {};
     if (actor) flagsMej.actor = { id: actor.id, uuid: actor.uuid, img: actor.img, name: actor.name };
@@ -703,7 +733,7 @@ export async function creerFiche(type, { name, img, actor, scene } = {}) {
     const fiche = { rubriques: {}, historique: [], scenes: scene ? [scene.id] : [] };
     const entry = await JournalEntry.create({
         name: nom,
-        ...(pack ? {} : { folder: folder?.id ?? null }),
+        folder: folder?.id ?? null,
         ownership: { default: NONE() },
         flags: { [MEJ]: { img: `modules/${MEJ}/assets/${type}.png` } },
         pages: [{
@@ -1232,7 +1262,7 @@ export async function rangerDansCompendiums() {
             const pack = await packPour(f.type);
             verifierDeverrouille(pack);
             const data = f.entry.toObject();
-            delete data.folder;
+            data.folder = (await dossierDansPack(f.type, pack))?.id ?? null;
             const neuf = await JournalEntry.create(data, { pack: pack.collection, keepId: true });
             correspondances.set(f.entry.uuid, neuf);
         }
@@ -1438,6 +1468,7 @@ export function MondeHooks() {
         if (!game.user?.isGM || !mondeActif() || (game.users.activeGM && game.users.activeGM.id !== game.user.id)) return;
         for (const { entry, type } of toutesLesFiches()) if (type === "place") viderEtiquettes(entry).catch(() => {});
         migrerEpingles().catch(e => console.warn(`[${MOD}] épingles`, e));
+        preparerDossierLieux().catch(e => console.warn(`[${MOD}] dossier des lieux`, e));
     });
     // Note d'un lieu posée sur la carte du monde (glisser-déposer du journal,
     // outil Notes…) → épingle fine, par le client qui l'a créée.
@@ -1458,6 +1489,12 @@ export function MondeHooks() {
     Hooks.on("renderSceneControls", reafficher);
     Hooks.on("createNote", reafficher);
     Hooks.on("updateSetting", (st) => { if (String(st?.key ?? "").startsWith(`${MOD}.monde`) || st?.key === "core.notesDisplayToggle") reafficher(); });
+    // Registre activé ou dossier des lieux renommé → dossier créé tout de suite (MJ actif).
+    Hooks.on("updateSetting", (st) => {
+        if (![`${MOD}.mondeEnabled`, `${MOD}.mondeFolderPlace`].includes(st?.key)) return;
+        if (game.users.activeGM && game.users.activeGM.id !== game.user?.id) return;
+        preparerDossierLieux().catch(() => {});
+    });
     Hooks.on("updateSetting", siDecouverte((st) => st?.key === `${MOD}.expeditionRevealedZones`));
     Hooks.on("updateUser", siDecouverte((u, ch) => "character" in (ch ?? {})));
     Hooks.once("ready", () => { if (game.user?.isGM && decouverteActive()) planifierDecouverte(); });

@@ -12,6 +12,7 @@
 
 import { MOD } from "./const.js";
 import { commonFolderPJ, commonPackCreatures } from "./settings.js";
+import { jetonDuPersonnage, voit, surCarteExpedition } from "./perception.js";
 export const MODULE = MOD;
 
 // ---- État de session ---------------------------------------
@@ -505,18 +506,17 @@ async function scanVisibleTokens() {
     try {
         await ensureCreatureIndex();
 
-        // Détection UNIQUEMENT sur la scène que le joueur visualise (canvas) :
-        // une créature n'est ajoutée que si le joueur ET son token PJ sont
-        // présents sur cette même scène affichée.
+        // Détection sur la scène affichée, pour le personnage sur lequel le
+        // joueur est CONNECTÉ (Configuration du joueur → personnage), et
+        // seulement les créatures que SON jeton voit (murs qui bloquent la
+        // vue, porte fermée, jeton caché, lumière : voir perception.js).
+        // Jamais sur les cartes des expéditions.
+        if (surCarteExpedition()) return;
         const tokens    = canvas.tokens?.placeables ?? [];
-        const sceneName = game.scenes.current?.name ?? "";
+        const sceneName = canvas.scene?.name ?? game.scenes.current?.name ?? "";
 
-        const myToken = tokens.find(t =>
-            t.actor?.type === "character" &&
-            t.actor?.isOwner &&
-            isInPJFolder(t.actor)
-        );
-        if (!myToken) return;
+        const myToken = jetonDuPersonnage();
+        if (!myToken || myToken.actor?.type !== "character" || !isInPJFolder(myToken.actor)) return;
         const myActor = myToken.actor;
 
         const existing = new Set(beastList(myActor).map(e => e.targetId));
@@ -528,6 +528,7 @@ async function scanVisibleTokens() {
             if (existing.has(t.actor.id)) return false;
             if (seenIds.has(t.actor.id)) return false;
             if (t.actor.getFlag(MOD, "excludedFromBestiary") ?? false) return false;
+            if (!voit(myToken, t)) return false;
             seenIds.add(t.actor.id);
             return true;
         });
@@ -613,6 +614,12 @@ export function BestiaryHooks() {
         clearTimeout(_sightTimer);
         _sightTimer = setTimeout(() => scanVisibleTokens(), 300);
     });
+    // Jeton qui bouge / apparaît, porte ouverte, changement de personnage.
+    const relancer = () => { clearTimeout(_sightTimer); _sightTimer = setTimeout(() => scanVisibleTokens(), 400); };
+    Hooks.on("updateToken", (doc, ch) => { if ("x" in ch || "y" in ch || "hidden" in ch) relancer(); });
+    Hooks.on("updateWall", (doc, ch) => { if ("ds" in ch) relancer(); });
+    Hooks.on("controlToken", relancer);
+    Hooks.on("updateUser", (u, ch) => { if (u.id === game.user?.id && "character" in ch) relancer(); });
 
     // Boutons en-tête : Anonyme + Révéler en fallback si Relations n'est pas actif
     // (le bouton "Retirer" unifié est injecté par le module Relations)

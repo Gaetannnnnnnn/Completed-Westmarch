@@ -5,12 +5,15 @@
 //             [ { id, targetId, targetName, targetImg,
 //                 type, level(-3→+3), note, lastPosition, secret } ]
 // Interface : onglet "Relations" injecté dans la fiche acteur
-// Auto-det. : canvasReady / createToken / updateToken (GM only)
+// Auto-det. : côté joueur, pour le personnage sur lequel il est connecté
+//             (game.user.character), seulement les jetons que son jeton
+//             voit (murs, portes, lumière : voir perception.js)
 // © 2026 Soruta — Tous droits réservés. Usage personnel autorisé. Redistribution et modification interdites.
 // ============================================================
 
 import { MOD } from "./const.js";
 import { commonFolderPJ, commonFolderPNJ, commonPackPNJ, commonPackCemetery } from "./settings.js";
+import { jetonDuPersonnage, voit, surCarteExpedition } from "./perception.js";
 export const MODULE = MOD;
 
 // ---- État de session ---------------------------------------
@@ -653,28 +656,31 @@ async function scanVisibleTokens() {
 
     try {
         const tokens    = canvas.tokens?.placeables ?? [];
-        const sceneName = game.scenes.current?.name ?? "";
+        const sceneName = canvas.scene?.name ?? game.scenes.current?.name ?? "";
 
-        // Token du joueur présent sur la scène (cherche parmi ses acteurs PJ)
-        // Logique inversée : token d'abord → acteur ensuite, pour gérer les WM multi-persos
-        const myToken = tokens.find(t =>
-            t.actor?.type === "character" &&
-            t.actor?.isOwner &&
-            isInPJFolder(t.actor)
-        );
-        if (!myToken) return;
+        // Seul le personnage sur lequel le joueur est CONNECTÉ détecte
+        // (Configuration du joueur → personnage). Sans personnage choisi, ou
+        // s'il n'a pas de jeton sur cette scène : aucune détection.
+        if (surCarteExpedition()) return;   // jamais sur les cartes des expéditions
+        const myToken = jetonDuPersonnage();
+        if (!myToken || !isInPJFolder(myToken.actor) || myToken.actor.type !== "character") return;
         const myActor = myToken.actor;
 
         const existing = new Set(relList(myActor).map(r => r.targetId));
 
-        // Tokens présents sur la scène (PJ = character dans dossier PJ, PNJ = dossier PNJ)
-        const toAdd = tokens.filter(t =>
-            t.actor?.id &&
-            t.actor.id !== myActor.id &&
-            ((isInPJFolder(t.actor) && t.actor.type === "character") || isInPNJFolder(t.actor)) &&
-            !existing.has(t.actor.id) &&
-            !(t.actor.getFlag(MOD, "excludedFromRelations") ?? false)
-        );
+        // Jetons PJ (dossier des PJ) / PNJ (dossier des PNJ) que SON jeton voit :
+        // pas derrière un mur ou une porte fermée, pas caché par le MJ, et
+        // visible à l'écran si la scène utilise la vision des jetons.
+        const vus = new Set();
+        const toAdd = tokens.filter(t => {
+            const a = t.actor;
+            if (!a?.id || a.id === myActor.id || existing.has(a.id) || vus.has(a.id)) return false;
+            if (!((isInPJFolder(a) && a.type === "character") || isInPNJFolder(a))) return false;
+            if (a.getFlag(MOD, "excludedFromRelations") ?? false) return false;
+            if (!voit(myToken, t)) return false;
+            vus.add(a.id);
+            return true;
+        });
 
         if (!toAdd.length) return;
 
@@ -756,6 +762,13 @@ export function RelationsHooks() {
         clearTimeout(_sightTimer);
         _sightTimer = setTimeout(() => scanVisibleTokens(), 300);
     });
+    // Un jeton qui bouge, apparaît (caché → visible) ou une porte qui s'ouvre
+    // peut rendre une cible visible : nouveau contrôle.
+    const relancer = () => { clearTimeout(_sightTimer); _sightTimer = setTimeout(() => scanVisibleTokens(), 400); };
+    Hooks.on("updateToken", (doc, ch) => { if ("x" in ch || "y" in ch || "hidden" in ch) relancer(); });
+    Hooks.on("updateWall", (doc, ch) => { if ("ds" in ch) relancer(); });
+    Hooks.on("controlToken", relancer);
+    Hooks.on("updateUser", (u, ch) => { if (u.id === game.user?.id && "character" in ch) relancer(); });
 
     // Boutons en-tête : Anonyme, Révéler, Retirer (Relations + Bestiaire) — GM uniquement
     Hooks.on("renderApplicationV2", (app, element) => {

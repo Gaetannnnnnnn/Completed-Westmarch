@@ -107,76 +107,99 @@ function candidatesForField(det) {
     }
 }
 
+// Types « de base » d'une fiche : refusés tout de suite (rien n'est créé).
+// Les autres (sorts, dons, aptitudes, objets) ne sont JAMAIS bloqués pendant
+// la création : un import de classe (Plutonium, avancement dnd5e) crée la
+// classe et tout ce qu'elle donne d'un seul coup, et refuser un seul élément
+// du lot fait échouer l'import (fiche sans classe, sorts à moitié ajoutés).
+// Ils sont donc créés normalement, marqués, puis retirés une fois l'import
+// terminé (aucune nouvelle création sur la fiche pendant DELAI_RETRAIT_MS).
+const TYPES_BLOQUES = new Set(["class", "subclass", "race", "background"]);
+const DELAI_RETRAIT_MS = 2500;
+const FLAG_REFUS = "sourceRefusee";
+
+// Verdict pour un item : null = autorisé, sinon { court, long } (message).
+function verdict(item, data) {
+    // LISTE NOIRE (prioritaire, pour TOUS) : source OU identifiant interdit.
+    const denyRaw = game.settings.get(MOD, "sourceDeny");
+    const deny = String(denyRaw ?? "").split(/[;\n]/).map(s => s.trim()).filter(Boolean);
+    if (deny.length) {
+        const det = detectSources(data, item);
+        const candidates = [...det.books, ...det.ids];
+        const exactD = game.settings.get(MOD, "sourceMatchExact");
+        const hit = deny.find(d => candidates.some(s => entryMatches(s, d, exactD)));
+        if (hit) return { court: `règle « ${hit} »`, long: `« ${item.name} » est interdit sur le serveur (règle « ${hit} »).` };
+    }
+
+    // Le rôle est celui du client initiateur (les hooks preCreate sont locaux).
+    const isGM = game.user.isGM;
+    const rules = parseRules(isGM ? game.settings.get(MOD, "sourceAllowGm") : game.settings.get(MOD, "sourceAllowPlayers"));
+    if (!rules.length) return null;   // liste vide pour ce rôle → aucune restriction
+
+    const sources = candidatesForField(detectSources(data, item));
+    const type = item.type;
+    const exact = game.settings.get(MOD, "sourceMatchExact");
+    if (!sources.length) {
+        if (!game.settings.get(MOD, "sourceBlockUnknown")) return null;
+        return { court: "source inconnue", long: `« ${item.name} » — source non identifiable, contenu refusé sur le serveur.` };
+    }
+    const srcRules = rules.filter(r => sources.some(s => entryMatches(s, r.source, exact)));
+    const label = sources.join(" / ");
+    if (!srcRules.length) return { court: `source « ${label} »`,
+        long: `« ${item.name} » — source « ${label} » non autorisée sur le serveur. Pour l'autoriser, ajoute-la à la liste des sources dans les réglages.` };
+    if (!srcRules.some(r => r.types === null || r.types.has(type))) return { court: `type « ${type} » de « ${label} »`,
+        long: `« ${item.name} » — les contenus de type « ${type} » de la source « ${label} » ne sont pas autorisés sur le serveur.` };
+    return null;
+}
+
+// Retraits différés, par fiche : { minuterie, ids }.
+const _aRetirer = new Map();
+function planifierRetrait(actor) {
+    const e = _aRetirer.get(actor.id) ?? { minuterie: null, ids: new Set() };
+    _aRetirer.set(actor.id, e);
+    clearTimeout(e.minuterie);
+    e.minuterie = setTimeout(() => retirer(actor).catch(err => console.warn(`[${MOD}] retrait de contenu refusé`, err)), DELAI_RETRAIT_MS);
+}
+async function retirer(actor) {
+    const e = _aRetirer.get(actor.id);
+    _aRetirer.delete(actor.id);
+    if (!e?.ids.size) return;
+    const items = [...e.ids].map(id => actor.items.get(id)).filter(Boolean);
+    if (!items.length) return;
+    await actor.deleteEmbeddedDocuments("Item", items.map(i => i.id));
+    const liste = items.map(i => `${i.name} (${i.getFlag(MOD, FLAG_REFUS) ?? "refusé"})`);
+    const resume = liste.length > 6 ? `${liste.slice(0, 6).join(", ")}… et ${liste.length - 6} autre(s)` : liste.join(", ");
+    ui.notifications?.warn(`${items.length} contenu(s) non autorisé(s) retiré(s) de « ${actor.name} » : ${resume}. Le reste a bien été ajouté.`, { permanent: items.length > 1 });
+    console.warn(`[${MOD}] Contenus retirés de ${actor.name} :`, liste);
+}
+
 export function SourceControlHooks() {
     // À la création d'un item SUR UNE FICHE PJ : vérifie la source.
     Hooks.on("preCreateItem", (item, data, options, userId) => {
         if (!on()) return;
         const actor = item.parent;
         if (!actor || actor.type !== "character") return;   // seulement les fiches PJ
-
-        // LISTE NOIRE (prioritaire, pour TOUS) : on bloque si la source OU
-        // l'identifiant du contenu correspond à une entrée interdite — pratique
-        // pour bannir un sort précis (identifiant) même si sa source est permise.
-        const denyRaw = game.settings.get(MOD, "sourceDeny");
-        const deny = String(denyRaw ?? "").split(/[;\n]/).map(s => s.trim()).filter(Boolean);
-        if (deny.length) {
-            const det = detectSources(data, item);
-            const candidates = [...det.books, ...det.ids];
-            const exactD = game.settings.get(MOD, "sourceMatchExact");
-            const hit = deny.find(d => candidates.some(s => entryMatches(s, d, exactD)));
-            if (hit) {
-                ui.notifications?.warn(`« ${item.name} » est interdit sur le serveur (règle « ${hit} »).`);
-                console.warn(`[${MOD}] Contenu interdit (liste noire) : ${item.name} — règle « ${hit} ».`);
-                return false;
-            }
-        }
-
-        // Le rôle est celui du client initiateur (les hooks preCreate sont locaux).
-        const isGM = game.user.isGM;
-        const listRaw = isGM
-            ? game.settings.get(MOD, "sourceAllowGm")
-            : game.settings.get(MOD, "sourceAllowPlayers");
-        const rules = parseRules(listRaw);
-
-        // Liste vide pour ce rôle → aucune restriction (anti-verrouillage total).
-        if (!rules.length) return;
-
-        const sources = candidatesForField(detectSources(data, item));
-        const type = item.type;
-        const blockUnknown = game.settings.get(MOD, "sourceBlockUnknown");
-        const exact = game.settings.get(MOD, "sourceMatchExact");
-
-        // Pas de source identifiable → selon l'option.
-        if (!sources.length) {
-            if (!blockUnknown) return;
-            ui.notifications?.warn(`« ${item.name} » — source non identifiable, contenu refusé sur le serveur.`);
-            console.warn(`[${MOD}] Source inconnue refusée : ${item.name} — rôle ${isGM ? "MJ" : "joueur"}.`);
+        const v = verdict(item, data);
+        if (!v) return;
+        if (TYPES_BLOQUES.has(item.type)) {
+            ui.notifications?.warn(v.long);
+            console.warn(`[${MOD}] Contenu refusé : ${v.long}`);
             return false;
         }
+        // Sort, don, objet… : créé puis retiré après l'import (voir plus haut).
+        item.updateSource({ [`flags.${MOD}.${FLAG_REFUS}`]: v.court });
+    });
 
-        // Règles dont la SOURCE correspond à ce contenu.
-        const srcRules = rules.filter(r => sources.some(s => entryMatches(s, r.source, exact)));
-        const label = sources.join(" / ");
-
-        if (!srcRules.length) {
-            // Source pas du tout autorisée.
-            ui.notifications?.warn(
-                `« ${item.name} » — source « ${label} » non autorisée sur le serveur. `
-                + `Pour l'autoriser, ajoute-la à la liste des sources dans les réglages.`
-            );
-            console.warn(`[${MOD}] Source refusée : ${item.name} (${label}) — rôle ${isGM ? "MJ" : "joueur"}.`);
-            return false;
-        }
-
-        // Source autorisée : le TYPE de ce contenu est-il permis pour cette source ?
-        const typeOk = srcRules.some(r => r.types === null || r.types.has(type));
-        if (!typeOk) {
-            ui.notifications?.warn(
-                `« ${item.name} » — les contenus de type « ${type} » de la source « ${label} » `
-                + `ne sont pas autorisés sur le serveur.`
-            );
-            console.warn(`[${MOD}] Type refusé : ${item.name} (${type} / ${label}) — rôle ${isGM ? "MJ" : "joueur"}.`);
-            return false;
-        }
+    // Sur le client qui a créé l'item : retrait différé des contenus marqués.
+    // Toute création sur la fiche repousse le retrait (import encore en cours).
+    Hooks.on("createItem", (item, options, userId) => {
+        if (userId !== game.user?.id) return;
+        const actor = item.parent;
+        if (!actor || actor.type !== "character") return;
+        const e = _aRetirer.get(actor.id);
+        if (item.getFlag(MOD, FLAG_REFUS)) {
+            planifierRetrait(actor);
+            _aRetirer.get(actor.id).ids.add(item.id);
+        } else if (e) planifierRetrait(actor);
     });
 }

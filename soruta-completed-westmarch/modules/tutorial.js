@@ -874,8 +874,8 @@ const STEPS_BY_FEATURE = {
             beforeShow: _toSheet("bestiary"),
             target:     "nav.tabs [data-tab='bestiary'], .tabs .item[data-tab='bestiary']",
             title:      "Onglet Bestiaire",
-            text:       "L'onglet <strong>Bestiaire</strong> liste les créatures que vous avez rencontrées. Les entrées sont ajoutées <strong>automatiquement</strong> quand vous croisez une créature sur une scène — vous n'avez rien à faire.",
-            textGM:     "Le Bestiaire se remplit <strong>automatiquement</strong> : dès qu'un PJ entre en contact avec une créature sur une scène, une entrée est créée dans son Bestiaire. Vous pouvez aussi en ajouter manuellement via le bouton Ajouter sur la fiche du joueur.",
+            text:       "L'onglet <strong>Bestiaire</strong> liste les créatures que vous avez rencontrées. Les entrées sont ajoutées <strong>automatiquement</strong> quand <strong>votre personnage</strong> (celui choisi dans la configuration du joueur) <strong>voit</strong> une créature : pas à travers un mur ou une porte fermée, ni dans le noir — vous n'avez rien à faire.",
+            textGM:     "Le Bestiaire se remplit <strong>automatiquement</strong> : dès que le jeton du personnage sur lequel un joueur est connecté <strong>voit</strong> une créature (ligne de vue sans mur bloquant la vue ni porte fermée ; lumière et vision si la scène utilise la vision des jetons ; jamais un jeton caché ; jamais sur les cartes des expéditions), une entrée est créée dans son Bestiaire. Vous pouvez aussi en ajouter manuellement via le bouton Ajouter sur la fiche du joueur.",
             position:   "bottom"
         },
         {
@@ -891,7 +891,7 @@ const STEPS_BY_FEATURE = {
             target:     ".bst-delete",
             title:      "Retirer une entrée",
             text:       "L'icône <i class='fa-solid fa-trash'></i> à droite d'une entrée retire définitivement cette créature de votre bestiaire. Une confirmation est demandée avant la suppression.",
-            textGM:     "L'icône <i class='fa-solid fa-trash'></i> retire la créature du bestiaire du joueur. Elle pourra être ré-ajoutée automatiquement si le joueur la recroise en scène.",
+            textGM:     "L'icône <i class='fa-solid fa-trash'></i> retire la créature du bestiaire du joueur. Elle pourra être ré-ajoutée automatiquement si le personnage du joueur la revoit en scène.",
             position:   "left"
         },
     ],
@@ -902,8 +902,8 @@ const STEPS_BY_FEATURE = {
             beforeShow: _toSheet("relations"),
             target:     "nav.tabs [data-tab='relations'], .tabs .item[data-tab='relations']",
             title:      "Onglet Relations",
-            text:       "L'onglet <strong>Relations</strong> liste vos liens avec les PJ et PNJ. Les entrées sont ajoutées <strong>automatiquement</strong> quand vous croisez quelqu'un sur une scène. Vous pouvez aussi en ajouter manuellement via le bouton <strong>+</strong>.",
-            textGM:     "Les Relations se remplissent <strong>automatiquement</strong> : dès qu'un PJ partage une scène avec un autre personnage, une entrée est créée dans ses Relations. Vous pouvez aussi en ajouter ou modifier depuis la fiche d'un joueur.",
+            text:       "L'onglet <strong>Relations</strong> liste vos liens avec les PJ et PNJ. Les entrées sont ajoutées <strong>automatiquement</strong> quand <strong>votre personnage</strong> (celui choisi dans la configuration du joueur) <strong>voit</strong> quelqu'un : pas à travers un mur ou une porte fermée, ni dans le noir. Vous pouvez aussi en ajouter manuellement via le bouton <strong>+</strong>.",
+            textGM:     "Les Relations se remplissent <strong>automatiquement</strong> : dès que le jeton du personnage sur lequel un joueur est connecté (configuration du joueur) <strong>voit</strong> un autre PJ ou PNJ (ligne de vue sans mur ni porte fermée ; lumière et vision si la scène utilise la vision des jetons ; jamais un jeton caché), une entrée est créée dans ses Relations (jamais sur les cartes des expéditions). Vous pouvez aussi en ajouter ou modifier depuis la fiche d'un joueur.",
             position:   "bottom"
         },
         {
@@ -918,8 +918,8 @@ const STEPS_BY_FEATURE = {
             beforeShow: _toSheet("relations"),
             target:     ".rel-delete",
             title:      "Supprimer une relation",
-            text:       "L'icône <i class='fa-solid fa-trash'></i> à droite d'une relation la supprime. Elle pourra être recréée automatiquement si vous recroisez ce personnage en scène.",
-            textGM:     "L'icône <i class='fa-solid fa-trash'></i> supprime la relation du joueur. Elle sera recréée automatiquement si le joueur recroise ce personnage en scène.",
+            text:       "L'icône <i class='fa-solid fa-trash'></i> à droite d'une relation la supprime. Elle pourra être recréée automatiquement si votre personnage revoit ce personnage en scène.",
+            textGM:     "L'icône <i class='fa-solid fa-trash'></i> supprime la relation du joueur. Elle sera recréée automatiquement si le personnage du joueur revoit ce personnage en scène.",
             position:   "left"
         },
         {

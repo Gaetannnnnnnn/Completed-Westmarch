@@ -212,6 +212,50 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
 
+v6.5.7 | 2026-10-18
+   - Relations, ajout automatique : seul le personnage sur lequel le joueur
+     est connecté (Configuration du joueur → personnage) détecte, et
+     seulement les jetons que SON jeton voit vraiment : pas à travers un mur
+     ou une porte fermée (au moins un point de la cible en ligne de vue), pas
+     un jeton caché par le MJ, et, si la scène utilise la vision des jetons,
+     seulement ce qui est visible à l'écran (lumière, obscurité, vision dans
+     le noir). Avant, n'importe quel PJ possédé par le joueur sur la scène
+     recevait tous les jetons de la scène. Nouveau contrôle quand un jeton
+     bouge ou apparaît, qu'une porte s'ouvre, ou que le joueur change de
+     personnage. Seuls les murs qui bloquent la vue comptent (murs de
+     mouvement ou de son seuls, portes ouvertes ignorés ; mur limité comme
+     dans Foundry). Aucune détection sur les scènes déclarées comme carte
+     des expéditions. Nouveau fichier modules/perception.js.
+   - Bestiaire, ajout automatique : mêmes règles que les Relations
+     (personnage connecté, créatures vues par son jeton, rien sur les cartes
+     des expéditions). Textes du tutoriel mis à jour.
+   - Contrôle des sources : un sort, don, aptitude ou objet refusé (liste
+     noire ou source non autorisée) ne fait plus échouer l'import d'une
+     classe. Avant, l'import (Plutonium, avancement dnd5e) crée la classe et
+     tout ce qu'elle donne d'un seul coup ; refuser un seul élément du lot
+     cassait l'import (fiche sans classe, sorts à moitié ajoutés). Désormais
+     ces contenus sont créés, puis retirés automatiquement une fois l'import
+     terminé (2,5 s sans nouvelle création sur la fiche), avec un message
+     qui liste ce qui a été retiré et pourquoi. Classes, sous-classes,
+     espèces et historiques refusés restent bloqués immédiatement.
+   - Nouveau réglage « Taille des épingles de lieux » (mondeTailleEpingle,
+     Registre du monde) : curseur de 8 à 512 px, 32 par défaut. La taille est
+     appliquée à l'affichage par chaque client, tout de suite, sans recharger
+     (Foundry impose 32 px minimum à une note : l'icône est mise à l'échelle,
+     la pointe reste sur le point exact).
+   - Registre du monde : le dossier des lieux (« Lieux » par défaut) est créé
+     dès que le registre est actif (au démarrage, à l'activation ou au
+     changement de son nom), et les fiches de lieux restées à la racine des
+     journaux y sont rangées.
+   - Nouveaux réglages mondePackPersonFolder et mondePackOrgFolder : nom d'un
+     dossier DANS le compendium des PNJ / des organisations où ranger les
+     fiches (créé s'il n'existe pas ; vide = racine). Utilisé à la création
+     et par « Ranger dans les compendiums ».
+   - Carte des expéditions : l'acteur modèle « Token à copier et rennomer »
+     est rangé dans un dossier d'acteurs « Tokens de groupe » (couleur or
+     orangé), créé automatiquement, sauf si un autre dossier est choisi dans
+     le réglage expeditionMapTemplateFolder.
+
 v6.5.6 | 2026-10-17
    - Progression XP, tableau des paliers : la colonne « XP pour monter » est
      de nouveau modifiable, en plus de « Hausse % », et les deux sont liées.
@@ -236,11 +280,6 @@ v6.5.6 | 2026-10-17
      notes de journal, pour que le nom d'un lieu découvert (au survol de son
      épingle) ne soit plus coupé par le noir des cases voisines. Les joueurs
      ne voient toujours que les notes des lieux qu'ils ont le droit de voir.
-   - Nouveau réglage « Taille des épingles de lieux » (mondeTailleEpingle,
-     Registre du monde) : curseur de 8 à 512 px, 32 par défaut. La taille est
-     appliquée à l'affichage par chaque client, tout de suite, sans recharger
-     (Foundry impose 32 px minimum à une note : l'icône est mise à l'échelle,
-     la pointe reste sur le point exact).
 
 v6.5.5 | 2026-10-17
    - Épingle d'un lieu : « Placer sur la carte » affiche la carte du monde et

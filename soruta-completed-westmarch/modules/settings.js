@@ -684,7 +684,7 @@ export function registerSettings() {
     });
     game.settings.register(MOD, "expeditionMapTemplateFolder", S(
         "Carte des expéditions — Dossier du token modèle",
-        "Dossier d'acteurs où créer l'acteur Groupe modèle « Token à copier et rennomer ». Laissez vide pour la racine."));
+        "Dossier d'acteurs où ranger l'acteur Groupe modèle « Token à copier et rennomer ». Vide : dossier « Tokens de groupe » (or orangé) créé automatiquement à la racine."));
     game.settings.register(MOD, "expeditionRevealRadius", N(
         "Carte des expéditions — Rayon de révélation (en cases)",
         "Nombre de cases (hex) révélées autour du token de groupe lors de son déplacement. 0 = seulement la case du token, 1 = la case + ses voisines, etc.",
@@ -1122,7 +1122,7 @@ const CATEGORIES = [
       keys: ["xpProgEnabled","xpLevelCap","xpPerSession","xpThresholdMode","xpMonthsToCap","xpSessionsPerWeek","xpGrowthOverrides","xpBonusRanges"] },
     { firstKey: "mondeEnabled", master: "mondeEnabled", icon: "fa-book-atlas", title: "Registre du monde",
       desc: "Fiches de PNJ, lieux et organisations dans Monk's Enhanced Journal, rédigées sur un modèle commun (rubriques ci-dessous), reliées aux acteurs, aux scènes, à la carte du monde et entre elles. PNJ et organisations sont rangés dans des compendiums (chargés à la demande), les lieux dans un dossier du monde (pour leurs épingles). Tout se retrouve dans l'onglet « Monde » du Casier. Nécessite Monk's Enhanced Journal.",
-      keys: ["mondeEnabled","mondeDecouverte","mondeDecouverteMessage","mondeBanniere","mondeBanniereSon","mondeEpinglesPartout","mondeTailleEpingle","mondePackPerson","mondePackOrg","mondeFolderPlace","mondeRubriques"] },
+      keys: ["mondeEnabled","mondeDecouverte","mondeDecouverteMessage","mondeBanniere","mondeBanniereSon","mondeEpinglesPartout","mondeTailleEpingle","mondePackPerson","mondePackPersonFolder","mondePackOrg","mondePackOrgFolder","mondeFolderPlace","mondeRubriques"] },
     { firstKey: "enableCharValidation", master: "enableCharValidation", icon: "fa-id-card", title: "Création de personnages",
       desc: "Les joueurs demandent la création d'un personnage ; un GM valide depuis le Casier, puis le joueur construit et soumet sa fiche ; à la validation elle est verrouillée. Le dossier de destination se règle dans « Dossiers & Compendiums ».",
       keys: ["enableCharValidation","charMaxTotal","charMaxActive","charFreeLevelUp","charNotifyLevelUp","blockPlayerPlutonium"] },
@@ -1598,6 +1598,11 @@ function settingControlHtml(key) {
     } else if (key === "mondePackPerson" || key === "mondePackOrg") {
         // Registre du monde : compendium de JOURNAUX (vide = créé automatiquement).
         control = `<select name="${key}" style="width:100%;">${packOptionsHtml(val, "JournalEntry").replace("— aucun —", "— créé automatiquement —")}</select>`;
+    } else if (key === "mondePackPersonFolder" || key === "mondePackOrgFolder") {
+        // Registre du monde : NOM d'un dossier DANS le compendium (créé au besoin).
+        control = `<input type="text" name="${key}" value="${escapeAttr(val ?? "")}" placeholder="(racine du compendium)" style="width:100%;">`;
+    } else if (key === "expeditionMapTemplateFolder") {
+        control = `<select name="${key}" style="width:100%;">${folderOptionsHtml(val).replace("— aucun —", "— « Tokens de groupe » (automatique) —")}</select>`;
     } else if (key.includes("Folder")) {
         control = `<select name="${key}" style="width:100%;">${folderOptionsHtml(val)}</select>`;
     } else if (key.includes("Pack")) {

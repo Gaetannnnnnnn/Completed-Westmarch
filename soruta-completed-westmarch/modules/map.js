@@ -381,19 +381,28 @@ function drawFog() {
 // Acteur Groupe « modèle » (à copier / renommer) — inchangé côté usage,
 // sert juste à donner un token de groupe prêt (Members = PJ assignés).
 // ============================================================
+// Dossier d'acteurs du token modèle : celui choisi dans les réglages, sinon
+// « Tokens de groupe » (couleur or orangé), créé automatiquement à la racine.
+export const DOSSIER_GROUPES = "Tokens de groupe";
+export const COULEUR_GROUPES = "#d9a13b";
 async function resolveTemplateFolderId() {
     const val = game.settings.get(MOD, "expeditionMapTemplateFolder");
-    if (!val) return null;
     const looksLikeId = (s) => /^[A-Za-z0-9]{16}$/.test(s ?? "");
-    const byId = game.folders?.get(val);
-    if (byId?.type === "Actor") return byId.id;
-    if (!looksLikeId(val)) {
-        const byName = game.folders?.find(f => f.type === "Actor" && f.name === val);
-        if (byName) return byName.id;
-        const created = await Folder.create({ name: val, type: "Actor" });
-        return created?.id ?? null;
+    if (val) {
+        const byId = game.folders?.get(val);
+        if (byId?.type === "Actor") return byId.id;
+        if (!looksLikeId(val)) {
+            const byName = game.folders?.find(f => f.type === "Actor" && f.name === val);
+            if (byName) return byName.id;
+            const created = await Folder.create({ name: val, type: "Actor", color: COULEUR_GROUPES });
+            return created?.id ?? null;
+        }
+        // id d'un dossier supprimé : on retombe sur le dossier par défaut.
     }
-    return null;
+    let dossier = game.folders?.find(f => f.type === "Actor" && f.name === DOSSIER_GROUPES && !f.folder);
+    if (!dossier) dossier = await Folder.create({ name: DOSSIER_GROUPES, type: "Actor", color: COULEUR_GROUPES });
+    else if (!dossier.color) await dossier.update({ color: COULEUR_GROUPES });
+    return dossier?.id ?? null;
 }
 
 async function ensureTemplateGroupActor() {
@@ -422,6 +431,11 @@ async function ensureTemplateGroupActor() {
         }
     }
     if (!actor) return null;
+    // Range le modèle dans son dossier (s'il est ailleurs, ex. à la racine).
+    try {
+        const fid = await resolveTemplateFolderId();
+        if (fid && actor.folder?.id !== fid) await actor.update({ folder: fid });
+    } catch (e) { console.warn(`[${MOD}] Rangement du token modèle échoué :`, e); }
 
     // NOTE : on ne dépose PLUS automatiquement le token modèle sur les scènes de
     // carte. L'acteur « modèle » reste disponible dans la barre latérale ; le MJ

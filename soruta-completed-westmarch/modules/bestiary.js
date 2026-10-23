@@ -87,9 +87,20 @@ function etiquetteDegatHtml(cle, nom, etat, canEdit) {
         style="display:inline-flex;align-items:center;gap:3px;padding:1px 6px;margin:2px;font-size:11px;line-height:16px;cursor:${canEdit ? "pointer" : "default"};user-select:none;${st.css}">${st.icon ? `<i class="fa-solid ${st.icon}" style="font-size:9px;"></i>` : ""}${escB(nom)}</a>`;
 }
 
-function blocDegatsHtml(entry, canEdit) {
+// Ordre d'affichage : faiblesses, puis résistances, puis immunités, puis les
+// types non notés ; ordre alphabétique (nom affiché) dans chaque groupe.
+const ORDRE_ETAT = { faiblesse: 0, resistance: 1, immunite: 2, "": 3 };
+function degatsTries(d) {
+    return DEGATS.slice().sort(([ka, na], [kb, nb]) =>
+        (ORDRE_ETAT[d[ka] ?? ""] - ORDRE_ETAT[d[kb] ?? ""]) || na.localeCompare(nb, "fr"));
+}
+function listeDegatsHtml(entry, canEdit) {
     const d = entry.degats ?? {};
-    const liste = canEdit ? DEGATS : DEGATS.filter(([k]) => d[k]);
+    const liste = degatsTries(d).filter(([k]) => canEdit || d[k]);
+    return liste.length ? liste.map(([k, nom]) => etiquetteDegatHtml(k, nom, d[k], canEdit)).join("") : `<em style="font-size:11px;opacity:.7;">Rien de noté.</em>`;
+}
+
+function blocDegatsHtml(entry, canEdit) {
     const legende = `<span style="font-size:10px;opacity:.65;margin-left:4px;">
         <i class="fa-solid fa-heart-crack" style="color:#ff8a7a;"></i> faiblesse ·
         <i class="fa-solid fa-shield-halved" style="color:#8cc8f0;"></i> résistance ·
@@ -97,8 +108,8 @@ function blocDegatsHtml(entry, canEdit) {
     return `<div class="bst-dmg-row" style="margin:6px 0;">
         <div style="display:flex;align-items:center;gap:6px;"><i class="fa-solid fa-burst"></i>
             <span class="bst-field-label">Dégâts :</span>${legende}</div>
-        <div class="bst-dmg-list" data-bst-id="${entry.id}" style="display:flex;flex-wrap:wrap;margin-top:2px;">
-            ${liste.length ? liste.map(([k, nom]) => etiquetteDegatHtml(k, nom, d[k], canEdit)).join("") : `<em style="font-size:11px;opacity:.7;">Rien de noté.</em>`}
+        <div class="bst-dmg-list" data-bst-id="${entry.id}" style="display:flex;flex-wrap:wrap;margin-top:2px;transition:opacity .15s;">
+            ${listeDegatsHtml(entry, canEdit)}
         </div>
     </div>`;
 }
@@ -283,11 +294,7 @@ function buildRowHtml(entry, actor, canEdit) {
             <div class="bst-scene-row">
                 <i class="fa-solid fa-map-marker-alt"></i>
                 <span class="bst-field-label">Première rencontre :</span>
-                ${canEdit
-                    ? `<input class="bst-scene-input" type="text" data-bst-id="${entry.id}"
-                           value="${entry.firstScene ?? ""}" placeholder="Scène, lieu…">`
-                    : `<span class="bst-scene-value">${entry.firstScene || "<em>Inconnue</em>"}</span>`
-                }
+                <span class="bst-scene-value" title="Scène où le personnage a vu la créature pour la première fois">${escB(entry.firstScene ?? "") || "<em>Inconnue</em>"}</span>
             </div>
             ${opt("bestiaryLastPosition") ? blocDernierePositionHtml(entry) : ""}
             ${opt("bestiaryArmorClass") ? blocCaHtml(entry, canEdit) : ""}
@@ -571,11 +578,30 @@ export function wireTab(actor, $html) {
         const degats = { ...(entry.degats ?? {}) };
         if (suivant) degats[cle] = suivant; else delete degats[cle];
         await beastUpdate(actor, id, { degats });
+        programmerTri($tag.length ? $tab.find(`.bst-dmg-list[data-bst-id="${id}"]`) : null, id);
     });
 
-    // Auto-save première rencontre
-    $tab.on("blur", ".bst-scene-input", async function () {
-        await beastUpdate(actor, String($(this).data("bst-id")), { firstScene: this.value.trim() });
+    // Réordonnancement des étiquettes (groupes faiblesse / résistance /
+    // immunité) : pas pendant qu'on clique, pour que l'étiquette ne se
+    // déplace pas sous la souris, mais quand la souris quitte la liste ou
+    // 1,5 s après le dernier clic.
+    const _tris = new Map();
+    const trier = (id) => {
+        clearTimeout(_tris.get(id)); _tris.delete(id);
+        const $liste = $tab.find(`.bst-dmg-list[data-bst-id="${id}"]`);
+        const entry = beastList(actor).find(en => en.id === id);
+        if (!$liste.length || !entry) return;
+        const el = $liste[0];
+        el.style.opacity = "0.35";
+        setTimeout(() => { el.innerHTML = listeDegatsHtml(entry, true); el.style.opacity = "1"; }, 150);
+    };
+    function programmerTri($liste, id) {
+        clearTimeout(_tris.get(id));
+        _tris.set(id, setTimeout(() => trier(id), 1500));
+    }
+    $tab.on("mouseleave", ".bst-dmg-list", function () {
+        const id = String($(this).data("bst-id"));
+        if (_tris.has(id)) trier(id);
     });
 
     // Auto-save note (debounce + blur immédiat)

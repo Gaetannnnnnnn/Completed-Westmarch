@@ -212,6 +212,16 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
 
+v6.6.0 | 2026-10-23
+   - Bestiaire : « Première rencontre » n'est plus modifiable à la main
+     (remplie une fois, à l'ajout de la créature), comme « Dernière
+     position ».
+   - Bestiaire, étiquettes de dégâts : rangées automatiquement par groupe
+     (faiblesses, puis résistances, puis immunités, puis les types non
+     notés ; ordre alphabétique dans chaque groupe). Le rangement se fait
+     quand la souris quitte la liste ou 1,5 s après le dernier clic, pour
+     que l'étiquette ne se déplace pas pendant qu'on clique dessus.
+
 v6.5.9 | 2026-10-23
    - Bestiaire : « Dernière position » n'est plus modifiable à la main
      (texte simple, mis à jour automatiquement quand le personnage revoit

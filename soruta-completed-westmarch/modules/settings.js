@@ -500,6 +500,31 @@ export function registerSettings() {
     game.settings.register(MOD, "enableLargeForm", B(
         tl("Taille Large — Goliath (Large Form)"),
         tl("Goliaths avec 'Large Form' : utiliser la feature bascule le token en 2x2 (Large) et inversement.")));
+    game.settings.register(MOD, "enableMonkMartialArts", B(
+        tl("Moine — Arts martiaux automatiques"),
+        tl("Moines sans armure ni bouclier : leurs frappes à mains nues et leurs armes de moine utilisent le dé d'Arts martiaux (s'il est plus grand que celui de l'arme) et la Dextérité si elle est meilleure que la Force. Appliqué en mémoire, sans modifier les armes."),
+        true, { onChange: () => import("./monk.js").then(m => m.rafraichirMoines()) }));
+    game.settings.register(MOD, "enableUncannyMetabolism", B(
+        tl("Moine — Métabolisme surnaturel au jet d'initiative"),
+        tl("S'il reste une utilisation et qu'au moins un point de focus est dépensé : récupère tous les points de focus et rend dé d'Arts martiaux + niveau de moine PV. Ignoré si l'objet est déjà automatisé (dnd5e, Midi-QOL, premades).")));
+    game.settings.register(MOD, "enablePerfectFocus", B(
+        tl("Moine — Focus parfait au jet d'initiative"),
+        tl("Si le Métabolisme surnaturel n'a pas servi : points de focus remontés à 4 s'il en reste 3 ou moins (Perfection de l'être 2014 : 4 ki s'il n'en reste aucun).")));
+    game.settings.register(MOD, "enablePersistentRage", B(
+        tl("Barbare — Rage persistante au jet d'initiative"),
+        tl("S'il reste une utilisation et qu'une rage est dépensée : récupère toutes les rages (une fois par repos long).")));
+    game.settings.register(MOD, "enableSuperiorInspiration", B(
+        tl("Barde — Inspiration supérieure au jet d'initiative"),
+        tl("Inspirations bardiques remontées à 2 (2024), ou à 1 s'il n'en reste aucune (2014).")));
+    game.settings.register(MOD, "enableEvergreenWildShape", B(
+        tl("Druide — Archidruide : Forme sauvage au jet d'initiative"),
+        tl("Règles 2024 : s'il ne reste aucune Forme sauvage, en récupère une.")));
+    game.settings.register(MOD, "enableResourcefulInspiration", B(
+        tl("Humain — Ingénieux : Inspiration héroïque au repos long"),
+        tl("À la fin d'un repos long, les humains avec le trait Ingénieux (Resourceful) obtiennent l'Inspiration héroïque.")));
+    game.settings.register(MOD, "enableMusicianInspiration", B(
+        tl("Musicien — Inspiration héroïque aux alliés après un repos"),
+        tl("À la fin d'un repos court ou long, le joueur qui a le don Musicien choisit jusqu'à « bonus de maîtrise » alliés qui reçoivent l'Inspiration héroïque (écriture faite par le MJ connecté).")));
     game.settings.register(MOD, "enableHealerReroll", B(
         tl("Healer (Guérisseur) — relance des 1 sur les soins"),
         tl("Personnages qui ont le don Healer : à chaque jet de soins d'un sort (ou du Battle Medic du don), les dés qui font 1 sont relancés une fois (« r1 » ajouté à la formule). Les PV temporaires ne sont pas concernés.")));
@@ -1073,18 +1098,36 @@ const TWEAK_TREE = {
             } },
             "Voie de la Bête": { children: {
                 "Form of the Beast (armes naturelles)": { key: "enableFormOfTheBeast" }
-            } }
+            } },
+            "Rage persistante au jet d'initiative": { key: "enablePersistentRage" }
+        } },
+        "Moine": { children: {
+            "Arts martiaux : dé et Dextérité automatiques": { key: "enableMonkMartialArts" },
+            "Métabolisme surnaturel au jet d'initiative": { key: "enableUncannyMetabolism" },
+            "Focus parfait au jet d'initiative": { key: "enablePerfectFocus" }
+        } },
+        "Barde": { children: {
+            "Inspiration supérieure au jet d'initiative": { key: "enableSuperiorInspiration" }
+        } },
+        "Druide": { children: {
+            "Archidruide : Forme sauvage au jet d'initiative": { key: "enableEvergreenWildShape" }
         } }
     } },
     "Espèces": { icon: "fa-dna", children: {
         "Goliath": { children: {
             "Large Form (taille Large)": { key: "enableLargeForm" }
+        } },
+        "Humain": { children: {
+            "Ingénieux : Inspiration héroïque au repos long": { key: "enableResourcefulInspiration" }
         } }
     } },
     "Sorts":       { icon: "fa-wand-magic-sparkles", children: {} },
     "Features":    { icon: "fa-star",                children: {
         "Alert (Vigilant)": { children: {
             "Bouton d'échange d'initiative (suivi de combat, MJ)": { key: "enableAlertSwap" }
+        } },
+        "Musician (Musicien)": { children: {
+            "Inspiration héroïque aux alliés après un repos": { key: "enableMusicianInspiration" }
         } },
         "Healer (Guérisseur)": { children: {
             "Relance des 1 sur les soins (sorts, Battle Medic)": { key: "enableHealerReroll" }

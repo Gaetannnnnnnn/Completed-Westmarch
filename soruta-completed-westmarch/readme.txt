@@ -212,6 +212,41 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
 
+v6.6.4 | 2026-10-26
+   - Moine — Arts martiaux automatiques (Modifications ciblées → Classes →
+     Moine, activé par défaut) : sans armure ni bouclier, les frappes à
+     mains nues et les armes de moine utilisent le dé d'Arts martiaux s'il
+     est plus grand que celui de l'arme (deux mains comprises pour une arme
+     Polyvalente), et la Dextérité quand elle est meilleure que la Force,
+     même si l'attaque de l'arme était réglée sur la Force. Rien n'est
+     modifié dans les objets : la règle est appliquée en mémoire quand dnd5e
+     prépare l'arme, la fiche affiche donc le bon dé. Armes de moine selon
+     les règles de la classe : 2024 (armes simples de corps à corps + armes
+     de guerre de corps à corps Légères) ou 2014 (épée courte + armes
+     simples de corps à corps sans À deux mains ni Lourde). Dé lu dans
+     l'échelle de la classe (@scale.monk.die), sinon déduit du niveau.
+     Fichier : modules/monk.js.
+   - Capacités qui se rechargent au jet d'initiative (Modifications ciblées
+     → Classes, une case par capacité, activées par défaut). Au premier jet
+     d'initiative du combat, le MJ connecté applique :
+       Moine — Métabolisme surnaturel (s'il reste une utilisation et qu'un
+       point de focus est dépensé : focus au maximum, PV = dé d'Arts
+       martiaux + niveau) ; Focus parfait (focus remontés à 4) ou Perfection
+       de l'être en 2014 (4 ki s'il n'en reste aucun) ;
+       Barbare — Rage persistante (rages récupérées, une fois par repos long) ;
+       Barde — Inspiration supérieure (2 en 2024, 1 en 2014) ;
+       Druide — Archidruide 2024 (une Forme sauvage s'il n'en reste aucune).
+     Une capacité déjà épuisée ne fait rien ; un message de chat résume ce
+     qui a été récupéré. Fichier : modules/initiative-recup.js.
+   - Inspiration héroïque : Humain Ingénieux (Resourceful) → cochée à la fin
+     d'un repos long ; don Musicien → à la fin d'un repos court ou long, le
+     joueur choisit jusqu'à « bonus de maîtrise » alliés (le MJ connecté fait
+     l'écriture). Fichier : modules/inspiration.js.
+   - Priorité aux automatisations existantes : si l'objet de la capacité est
+     déjà automatisé (récupération « Initiative » réglée dans dnd5e, macro
+     Midi-QOL onUse, objet de Chris's Premades, Gambit's Premades ou Midi
+     Item Showcase), le module ne fait rien pour cette capacité.
+
 v6.6.3 | 2026-10-26
    - Anglais par défaut : tout le texte du module (réglages, fiches, onglets,
      Casier, fenêtres, messages de chat, notifications, journal Discord,

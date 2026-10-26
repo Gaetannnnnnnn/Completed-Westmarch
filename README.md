@@ -9,9 +9,9 @@ Modules Foundry VTT v13 / D&D 5e v3 pour les serveurs WestMarch.
 | Module | ID | Version | Description |
 |--------|----|---------|-------------|
 | WestMarch Système | `westmarch` | 2.2.5 | Socle core — sessions, party, chat, combat, audio |
-| WestMarch Ashara | `westmarch-ashara` | 1.0.9 | Extensions serveur — temps morts, XP, Discord log |
-| Relations | `ashara-relations` | 1.6.3 | Onglet Relations sur la fiche PJ |
-| Bestiaire | `ashara-bestiary` | 1.3.4 | Onglet Bestiaire sur la fiche PJ |
+| WestMarch Serveur | `westmarch-serveur` | 1.0.9 | Extensions serveur — temps morts, XP, Discord log |
+| Relations | `relations` | 1.6.3 | Onglet Relations sur la fiche PJ |
+| Bestiaire | `bestiary` | 1.3.4 | Onglet Bestiaire sur la fiche PJ |
 | Carnet d'Expéditions | `carnet` | 1.3.8 | Onglets Carnet & Expéditions sur la fiche PJ |
 | Map Ouvert Systèmes | `carte-expeditions` | 1.0.2 | Gestion fog of war par personnage/groupe |
 | Midi Range Fix | `midi-range-fix` | 1.5.9 | Corrige la portée midi-qol pour les grands tokens |
@@ -34,10 +34,10 @@ Modules Foundry VTT v13 / D&D 5e v3 pour les serveurs WestMarch.
 | Module | Soruta requis | Soruta recommandé | Externe requis | Externe optionnel |
 |--------|--------------|-------------------|----------------|-------------------|
 | `westmarch` | — | — | — | `monks-tokenbar` |
-| `westmarch-ashara` | `westmarch` | — | — | `simple-calendar` |
-| `ashara-relations` | — | — | — | — |
-| `ashara-bestiary` | — | `ashara-relations` | — | — |
-| `carnet` | `westmarch` | `ashara-bestiary`, `ashara-relations` | — | `simple-calendar` |
+| `westmarch-serveur` | `westmarch` | — | — | `simple-calendar` |
+| `relations` | — | — | — | — |
+| `bestiary` | — | `relations` | — | — |
+| `carnet` | `westmarch` | `bestiary`, `relations` | — | `simple-calendar` |
 | `carte-expeditions` | — | — | — | — |
 | `midi-range-fix` | — | — | `midi-qol` | — |
 | `toolkit` | — | — | — | `monks-enhanced-journal`, `lib-wrapper`, `monks-tokenbar` |
@@ -47,12 +47,12 @@ Modules Foundry VTT v13 / D&D 5e v3 pour les serveurs WestMarch.
 
 ```
 CharacterActorSheet (dnd5e)
-  → AshCharacterSheet      (ashara-relations)
-    → AshBestiarySheet     (ashara-bestiary)
+  → RelationsSheet      (relations)
+    → BestiarySheet     (bestiary)
       → CarnetSheet        (carnet)
 ```
 
-Chaque module détecte ceux qui le précèdent via `CONFIG.asharaSheets` et hérite de leur fiche. Si un maillon manque, il remonte à la fiche disponible la plus proche.
+Chaque module détecte ceux qui le précèdent via `CONFIG.sorutaSheets` et hérite de leur fiche. Si un maillon manque, il remonte à la fiche disponible la plus proche.
 
 ### Export des fiches PJ
 
@@ -61,7 +61,7 @@ Chaque module détecte ceux qui le précèdent via `CONFIG.asharaSheets` et hér
 - **Fiche actuelle** — export complet avec toutes les données modules (flags, expéditions, relations, bestiaire…). À réimporter sur un serveur avec les mêmes modules.
 - **Fiche originale dnd5e** — supprime tous les flags propres aux modules Soruta avant export. Compatible avec n'importe quel serveur Foundry.
 
-Les modules `ashara-relations`, `ashara-bestiary` et `carnet` se déclarent automatiquement dans `CONFIG.asharaSheetsModules` au démarrage. `toolkit` lit cette liste pour savoir quels flags supprimer — aucune dépendance explicite n'est requise entre ces modules et `toolkit`.
+Les modules `relations`, `bestiary` et `carnet` se déclarent automatiquement dans `CONFIG.sorutaSheetsModules` au démarrage. `toolkit` lit cette liste pour savoir quels flags supprimer — aucune dépendance explicite n'est requise entre ces modules et `toolkit`.
 
 ---
 
@@ -69,8 +69,8 @@ Les modules `ashara-relations`, `ashara-bestiary` et `carnet` se déclarent auto
 
 - Tous les modules nécessitent **Foundry VTT v13+** et le système **D&D 5e v3+**.
 - `midi-range-fix` s'inactive automatiquement si `midi-qol` n'est pas installé.
-- `westmarch-ashara` — les dates (temps morts, caldate) utilisent l'API calendrier **native Foundry v13** (`game.time.calendar`), pas `SimpleCalendar.api` directement. Mais en pratique, Simple Calendar est recommandé pour avoir les bons noms de mois du calendrier Ashara. Le log Discord passe par un webhook HTTP configuré en settings.
-- `carte-expeditions` et `ashara-relations` sont les seuls modules totalement autonomes.
+- `westmarch-serveur` — les dates (temps morts, caldate) utilisent l'API calendrier **native Foundry v13** (`game.time.calendar`), pas `SimpleCalendar.api` directement. Mais en pratique, Simple Calendar est recommandé pour avoir les bons noms de mois du calendrier du serveur. Le log Discord passe par un webhook HTTP configuré en settings.
+- `carte-expeditions` et `relations` sont les seuls modules totalement autonomes.
 - `monks-enhanced-journal` est uniquement requis pour les features boutiques/réapprovisionnement de `toolkit`. Le reste du module (polymorph, export, outils GM) fonctionne sans.
 
 ---

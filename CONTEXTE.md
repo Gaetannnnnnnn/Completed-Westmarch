@@ -1,4 +1,4 @@
-# Contexte — Projet Foundry VTT Ashara
+# Contexte — Projet Foundry VTT West March
 *À lire au début de chaque nouvelle conversation Cowork pour retrouver le contexte complet.*
 
 ---
@@ -29,15 +29,15 @@ Les comptes joueurs (non-GM) ne peuvent pas exécuter de commandes dans la conso
 
 ## Architecture des modules
 
-Tous les modules sont dans `C:\Users\gaeta\OneDrive\D&D\Ashara\Ashara\` :
+Tous les modules sont dans le dossier OneDrive du projet :
 
 | Module | ID | Version | Description |
 |---|---|---|---|
 | `westmarch` | westmarch | — | Module core West March (gelé) |
-| `westmarch-ashara` | westmarch-ashara | — | Overrides Ashara sur westmarch |
+| `westmarch-serveur` | westmarch-serveur | — | Overrides serveur sur westmarch |
 | `toolkit` | toolkit | 1.0.7 | Features génériques (tokens, MEJ restock, etc.) |
-| `bestiary` | ashara-bestiary | 1.3.4 | Bestiaire par personnage |
-| `relations` | ashara-relations | 1.6.3 | Système de relations entre acteurs |
+| `bestiary` | bestiary | 1.3.4 | Bestiaire par personnage |
+| `relations` | relations | 1.6.3 | Système de relations entre acteurs |
 | `carnet` | carnet | 1.1.2 | Carnet d'expéditions + notes ProseMirror |
 | `tutoriel` | tutoriel | — | Fenêtre de bienvenue + bulles tutoriel |
 | `midi-range-fix` | midi-range-fix | 1.2.4 | Fix portée midi-qol pour tokens Large+ |
@@ -57,7 +57,7 @@ Tous les modules sont dans `C:\Users\gaeta\OneDrive\D&D\Ashara\Ashara\` :
 ## Projets en cours / reportés
 
 ### bestiary — lecture depuis compendium (reporté)
-Faire lire `ashara-bestiary` depuis un compendium configurable au lieu de `game.actors`. Le monde contient ~500 monstres MM24 qui ralentissent la connexion (50-150s). Migration : remplacer le setting "nom de dossier" par "id de compendium", et `game.actors.filter(...)` par `game.packs.get(id).getDocuments()`.
+Faire lire `bestiary` depuis un compendium configurable au lieu de `game.actors`. Le monde contient ~500 monstres MM24 qui ralentissent la connexion (50-150s). Migration : remplacer le setting "nom de dossier" par "id de compendium", et `game.actors.filter(...)` par `game.packs.get(id).getDocuments()`.
 
 ---
 

@@ -32,7 +32,7 @@ function buildSettingsMap() {
         "enableSessionLog", "enableCombatParty", "enableAntiCheat"
     ]);
 
-    // Serveur — ancien module "westmarch-ashara" (clés inchangées)
+    // Serveur — ancien module serveur (clés inchangées)
     same("westmarch-ashara", [
         "enableXpBlock", "enableDiscordLog",
         "discordLogWebhookUrl", "downtimeWebhookUrl", "tmWebhookUrl"

@@ -100,7 +100,7 @@ function playerOf(actor) {
 }
 
 // ============================================================
-// Registre des PJ (vue type tableur — inspirée de l'Excel « PJ Ashara »)
+// Registre des PJ (vue type tableur — inspirée du registre Excel des PJ)
 // Colonnes déduites automatiquement des fiches Foundry.
 // ============================================================
 

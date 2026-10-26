@@ -1221,7 +1221,7 @@ v1.7.0 | 2026-08-04
 
 v1.6.8 | 2026-08-04
    - Relations : suppression du reglage inutilise "Dossier des creatures"
-     (vestige d ashara-relations, jamais utilise ; les creatures relevent du
+     (vestige de l ancien module Relations, jamais utilise ; les creatures relevent du
      Bestiaire). Retire de settings.js, relations.js et migration.js.
 
 v1.6.7 | 2026-08-04
@@ -1558,7 +1558,7 @@ v1.0.2 | 2026-08-03
 v1.0.1 | 2026-08-03
    - Retrait de la fonctionnalité Webhook Discord (chat IC par scène) et de la
      lib TurndownService associée.
-   - Retrait des mentions "Ashara" (branding). Les identifiants legacy des
+   - Retrait des mentions de l ancien nom du serveur (branding). Les identifiants legacy des
      anciens modules sont conservés uniquement pour la migration des données.
    - Ajout : masquage de la barre de macros pour les joueurs (réglage Toolkit,
      "enableHideHotbar", live, GM exclu).

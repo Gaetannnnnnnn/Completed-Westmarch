@@ -16,6 +16,7 @@
 import { MOD } from "./const.js";
 
 import { journal } from "./log.js";
+import { tl } from "./i18n.js";
 const on = () => game.settings.get(MOD, "enableSourceControl");
 
 // Normalise un mot-clé (repli d'accents + minuscules + alphanum. seulement).
@@ -25,7 +26,7 @@ const _slug = (s) => String(s ?? "")
 
 // Mots-clés de type → types d'items dnd5e. « objet » couvre tout le matériel.
 const TYPE_ALIASES = {
-    race: ["race"],
+    race: ["race"], species: ["race"], espece: ["race"],
     classe: ["class"], class: ["class"],
     sousclasse: ["subclass"], subclass: ["subclass"],
     don: ["feat"], feat: ["feat"], aptitude: ["feat"],
@@ -129,7 +130,7 @@ function verdict(item, data) {
         const candidates = [...det.books, ...det.ids];
         const exactD = game.settings.get(MOD, "sourceMatchExact");
         const hit = deny.find(d => candidates.some(s => entryMatches(s, d, exactD)));
-        if (hit) return { court: `règle « ${hit} »`, long: `« ${item.name} » est interdit sur le serveur (règle « ${hit} »).` };
+        if (hit) return { court: tl("règle « {0} »", hit), long: tl("« {0} » est interdit sur le serveur (règle « {1} »).", item.name, hit) };
     }
 
     // Le rôle est celui du client initiateur (les hooks preCreate sont locaux).
@@ -142,14 +143,14 @@ function verdict(item, data) {
     const exact = game.settings.get(MOD, "sourceMatchExact");
     if (!sources.length) {
         if (!game.settings.get(MOD, "sourceBlockUnknown")) return null;
-        return { court: "source inconnue", long: `« ${item.name} » — source non identifiable, contenu refusé sur le serveur.` };
+        return { court: "source inconnue", long: tl("« {0} » — source non identifiable, contenu refusé sur le serveur.", item.name) };
     }
     const srcRules = rules.filter(r => sources.some(s => entryMatches(s, r.source, exact)));
     const label = sources.join(" / ");
-    if (!srcRules.length) return { court: `source « ${label} »`,
-        long: `« ${item.name} » — source « ${label} » non autorisée sur le serveur. Pour l'autoriser, ajoute-la à la liste des sources dans les réglages.` };
-    if (!srcRules.some(r => r.types === null || r.types.has(type))) return { court: `type « ${type} » de « ${label} »`,
-        long: `« ${item.name} » — les contenus de type « ${type} » de la source « ${label} » ne sont pas autorisés sur le serveur.` };
+    if (!srcRules.length) return { court: tl("source « {0} »", label),
+        long: tl("« {0} » — source « {1} » non autorisée sur le serveur. Pour l'autoriser, ajoute-la à la liste des sources dans les réglages.", item.name, label) };
+    if (!srcRules.some(r => r.types === null || r.types.has(type))) return { court: tl("type « {0} » de « {1} »", type, label),
+        long: tl("« {0} » — les contenus de type « {1} » de la source « {2} » ne sont pas autorisés sur le serveur.", item.name, type, label) };
     return null;
 }
 
@@ -159,7 +160,7 @@ function planifierRetrait(actor) {
     const e = _aRetirer.get(actor.id) ?? { minuterie: null, ids: new Set() };
     _aRetirer.set(actor.id, e);
     clearTimeout(e.minuterie);
-    e.minuterie = setTimeout(() => retirer(actor).catch(err => journal.avert(`[${MOD}] retrait de contenu refusé`, err)), DELAI_RETRAIT_MS);
+    e.minuterie = setTimeout(() => retirer(actor).catch(err => journal.avert(tl("[{0}] retrait de contenu refusé", MOD), err)), DELAI_RETRAIT_MS);
 }
 async function retirer(actor) {
     const e = _aRetirer.get(actor.id);
@@ -168,10 +169,10 @@ async function retirer(actor) {
     const items = [...e.ids].map(id => actor.items.get(id)).filter(Boolean);
     if (!items.length) return;
     await actor.deleteEmbeddedDocuments("Item", items.map(i => i.id));
-    const liste = items.map(i => `${i.name} (${i.getFlag(MOD, FLAG_REFUS) ?? "refusé"})`);
-    const resume = liste.length > 6 ? `${liste.slice(0, 6).join(", ")}… et ${liste.length - 6} autre(s)` : liste.join(", ");
-    ui.notifications?.warn(`${items.length} contenu(s) non autorisé(s) retiré(s) de « ${actor.name} » : ${resume}. Le reste a bien été ajouté.`, { permanent: items.length > 1 });
-    journal.info(`[${MOD}] Contenus retirés de ${actor.name} :`, liste);
+    const liste = items.map(i => `${i.name} (${i.getFlag(MOD, FLAG_REFUS) ?? tl("refusé")})`);
+    const resume = liste.length > 6 ? tl("{0}… et {1} autre(s)", liste.slice(0, 6).join(", "), liste.length - 6) : liste.join(", ");
+    ui.notifications?.warn(tl("{0} contenu(s) non autorisé(s) retiré(s) de « {1} » : {2}. Le reste a bien été ajouté.", items.length, actor.name, resume), { permanent: items.length > 1 });
+    journal.info(tl("[{0}] Contenus retirés de {1} :", MOD, actor.name), liste);
 }
 
 export function SourceControlHooks() {
@@ -184,7 +185,7 @@ export function SourceControlHooks() {
         if (!v) return;
         if (TYPES_BLOQUES.has(item.type)) {
             ui.notifications?.warn(v.long);
-            journal.info(`[${MOD}] Contenu refusé : ${v.long}`);
+            journal.info(tl("[{0}] Contenu refusé : {1}", MOD, v.long));
             return false;
         }
         // Sort, don, objet… : créé puis retiré après l'import (voir plus haut).

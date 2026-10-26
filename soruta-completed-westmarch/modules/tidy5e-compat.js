@@ -26,6 +26,7 @@ import {
     buildJournalHtml, buildDowntimeHtml, wireJournalTab, wireDowntimeTab
 } from "./carnet.js";
 import { buildGmNotesHtml, wireGmNotes } from "./character-sheet.js";
+import { tl } from "./i18n.js";
 
 // Récupère l'acteur depuis les paramètres onRender de Tidy (plusieurs
 // chemins possibles selon la version de Tidy/dnd5e).
@@ -35,7 +36,7 @@ function _actorOf(p) {
 
 function registerTidyTabs(api) {
     if (!api?.registerCharacterTab || !api?.models?.HtmlTab) {
-        journal.critique(`[${MOD}] API Tidy5e incomplète : onglets non injectés.`);
+        journal.critique(tl("[{0}] API Tidy5e incomplète : onglets non injectés.", MOD));
         return;
     }
     const HtmlTab = api.models.HtmlTab;
@@ -64,7 +65,7 @@ function registerTidyTabs(api) {
                 el.innerHTML = build(actor);
                 wire(actor, el, p.app);
             } catch (e) {
-                journal.erreur(`[${MOD}] Rendu onglet Tidy « ${title} » :`, e);
+                journal.erreur(tl("[{0}] Rendu onglet Tidy « {1} » :", MOD, title), e);
             }
         }
     });
@@ -76,7 +77,7 @@ function registerTidyTabs(api) {
 
     try {
         const gmNotesTabDef = {
-            title: "Note GM", id: "gmnotes", icon: "fa-solid fa-user-secret",
+            title: tl("Note GM"), id: "gmnotes", icon: "fa-solid fa-user-secret",
             build: (a) => buildGmNotesHtml(a),
             wire:  (a, el) => wireGmNotes(a, el)
         };
@@ -87,33 +88,33 @@ function registerTidyTabs(api) {
         }
 
         if (relOn) api.registerCharacterTab(makeTab({
-            title: "Relations", id: "relations", icon: "fa-solid fa-heart",
+            title: tl("Relations"), id: "relations", icon: "fa-solid fa-heart",
             build: (a) => relBuildTab(a),
             wire:  (a, el) => relWireTab(a, $(el))
         }), opts);
 
         if (bestOn) api.registerCharacterTab(makeTab({
-            title: "Bestiaire", id: "bestiary", icon: "fa-solid fa-dragon",
+            title: tl("Bestiaire"), id: "bestiary", icon: "fa-solid fa-dragon",
             build: (a) => bstBuildTab(a),
             wire:  (a, el) => bstWireTab(a, $(el))
         }), opts);
 
         if (carnetOn) {
             api.registerCharacterTab(makeTab({
-                title: "Carnet", id: "carnet-journal", icon: "fa-solid fa-book-open",
+                title: tl("Carnet"), id: "carnet-journal", icon: "fa-solid fa-book-open",
                 build: (a) => buildJournalHtml(a),
                 wire:  (a, el, app) => wireJournalTab(a, el, app)
             }), opts);
             api.registerCharacterTab(makeTab({
-                title: "Expéditions", id: "carnet-downtime", icon: "fa-solid fa-hourglass-half",
+                title: tl("Expéditions"), id: "carnet-downtime", icon: "fa-solid fa-hourglass-half",
                 build: (a) => buildDowntimeHtml(a),
                 wire:  (a, el, app) => wireDowntimeTab(a, el, app)
             }), opts);
         }
 
-        journal.debug(`[${MOD}] Onglets injectés dans les fiches Tidy5e.`);
+        journal.debug(tl("[{0}] Onglets injectés dans les fiches Tidy5e.", MOD));
     } catch (e) {
-        journal.erreur(`[${MOD}] Enregistrement des onglets Tidy5e échoué :`, e);
+        journal.erreur(tl("[{0}] Enregistrement des onglets Tidy5e échoué :", MOD), e);
     }
 }
 

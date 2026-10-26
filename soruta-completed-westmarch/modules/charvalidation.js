@@ -24,6 +24,7 @@ import { MOD } from "./const.js";
 import { journal } from "./log.js";
 import { Dialog } from "./compat.js";
 import { commonFolderNewChars, commonFolderPJ } from "./settings.js";
+import { tl, memeNom } from "./i18n.js";
 
 // ---- Frontière construction / jeu -------------------------------------------
 // Chemins d'acteur relevant de la CONSTRUCTION (verrouillés).
@@ -116,7 +117,7 @@ async function applyCharStock(actorId, stock) {
 async function requestCharStock(actorId, stock) {
     if (game.user.isGM) { await applyCharStock(actorId, stock); return; }
     const gm = game.users.find(u => u.isGM && u.active);
-    if (!gm) { ui.notifications?.warn("Aucun MJ en ligne pour (dés)activer ce personnage."); return; }
+    if (!gm) { ui.notifications?.warn(tl("Aucun MJ en ligne pour (dés)activer ce personnage.")); return; }
     try { await gm.query("westmarch.charStock", { actorId, stock }); }
     catch (e) { journal.avert(`[${MOD}] charStock :`, e); }
 }
@@ -134,7 +135,7 @@ async function ensureFolder() {
             if (byName) return byName;
         }
     }
-    const name = (val && !looksLikeId(val)) ? val : "Personnages";
+    const name = (val && !looksLikeId(val)) ? val : tl("Personnages");
     let f = game.folders?.find(x => x.type === "Actor" && x.name === name);
     if (!f) f = await Folder.create({ name, type: "Actor" });
     return f;
@@ -143,7 +144,7 @@ async function ensureFolder() {
 // Sous-dossier au nom du joueur, à l'intérieur du dossier parent configuré.
 async function ensurePlayerFolder(user) {
     const parent = await ensureFolder();
-    const name = user?.name ?? "Joueur";
+    const name = user?.name ?? tl("Joueur");
     let f = game.folders?.find(x =>
         x.type === "Actor" && x.name === name && (x.folder?.id ?? null) === (parent?.id ?? null));
     if (!f) f = await Folder.create({ name, type: "Actor", folder: parent?.id ?? null });
@@ -173,12 +174,12 @@ async function ensurePlayerPJFolder(user) {
     if (!user || user.isGM) return null;
     const parent = resolvePJFolder();
     if (!parent) return null;                       // aucun Dossier des PJ configuré
-    const name = user.name ?? "Joueur";
+    const name = user.name ?? tl("Joueur");
     let f = game.folders?.find(x =>
         x.type === "Actor" && x.name === name && (x.folder?.id ?? null) === (parent.id ?? null));
     if (!f) {
         f = await Folder.create({ name, type: "Actor", folder: parent.id });
-        journal.debug(`[${MOD}] Sous-dossier PJ créé pour « ${name} ».`);
+        journal.debug(tl("[{0}] Sous-dossier PJ créé pour « {1} ».", MOD, name));
     }
     return f;
 }
@@ -195,13 +196,13 @@ async function ensureGmFolders(user) {
         let parent = game.folders?.find(f => f.type === type && f.name === parentName && !f.folder);
         if (!parent) {
             try { parent = await Folder.create({ name: parentName, type }); }
-            catch (e) { journal.avert(`[${MOD}] Dossier parent MJ (${type}) :`, e); continue; }
+            catch (e) { journal.avert(tl("[{0}] Dossier parent MJ ({1}) :", MOD, type), e); continue; }
         }
         const exists = game.folders?.find(f =>
             f.type === type && f.name === name && (f.folder?.id ?? null) === (parent.id ?? null));
         if (!exists) {
             try { await Folder.create({ name, type, folder: parent.id }); }
-            catch (e) { journal.avert(`[${MOD}] Sous-dossier MJ (${type}) :`, e); }
+            catch (e) { journal.avert(tl("[{0}] Sous-dossier MJ ({1}) :", MOD, type), e); }
         }
     }
 }
@@ -230,10 +231,10 @@ async function placeImportedCreature(actor, userId) {
         const gmSub = await gmActorSubfolder(game.user);
         if (!gmSub) return;
         let dest = game.folders?.find(f =>
-            f.type === "Actor" && f.name === "Import" && (f.folder?.id ?? null) === gmSub.id);
-        if (!dest) dest = await Folder.create({ name: "Import", type: "Actor", folder: gmSub.id });
+            f.type === "Actor" && memeNom(f.name, tl("Import")) && (f.folder?.id ?? null) === gmSub.id);
+        if (!dest) dest = await Folder.create({ name: tl("Import"), type: "Actor", folder: gmSub.id });
         await actor.update({ folder: dest.id });
-    } catch (e) { journal.avert(`[${MOD}] Rangement créature importée :`, e); }
+    } catch (e) { journal.avert(tl("[{0}] Rangement créature importée :", MOD), e); }
 }
 
 // Si l'acteur est rangé dans un sous-dossier « au nom d'un joueur » situé dans
@@ -263,7 +264,7 @@ export async function approveCreation(userId) {
     // créé « en stock » (Observateur) ; sinon actif (Propriétaire).
     const asStock = activeCountForUser(userId) >= maxActive();
     const actor = await Actor.create({
-        name: req.name || `${user.name} — personnage`,
+        name: req.name || tl("{0} — personnage", user.name),
         type: "character",
         folder: folder.id,
         ownership: { default: L.NONE, [userId]: asStock ? L.OBSERVER : L.OWNER },
@@ -272,17 +273,17 @@ export async function approveCreation(userId) {
     await user.unsetFlag(MOD, "charRequest");
     ChatMessage.create({
         whisper: [userId],
-        speaker: { alias: "Validation" },
-        content: `✅ Votre demande de personnage est acceptée. La fiche <strong>${actor?.name}</strong> est dans vos acteurs — construisez-la (imports Plutonium compris) puis soumettez-la pour validation.`
+        speaker: { alias: tl("Validation") },
+        content: `${tl("✅ Votre demande de personnage est acceptée. La fiche <strong>{0}</strong> est dans vos acteurs — construisez-la (imports Plutonium compris) puis soumettez-la pour validation.", actor?.name)}`
     });
-    ui.notifications?.info(`Personnage créé pour ${user.name}.`);
+    ui.notifications?.info(tl("Personnage créé pour {0}.", user.name));
 }
 export async function rejectCreation(userId) {
     if (!game.user.isGM) return;
     const user = game.users.get(userId);
     if (!user) return;
     await user.unsetFlag(MOD, "charRequest");
-    ChatMessage.create({ whisper: [userId], speaker: { alias: "Validation" }, content: "❌ Votre demande de personnage a été refusée. Rapprochez-vous du MJ." });
+    ChatMessage.create({ whisper: [userId], speaker: { alias: tl("Validation") }, content: tl("❌ Votre demande de personnage a été refusée. Rapprochez-vous du MJ.") });
 }
 export async function validateActor(actorId) {
     if (!game.user.isGM) return;
@@ -298,8 +299,8 @@ export async function validateActor(actorId) {
         [`flags.${MOD}.-=levelUpChanges`]: null     // nettoie la liste des modifs
     });
     const uid = actor.getFlag(MOD, "createdFor");
-    if (uid) ChatMessage.create({ whisper: [uid], speaker: { alias: "Validation" }, content: `🔒 <strong>${actor.name}</strong> est validé et verrouillé. Vous pouvez jouer normalement ; les changements de construction passeront par le MJ.` });
-    ui.notifications?.info(`${actor.name} validé et verrouillé.`);
+    if (uid) ChatMessage.create({ whisper: [uid], speaker: { alias: tl("Validation") }, content: `${tl("🔒 <strong>{0}</strong> est validé et verrouillé. Vous pouvez jouer normalement ; les changements de construction passeront par le MJ.", actor.name)}` });
+    ui.notifications?.info(tl("{0} validé et verrouillé.", actor.name));
 }
 
 // ---- Suivi des modifications de montée de niveau ----------------------------
@@ -333,13 +334,13 @@ function buildDiff(b, a) {
         if ((b.abilities[k] ?? null) !== a.abilities[k]) out.push(`${_abilLabel(k)} : ${b.abilities[k]} → ${a.abilities[k]}`);
     }
     const nf = a.feats.filter(x => !b.feats.includes(x));
-    if (nf.length) out.push(`Aptitudes ajoutées : ${nf.join(", ")}`);
+    if (nf.length) out.push(tl("Aptitudes ajoutées : {0}", nf.join(", ")));
     const rf = b.feats.filter(x => !a.feats.includes(x));
-    if (rf.length) out.push(`Aptitudes retirées : ${rf.join(", ")}`);
+    if (rf.length) out.push(tl("Aptitudes retirées : {0}", rf.join(", ")));
     const ns = a.spells.filter(x => !b.spells.includes(x));
-    if (ns.length) out.push(`Sorts ajoutés : ${ns.join(", ")}`);
+    if (ns.length) out.push(tl("Sorts ajoutés : {0}", ns.join(", ")));
     const sk = Object.keys(a.skills).filter(k => (b.skills[k] ?? 0) !== a.skills[k]).map(_skillLabel);
-    if (sk.length) out.push(`Maîtrises modifiées : ${sk.join(", ")}`);
+    if (sk.length) out.push(tl("Maîtrises modifiées : {0}", sk.join(", ")));
     return out;
 }
 
@@ -347,11 +348,11 @@ function buildDiff(b, a) {
 function postLevelUpDiff(actor, changes) {
     const body = changes.length
         ? `<ul style="margin:4px 0 0;padding-left:18px;">${changes.map(c => `<li>${esc(c)}</li>`).join("")}</ul>`
-        : "<em>Aucune modification de construction détectée.</em>";
+        : `${tl("<em>Aucune modification de construction détectée.</em>")}`;
     ChatMessage.create({
         whisper: gmIds(),
-        speaker: { alias: "Montée de niveau" },
-        content: `⬆️ <strong>${esc(actor.name)}</strong> — modifications apportées à la fiche :${body}`
+        speaker: { alias: tl("Montée de niveau") },
+        content: `${tl("⬆️ <strong>{0}</strong> — modifications apportées à la fiche :{1}", esc(actor.name), body)}`
     });
 }
 
@@ -379,8 +380,8 @@ function _queueLuNote(actor, line) {
         const body = `<ul style="margin:4px 0 0;padding-left:18px;">${lines.map(l => `<li>${esc(l)}</li>`).join("")}</ul>`;
         ChatMessage.create({
             whisper: gmIds(),
-            speaker: { alias: "Montée de niveau (libre)" },
-            content: `⬆️ <strong>${esc(e.actor.name)}</strong> a modifié sa construction :${body}`
+            speaker: { alias: tl("Montée de niveau (libre)") },
+            content: `${tl("⬆️ <strong>{0}</strong> a modifié sa construction :{1}", esc(e.actor.name), body)}`
         });
     }, 2500);
 }
@@ -407,8 +408,8 @@ export async function grantLevelUp(actorId) {
         [`flags.${MOD}.levelUpSnapshot`]: buildSnapshot(actor)
     });
     const uid = actor.getFlag(MOD, "createdFor");
-    if (uid) ChatMessage.create({ whisper: [uid], speaker: { alias: "Validation" }, content: `⬆️ Montée de niveau autorisée pour <strong>${actor.name}</strong>. Effectuez-la (assistant / Plutonium), puis re-soumettez la fiche pour re-validation.` });
-    ui.notifications?.info(`Montée de niveau autorisée pour ${actor.name}.`);
+    if (uid) ChatMessage.create({ whisper: [uid], speaker: { alias: tl("Validation") }, content: `${tl("⬆️ Montée de niveau autorisée pour <strong>{0}</strong>. Effectuez-la (assistant / Plutonium), puis re-soumettez la fiche pour re-validation.", actor.name)}` });
+    ui.notifications?.info(tl("Montée de niveau autorisée pour {0}.", actor.name));
 }
 export async function returnActor(actorId) {
     if (!game.user.isGM) return;
@@ -416,7 +417,7 @@ export async function returnActor(actorId) {
     if (!actor) return;
     await actor.setFlag(MOD, "pendingValidation", false);
     const uid = actor.getFlag(MOD, "createdFor");
-    if (uid) ChatMessage.create({ whisper: [uid], speaker: { alias: "Validation" }, content: `↩️ <strong>${actor.name}</strong> vous est renvoyé pour ajustements avant re-soumission.` });
+    if (uid) ChatMessage.create({ whisper: [uid], speaker: { alias: tl("Validation") }, content: `${tl("↩️ <strong>{0}</strong> vous est renvoyé pour ajustements avant re-soumission.", actor.name)}` });
 }
 // ============================================================
 // UI JOUEUR — hub « Mon personnage »
@@ -432,23 +433,23 @@ export function myCharActors() {
 // Sous-fenêtre : formulaire de demande d'un NOUVEAU personnage.
 function promptNewCharRequest() {
     new Dialog({
-        title: "Demander un nouveau personnage",
+        title: tl("Demander un nouveau personnage"),
         content: `<div class="scwm-cv-hub">
-            <div class="form-group"><label>Nom</label><input type="text" name="cv-name" placeholder="Nom du personnage"/></div>
+            <div class="form-group"><label>${tl("Nom")}</label><input type="text" name="cv-name" placeholder="${tl("Nom du personnage")}"/></div>
         </div>`,
         buttons: {
             send: {
-                icon: '<i class="fa-solid fa-paper-plane"></i>', label: "Envoyer la demande",
+                icon: '<i class="fa-solid fa-paper-plane"></i>', label: tl("Envoyer la demande"),
                 callback: async (html) => {
                     const root = html[0] ?? html;
                     const name = root.querySelector("[name=cv-name]")?.value.trim();
-                    if (!name) { ui.notifications?.warn("Indiquez un nom."); return; }
+                    if (!name) { ui.notifications?.warn(tl("Indiquez un nom.")); return; }
                     await game.user.setFlag(MOD, "charRequest", { name, dateISO: new Date().toISOString() });
-                    ChatMessage.create({ whisper: gmIds(), speaker: { alias: "Validation" }, content: `📝 <strong>${esc(game.user.name)}</strong> demande la création d'un personnage : « ${esc(name)} ».` });
-                    ui.notifications?.info("Demande envoyée.");
+                    ChatMessage.create({ whisper: gmIds(), speaker: { alias: tl("Validation") }, content: `${tl("📝 <strong>{0}</strong> demande la création d'un personnage : « {1} ».", esc(game.user.name), esc(name))}` });
+                    ui.notifications?.info(tl("Demande envoyée."));
                 }
             },
-            cancel: { icon: '<i class="fa-solid fa-times"></i>', label: "Annuler" }
+            cancel: { icon: '<i class="fa-solid fa-times"></i>', label: tl("Annuler") }
         },
         default: "send"
     }).render(true);
@@ -475,31 +476,31 @@ export function openPlayerHub() {
         const inFlow    = a.getFlag(MOD, "createdFor") === game.user.id;
         const validated = a.getFlag(MOD, "validated");
         if (stock) {
-            status = "🔒 en stock (non jouable)";
-            const dis = atActiveLimit ? "disabled title=\"Limite de personnages actifs atteinte — mettez-en un en stock d'abord\"" : "";
-            btns = `<button type="button" class="scwm-cv-act" data-act="activate" data-id="${a.id}" ${dis}><i class="fa-solid fa-lock-open"></i> Activer</button>`;
+            status = tl("🔒 en stock (non jouable)");
+            const dis = atActiveLimit ? tl("disabled title=\"Limite de personnages actifs atteinte — mettez-en un en stock d'abord\"") : "";
+            btns = `<button type="button" class="scwm-cv-act" data-act="activate" data-id="${a.id}" ${dis}>${tl("<i class=\"fa-solid fa-lock-open\"></i> Activer")}</button>`;
         } else if (validated && freeLevelUp()) {
             // MODE CONFIANCE : montées de niveau SANS validation MJ, mais via le
             // bouton dédié (déverrouille → avancement → « Terminer » re-verrouille).
             // Forcer directement sur la fiche verrouillée est bloqué (cf. gardes).
             if (a.getFlag(MOD, "levelUpGranted") === true) {
-                status = "🛠️ montée de niveau en cours";
-                btns = `<button type="button" class="scwm-cv-act" data-act="finishFree" data-id="${a.id}"><i class="fa-solid fa-lock"></i> Terminer</button>`;
+                status = tl("🛠️ montée de niveau en cours");
+                btns = `<button type="button" class="scwm-cv-act" data-act="finishFree" data-id="${a.id}">${tl("<i class=\"fa-solid fa-lock\"></i> Terminer")}</button>`;
             } else {
-                status = "🎭 jouable (montées libres)";
-                btns = `<button type="button" class="scwm-cv-act" data-act="levelup" data-id="${a.id}"><i class="fa-solid fa-arrow-up-1-9"></i> Monter de niveau</button>`;
+                status = tl("🎭 jouable (montées libres)");
+                btns = `<button type="button" class="scwm-cv-act" data-act="levelup" data-id="${a.id}">${tl("<i class=\"fa-solid fa-arrow-up-1-9\"></i> Monter de niveau")}</button>`;
             }
             btns += `<button type="button" class="scwm-cv-act" data-act="stock" data-id="${a.id}" title="Mettre en stock"><i class="fa-solid fa-box-archive"></i></button>`;
         } else {
-            if (locked && lvlPending)      status = "verrouillé · ⬆️ montée en attente";
+            if (locked && lvlPending)      status = tl("verrouillé · ⬆️ montée en attente");
             else if (locked)             {
-                status = "🔒 validé & verrouillé";
+                status = tl("🔒 validé & verrouillé");
                 // Bouton de montée de niveau uniquement si le PJ a atteint le seuil d'XP.
-                if (canLevelUp(a)) btns = `<button type="button" class="scwm-cv-act" data-act="levelup" data-id="${a.id}"><i class="fa-solid fa-arrow-up-1-9"></i> Monter de niveau</button>`;
+                if (canLevelUp(a)) btns = `<button type="button" class="scwm-cv-act" data-act="levelup" data-id="${a.id}">${tl("<i class=\"fa-solid fa-arrow-up-1-9\"></i> Monter de niveau")}</button>`;
             }
-            else if (pending)              status = "⏳ en attente de validation";
-            else if (inFlow || validated) { status = "🛠️ en construction"; btns = `<button type="button" class="scwm-cv-act" data-act="submit" data-id="${a.id}"><i class="fa-solid fa-paper-plane"></i> Soumettre</button>`; }
-            else                         { status = "🎭 jouable"; btns = `<button type="button" class="scwm-cv-act" data-act="submit" data-id="${a.id}" title="Soumettre pour validation & verrouillage"><i class="fa-solid fa-paper-plane"></i> Soumettre</button>`; }
+            else if (pending)              status = tl("⏳ en attente de validation");
+            else if (inFlow || validated) { status = tl("🛠️ en construction"); btns = `<button type="button" class="scwm-cv-act" data-act="submit" data-id="${a.id}">${tl("<i class=\"fa-solid fa-paper-plane\"></i> Soumettre")}</button>`; }
+            else                         { status = "🎭 jouable"; btns = `<button type="button" class="scwm-cv-act" data-act="submit" data-id="${a.id}" title="${tl("Soumettre pour validation & verrouillage")}">${tl("<i class=\"fa-solid fa-paper-plane\"></i> Soumettre")}</button>`; }
             btns += `<button type="button" class="scwm-cv-act" data-act="stock" data-id="${a.id}" title="Mettre en stock"><i class="fa-solid fa-box-archive"></i></button>`;
         }
 
@@ -510,22 +511,22 @@ export function openPlayerHub() {
                 ${btns}
             </div>
         </div>`;
-    }).join("") || `<p class="scwm-cv-empty">Vous n'avez pas encore de personnage.</p>`;
+    }).join("") || `<p class="scwm-cv-empty">${tl("Vous n'avez pas encore de personnage.")}</p>`;
 
-    const counters = `<p class="scwm-cv-counters">Actifs : <strong>${nbActive}/${limActive}</strong>${limTotal > 0 ? ` · Total : <strong>${actors.length}/${limTotal}</strong>` : ""}</p>`;
+    const counters = `<p class="scwm-cv-counters">${tl("Actifs : <strong>{0}/{1}</strong>{2}", nbActive, limActive, limTotal > 0 ? ` ${tl("· Total : <strong>{0}/{1}</strong>", actors.length, limTotal)}` : "")}</p>`;
 
     let createBlock;
     if (req) {
-        createBlock = `<p>📝 Votre demande de création (« ${esc(req.name)} ») est en attente de validation.</p>
-           <div class="scwm-cv-actions"><button type="button" class="scwm-cv-act" data-act="cancel"><i class="fa-solid fa-times"></i> Annuler la demande</button></div>`;
+        createBlock = `<p>${tl("📝 Votre demande de création (« {0} ») est en attente de validation.", esc(req.name))}</p>
+           <div class="scwm-cv-actions"><button type="button" class="scwm-cv-act" data-act="cancel">${tl("<i class=\"fa-solid fa-times\"></i> Annuler la demande")}</button></div>`;
     } else if (atTotalLimit) {
-        createBlock = `<p class="scwm-cv-empty">Nombre maximum de personnages atteint (${limTotal}).</p>`;
+        createBlock = `<p class="scwm-cv-empty">${tl("Nombre maximum de personnages atteint ({0}).", limTotal)}</p>`;
     } else {
-        createBlock = `<div class="scwm-cv-actions"><button type="button" class="scwm-cv-act" data-act="newreq"><i class="fa-solid fa-plus"></i> Demander un nouveau personnage</button></div>`;
+        createBlock = `<div class="scwm-cv-actions"><button type="button" class="scwm-cv-act" data-act="newreq">${tl("<i class=\"fa-solid fa-plus\"></i> Demander un nouveau personnage")}</button></div>`;
     }
 
     const content = `<div class="scwm-cv-hub">
-        <h3 style="margin-top:0;">Mes personnages</h3>
+        <h3 style="margin-top:0;">${tl("Mes personnages")}</h3>
         ${counters}
         <div class="scwm-cv-charlist">${rows}</div>
         <hr>
@@ -533,9 +534,9 @@ export function openPlayerHub() {
     </div>`;
 
     const dlg = new Dialog({
-        title: "Mes personnages — validation",
+        title: tl("Mes personnages — validation"),
         content,
-        buttons: { close: { icon: '<i class="fa-solid fa-times"></i>', label: "Fermer" } },
+        buttons: { close: { icon: '<i class="fa-solid fa-times"></i>', label: tl("Fermer") } },
         render: (html) => {
             const root = html[0] ?? html;
             const run = async (a, id) => {
@@ -545,19 +546,19 @@ export function openPlayerHub() {
                 else if (a === "open") { ac?.sheet.render(true); return; }   // garder le hub ouvert
                 else if (a === "activate") {
                     if (activeCountForUser(game.user.id) >= maxActive()) {
-                        ui.notifications?.warn(`Vous avez déjà ${maxActive()} personnage(s) actif(s). Mettez-en un en stock d'abord.`);
+                        ui.notifications?.warn(tl("Vous avez déjà {0} personnage(s) actif(s). Mettez-en un en stock d'abord.", maxActive()));
                         return;
                     }
                     await requestCharStock(id, false);
-                    ui.notifications?.info(`${ac?.name ?? "Personnage"} activé.`);
+                    ui.notifications?.info(tl("{0} activé.", ac?.name ?? tl("Personnage")));
                 }
                 else if (a === "stock") {
                     await requestCharStock(id, true);
-                    ui.notifications?.info(`${ac?.name ?? "Personnage"} mis en stock.`);
+                    ui.notifications?.info(tl("{0} mis en stock.", ac?.name ?? tl("Personnage")));
                 }
                 else if (a === "submit" && ac) {
                     await ac.setFlag(MOD, "pendingValidation", true);
-                    ChatMessage.create({ whisper: gmIds(), speaker: { alias: "Validation" }, content: `📩 <strong>${esc(game.user.name)}</strong> soumet <strong>${esc(ac.name)}</strong> pour validation.` });
+                    ChatMessage.create({ whisper: gmIds(), speaker: { alias: tl("Validation") }, content: `${tl("📩 <strong>{0}</strong> soumet <strong>{1}</strong> pour validation.", esc(game.user.name), esc(ac.name))}` });
                     // Si c'est une re-soumission après montée de niveau : liste des modifs
                     // (chuchotée au MJ + stockée pour le dépliant du Casier).
                     const snap = ac.getFlag(MOD, "levelUpSnapshot");
@@ -566,7 +567,7 @@ export function openPlayerHub() {
                         postLevelUpDiff(ac, changes);
                         await ac.setFlag(MOD, "levelUpChanges", changes);
                     }
-                    ui.notifications?.info("Fiche soumise pour validation.");
+                    ui.notifications?.info(tl("Fiche soumise pour validation."));
                 } else if (a === "levelup" && ac) {
                     // Auto-déverrouillage : le joueur monte de niveau lui-même. Les
                     // modifications sont tracées (liste au MJ), donc plus besoin
@@ -578,10 +579,10 @@ export function openPlayerHub() {
                         [`flags.${MOD}.levelUpSnapshot`]: buildSnapshot(ac)
                     });
                     if (freeLevelUp()) {
-                        ui.notifications?.info("Fiche déverrouillée : faites votre avancement (bouton de montée de niveau dnd5e/Plutonium), puis cliquez « Terminer ».");
+                        ui.notifications?.info(tl("Fiche déverrouillée : faites votre avancement (bouton de montée de niveau dnd5e/Plutonium), puis cliquez « Terminer »."));
                     } else {
-                        ChatMessage.create({ whisper: gmIds(), speaker: { alias: "Validation" }, content: `⬆️ <strong>${esc(game.user.name)}</strong> effectue une <strong>montée de niveau</strong> pour <strong>${esc(ac.name)}</strong> (déverrouillage auto ; les modifications seront listées à la re-soumission).` });
-                        ui.notifications?.info("Fiche déverrouillée pour la montée de niveau. Effectuez-la, puis re-soumettez-la pour re-verrouiller.");
+                        ChatMessage.create({ whisper: gmIds(), speaker: { alias: tl("Validation") }, content: `${tl("⬆️ <strong>{0}</strong> effectue une <strong>montée de niveau</strong> pour <strong>{1}</strong> (déverrouillage auto ; les modifications seront listées à la re-soumission).", esc(game.user.name), esc(ac.name))}` });
+                        ui.notifications?.info(tl("Fiche déverrouillée pour la montée de niveau. Effectuez-la, puis re-soumettez-la pour re-verrouiller."));
                     }
                 } else if (a === "finishFree" && ac) {
                     // MODE CONFIANCE : fin de montée de niveau → re-verrouille SANS
@@ -597,7 +598,7 @@ export function openPlayerHub() {
                     if (snap && notifyLevelUp()) {
                         try { postLevelUpDiff(ac, buildDiff(snap, buildSnapshot(ac))); } catch (e) {}
                     }
-                    ui.notifications?.info("Montée de niveau terminée — fiche re-verrouillée.");
+                    ui.notifications?.info(tl("Montée de niveau terminée — fiche re-verrouillée."));
                 }
                 dlg.close();
             };
@@ -619,7 +620,7 @@ const isPrimaryGM = () => !!game.user?.isGM && game.users?.activeGM?.id === game
 // puis les doublons vides sont supprimés. À lancer une fois par un MJ :
 //   game.modules.get("soruta-completed-westmarch").api.dedupeFolders()
 export async function dedupeAutoFolders() {
-    if (!game.user.isGM) { ui.notifications?.warn("Réservé au MJ."); return; }
+    if (!game.user.isGM) { ui.notifications?.warn(tl("Réservé au MJ.")); return; }
     const groups = new Map();
     for (const f of (game.folders ?? [])) {
         const key = `${f.type}|${f.name}|${f.folder?.id ?? ""}`;
@@ -639,10 +640,10 @@ export async function dedupeAutoFolders() {
                 }
                 await dup.delete();
                 removed++;
-            } catch (e) { journal.avert(`[${MOD}] dédoublonnage « ${dup.name} » :`, e); }
+            } catch (e) { journal.avert(tl("[{0}] dédoublonnage « {1} » :", MOD, dup.name), e); }
         }
     }
-    ui.notifications?.info(`[${MOD}] Dédoublonnage terminé : ${removed} dossier(s) en double fusionné(s).`);
+    ui.notifications?.info(tl("[{0}] Dédoublonnage terminé : {1} dossier(s) en double fusionné(s).", MOD, removed));
     return removed;
 }
 
@@ -684,7 +685,7 @@ export function CharValidationHooks() {
         }
         controls.westmarch.tools.charValidation = {
             name: "charValidation",
-            title: "Mon personnage — demande / validation",
+            title: tl("Mon personnage — demande / validation"),
             icon: "fa-solid fa-id-card",
             button: true,
             onChange: () => openPlayerHub(),
@@ -706,7 +707,7 @@ export function CharValidationHooks() {
             BLOCKED_ACTOR_PATHS.some(p => k === p || k.startsWith(p + ".")) &&
             !foundry.utils.objectsEqual(flat[k], foundry.utils.getProperty(actor, k)));
         if (constructionChanged) {
-            ui.notifications?.warn("Fiche validée : caractéristiques et maîtrises verrouillées. Demandez une modification au MJ.");
+            ui.notifications?.warn(tl("Fiche validée : caractéristiques et maîtrises verrouillées. Demandez une modification au MJ."));
             setTimeout(() => actor.sheet?.render(false), 30);   // reverte l'affichage optimiste
             return false;
         }
@@ -718,9 +719,9 @@ export function CharValidationHooks() {
     // le mode confiance retire la validation MJ, PAS la bonne méthode de montée.
     const levelUpWarn = (actor) => {
         const via = freeLevelUp()
-            ? `Cliquez sur « Monter de niveau » dans « Mon personnage » (barre d'outils WestMarch) : la fiche se déverrouille, faites votre avancement, puis « Terminer ».`
-            : `Cliquez sur « Monter de niveau » dans « Mon personnage » et suivez la procédure (le MJ valide ensuite).`;
-        ui.notifications?.warn(`⚠️ Ce n'est pas ainsi qu'on monte de niveau ! ${via}`, { permanent: false });
+            ? tl("Cliquez sur « Monter de niveau » dans « Mon personnage » (barre d'outils WestMarch) : la fiche se déverrouille, faites votre avancement, puis « Terminer ».")
+            : tl("Cliquez sur « Monter de niveau » dans « Mon personnage » et suivez la procédure (le MJ valide ensuite).");
+        ui.notifications?.warn(tl("⚠️ Ce n'est pas ainsi qu'on monte de niveau ! {0}", via), { permanent: false });
         setTimeout(() => actor.sheet?.render(false), 30);   // reverte l'affichage optimiste
     };
 
@@ -762,7 +763,7 @@ export function CharValidationHooks() {
         const flags = data?.flags ?? item?.flags ?? {};
         const isPluto = Object.keys(flags).some(k => k.toLowerCase().includes("plutonium"));
         if (isPluto) {
-            ui.notifications?.warn("Import Plutonium bloqué : cette fiche est verrouillée. Demandez au MJ d'autoriser une création ou une montée de niveau.");
+            ui.notifications?.warn(tl("Import Plutonium bloqué : cette fiche est verrouillée. Demandez au MJ d'autoriser une création ou une montée de niveau."));
             return false;
         }
     });
@@ -829,8 +830,8 @@ export function CharValidationHooks() {
         });
         ChatMessage.create({
             whisper: [user.id],
-            speaker: { alias: "Validation" },
-            content: `<strong>${actor.name}</strong> a été créé et validé par le MJ. La fiche est verrouillée : tu peux jouer, mais les modifications de construction passent par le MJ.`
+            speaker: { alias: tl("Validation") },
+            content: `${tl("<strong>{0}</strong> a été créé et validé par le MJ. La fiche est verrouillée : tu peux jouer, mais les modifications de construction passent par le MJ.", actor.name)}`
         });
         ui.actors?.render();
     });
@@ -853,9 +854,9 @@ function injectValidationBadges(root) {
 
         let b = null;
         if (actor.getFlag(MOD, "stock") === true) b = { cls: "stock", label: "Stock", icon: "fa-lock" };
-        else if (pending)                     b = { cls: "pending",  label: "À valider",     icon: "fa-hourglass-half" };
-        else if (createdFor && !validated)    b = { cls: "creating", label: "En création",   icon: "fa-user-pen" };
-        else if (actor.getFlag(MOD, "levelUpGranted") === true) b = { cls: "building", label: "En construction", icon: "fa-hammer" };
+        else if (pending)                     b = { cls: "pending",  label: tl("À valider"),     icon: "fa-hourglass-half" };
+        else if (createdFor && !validated)    b = { cls: "creating", label: tl("En création"),   icon: "fa-user-pen" };
+        else if (actor.getFlag(MOD, "levelUpGranted") === true) b = { cls: "building", label: tl("En construction"), icon: "fa-hammer" };
         else if (levelup)                     b = { cls: "levelup",  label: "Level up",      icon: "fa-arrow-up-1-9" };
         if (!b) continue;
 

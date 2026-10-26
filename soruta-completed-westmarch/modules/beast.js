@@ -14,6 +14,7 @@
 // ============================================================
 
 import { MOD } from "./const.js";
+import { tl } from "./i18n.js";
 
 const enabled = () => game.settings.get(MOD, "enableFormOfTheBeast");
 const FEATURE_ID = "form-of-the-beast";
@@ -29,9 +30,9 @@ function hasFormOfTheBeast(actor) {
 // Définition des 3 armes naturelles
 // ------------------------------------------------------------
 const BEAST_DEFS = {
-    bite:  { name: "Morsure (Form of the Beast)", img: "icons/creatures/abilities/mouth-teeth-sharp.webp", dice: 8, type: "piercing", reach: 5 },
-    claws: { name: "Griffes (Form of the Beast)", img: "icons/creatures/claws/claw-curved-jagged-gray.webp",   dice: 6, type: "slashing", reach: 5 },
-    tail:  { name: "Queue (Form of the Beast)",   img: "icons/creatures/abilities/tail-swipe-green.webp",       dice: 8, type: "piercing", reach: 10 },
+    bite:  { name: tl("Morsure (Form of the Beast)"), img: "icons/creatures/abilities/mouth-teeth-sharp.webp", dice: 8, type: "piercing", reach: 5 },
+    claws: { name: tl("Griffes (Form of the Beast)"), img: "icons/creatures/claws/claw-curved-jagged-gray.webp",   dice: 6, type: "slashing", reach: 5 },
+    tail:  { name: tl("Queue (Form of the Beast)"),   img: "icons/creatures/abilities/tail-swipe-green.webp",       dice: 8, type: "piercing", reach: 10 },
 };
 
 function makeBeastWeapon(slot) {
@@ -53,7 +54,7 @@ function makeBeastWeapon(slot) {
             // Schéma v4 : activité d'attaque (utilise les dégâts de base de l'arme).
             activities: {
                 [actId]: {
-                    _id: actId, type: "attack", name: "Attaque",
+                    _id: actId, type: "attack", name: tl("Attaque"),
                     activation: { type: "action", value: 1 },
                     attack: { ability: "str", bonus: "", flat: false, type: { value: "melee", classification: "weapon" } },
                     damage: { includeBase: true, parts: [] },

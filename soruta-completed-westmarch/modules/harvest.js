@@ -20,6 +20,7 @@
 import { MOD } from "./const.js";
 
 import { journal } from "./log.js";
+import { tl } from "./i18n.js";
 const enabled = () => game.settings.get(MOD, "enableHarvest");
 const sc = (k) => game.settings.get(MOD, k);
 
@@ -46,11 +47,11 @@ export function HarvestHooks() {
         }
         if (game.user.isGM) {
             controls.westmarch.tools.scwmHarvestConfig = {
-                name: "scwmHarvestConfig", title: "Récolte — Associer les créatures aux RollTables", icon: "fa-solid fa-sitemap",
+                name: "scwmHarvestConfig", title: tl("Récolte — Associer les créatures aux RollTables"), icon: "fa-solid fa-sitemap",
                 button: true, visible: true, onChange: () => openHarvestConfig()
             };
             controls.westmarch.tools.scwmHarvestClean = {
-                name: "scwmHarvestClean", title: "Nettoyer les taches de sang", icon: "fa-solid fa-trash",
+                name: "scwmHarvestClean", title: tl("Nettoyer les taches de sang"), icon: "fa-solid fa-trash",
                 button: true, visible: true, onChange: () => cleanBloodStains()
             };
         }
@@ -108,13 +109,13 @@ const isHarvestBlocked = (actor) => actor?.getFlag(MOD, "harvestBlocked") === tr
 async function harvestTargeted(harvesterOverride = null, targetToken = null) {
     if (!enabled()) return;
     const target = targetToken ?? [...(game.user.targets ?? [])][0];
-    if (!target) { ui.notifications?.warn("Ciblez d'abord une créature (touche T) avant de récolter."); return; }
+    if (!target) { ui.notifications?.warn(tl("Ciblez d'abord une créature (touche T) avant de récolter.")); return; }
     const tokenDoc = target.document;
     const actor = target.actor;
-    if (!actor || actor.type !== "npc") { ui.notifications?.warn("Cette cible n'est pas une créature récoltable."); return; }
-    if (!isDead(actor)) { ui.notifications?.warn(`${actor.name} n'est pas morte.`); return; }
+    if (!actor || actor.type !== "npc") { ui.notifications?.warn(tl("Cette cible n'est pas une créature récoltable.")); return; }
+    if (!isDead(actor)) { ui.notifications?.warn(tl("{0} n'est pas morte.", actor.name)); return; }
 
-    if (isHarvestBlocked(actor)) { ui.notifications?.info(`Il n'y a rien à récolter sur ${actor.name}.`); return; }
+    if (isHarvestBlocked(actor)) { ui.notifications?.info(tl("Il n'y a rien à récolter sur {0}.", actor.name)); return; }
 
     const harvester = (harvesterOverride instanceof Actor ? harvesterOverride : null) ?? harvesterActor();
 
@@ -122,13 +123,13 @@ async function harvestTargeted(harvesterOverride = null, targetToken = null) {
     if (tokenDoc.getFlag(MOD, "harvestGenerated")) { openLootWindow(tokenDoc.parent.id, tokenDoc.id, harvester?.id ?? null); return; }
 
     if (!await resolveTable(actor)) {
-        ui.notifications?.warn(`Aucune table de récolte associée à ${actor.name} (le MJ doit l'associer).`);
+        ui.notifications?.warn(tl("Aucune table de récolte associée à {0} (le MJ doit l'associer).", actor.name));
         return;
     }
 
     // Jet de compétence du récolteur (fait localement, l'acteur lui appartient).
     // On utilise la MEILLEURE des trois compétences : Survie / Nature / Médecine.
-    if (!harvester) { ui.notifications?.warn("Sélectionnez votre personnage (token) pour effectuer le jet de récolte."); return; }
+    if (!harvester) { ui.notifications?.warn(tl("Sélectionnez votre personnage (token) pour effectuer le jet de récolte.")); return; }
     let skill = "sur", mod = -Infinity;
     for (const s of ["sur", "nat", "med"]) {
         const t = harvester.system?.skills?.[s]?.total;
@@ -136,16 +137,16 @@ async function harvestTargeted(harvesterOverride = null, targetToken = null) {
     }
     if (!Number.isFinite(mod)) mod = 0;
     const roll = await new Roll("1d20 + @m", { m: mod }).evaluate();
-    await roll.toMessage({ speaker: ChatMessage.getSpeaker({ actor: harvester }), flavor: `Récolte — meilleur jet (${CONFIG.DND5E.skills[skill]?.label ?? skill})` });
+    await roll.toMessage({ speaker: ChatMessage.getSpeaker({ actor: harvester }), flavor: tl("Récolte — meilleur jet ({0})", CONFIG.DND5E.skills[skill]?.label ?? skill) });
 
     // Génération côté MJ (écriture sur la dépouille).
     const gm = game.users.activeGM;
-    if (!gm) { ui.notifications?.warn("Aucun MJ connecté : la récolte nécessite un MJ en ligne."); return; }
+    if (!gm) { ui.notifications?.warn(tl("Aucun MJ connecté : la récolte nécessite un MJ en ligne.")); return; }
     const res = await gm.query("westmarch.harvestGenerate", {
         sceneId: tokenDoc.parent.id, tokenId: tokenDoc.id, total: roll.total
     }).catch(() => null);
-    if (!res?.ok) { ui.notifications?.warn(res?.msg ?? "Échec de la récolte."); return; }
-    if (res.empty) { ui.notifications?.info(`Rien à récolter sur ${actor.name}.`); return; }
+    if (!res?.ok) { ui.notifications?.warn(res?.msg ?? tl("Échec de la récolte.")); return; }
+    if (res.empty) { ui.notifications?.info(tl("Rien à récolter sur {0}.", actor.name)); return; }
     openLootWindow(tokenDoc.parent.id, tokenDoc.id, harvester?.id ?? null);
 }
 
@@ -169,12 +170,12 @@ async function gmGenerate({ sceneId, tokenId, total }) {
     try {
         const tokenDoc = getTokenDoc(sceneId, tokenId);
         const actor = tokenDoc?.actor;
-        if (!tokenDoc || !actor) return { ok: false, msg: "Dépouille introuvable." };
+        if (!tokenDoc || !actor) return { ok: false, msg: tl("Dépouille introuvable.") };
         if (tokenDoc.getFlag(MOD, "harvestGenerated")) return { ok: true };
         if (isHarvestBlocked(actor)) return { ok: true, empty: true };
 
         const table = await resolveTable(actor);
-        if (!table) return { ok: false, msg: "Aucune table associée." };
+        if (!table) return { ok: false, msg: tl("Aucune table associée.") };
 
         const dc = Math.round((sc("harvestDcBase") || 10) + crOf(actor) * (sc("harvestDcPerCr") || 0));
         let draws = (total >= dc) ? (sc("harvestBaseDraws") || 2) + Math.floor((total - dc) / 5) : 1;
@@ -208,7 +209,7 @@ async function gmGenerate({ sceneId, tokenId, total }) {
 
         await tokenDoc.update({ [`flags.${MOD}.harvestGenerated`]: true, [`flags.${MOD}.harvestLoot`]: loot });
         return { ok: true, loot };
-    } catch (e) { journal.avert(`[${MOD}] harvestGenerate:`, e); return { ok: false, msg: "Erreur de génération." }; }
+    } catch (e) { journal.avert(`[${MOD}] harvestGenerate:`, e); return { ok: false, msg: tl("Erreur de génération.") }; }
 }
 
 // Analyse un résultat de table. Renvoie { item, qty, name, img, isNothing }.
@@ -245,7 +246,7 @@ async function parseResult(r) {
         && (cleaned === "" || /^(rien|néant|nothing|none|aucun|-|x)\.?$/i.test(cleaned));
     return {
         item, qty,
-        name: item?.name ?? (cleaned || r.name || r.text || "Butin"),
+        name: item?.name ?? (cleaned || r.name || r.text || tl("Butin")),
         img: item?.img ?? r.icon ?? r.img ?? "icons/svg/item-bag.svg",
         isNothing
     };
@@ -263,7 +264,7 @@ function injectHarvestQtyFields(app, html) {
         if (!root || !table?.results) return;
 
         const rows = root.querySelectorAll("tr[data-result-id]");
-        journal.debug(`[${MOD}] injectHarvestQtyFields: ${rows.length} ligne(s) de résultat`);
+        journal.debug(tl("[{0}] injectHarvestQtyFields: {1} ligne(s) de résultat", MOD, rows.length));
 
         rows.forEach(tr => {
             if (tr.querySelector(".scwm-qty")) return;
@@ -277,8 +278,8 @@ function injectHarvestQtyFields(app, html) {
             const wrap = document.createElement("span");
             wrap.className = "scwm-qty";
             wrap.style.cssText = "display:inline-flex;align-items:center;gap:4px;margin-left:12px;vertical-align:middle;";
-            wrap.innerHTML = `<span style="opacity:.7;font-size:.85em;">Qté récolte</span>
-                <input type="text" value="${val}" placeholder="1d4" style="width:60px;" title="Formule de quantité récoltée (ex. 1d4, 2). Vide = 1.">`;
+            wrap.innerHTML = `<span style="opacity:.7;font-size:.85em;">${tl("Qté récolte")}</span>
+                <input type="text" value="${val}" placeholder="1d4" style="width:60px;" title="${tl("Formule de quantité récoltée (ex. 1d4, 2). Vide = 1.")}">`;
             wrap.querySelector("input").addEventListener("change", (e) =>
                 result.setFlag(MOD, "harvestQty", e.target.value.trim()));
             cell.appendChild(wrap);
@@ -304,7 +305,7 @@ async function openLootWindow(sceneId, tokenId, harvesterId = null) {
     const tokenDoc = getTokenDoc(sceneId, tokenId);
     if (!tokenDoc) return;
     const loot = tokenDoc.getFlag(MOD, "harvestLoot") ?? [];
-    if (!loot.length) { ui.notifications?.info("Cette dépouille ne contient plus rien."); return; }
+    if (!loot.length) { ui.notifications?.info(tl("Cette dépouille ne contient plus rien.")); return; }
 
     const rows = loot.map((l, i) => `
         <label style="display:flex;align-items:center;gap:8px;padding:4px 2px;border-bottom:1px solid rgba(255,255,255,.06);">
@@ -316,12 +317,12 @@ async function openLootWindow(sceneId, tokenId, harvesterId = null) {
 
     const DialogV2 = foundry.applications.api.DialogV2;
     const picked = await DialogV2.wait({
-        window: { title: `Récolter — ${tokenDoc.name}`, icon: "fa-solid fa-hand-holding-droplet" },
+        window: { title: tl("Récolter — {0}", tokenDoc.name), icon: "fa-solid fa-hand-holding-droplet" },
         position: { width: 420 },
-        content: `<p style="margin:0 0 6px;font-size:.9em;">Choisissez ce que vous prenez. Ce qui reste demeure sur la dépouille pour les autres.</p>${rows}`,
+        content: `<p style="margin:0 0 6px;font-size:.9em;">${tl("Choisissez ce que vous prenez. Ce qui reste demeure sur la dépouille pour les autres.")}</p>${rows}`,
         rejectClose: false,
         buttons: [
-            { action: "take", label: "Prendre", icon: "fa-solid fa-hand-holding", default: true,
+            { action: "take", label: tl("Prendre"), icon: "fa-solid fa-hand-holding", default: true,
               callback: (ev, btn) => {
                   const out = [];
                   btn.form.querySelectorAll('input[name="take"]:checked').forEach(cb => {
@@ -331,7 +332,7 @@ async function openLootWindow(sceneId, tokenId, harvesterId = null) {
                   });
                   return out;
               } },
-            { action: "close", label: "Laisser", icon: "fa-solid fa-xmark", callback: () => null }
+            { action: "close", label: tl("Laisser"), icon: "fa-solid fa-xmark", callback: () => null }
         ]
     }).catch(() => null);
 
@@ -339,13 +340,13 @@ async function openLootWindow(sceneId, tokenId, harvesterId = null) {
 
     const harvester = (harvesterId ? game.actors.get(harvesterId) : null) ?? harvesterActor();
     const gm = game.users.activeGM;
-    if (!gm) { ui.notifications?.warn("Aucun MJ connecté."); return; }
+    if (!gm) { ui.notifications?.warn(tl("Aucun MJ connecté.")); return; }
     const res = await gm.query("westmarch.harvestTake", {
         sceneId, tokenId, taken: picked, harvesterActorId: harvester?.id ?? null
     }).catch(() => null);
-    if (!res?.ok) { ui.notifications?.warn(res?.msg ?? "Échec de la prise."); return; }
-    if (res.emptied) ui.notifications?.info(`${tokenDoc.name} a été entièrement récoltée.`);
-    else ui.notifications?.info("Butin récolté.");
+    if (!res?.ok) { ui.notifications?.warn(res?.msg ?? tl("Échec de la prise.")); return; }
+    if (res.emptied) ui.notifications?.info(tl("{0} a été entièrement récoltée.", tokenDoc.name));
+    else ui.notifications?.info(tl("Butin récolté."));
 }
 
 // ============================================================
@@ -354,7 +355,7 @@ async function openLootWindow(sceneId, tokenId, harvesterId = null) {
 async function gmTake({ sceneId, tokenId, taken, harvesterActorId }) {
     try {
         const tokenDoc = getTokenDoc(sceneId, tokenId);
-        if (!tokenDoc) return { ok: false, msg: "Dépouille introuvable." };
+        if (!tokenDoc) return { ok: false, msg: tl("Dépouille introuvable.") };
         const loot = foundry.utils.deepClone(tokenDoc.getFlag(MOD, "harvestLoot") ?? []);
         const harvester = harvesterActorId ? game.actors.get(harvesterActorId) : null;
 
@@ -387,14 +388,14 @@ async function gmTake({ sceneId, tokenId, taken, harvesterActorId }) {
         await placeBloodStain(tokenDoc);
         await tokenDoc.delete();
         return { ok: true, emptied: true };
-    } catch (e) { journal.avert(`[${MOD}] harvestTake:`, e); return { ok: false, msg: "Erreur de prise." }; }
+    } catch (e) { journal.avert(`[${MOD}] harvestTake:`, e); return { ok: false, msg: tl("Erreur de prise.") }; }
 }
 
 // Message de butin CHUCHOTÉ aux MJ (aveugle) : qui a récolté quoi sur quelle
 // dépouille. Créé côté MJ (dans gmTake), donc les joueurs ne le voient pas.
 async function postHarvestLootWhisper(harvester, carcassName, takenList) {
     try {
-        const who = harvester?.name ?? "Quelqu'un";
+        const who = harvester?.name ?? tl("Quelqu'un");
         const rows = takenList.map(l =>
             `<li style="display:flex;align-items:center;gap:6px;margin:2px 0;">
                 <img src="${l.img}" width="20" height="20" style="border:none;flex:0 0 auto;">
@@ -402,7 +403,7 @@ async function postHarvestLootWhisper(harvester, carcassName, takenList) {
             </li>`).join("");
         const content =
             `<div class="scwm-harvest-loot">
-                <p style="margin:0 0 4px;"><i class="fa-solid fa-hand-holding-droplet"></i> <strong>${who}</strong> récolte sur <em>${carcassName}</em> :</p>
+                <p style="margin:0 0 4px;">${tl("<i class=\"fa-solid fa-hand-holding-droplet\"></i> <strong>{0}</strong> récolte sur <em>{1}</em> :", who, carcassName)}</p>
                 <ul style="list-style:none;margin:0;padding:0;">${rows}</ul>
             </div>`;
         const gmIds = ChatMessage.getWhisperRecipients("GM").map(u => u.id);
@@ -507,22 +508,22 @@ function makeSplatterDrawings(cx, cy, baseR) {
 // Supprime toutes les taches de sang (tuiles + dessins marqués) de la scène active.
 async function cleanBloodStains() {
     const scene = canvas.scene;
-    if (!scene) { ui.notifications?.warn("Aucune scène active."); return; }
+    if (!scene) { ui.notifications?.warn(tl("Aucune scène active.")); return; }
     const tileIds = scene.tiles.filter(t => t.getFlag(MOD, "bloodStain")).map(t => t.id);
     const drawIds = scene.drawings.filter(d => d.getFlag(MOD, "bloodStain")).map(d => d.id);
     const total = tileIds.length + drawIds.length;
-    if (!total) { ui.notifications?.info("Aucune tache de sang sur cette scène."); return; }
+    if (!total) { ui.notifications?.info(tl("Aucune tache de sang sur cette scène.")); return; }
     const ok = await foundry.applications.api.DialogV2.confirm({
-        window: { title: "Nettoyer les taches de sang", icon: "fa-solid fa-broom" },
-        content: `<p>Supprimer <strong>${total}</strong> tache(s) de sang de la scène « ${scene.name} » ?</p>`,
+        window: { title: tl("Nettoyer les taches de sang"), icon: "fa-solid fa-broom" },
+        content: `<p>${tl("Supprimer <strong>{0}</strong> tache(s) de sang de la scène « {1} » ?", total, scene.name)}</p>`,
         rejectClose: false
     });
     if (!ok) return;
     try {
         if (tileIds.length) await scene.deleteEmbeddedDocuments("Tile", tileIds);
         if (drawIds.length) await scene.deleteEmbeddedDocuments("Drawing", drawIds);
-        ui.notifications?.info(`${total} tache(s) de sang supprimée(s).`);
-    } catch (e) { journal.avert(`[${MOD}] cleanBloodStains:`, e); ui.notifications?.warn("Erreur lors du nettoyage (voir console)."); }
+        ui.notifications?.info(tl("{0} tache(s) de sang supprimée(s).", total));
+    } catch (e) { journal.avert(`[${MOD}] cleanBloodStains:`, e); ui.notifications?.warn(tl("Erreur lors du nettoyage (voir console).")); }
 }
 
 // ============================================================
@@ -540,7 +541,7 @@ function injectHarvestHudButton(hud, html) {
 
         const btn = document.createElement("div");
         btn.classList.add("control-icon", "scwm-harvest-hud");
-        btn.dataset.tooltip = "Récolter la créature ciblée (à 0 PV)";
+        btn.dataset.tooltip = tl("Récolter la créature ciblée (à 0 PV)");
         btn.innerHTML = `<i class="fa-solid fa-hand-holding-droplet"></i>`;
         // Au-dessus du token, centré (pas sur les côtés).
         btn.style.cssText = "position:absolute; top:-52px; left:50%; transform:translateX(-50%); pointer-events:all;";
@@ -572,8 +573,8 @@ function injectHarvestBlockButton(app, element) {
         const refresh = () => {
             btn.style.color = isBlocked() ? "#e74c3c" : "";
             btn.dataset.tooltip = isBlocked()
-                ? "Récolte bloquée (rien à looter) — cliquer pour réactiver"
-                : "Bloquer la récolte (rien à looter sur cette créature)";
+                ? tl("Récolte bloquée (rien à looter) — cliquer pour réactiver")
+                : tl("Bloquer la récolte (rien à looter sur cette créature)");
         };
         refresh();
         btn.addEventListener("click", async () => {
@@ -598,7 +599,7 @@ async function openHarvestConfig() {
 
     // Tables du MONDE + tables de COMPENDIUM. On stocke l'UUID (uniforme) ;
     // la sélection reste compatible avec d'anciennes valeurs (id de monde nu).
-    const tables = [...game.tables].map(t => ({ uuid: t.uuid, id: t.id, name: t.name, group: "Monde" }));
+    const tables = [...game.tables].map(t => ({ uuid: t.uuid, id: t.id, name: t.name, group: tl("Monde") }));
     for (const pack of game.packs) {
         if ((pack.metadata?.type ?? pack.documentName) !== "RollTable") continue;
         try {
@@ -607,10 +608,10 @@ async function openHarvestConfig() {
         } catch (e) { /* pack illisible, on ignore */ }
     }
     tables.sort((a, b) => (a.group + a.name).localeCompare(b.group + b.name));
-    const tableOptions = (sel) => `<option value="">— aucune —</option>` +
+    const tableOptions = (sel) => `<option value="">${tl("— aucune —")}</option>` +
         tables.map(t => {
             const on = (t.uuid === sel || t.id === sel) ? "selected" : "";
-            const prefix = t.group === "Monde" ? "" : `[${t.group}] `;
+            const prefix = t.group === tl("Monde") ? "" : `[${t.group}] `;
             return `<option value="${t.uuid}" ${on}>${prefix}${t.name}</option>`;
         }).join("");
 
@@ -638,24 +639,24 @@ async function openHarvestConfig() {
     const content = `
     <div style="display:flex;flex-direction:column;gap:12px;max-height:60vh;overflow:auto;">
         <div>
-            <div style="font-weight:700;margin-bottom:4px;">Par type de créature</div>
-            <div style="font-size:.8em;color:#999;margin-bottom:4px;">Table par défaut selon le type dnd5e de la créature.</div>
-            ${typeRows || "<em>Aucun type.</em>"}
+            <div style="font-weight:700;margin-bottom:4px;">${tl("Par type de créature")}</div>
+            <div style="font-size:.8em;color:#999;margin-bottom:4px;">${tl("Table par défaut selon le type dnd5e de la créature.")}</div>
+            ${typeRows || `${tl("<em>Aucun type.</em>")}`}
         </div>
         <div>
-            <div style="font-weight:700;margin-bottom:4px;">Par nom précis (prioritaire)</div>
-            <div style="font-size:.8em;color:#999;margin-bottom:4px;">Prime sur le type. Nom exact de l'acteur (ex. « Loup »).</div>
+            <div style="font-weight:700;margin-bottom:4px;">${tl("Par nom précis (prioritaire)")}</div>
+            <div style="font-size:.8em;color:#999;margin-bottom:4px;">${tl("Prime sur le type. Nom exact de l'acteur (ex. « Loup »).")}</div>
             ${nameRows}${emptyName}
         </div>
     </div>`;
 
     await DialogV2.wait({
-        window: { title: "Récolte — Associations créature ↔ RollTable", icon: "fa-solid fa-sitemap" },
+        window: { title: tl("Récolte — Associations créature ↔ RollTable"), icon: "fa-solid fa-sitemap" },
         position: { width: 520 },
         content,
         rejectClose: false,
         buttons: [
-            { action: "save", label: "Enregistrer", icon: "fa-solid fa-save", default: true,
+            { action: "save", label: tl("Enregistrer"), icon: "fa-solid fa-save", default: true,
               callback: async (ev, btn) => {
                   const out = { byType: {}, byName: {} };
                   for (const k of Object.keys(types)) {
@@ -671,9 +672,9 @@ async function openHarvestConfig() {
                   const nid = btn.form.elements["nid-new"]?.value;
                   if (nn && nid) out.byName[nn] = nid;
                   await game.settings.set(MOD, "harvestTables", out);
-                  ui.notifications?.info("Associations de récolte enregistrées.");
+                  ui.notifications?.info(tl("Associations de récolte enregistrées."));
               } },
-            { action: "cancel", label: "Fermer", icon: "fa-solid fa-xmark", callback: () => {} }
+            { action: "cancel", label: tl("Fermer"), icon: "fa-solid fa-xmark", callback: () => {} }
         ]
     }).catch(() => {});
 }

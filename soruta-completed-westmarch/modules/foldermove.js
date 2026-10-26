@@ -1,5 +1,6 @@
 import { MOD } from "./const.js";
 import { journal } from "./log.js";
+import { tl } from "./i18n.js";
 // ============================================================
 // foldermove.js — Déplacement et duplication via le clic droit
 // du sidebar Foundry VTT.
@@ -18,10 +19,10 @@ import { journal } from "./log.js";
 // ============================================================
 
 const FM_ENTRIES = [
-    { hook: "getSceneContextOptions",        collection: () => game.scenes,  folderType: "Scene",        label: "Scènes"   },
-    { hook: "getActorContextOptions",        collection: () => game.actors,  folderType: "Actor",        label: "Acteurs"  },
-    { hook: "getItemContextOptions",         collection: () => game.items,   folderType: "Item",         label: "Objets"   },
-    { hook: "getJournalEntryContextOptions", collection: () => game.journal, folderType: "JournalEntry", label: "Journaux" },
+    { hook: "getSceneContextOptions",        collection: () => game.scenes,  folderType: "Scene",        label: tl("Scènes")   },
+    { hook: "getActorContextOptions",        collection: () => game.actors,  folderType: "Actor",        label: tl("Acteurs")  },
+    { hook: "getItemContextOptions",         collection: () => game.items,   folderType: "Item",         label: tl("Objets")   },
+    { hook: "getJournalEntryContextOptions", collection: () => game.journal, folderType: "JournalEntry", label: tl("Journaux") },
 ];
 
 // ============================================================
@@ -71,7 +72,7 @@ async function openFolderPicker(folderType, title, excludeFolderId = null) {
 
     const content = `
         <div id="${uid}" style="display:flex; flex-direction:column; gap:8px;">
-            <input class="wm-fm-search" type="text" placeholder="🔍 Rechercher un dossier…"
+            <input class="wm-fm-search" type="text" placeholder="${tl("🔍 Rechercher un dossier…")}"
                 style="width:100%; box-sizing:border-box; padding:5px 8px;
                        border:1px solid #555; border-radius:4px;
                        background:#111; color:#ddd; font-size:12px;">
@@ -86,7 +87,7 @@ async function openFolderPicker(folderType, title, excludeFolderId = null) {
                             <span class="wm-fm-select" data-folder-id="" style="
                                 display:flex; align-items:center; gap:6px; flex:1; cursor:pointer;">
                                 <i class="fa-solid fa-layer-group" style="color:#777; font-size:11px; flex-shrink:0;"></i>
-                                <span style="font-size:12px; color:#999; font-style:italic;">Racine (sans dossier)</span>
+                                <span style="font-size:12px; color:#999; font-style:italic;">${tl("Racine (sans dossier)")}</span>
                             </span>
                         </div>
                     </li>
@@ -94,7 +95,7 @@ async function openFolderPicker(folderType, title, excludeFolderId = null) {
                 </ul>
             </div>
             <div style="font-size:11px; color:#666; font-style:italic;">
-                Cliquez sur un nom pour sélectionner · ▶ pour déplier
+                ${tl("Cliquez sur un nom pour sélectionner · ▶ pour déplier")}
             </div>
         </div>`;
 
@@ -156,8 +157,8 @@ async function openFolderPicker(folderType, title, excludeFolderId = null) {
             setTimeout(() => $c.find(".wm-fm-search").focus(), 60);
         },
         buttons: [
-            { action: "confirm", label: "Confirmer", icon: '<i class="fa-solid fa-check"></i>', default: true, callback: () => {} },
-            { action: "cancel",  label: "Annuler",   icon: '<i class="fa-solid fa-times"></i>', callback: () => { chosen = false; } },
+            { action: "confirm", label: tl("Confirmer"), icon: '<i class="fa-solid fa-check"></i>', default: true, callback: () => {} },
+            { action: "cancel",  label: tl("Annuler"),   icon: '<i class="fa-solid fa-times"></i>', callback: () => { chosen = false; } },
         ]
     });
 
@@ -178,7 +179,7 @@ export function FolderMoveHooks() {
 
             options.push(
                 {
-                    name: "Déplacer vers…",
+                    name: tl("Déplacer vers…"),
                     icon: '<i class="fa-solid fa-folder-open"></i>',
                     callback: async (li) => {
                         try {
@@ -187,17 +188,17 @@ export function FolderMoveHooks() {
                                        ?? $(li).attr("data-entry-id") ?? $(li).attr("data-document-id");
                             const doc   = collection().get(docId);
                             if (!doc) { journal.info("[FM] doc introuvable — docId:", docId); return; }
-                            const folderId = await openFolderPicker(folderType, `Déplacer — ${doc.name}`);
+                            const folderId = await openFolderPicker(folderType, tl("Déplacer — {0}", doc.name));
                             if (folderId === false) return;
                             await doc.update({ folder: folderId });
                         } catch(e) {
-                            journal.erreur("[FM] Erreur déplacement doc :", e);
+                            journal.erreur(tl("[FM] Erreur déplacement doc :"), e);
                             ui.notifications.error(`Foldermove : ${e.message}`);
                         }
                     }
                 },
                 {
-                    name: "Dupliquer vers…",
+                    name: tl("Dupliquer vers…"),
                     icon: '<i class="fa-solid fa-copy"></i>',
                     callback: async (li) => {
                         try {
@@ -225,7 +226,7 @@ export function FolderMoveHooks() {
         if (!game.user.isGM) return;
 
         options.push({
-            name: "Déplacer vers…",
+            name: tl("Déplacer vers…"),
             icon: '<i class="fa-solid fa-folder-open"></i>',
             callback: async (li) => {
                 try {
@@ -238,14 +239,14 @@ export function FolderMoveHooks() {
                                  ?? $(li).closest("[data-folder-id]").attr("data-folder-id");
                     const folder = game.folders.get(fId);
                     if (!folder) {
-                        journal.info("[FM] dossier introuvable — fId:", fId, "holder:", holder);
+                        journal.info(tl("[FM] dossier introuvable — fId:"), fId, "holder:", holder);
                         return;
                     }
-                    const destId = await openFolderPicker(folder.type, `Déplacer — ${folder.name}`, fId);
+                    const destId = await openFolderPicker(folder.type, tl("Déplacer — {0}", folder.name), fId);
                     if (destId === false) return;
                     await folder.update({ folder: destId });
                 } catch(e) {
-                    journal.erreur("[FM] Erreur déplacement dossier :", e);
+                    journal.erreur(tl("[FM] Erreur déplacement dossier :"), e);
                     ui.notifications.error(`Foldermove : ${e.message}`);
                 }
             }

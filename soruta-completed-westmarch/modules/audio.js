@@ -1,4 +1,5 @@
 import { journal } from "./log.js";
+import { tl } from "./i18n.js";
 // ============================================================
 // audio.js — Empêche certains sons globaux (jet de dés, début de
 // combat / changement de tour) de traverser les parties.
@@ -47,7 +48,7 @@ export function AudioHooks() {
             } catch (e) {
                 // En cas d'erreur dans un filtre, on joue le son par sécurité
                 // plutôt que de risquer de couper silencieusement tous les sons.
-                journal.erreur("westmarch | audio.js : erreur dans un filtre de son", e);
+                journal.erreur(tl("westmarch | audio.js : erreur dans un filtre de son"), e);
             }
             return original(data, socketOptions);
         };

@@ -1,5 +1,6 @@
 import { MOD } from "./const.js";
 import { journal } from "./log.js";
+import { tl } from "./i18n.js";
 // ============================================================
 // mejrestock.js — Réapprovisionnement automatique des boutiques MEJ
 //
@@ -97,12 +98,12 @@ export function MejRestockHooks() {
                 if (itemDays <= 0) continue; // rareté désactivée
                 timers[itemId] = game.time.worldTime + itemDays * spd;
                 changed = true;
-                journal.debug(`westmarch | MejRestock : timer lancé pour "${item.name}" (${itemDays} j)`);
+                journal.debug(tl("westmarch | MejRestock : timer lancé pour \"{0}\" ({1} j)", item.name, itemDays));
             } else if (qty > 0 && (itemId in timers)) {
                 // Remis en stock manuellement → annuler le timer
                 delete timers[itemId];
                 changed = true;
-                journal.debug(`westmarch | MejRestock : timer annulé pour "${item.name}" (remis manuellement)`);
+                journal.debug(tl("westmarch | MejRestock : timer annulé pour \"{0}\" (remis manuellement)", item.name));
             }
         }
 
@@ -146,7 +147,7 @@ export function MejRestockHooks() {
                     anyExpired = true;
 
                     const itemName = page.flags?.["monks-enhanced-journal"]?.items?.[itemId]?.name ?? itemId;
-                    journal.debug(`westmarch | MejRestock : réapprovisionnement de "${itemName}" dans "${journal.name}"`);
+                    journal.debug(tl("westmarch | MejRestock : réapprovisionnement de \"{0}\" dans \"{1}\"", itemName, journal.name));
                 }
 
                 if (anyExpired) {
@@ -222,7 +223,7 @@ export function MejRestockHooks() {
                 // ---- Bouton icône dans les contrôles (style identique aux autres) ----
                 const btn = document.createElement("a");
                 btn.className = "item-control wm-restock-toggle";
-                btn.title     = isEnabled ? "Réapprovisionnement auto : activé" : "Réapprovisionnement auto : désactivé";
+                btn.title     = isEnabled ? tl("Réapprovisionnement auto : activé") : tl("Réapprovisionnement auto : désactivé");
                 btn.style.cssText = isEnabled
                     ? "color:#4db6ac; cursor:pointer;"
                     : "color:#888; cursor:pointer;";
@@ -238,7 +239,7 @@ export function MejRestockHooks() {
                     const span     = document.createElement("span");
                     span.className = "wm-restock-countdown";
                     span.style.cssText = "color:#888; font-size:0.7em; font-style:italic; display:block; line-height:1.2; white-space:nowrap; text-align:center;";
-                    span.textContent   = daysLeft <= 0 ? "réapro imminent" : `dans ${daysLeft} j`;
+                    span.textContent   = daysLeft <= 0 ? tl("réapro imminent") : tl("dans {0} j", daysLeft);
                     qtyDiv.appendChild(span);
                 }
 
@@ -258,7 +259,7 @@ export function MejRestockHooks() {
 
                     // Mise à jour visuelle immédiate du bouton
                     btn.style.color = newEnabled[itemId] ? "#4db6ac" : "#888";
-                    btn.title       = newEnabled[itemId] ? "Réapprovisionnement auto : activé" : "Réapprovisionnement auto : désactivé";
+                    btn.title       = newEnabled[itemId] ? tl("Réapprovisionnement auto : activé") : tl("Réapprovisionnement auto : désactivé");
 
                     if (!newEnabled[itemId]) {
                         // Désactivé → supprimer le timer via clé explicite (évite le merge Foundry)
@@ -275,12 +276,12 @@ export function MejRestockHooks() {
                             if (qtyDiv) {
                                 const existing = row.querySelector(".wm-restock-countdown");
                                 if (existing) {
-                                    existing.textContent = `dans ${days} j`;
+                                    existing.textContent = tl("dans {0} j", days);
                                 } else {
                                     const s = document.createElement("span");
                                     s.className     = "wm-restock-countdown";
                                     s.style.cssText = "color:#888; font-size:0.7em; font-style:italic; display:block; line-height:1.2; white-space:nowrap; text-align:center;";
-                                    s.textContent   = `dans ${days} j`;
+                                    s.textContent   = tl("dans {0} j", days);
                                     qtyDiv.appendChild(s);
                                 }
                             }

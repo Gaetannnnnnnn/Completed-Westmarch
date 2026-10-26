@@ -1,6 +1,7 @@
 import { MOD } from "./const.js";
 import { journal } from "./log.js";
 import { ouvrirImage } from "./perception.js";
+import { tl } from "./i18n.js";
 // ============================================================
 // token.js — Apparences multiples pour le token (GM uniquement)
 // Le GM importe une image de personnage + une image de bordure
@@ -66,44 +67,44 @@ function openImportPopup(onConfirm) {
     const overlay = $(`
         <div class="westmarch-import-overlay" style="position:fixed; inset:0; pointer-events:none; z-index:9999; display:flex; align-items:center; justify-content:center;">
             <div class="westmarch-import-popup" style="pointer-events:auto; background:#1f1f1f; border:1px solid #555; border-radius:6px; padding:16px; width:380px; color:#eee; font-size:13px; box-shadow:0 4px 20px rgba(0,0,0,0.6);">
-                <h3 style="margin:0 0 10px; font-size:15px;">Importer un token</h3>
+                <h3 style="margin:0 0 10px; font-size:15px;">${tl("Importer un token")}</h3>
 
                 <div style="display:flex; justify-content:center; margin-bottom:10px;">
                     <canvas class="westmarch-import-canvas" width="${CANVAS_SIZE}" height="${CANVAS_SIZE}" style="width:220px; height:220px; border:1px solid #555; border-radius:4px; cursor:move; background-image: linear-gradient(45deg, #444 25%, transparent 25%, transparent 75%, #444 75%), linear-gradient(45deg, #444 25%, transparent 25%, transparent 75%, #444 75%); background-size: 16px 16px; background-position: 0 0, 8px 8px; background-color:#666;"></canvas>
                 </div>
 
                 <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-                    <i class="fa-solid fa-search" style="opacity:0.7;" title="Zoom du personnage"></i>
+                    <i class="fa-solid fa-search" style="opacity:0.7;" title="${tl("Zoom du personnage")}"></i>
                     <input type="range" class="westmarch-zoom-slider" min="20" max="400" value="100" style="flex:1;">
-                    <button type="button" class="westmarch-reset-frame" title="Réinitialiser le cadrage"><i class="fa-solid fa-rotate-left"></i></button>
+                    <button type="button" class="westmarch-reset-frame" title="${tl("Réinitialiser le cadrage")}"><i class="fa-solid fa-rotate-left"></i></button>
                 </div>
 
                 <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
-                    <i class="fa-solid fa-circle-notch" style="opacity:0.7;" title="Taille de la découpe"></i>
+                    <i class="fa-solid fa-circle-notch" style="opacity:0.7;" title="${tl("Taille de la découpe")}"></i>
                     <input type="range" class="westmarch-clip-slider" min="40" max="100" value="100" style="flex:1;">
                 </div>
 
                 <div style="margin-bottom:8px;">
-                    <div style="font-weight:bold; margin-bottom:4px;">Image du personnage</div>
+                    <div style="font-weight:bold; margin-bottom:4px;">${tl("Image du personnage")}</div>
                     <div style="display:flex; gap:6px;">
-                        <button type="button" class="westmarch-pick-char-browse" style="flex:1;"><i class="fa-solid fa-folder-open"></i> Parcourir</button>
-                        <button type="button" class="westmarch-pick-char-upload" style="flex:1;"><i class="fa-solid fa-upload"></i> Importer (PC)</button>
+                        <button type="button" class="westmarch-pick-char-browse" style="flex:1;">${tl("<i class=\"fa-solid fa-folder-open\"></i> Parcourir")}</button>
+                        <button type="button" class="westmarch-pick-char-upload" style="flex:1;">${tl("<i class=\"fa-solid fa-upload\"></i> Importer (PC)")}</button>
                         <input type="file" class="westmarch-char-file-input" accept="image/*" style="display:none;">
                     </div>
                 </div>
 
                 <div style="margin-bottom:12px;">
-                    <div style="font-weight:bold; margin-bottom:4px;">Bordure du token</div>
+                    <div style="font-weight:bold; margin-bottom:4px;">${tl("Bordure du token")}</div>
                     <div style="display:flex; gap:6px;">
-                        <button type="button" class="westmarch-pick-border-browse" style="flex:1;"><i class="fa-solid fa-folder-open"></i> Parcourir</button>
-                        <button type="button" class="westmarch-pick-border-upload" style="flex:1;"><i class="fa-solid fa-upload"></i> Importer (PC)</button>
+                        <button type="button" class="westmarch-pick-border-browse" style="flex:1;">${tl("<i class=\"fa-solid fa-folder-open\"></i> Parcourir")}</button>
+                        <button type="button" class="westmarch-pick-border-upload" style="flex:1;">${tl("<i class=\"fa-solid fa-upload\"></i> Importer (PC)")}</button>
                         <input type="file" class="westmarch-border-file-input" accept="image/*" style="display:none;">
                     </div>
                 </div>
 
                 <div style="display:flex; gap:8px; justify-content:flex-end;">
-                    <button type="button" class="westmarch-import-cancel">Annuler</button>
-                    <button type="button" class="westmarch-import-confirm" disabled>Créer</button>
+                    <button type="button" class="westmarch-import-cancel">${tl("Annuler")}</button>
+                    <button type="button" class="westmarch-import-confirm" disabled>${tl("Créer")}</button>
                 </div>
             </div>
         </div>
@@ -159,7 +160,7 @@ function openImportPopup(onConfirm) {
             }
             redraw();
         };
-        img.onerror = () => ui.notifications.error("Impossible de charger l'image sélectionnée.");
+        img.onerror = () => ui.notifications.error(tl("Impossible de charger l'image sélectionnée."));
         img.src = path;
     };
 
@@ -182,7 +183,7 @@ function openImportPopup(onConfirm) {
                 if (result?.path) loadImage(result.path, target);
             } catch (err) {
                 journal.erreur("[WestMarch] Erreur upload :", err);
-                ui.notifications.error("Erreur lors de l'upload de l'image (voir console).");
+                ui.notifications.error(tl("Erreur lors de l'upload de l'image (voir console)."));
             }
         });
     };
@@ -252,7 +253,7 @@ function openImportPopup(onConfirm) {
         if (!state.charImg) return;
         canvas.toBlob(async (blob) => {
             if (!blob) {
-                ui.notifications.error("Erreur lors de la génération de l'image.");
+                ui.notifications.error(tl("Erreur lors de la génération de l'image."));
                 return;
             }
             try {
@@ -264,8 +265,8 @@ function openImportPopup(onConfirm) {
                     cleanup();
                 }
             } catch (err) {
-                journal.erreur("[WestMarch] Erreur création token :", err);
-                ui.notifications.error("Erreur lors de la création du token (voir console).");
+                journal.erreur(tl("[WestMarch] Erreur création token :"), err);
+                ui.notifications.error(tl("Erreur lors de la création du token (voir console)."));
             }
         }, "image/png");
     });
@@ -299,10 +300,10 @@ export function TokenHooks() {
                 canvas.hud.token.bind(this);
             }, "MIXED");
         } catch (e) {
-            journal.critique("[WestMarch] Impossible de patcher l'ouverture du HUD token (libWrapper) :", e);
+            journal.critique(tl("[WestMarch] Impossible de patcher l'ouverture du HUD token (libWrapper) :"), e);
         }
     } else {
-        journal.info("[WestMarch] libWrapper n'est pas actif : le bouton 'Voir le portrait' ne sera utilisable que par le propriétaire du token et le GM.");
+        journal.info(tl("[WestMarch] libWrapper n'est pas actif : le bouton 'Voir le portrait' ne sera utilisable que par le propriétaire du token et le GM."));
     }
 
     // ============================================================
@@ -427,11 +428,11 @@ export function TokenHooks() {
 
         const section = $(`
             <fieldset style="margin-top: 12px; border: 1px solid #555; padding: 8px 12px; border-radius: 4px;">
-                <legend style="font-weight: bold; font-size: 13px;">Apparences (WestMarch)</legend>
+                <legend style="font-weight: bold; font-size: 13px;">${tl("Apparences (WestMarch)")}</legend>
                 <div class="westmarch-image-list" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;"></div>
                 <div style="display: flex; gap: 6px;">
                     <button type="button" class="westmarch-add-image" style="flex:1;">
-                        <i class="fa-solid fa-plus"></i> Importer un token
+                        ${tl("<i class=\"fa-solid fa-plus\"></i> Importer un token")}
                     </button>
                 </div>
             </fieldset>
@@ -444,7 +445,7 @@ export function TokenHooks() {
                 const borderColor = entry.ring?.enabled ? (entry.ring.colors?.ring ?? "#ffffff") : "#555";
                 const thumb = $(`
                     <div style="position:relative; width:48px; height:48px;">
-                        <img class="westmarch-thumb-image" data-src="${entry.src}" src="${entry.src}" style="width:48px; height:48px; object-fit:cover; border-radius:4px; border:2px solid ${borderColor}; cursor:pointer;" title="Cliquer pour voir en grand"/>
+                        <img class="westmarch-thumb-image" data-src="${entry.src}" src="${entry.src}" style="width:48px; height:48px; object-fit:cover; border-radius:4px; border:2px solid ${borderColor}; cursor:pointer;" title="${tl("Cliquer pour voir en grand")}"/>
                         <div class="westmarch-remove-image" data-index="${index}" style="position:absolute;top:-4px;right:-4px;background:#c00;color:#fff;border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;">✕</div>
                     </div>
                 `);

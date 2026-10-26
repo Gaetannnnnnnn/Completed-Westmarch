@@ -18,6 +18,7 @@ import { applyChatCardPrefs } from "./chat.js";
 import { blocGuideReglagesHtml, genererEtOuvrirGuide } from "./rangement.js";
 import { registerXpProgressSettings, XP_PROG_KEYS, xpProgControlHtml, wireXpProg, readXpProg } from "./xpprogress.js";
 import { registerMondeSettings, MONDE_KEYS, mondeControlHtml, cablerMonde, lireMonde, afficherBanniere } from "./monde.js";
+import { tl } from "./i18n.js";
 
 // ============================================================
 // Ressources communes — accès centralisé (avec repli sur les anciennes clés
@@ -95,32 +96,32 @@ export function registerSettings() {
     // (Relations, Bestiaire, Création de perso, Temps morts).
     // ============================================================
     game.settings.register(MOD, "commonFolderPJ", S(
-        "Dossier des PJ",
-        "Dossier d'acteurs contenant les personnages joueurs. Utilisé par Relations et Bestiaire pour reconnaître les PJ."));
+        tl("Dossier des PJ"),
+        tl("Dossier d'acteurs contenant les personnages joueurs. Utilisé par Relations et Bestiaire pour reconnaître les PJ.")));
     game.settings.register(MOD, "autoPlayerFolder", B(
-        "Sous-dossier auto au nom du joueur",
-        "À la première connexion d'un joueur, crée automatiquement dans le « Dossier des PJ » un sous-dossier portant son nom.", true));
+        tl("Sous-dossier auto au nom du joueur"),
+        tl("À la première connexion d'un joueur, crée automatiquement dans le « Dossier des PJ » un sous-dossier portant son nom."), true));
     game.settings.register(MOD, "gmAutoFolderParent", S(
-        "Sous-dossier auto au nom du MJ — dossier parent",
-        "Nom du dossier parent (identique dans Acteurs, Journaux et Scènes) dans lequel, à la connexion d'un MJ, un sous-dossier à son nom est créé automatiquement dans ces trois arbres. Laisser vide pour désactiver."));
+        tl("Sous-dossier auto au nom du MJ — dossier parent"),
+        tl("Nom du dossier parent (identique dans Acteurs, Journaux et Scènes) dans lequel, à la connexion d'un MJ, un sous-dossier à son nom est créé automatiquement dans ces trois arbres. Laisser vide pour désactiver.")));
     game.settings.register(MOD, "commonFolderPNJ", S(
-        "Dossier des PNJ",
-        "Dossier d'acteurs des PNJ récurrents (alliés, marchands, figures importantes). Utilisé par Relations."));
+        tl("Dossier des PNJ"),
+        tl("Dossier d'acteurs des PNJ récurrents (alliés, marchands, figures importantes). Utilisé par Relations.")));
     game.settings.register(MOD, "commonFolderNewChars", S(
-        "Dossier des nouveaux personnages",
-        "Dossier où sont créés les personnages validés (Création de personnages)."));
+        tl("Dossier des nouveaux personnages"),
+        tl("Dossier où sont créés les personnages validés (Création de personnages).")));
     game.settings.register(MOD, "commonPackPNJ", S(
-        "Compendium des PNJ",
-        "Compendium d'acteurs PNJ. Ses personnages sont proposés dans le sélecteur de relations (groupe PNJ)."));
+        tl("Compendium des PNJ"),
+        tl("Compendium d'acteurs PNJ. Ses personnages sont proposés dans le sélecteur de relations (groupe PNJ).")));
     game.settings.register(MOD, "commonPackCemetery", S(
-        "Compendium du cimetière",
-        "Compendium d'acteurs (anciens PJ / cimetière). Proposé dans le sélecteur de relations (groupe Joueurs)."));
+        tl("Compendium du cimetière"),
+        tl("Compendium d'acteurs (anciens PJ / cimetière). Proposé dans le sélecteur de relations (groupe Joueurs).")));
     game.settings.register(MOD, "commonPackCreatures", S(
-        "Compendium des créatures",
-        "Compendium d'acteurs créatures. Utilisé par le Bestiaire (ajout et reconnaissance des créatures)."));
+        tl("Compendium des créatures"),
+        tl("Compendium d'acteurs créatures. Utilisé par le Bestiaire (ajout et reconnaissance des créatures).")));
     game.settings.register(MOD, "commonPackCraft", S(
-        "Compendium des objets craftables",
-        "Compendium d'OBJETS (ex. importé via Plutonium). Utilisé par l'artisanat des temps morts pour attribuer l'objet fabriqué."));
+        tl("Compendium des objets craftables"),
+        tl("Compendium d'OBJETS (ex. importé via Plutonium). Utilisé par l'artisanat des temps morts pour attribuer l'objet fabriqué.")));
     game.settings.register(MOD, "commonResourcesMigrated", {
         scope: "world", config: false, type: Boolean, default: false, requiresReload: false
     });
@@ -138,47 +139,47 @@ export function registerSettings() {
     // WESTMARCH — Système de party (core)
     // ============================================================
     game.settings.register(MOD, "enableParty", B(
-        "Système de Party",
-        "Active le système de party (Create/Join/Leave/Kick/Invite Party). Si désactivé, toutes les options qui en dépendent sont automatiquement désactivées."));
+        tl("Système de Party"),
+        tl("Active le système de party (Create/Join/Leave/Kick/Invite Party). Si désactivé, toutes les options qui en dépendent sont automatiquement désactivées.")));
     game.settings.register(MOD, "enableJoinScene", B(
-        "Join Scene",
-        "Ajoute une option 'Join Scene' dans le menu contextuel de la liste des joueurs (téléportation vers la scène d'un autre membre)."));
+        tl("Join Scene"),
+        tl("Ajoute une option 'Join Scene' dans le menu contextuel de la liste des joueurs (téléportation vers la scène d'un autre membre).")));
     game.settings.register(MOD, "enableShowParty", B(
-        "Show Party (partage d'image)",
-        "Ajoute un bouton 'Show Party' dans la barre de titre des fenêtres d'image (partage à tous les membres de la party)."));
+        tl("Show Party (partage d'image)"),
+        tl("Ajoute un bouton 'Show Party' dans la barre de titre des fenêtres d'image (partage à tous les membres de la party).")));
     game.settings.register(MOD, "enablePlayerGrouping", B(
-        "Regroupement visuel des joueurs par party",
-        "Réorganise la liste des joueurs pour regrouper visuellement les membres d'une même party."));
+        tl("Regroupement visuel des joueurs par party"),
+        tl("Réorganise la liste des joueurs pour regrouper visuellement les membres d'une même party.")));
     game.settings.register(MOD, "enableGoWithPartyScenes", B(
-        "Go With Party (répertoire de scènes)",
-        "Ajoute 'Go With Party' dans le menu contextuel du répertoire de scènes (téléporte toute la party)."));
+        tl("Go With Party (répertoire de scènes)"),
+        tl("Ajoute 'Go With Party' dans le menu contextuel du répertoire de scènes (téléporte toute la party).")));
     game.settings.register(MOD, "enableGoWithPartyJournal", B(
-        "Go With Party (liens de journaux)",
-        "Ajoute 'Go Alone' et 'Go With Party' au menu contextuel des liens de scène dans les journaux."));
+        tl("Go With Party (liens de journaux)"),
+        tl("Ajoute 'Go Alone' et 'Go With Party' au menu contextuel des liens de scène dans les journaux.")));
     game.settings.register(MOD, "enableChatFilter", B(
-        "Filtrage du chat par party",
-        "Les joueurs ne voient que les messages des membres de leur propre party."));
+        tl("Filtrage du chat par party"),
+        tl("Les joueurs ne voient que les messages des membres de leur propre party.")));
     game.settings.register(MOD, "enableChatTabs", B(
-        "Onglets de chat (IC / Autre / OOC)",
-        "Affiche la barre d'onglets qui sépare les messages par type. Désactivé : tous les messages (de la party) sont regroupés au même endroit, sans onglets.",
+        tl("Onglets de chat (IC / Autre / OOC)"),
+        tl("Affiche la barre d'onglets qui sépare les messages par type. Désactivé : tous les messages (de la party) sont regroupés au même endroit, sans onglets."),
         false));
     game.settings.register(MOD, "enableNoteLink", B(
-        "Carnet commun (notes liées)",
-        "Le MJ peut lier les notes des joueurs de sa party via un « carnet commun » (un journal partagé, éditable par tous les membres liés). Le lien survit à la dissolution de la party. Un joueur n'appartient qu'à un seul groupe à la fois.",
+        tl("Carnet commun (notes liées)"),
+        tl("Le MJ peut lier les notes des joueurs de sa party via un « carnet commun » (un journal partagé, éditable par tous les membres liés). Le lien survit à la dissolution de la party. Un joueur n'appartient qu'à un seul groupe à la fois."),
         false));
     // Groupes de carnets communs : [{ id, journalId, members:[userId] }]. Non affiché.
     game.settings.register(MOD, "noteLinkGroups", {
         scope: "world", config: false, type: Array, default: []
     });
     game.settings.register(MOD, "enableSessionLog", B(
-        "Rapport de session",
-        "Active le suivi de session (dès la création de party) et le bouton 'Clore la session', qui envoie le récap (XP, ennemis, PNJ, objets) sur le webhook Discord ci-dessous."));
+        tl("Rapport de session"),
+        tl("Active le suivi de session (dès la création de party) et le bouton 'Clore la session', qui envoie le récap (XP, ennemis, PNJ, objets) sur le webhook Discord ci-dessous.")));
     game.settings.register(MOD, "sessionLogWebhookUrl", S(
-        "URL du Webhook Discord (rapport de session)",
-        "Le bouton 'Clore la session' envoie le rapport (même contenu que les anciens journaux) sur ce webhook. Laisser vide pour désactiver l'envoi."));
+        tl("URL du Webhook Discord (rapport de session)"),
+        tl("Le bouton 'Clore la session' envoie le rapport (même contenu que les anciens journaux) sur ce webhook. Laisser vide pour désactiver l'envoi.")));
     game.settings.register(MOD, "sessionLogForum", B(
-        "Salon Discord de type Forum",
-        "Si le webhook pointe vers un salon Forum : les rapports sont regroupés dans un post (fil) de forum par meneur, réutilisé à chaque nouveau rapport. Laisser désactivé pour un salon textuel classique.",
+        tl("Salon Discord de type Forum"),
+        tl("Si le webhook pointe vers un salon Forum : les rapports sont regroupés dans un post (fil) de forum par meneur, réutilisé à chaque nouveau rapport. Laisser désactivé pour un salon textuel classique."),
         false));
     // Fils de forum créés par meneur (gmId → threadId). Non affiché.
     game.settings.register(MOD, "sessionForumThreads", {
@@ -209,8 +210,8 @@ export function registerSettings() {
     // entrées (niveau i→i+1) = étoiles requises. Édité en grille avec total.
     // ============================================================
     game.settings.register(MOD, "enableStarXp", B(
-        "Système d'étoiles (XP par étoiles)",
-        "Remplace l'XP chiffrée par des étoiles. À la clôture de session, le MJ attribue 1 à 3 étoiles ; chaque niveau coûte un nombre d'étoiles réglé dans le tableau ci-dessous. Sur la fiche, l'XP est remplacée par un compteur d'étoiles.",
+        tl("Système d'étoiles (XP par étoiles)"),
+        tl("Remplace l'XP chiffrée par des étoiles. À la clôture de session, le MJ attribue 1 à 3 étoiles ; chaque niveau coûte un nombre d'étoiles réglé dans le tableau ci-dessous. Sur la fiche, l'XP est remplacée par un compteur d'étoiles."),
         false));
     game.settings.register(MOD, "starXpLevels", {
         scope: "world", config: false, type: Array, default: Array.from({ length: 19 }, () => 3)
@@ -231,82 +232,82 @@ export function registerSettings() {
         scope: "world", config: false, type: Object, default: {}
     });
     game.settings.register(MOD, "enableCombatParty", B(
-        "Combat lié à la party (plutôt qu'à la scène)",
-        "Les combats créés par un GM sont détachés de la scène et associés à sa party. Chaque joueur ne voit que le combat de sa party."));
+        tl("Combat lié à la party (plutôt qu'à la scène)"),
+        tl("Les combats créés par un GM sont détachés de la scène et associés à sa party. Chaque joueur ne voit que le combat de sa party.")));
     game.settings.register(MOD, "enableCombatTurnLock", B(
-        "Blocage de mouvement hors tour (combat)",
-        "Pendant le combat de votre party, un joueur ne peut déplacer son token que quand c'est son tour. Le combat d'une autre party n'affecte jamais vos joueurs. Ne nécessite pas Monk's TokenBar."));
+        tl("Blocage de mouvement hors tour (combat)"),
+        tl("Pendant le combat de votre party, un joueur ne peut déplacer son token que quand c'est son tour. Le combat d'une autre party n'affecte jamais vos joueurs. Ne nécessite pas Monk's TokenBar.")));
     game.settings.register(MOD, "enablePartyPause", B(
-        "Pause de party (remplace le pause global)",
-        "Remplace le pause natif de Foundry par un pause propre à chaque party : le GM met SA party en pause (bandeau + blocage du déplacement de ses joueurs), sans affecter les autres. Masque l'indicateur de pause natif. Nécessite un rechargement.",
+        tl("Pause de party (remplace le pause global)"),
+        tl("Remplace le pause natif de Foundry par un pause propre à chaque party : le GM met SA party en pause (bandeau + blocage du déplacement de ses joueurs), sans affecter les autres. Masque l'indicateur de pause natif. Nécessite un rechargement."),
         false, { requiresReload: true }));
     game.settings.register(MOD, "enableCharValidation", B(
-        "Validation des personnages",
-        "Les joueurs demandent la création d'un personnage ; un GM valide depuis le Casier (un acteur est créé dans un dossier dédié, le joueur en devient propriétaire). Le joueur construit sa fiche puis la soumet ; à la validation, la fiche est verrouillée (construction non modifiable côté joueur, jeu libre)."));
+        tl("Validation des personnages"),
+        tl("Les joueurs demandent la création d'un personnage ; un GM valide depuis le Casier (un acteur est créé dans un dossier dédié, le joueur en devient propriétaire). Le joueur construit sa fiche puis la soumet ; à la validation, la fiche est verrouillée (construction non modifiable côté joueur, jeu libre).")));
     game.settings.register(MOD, "charMaxTotal", N(
-        "Nombre de personnages max par joueur",
-        "Nombre maximum de personnages qu'un joueur peut posséder (actifs + en stock). 0 = illimité.",
+        tl("Nombre de personnages max par joueur"),
+        tl("Nombre maximum de personnages qu'un joueur peut posséder (actifs + en stock). 0 = illimité."),
         0));
     game.settings.register(MOD, "charMaxActive", N(
-        "Personnages actifs simultanés",
-        "Nombre de personnages jouables en même temps. Les autres passent « en stock » (cadenas, en Observateur, non jouables).",
+        tl("Personnages actifs simultanés"),
+        tl("Nombre de personnages jouables en même temps. Les autres passent « en stock » (cadenas, en Observateur, non jouables)."),
         2));
     game.settings.register(MOD, "blockPlayerPlutonium", B(
-        "Bloquer les imports Plutonium hors autorisation",
-        "Empêche les joueurs d'importer du contenu Plutonium sur une fiche VERROUILLÉE. L'import n'est possible que pendant une fenêtre autorisée par le MJ (création du personnage, ou montée de niveau validée). Les GM ne sont jamais bloqués."));
+        tl("Bloquer les imports Plutonium hors autorisation"),
+        tl("Empêche les joueurs d'importer du contenu Plutonium sur une fiche VERROUILLÉE. L'import n'est possible que pendant une fenêtre autorisée par le MJ (création du personnage, ou montée de niveau validée). Les GM ne sont jamais bloqués.")));
     game.settings.register(MOD, "charFreeLevelUp", B(
-        "Montées de niveau libres (sans validation MJ)",
-        "Mode confiance : une fois le personnage validé à la création, les modifications de construction (montées de niveau) ne sont PLUS bloquées ni reverrouillées — le joueur monte de niveau librement, sans passer par le MJ. Le verrou ne s'applique donc qu'à la création initiale.",
+        tl("Montées de niveau libres (sans validation MJ)"),
+        tl("Mode confiance : une fois le personnage validé à la création, les modifications de construction (montées de niveau) ne sont PLUS bloquées ni reverrouillées — le joueur monte de niveau librement, sans passer par le MJ. Le verrou ne s'applique donc qu'à la création initiale."),
         false));
     game.settings.register(MOD, "charNotifyLevelUp", B(
-        "Notifier le MJ des montées de niveau",
-        "Quand les montées de niveau sont libres, poste quand même au MJ un récapitulatif des changements (niveau, classe, aptitudes, sorts ajoutés/retirés) — pour information, sans rien bloquer.",
+        tl("Notifier le MJ des montées de niveau"),
+        tl("Quand les montées de niveau sont libres, poste quand même au MJ un récapitulatif des changements (niveau, classe, aptitudes, sorts ajoutés/retirés) — pour information, sans rien bloquer."),
         true));
     game.settings.register(MOD, "charValidationFolder", S(
-        "Validation — Dossier des personnages",
-        "Nom du dossier d'acteurs où sont créés les personnages validés.",
-        "Personnages"));
+        tl("Validation — Dossier des personnages"),
+        tl("Nom du dossier d'acteurs où sont créés les personnages validés."),
+        tl("Personnages")));
 
     // ---- Contrôle des sources (livres/extensions autorisés) ----
     game.settings.register(MOD, "enableSourceControl", B(
-        "Contrôle des sources autorisées",
-        "Réglemente quels livres/extensions D&D (Xanathar, Tal'Dorei, etc.) peuvent être ajoutés à une fiche PJ, quelle que soit la méthode (import Plutonium/5etools, glisser-déposer, création manuelle). Le contenu d'une source non autorisée est bloqué avec un avertissement.",
+        tl("Contrôle des sources autorisées"),
+        tl("Réglemente quels livres/extensions D&D (Xanathar, Tal'Dorei, etc.) peuvent être ajoutés à une fiche PJ, quelle que soit la méthode (import Plutonium/5etools, glisser-déposer, création manuelle). Le contenu d'une source non autorisée est bloqué avec un avertissement."),
         false));
     game.settings.register(MOD, "sourceAllowPlayers", S(
-        "Sources autorisées — Joueurs",
-        "Liste blanche des sources autorisées pour les JOUEURS. Sépare les entrées par « ; ». Une entrée = « Source » (tous types) ou « Source : type1, type2 » pour n'autoriser que certains types de cette source. "
-        + "Types : race, classe, sous-classe, don, sort, historique, objet. "
-        + "Ex. : « PHB 2024 ; Tal'Dorei : race ; Xanathar : sous-classe, don » = tout de PHB 2024, mais seulement les races de Tal'Dorei et seulement sous-classes/dons de Xanathar. Laisser vide = aucune restriction pour les joueurs."));
+        tl("Sources autorisées — Joueurs"),
+        tl("Liste blanche des sources autorisées pour les JOUEURS. Sépare les entrées par « ; ». Une entrée = « Source » (tous types) ou « Source : type1, type2 » pour n'autoriser que certains types de cette source. ")
+        + tl("Types : race, classe, sous-classe, don, sort, historique, objet. ")
+        + tl("Ex. : « PHB 2024 ; Tal'Dorei : race ; Xanathar : sous-classe, don » = tout de PHB 2024, mais seulement les races de Tal'Dorei et seulement sous-classes/dons de Xanathar. Laisser vide = aucune restriction pour les joueurs.")));
     game.settings.register(MOD, "sourceAllowGm", S(
-        "Sources autorisées — MJ",
-        "Liste blanche des sources autorisées pour le MJ, même syntaxe que pour les joueurs (« Source » ou « Source : type1, type2 », entrées séparées par « ; »). Laisser vide = aucune restriction pour le MJ."));
+        tl("Sources autorisées — MJ"),
+        tl("Liste blanche des sources autorisées pour le MJ, même syntaxe que pour les joueurs (« Source » ou « Source : type1, type2 », entrées séparées par « ; »). Laisser vide = aucune restriction pour le MJ.")));
     game.settings.register(MOD, "sourceDeny", S(
-        "Sources / identifiants INTERDITS",
-        "Liste noire PRIORITAIRE, pour tout le monde (joueurs ET MJ), sur les fiches PJ. Chaque entrée interdit un contenu si elle correspond à sa <strong>source</strong> OU à son <strong>identifiant</strong> — pratique pour bannir un <strong>sort précis</strong> (ex. « conjure-animals ») ou une source entière, même si elle est par ailleurs autorisée. Entrées séparées par « ; ». La correspondance exacte/souple suit le même réglage que les listes blanches."));
+        tl("Sources / identifiants INTERDITS"),
+        `${tl("Liste noire PRIORITAIRE, pour tout le monde (joueurs ET MJ), sur les fiches PJ. Chaque entrée interdit un contenu si elle correspond à sa <strong>source</strong> OU à son <strong>identifiant</strong> — pratique pour bannir un <strong>sort précis</strong> (ex. « conjure-animals ») ou une source entière, même si elle est par ailleurs autorisée. Entrées séparées par « ; ». La correspondance exacte/souple suit le même réglage que les listes blanches.")}`));
     game.settings.register(MOD, "sourceMatchField", {
-        name: "Champ comparé (Book ou Identifier)",
-        hint: "Choisit sur quel champ de la source portent les listes ci-dessus. « Book » = le livre (ex. « PHB 2024 »), plus large. « Identifier » = l'identifiant précis de l'objet (ex. « unarmed-strike »), pour un filtrage fin. « Les deux » accepte une correspondance sur l'un OU l'autre.",
+        name: tl("Champ comparé (Book ou Identifier)"),
+        hint: tl("Choisit sur quel champ de la source portent les listes ci-dessus. « Book » = le livre (ex. « PHB 2024 »), plus large. « Identifier » = l'identifiant précis de l'objet (ex. « unarmed-strike »), pour un filtrage fin. « Les deux » accepte une correspondance sur l'un OU l'autre."),
         scope: "world", config: false, type: String, default: "book", requiresReload: false,
-        choices: { book: "Book (livre)", identifier: "Identifier (identifiant)", both: "Les deux (l'un ou l'autre)" }
+        choices: { book: tl("Book (livre)"), identifier: tl("Identifier (identifiant)"), both: tl("Les deux (l'un ou l'autre)") }
     });
     game.settings.register(MOD, "sourceMatchExact", B(
-        "Correspondance exacte des sources",
-        "Activé : une source n'est autorisée que si elle correspond EXACTEMENT à une entrée de la liste (« PHB » n'autorise pas « XPHB », le PHB 2024). Désactivé : correspondance souple (une entrée autorise toute source qui la contient) — plus permissif mais risque d'autoriser des sources proches sans le vouloir.",
+        tl("Correspondance exacte des sources"),
+        tl("Activé : une source n'est autorisée que si elle correspond EXACTEMENT à une entrée de la liste (« PHB » n'autorise pas « XPHB », le PHB 2024). Désactivé : correspondance souple (une entrée autorise toute source qui la contient) — plus permissif mais risque d'autoriser des sources proches sans le vouloir."),
         true));
     game.settings.register(MOD, "sourceBlockUnknown", B(
-        "Bloquer le contenu sans source identifiable",
-        "Refuse tout contenu dont la source ne peut pas être déterminée (homebrew, objet créé à la main, source vide). Ne s'applique que si une liste de sources est renseignée pour le rôle concerné.",
+        tl("Bloquer le contenu sans source identifiable"),
+        tl("Refuse tout contenu dont la source ne peut pas être déterminée (homebrew, objet créé à la main, source vide). Ne s'applique que si une liste de sources est renseignée pour le rôle concerné."),
         true));
     // --- Monnaie (bourse) ---
     game.settings.register(MOD, "disableElectrum", B(
-        "Retirer l'électrum (EP)",
-        "Masque le slot Électrum sur les fiches et les contenants, et force toute valeur d'EP à 0 (aucune pièce d'électrum ne peut être ajoutée). Astuce : si des personnages ont déjà de l'EP, convertissez-la en PA avant d'activer (1 EP = 5 PA).",
+        tl("Retirer l'électrum (EP)"),
+        tl("Masque le slot Électrum sur les fiches et les contenants, et force toute valeur d'EP à 0 (aucune pièce d'électrum ne peut être ajoutée). Astuce : si des personnages ont déjà de l'EP, convertissez-la en PA avant d'activer (1 EP = 5 PA)."),
         false));
     game.settings.register(MOD, "currencyContainerBlock", {
-        name: "Pièces dans les contenants (sacs, poches…)",
-        hint: "Empêche de ranger des pièces dans un contenant : la richesse doit rester sur la bourse de la fiche. ⚠️ Si DÉSACTIVÉ, des pièces peuvent être cachées dans des sacs/poches et ne seront PAS vues par les modules qui lisent la bourse de la fiche — ex. « Temps morts » (coûts/gains de la période), les calculs de richesse, etc. → totaux faussés. Pour un fonctionnement fiable de ces modules, activez « Joueurs uniquement » (ou « Tout le monde »).",
+        name: tl("Pièces dans les contenants (sacs, poches…)"),
+        hint: tl("Empêche de ranger des pièces dans un contenant : la richesse doit rester sur la bourse de la fiche. ⚠️ Si DÉSACTIVÉ, des pièces peuvent être cachées dans des sacs/poches et ne seront PAS vues par les modules qui lisent la bourse de la fiche — ex. « Temps morts » (coûts/gains de la période), les calculs de richesse, etc. → totaux faussés. Pour un fonctionnement fiable de ces modules, activez « Joueurs uniquement » (ou « Tout le monde »)."),
         scope: "world", config: false, type: String, default: "off", requiresReload: false,
-        choices: { off: "Désactivé", players: "Joueurs uniquement", all: "Tout le monde" }
+        choices: { off: tl("Désactivé"), players: tl("Joueurs uniquement"), all: tl("Tout le monde") }
     });
     // État de pause par party (mapping partyId -> true), synchronisé sur tous
     // les clients. Non affiché dans la configuration.
@@ -315,30 +316,30 @@ export function registerSettings() {
         onChange: () => applyPartyPause()
     });
     game.settings.register(MOD, "enableAntiCheat", B(
-        "Anti-Cheat (combat)",
-        "Pendant un combat actif, avertit les GM en privé si un joueur modifie ses sorts préparés, son attunement ou son équipement."));
+        tl("Anti-Cheat (combat)"),
+        tl("Pendant un combat actif, avertit les GM en privé si un joueur modifie ses sorts préparés, son attunement ou son équipement.")));
 
     // ============================================================
     // SERVEUR — Personnalisations
     // ============================================================
     game.settings.register(MOD, "enableXpBlock", B(
-        "Blocage de l'XP et du Level Up",
-        "Empêche les joueurs de modifier leur XP et masque le bouton Level Up. Les GM ne sont pas affectés."));
+        tl("Blocage de l'XP et du Level Up"),
+        tl("Empêche les joueurs de modifier leur XP et masque le bouton Level Up. Les GM ne sont pas affectés.")));
     game.settings.register(MOD, "enableFakeWarning", B(
-        "Faux message de maintenance (farce GM)",
-        "Ajoute un bouton GM dans la barre WestMarch pour envoyer un faux avertissement jaune (« Mise à jour effectuée… ») à un joueur. Décochez pour retirer complètement le bouton.",
+        tl("Faux message de maintenance (farce GM)"),
+        tl("Ajoute un bouton GM dans la barre WestMarch pour envoyer un faux avertissement jaune (« Mise à jour effectuée… ») à un joueur. Décochez pour retirer complètement le bouton."),
         true));
     game.settings.register(MOD, "enableGmNotes", B(
-        "Note GM sur les fiches PJ",
-        "Ajoute un onglet « Note GM » sur les fiches de personnage, visible et modifiable uniquement par les GM. Les joueurs ne voient pas l'onglet. Nécessite un rechargement.",
+        tl("Note GM sur les fiches PJ"),
+        tl("Ajoute un onglet « Note GM » sur les fiches de personnage, visible et modifiable uniquement par les GM. Les joueurs ne voient pas l'onglet. Nécessite un rechargement."),
         true, { requiresReload: true }));
     game.settings.register(MOD, "enableGmNotesNpc", B(
-        "Note GM sur les fiches PNJ",
-        "Ajoute le même onglet « Note GM » (privé, MJ uniquement) sur les fiches de PNJ. Indépendant de l'option PJ. Nécessite un rechargement.",
+        tl("Note GM sur les fiches PNJ"),
+        tl("Ajoute le même onglet « Note GM » (privé, MJ uniquement) sur les fiches de PNJ. Indépendant de l'option PJ. Nécessite un rechargement."),
         true, { requiresReload: true }));
     game.settings.register(MOD, "createPantheonFolder", B(
-        "Dossier « Panthéons » (Dieux de Faerûn)",
-        "Au premier lancement, crée dans les Journaux un dossier « Panthéons » (couleur #860404) contenant le compendium des dieux de Faerûn fourni avec le module. Décoché : ne crée rien. Une fois créé, il n'est pas recréé si vous le supprimez.",
+        tl("Dossier « Panthéons » (Dieux de Faerûn)"),
+        tl("Au premier lancement, crée dans les Journaux un dossier « Panthéons » (couleur #860404) contenant le compendium des dieux de Faerûn fourni avec le module. Décoché : ne crée rien. Une fois créé, il n'est pas recréé si vous le supprimez."),
         true));
     // Garde-fou : création effectuée une seule fois (ne pas recréer après suppression).
     game.settings.register(MOD, "pantheonCreatedOnce", {
@@ -351,181 +352,181 @@ export function registerSettings() {
 
     // ---- Rappels de combat (assistant contextuel, dépend de Midi-QOL) ----
     game.settings.register(MOD, "enableReactReminder", B(
-        "Rappel des réactions",
-        "Quand un PJ est réellement ciblé par une attaque (via Midi-QOL), lui propose ses réactions dans un pop-up et prévient le MJ de sa party qu'il réfléchit ; le choix du joueur ferme la notif du MJ.",
+        tl("Rappel des réactions"),
+        tl("Quand un PJ est réellement ciblé par une attaque (via Midi-QOL), lui propose ses réactions dans un pop-up et prévient le MJ de sa party qu'il réfléchit ; le choix du joueur ferme la notif du MJ."),
         false));
     game.settings.register(MOD, "enableBonusReminder", B(
-        "Rappel des actions bonus utiles",
-        "Propose une action bonus pertinente au bon moment (ex. Divine Smite après un coup au corps-à-corps si le PJ a des emplacements de sort).",
+        tl("Rappel des actions bonus utiles"),
+        tl("Propose une action bonus pertinente au bon moment (ex. Divine Smite après un coup au corps-à-corps si le PJ a des emplacements de sort)."),
         false));
     game.settings.register(MOD, "enableMasteryReminder", B(
-        "Rappel des maîtrises d'arme (weapon mastery)",
-        "Si l'arme utilisée possède une maîtrise sur la fiche du PJ, rappelle son effet lors de l'attaque.",
+        tl("Rappel des maîtrises d'arme (weapon mastery)"),
+        tl("Si l'arme utilisée possède une maîtrise sur la fiche du PJ, rappelle son effet lors de l'attaque."),
         false));
     game.settings.register(MOD, "enableAdvantageReminder", B(
-        "Rappel avantage / désavantage",
-        "Au jet d'attaque, signale les sources d'avantage/désavantage selon l'état de la cible (à terre + CaC…) et les effets de statut du PJ.",
+        tl("Rappel avantage / désavantage"),
+        tl("Au jet d'attaque, signale les sources d'avantage/désavantage selon l'état de la cible (à terre + CaC…) et les effets de statut du PJ."),
         false));
     // Opt-out PAR JOUEUR (réglage client, visible et modifiable par chacun) :
     // coupe les pop-ups/chuchotements de rappels de combat sur SON écran.
     game.settings.register(MOD, "combatRemindersOff", {
-        name: "Désactiver mes rappels de combat",
-        hint: "Coché = tu ne reçois plus les pop-ups et chuchotements de rappels de combat (réactions, châtiments/smite, avantage/désavantage, maîtrises). N'affecte que TON écran, pas les autres joueurs ni le MJ.",
+        name: tl("Désactiver mes rappels de combat"),
+        hint: tl("Coché = tu ne reçois plus les pop-ups et chuchotements de rappels de combat (réactions, châtiments/smite, avantage/désavantage, maîtrises). N'affecte que TON écran, pas les autres joueurs ni le MJ."),
         scope: "client", config: true, type: Boolean, default: false
     });
     game.settings.register(MOD, "hidePlayerStarTab", B(
-        "Masquer l'onglet « étoile » aux joueurs",
-        "Cache l'onglet dont l'icône est une étoile (favoris) sur les fiches de personnage, pour les joueurs uniquement. Les GM le voient toujours."));
+        tl("Masquer l'onglet « étoile » aux joueurs"),
+        tl("Cache l'onglet dont l'icône est une étoile (favoris) sur les fiches de personnage, pour les joueurs uniquement. Les GM le voient toujours.")));
     game.settings.register(MOD, "enableDiscordLog", B(
-        "Log Discord (modifications)",
-        "Envoie un message Discord à chaque ajout/suppression d'objet, changement de quantité/monnaie, gain d'XP/niveau, et création/suppression de personnage.",
+        tl("Log Discord (modifications)"),
+        tl("Envoie un message Discord à chaque ajout/suppression d'objet, changement de quantité/monnaie, gain d'XP/niveau, et création/suppression de personnage."),
         false));
     game.settings.register(MOD, "discordLogWebhookUrl", S(
-        "URL du Webhook Discord (log modifications)",
-        "URL du webhook Discord pour les logs de modifications. Laisser vide pour désactiver."));
+        tl("URL du Webhook Discord (log modifications)"),
+        tl("URL du webhook Discord pour les logs de modifications. Laisser vide pour désactiver.")));
     // --- Contenu loggé (cases à cocher, sous-section « Log Discord ») ---
     game.settings.register(MOD, "logInventory", B(
-        "Objets d'inventaire",
-        "Logge l'ajout, le retrait et les changements de quantité des objets (armes, équipement, consommables, outils, butin).", true));
+        tl("Objets d'inventaire"),
+        tl("Logge l'ajout, le retrait et les changements de quantité des objets (armes, équipement, consommables, outils, butin)."), true));
     game.settings.register(MOD, "logXp", B(
         "XP",
-        "Logge les changements de points d'expérience.", true));
+        tl("Logge les changements de points d'expérience."), true));
     game.settings.register(MOD, "logCurrency", B(
-        "Pièces / monnaie",
-        "Logge les changements de bourse (PO, PA, PE, PC, PP).", true));
+        tl("Pièces / monnaie"),
+        tl("Logge les changements de bourse (PO, PA, PE, PC, PP)."), true));
     game.settings.register(MOD, "logLevelsElements", B(
-        "Niveaux & autres éléments",
-        "Logge les montées de niveau ET l'ajout/retrait de tout autre élément d'une fiche : sorts, dons, races, classes, sous-classes, historiques.", true));
+        tl("Niveaux & autres éléments"),
+        tl("Logge les montées de niveau ET l'ajout/retrait de tout autre élément d'une fiche : sorts, dons, races, classes, sous-classes, historiques."), true));
     game.settings.register(MOD, "logModuleErrors", B(
-        "Problèmes du module",
-        "Envoie dans ce salon les vrais problèmes du module (fonction cassée, erreur, conflit avec un autre module ou une mise à jour de Foundry), avec l'endroit, les versions, la mention « Contacter le propriétaire du module » et le lien du Discord Althéia pour ouvrir un ticket. Un même problème n'est envoyé qu'une fois toutes les 10 minutes.", true));
+        tl("Problèmes du module"),
+        tl("Envoie dans ce salon les vrais problèmes du module (fonction cassée, erreur, conflit avec un autre module ou une mise à jour de Foundry), avec l'endroit, les versions, la mention « Contacter le propriétaire du module » et le lien du Discord Althéia pour ouvrir un ticket. Un même problème n'est envoyé qu'une fois toutes les 10 minutes."), true));
     game.settings.register(MOD, "logSheetEdits", B(
-        "Modifications des fiches",
-        "Logge toute modification faite sur une fiche : objets, aptitudes, sorts (nom, description, dégâts, portée, utilisations max…) et la fiche elle-même (caractéristiques, maîtrises, langues, biographie…). Ce qui change en jeu n'est pas loggé : PV, utilisations dépensées, emplacements de sort, équiper / préparer.", true));
+        tl("Modifications des fiches"),
+        tl("Logge toute modification faite sur une fiche : objets, aptitudes, sorts (nom, description, dégâts, portée, utilisations max…) et la fiche elle-même (caractéristiques, maîtrises, langues, biographie…). Ce qui change en jeu n'est pas loggé : PV, utilisations dépensées, emplacements de sort, équiper / préparer."), true));
     game.settings.register(MOD, "logActors", B(
-        "Création / suppression de fiche",
-        "Logge la création et la suppression de personnages.", true));
+        tl("Création / suppression de fiche"),
+        tl("Logge la création et la suppression de personnages."), true));
     game.settings.register(MOD, "logScenes", B(
-        "Création / suppression de scène (map)",
-        "Logge la création et la suppression de scènes.", false));
+        tl("Création / suppression de scène (map)"),
+        tl("Logge la création et la suppression de scènes."), false));
     game.settings.register(MOD, "logJournals", B(
-        "Création / suppression de journal",
-        "Logge la création et la suppression de journaux.", false));
+        tl("Création / suppression de journal"),
+        tl("Logge la création et la suppression de journaux."), false));
     game.settings.register(MOD, "logIncludeNpc", B(
-        "Inclure les PNJ",
-        "Par défaut, seuls les PJ sont loggés. Activez pour tracer aussi les modifications faites sur les fiches PNJ.", false));
+        tl("Inclure les PNJ"),
+        tl("Par défaut, seuls les PJ sont loggés. Activez pour tracer aussi les modifications faites sur les fiches PNJ."), false));
     game.settings.register(MOD, "downtimeWebhookUrl", S(
-        "URL du Webhook Discord (changement de date)",
-        "Quand le GM avance la date dans Simple Calendar, envoie un message sur ce webhook. Laisser vide pour désactiver."));
+        tl("URL du Webhook Discord (changement de date)"),
+        tl("Quand le GM avance la date dans Simple Calendar, envoie un message sur ce webhook. Laisser vide pour désactiver.")));
     game.settings.register(MOD, "tmWebhookUrl", S(
-        "URL du Webhook Discord (résultats temps morts)",
-        "Quand le GM applique les gains de temps morts, envoie le récapitulatif sur ce webhook (salon staff/MJ). Laisser vide pour désactiver."));
+        tl("URL du Webhook Discord (résultats temps morts)"),
+        tl("Quand le GM applique les gains de temps morts, envoie le récapitulatif sur ce webhook (salon staff/MJ). Laisser vide pour désactiver.")));
 
     // ============================================================
     // TEMPS MORTS — règles configurables (valeurs + formules + tables)
     // ============================================================
     game.settings.register(MOD, "tmEnabled", B(
-        "Temps morts — Activer",
-        "Active tout le système de temps morts : bouton sablier sur la fiche PJ (joueur) et onglet « Temps morts » dans le Casier (GM). Nécessite un rechargement.",
+        tl("Temps morts — Activer"),
+        tl("Active tout le système de temps morts : bouton sablier sur la fiche PJ (joueur) et onglet « Temps morts » dans le Casier (GM). Nécessite un rechargement."),
         true, { requiresReload: true }));
     // -- Gain de compétence --
     game.settings.register(MOD, "tmSkillBase", N(
-        "Gain — Base par jour",
-        "Valeur de base ajoutée chaque jour avant caractéristique et bonus.", 1));
+        tl("Gain — Base par jour"),
+        tl("Valeur de base ajoutée chaque jour avant caractéristique et bonus."), 1));
     game.settings.register(MOD, "tmAddAbilityMod", B(
-        "Gain — Ajouter le modificateur de caractéristique",
-        "Si activé, le modificateur de la caractéristique de la compétence est ajouté au taux journalier."));
+        tl("Gain — Ajouter le modificateur de caractéristique"),
+        tl("Si activé, le modificateur de la caractéristique de la compétence est ajouté au taux journalier.")));
     game.settings.register(MOD, "tmBonusMaitrise", N(
-        "Gain — Bonus Maîtrise", "Bonus journalier si la compétence est maîtrisée.", 2));
+        tl("Gain — Bonus Maîtrise"), tl("Bonus journalier si la compétence est maîtrisée."), 2));
     game.settings.register(MOD, "tmBonusExpertise", N(
-        "Gain — Bonus Expertise", "Bonus journalier si la compétence est en expertise.", 4));
+        tl("Gain — Bonus Expertise"), tl("Bonus journalier si la compétence est en expertise."), 4));
     game.settings.register(MOD, "tmBonusTools", N(
-        "Gain — Bonus Outils", "Bonus journalier pour une maîtrise d'outil.", 4));
+        tl("Gain — Bonus Outils"), tl("Bonus journalier pour une maîtrise d'outil."), 4));
     game.settings.register(MOD, "tmRollMinDays", N(
-        "Gain — Jours min. pour le jet d20", "Nombre de jours minimum pour autoriser le jet de compétence optionnel.", 5));
+        tl("Gain — Jours min. pour le jet d20"), tl("Nombre de jours minimum pour autoriser le jet de compétence optionnel."), 5));
     game.settings.register(MOD, "tmSkillFormula", S(
-        "Gain — Formule (avancé)",
-        "Formule du taux JOURNALIER. Vide = calcul par défaut max(0, base + mod + bonus). Variables : base, mod, bonus, maitrise, expertise, tools. Fonctions : max, min, floor, ceil, round, abs, pow, sqrt."));
+        tl("Gain — Formule (avancé)"),
+        tl("Formule du taux JOURNALIER. Vide = calcul par défaut max(0, base + mod + bonus). Variables : base, mod, bonus, maitrise, expertise, tools. Fonctions : max, min, floor, ceil, round, abs, pow, sqrt.")));
 
     // -- Artisanat : non-magique --
     game.settings.register(MOD, "tmCraftNonMagicCostDiv", N(
-        "Craft non-magique — Diviseur de coût", "Coût par défaut = prix / ce diviseur.", 2));
+        tl("Craft non-magique — Diviseur de coût"), tl("Coût par défaut = prix / ce diviseur."), 2));
     game.settings.register(MOD, "tmCraftNonMagicDaysPerGp", N(
-        "Craft non-magique — PO par jour", "Durée par défaut = arrondi sup. de prix / cette valeur.", 10));
+        tl("Craft non-magique — PO par jour"), tl("Durée par défaut = arrondi sup. de prix / cette valeur."), 10));
     game.settings.register(MOD, "tmCraftNonMagicCostFormula", S(
-        "Craft non-magique — Formule coût (avancé)",
+        tl("Craft non-magique — Formule coût (avancé)"),
         "Vide = prix / div. Variables : price, div, daysPerGp. Fonctions math disponibles."));
     game.settings.register(MOD, "tmCraftNonMagicDaysFormula", S(
-        "Craft non-magique — Formule durée (avancé)",
+        tl("Craft non-magique — Formule durée (avancé)"),
         "Vide = ceil(price / daysPerGp). Variables : price, div, daysPerGp. Fonctions math disponibles."));
 
     // -- Artisanat : usage unique --
     game.settings.register(MOD, "tmSingleUseFactor", N(
-        "Craft magique — Facteur usage unique", "Multiplie jours et coût pour un objet magique à usage unique (0.5 = moitié).", 0.5));
+        tl("Craft magique — Facteur usage unique"), tl("Multiplie jours et coût pour un objet magique à usage unique (0.5 = moitié)."), 0.5));
 
     // -- Tables (éditées via champs structurés dans la fenêtre) --
     game.settings.register(MOD, "tmScrollTable", {
-        name: "Table des parchemins (par niveau de sort 0→9)",
+        name: tl("Table des parchemins (par niveau de sort 0→9)"),
         scope: "world", config: false, type: Object, default: TM_DEFAULT_SCROLL
     });
     game.settings.register(MOD, "tmMagicTable", {
-        name: "Table des objets magiques (par rareté)",
+        name: tl("Table des objets magiques (par rareté)"),
         scope: "world", config: false, type: Object, default: TM_DEFAULT_MAGIC
     });
     game.settings.register(MOD, "tmRollTable", {
-        name: "Multiplicateurs du test de compétence (par résultat)",
+        name: tl("Multiplicateurs du test de compétence (par résultat)"),
         scope: "world", config: false, type: Object, default: TM_DEFAULT_ROLL
     });
     game.settings.register(MOD, "tmReliableTalent", B(
-        "Prise en charge du Reliable Talent",
-        "Un personnage possédant un objet nommé « Reliable Talent » ou « Talent Fiable » ne peut pas descendre en dessous de 10 sur le d20 de son test de compétence (s'il est maîtrisé).",
+        tl("Prise en charge du Reliable Talent"),
+        tl("Un personnage possédant un objet nommé « Reliable Talent » ou « Talent Fiable » ne peut pas descendre en dessous de 10 sur le d20 de son test de compétence (s'il est maîtrisé)."),
         true));
     game.settings.register(MOD, "tmCraftPack", S(
-        "Artisanat — Compendium des objets craftables",
-        "Compendium d'OBJETS (ex. importé via Plutonium). À la fin d'un craft, le module y cherche l'objet par son nom et l'ajoute automatiquement à la fiche du joueur. Vide = ajout manuel comme avant."));
+        tl("Artisanat — Compendium des objets craftables"),
+        tl("Compendium d'OBJETS (ex. importé via Plutonium). À la fin d'un craft, le module y cherche l'objet par son nom et l'ajoute automatiquement à la fiche du joueur. Vide = ajout manuel comme avant.")));
 
     // ============================================================
     // TOOLKIT — Features génériques
     // ============================================================
     game.settings.register(MOD, "enableTokenAppearance", B(
-        "Changement d'apparence des tokens",
-        "Le GM configure plusieurs images sur un token ; les joueurs cyclent via un bouton dans le HUD."));
+        tl("Changement d'apparence des tokens"),
+        tl("Le GM configure plusieurs images sur un token ; les joueurs cyclent via un bouton dans le HUD.")));
     game.settings.register(MOD, "enableTokenPortraitButton", B(
-        "Bouton 'Voir le portrait' (HUD du token)",
-        "Ajoute un bouton dans le HUD du token qui affiche en grand l'image de la fiche."));
+        tl("Bouton 'Voir le portrait' (HUD du token)"),
+        tl("Ajoute un bouton dans le HUD du token qui affiche en grand l'image de la fiche.")));
     game.settings.register(MOD, "enableRageSize", B(
-        "Taille Large pendant la Rage (Voie du Géant)",
-        "Barbares avec 'Giant's Havoc' : le token passe en 2x2 (Large) pendant la Rage, puis revient à sa taille d'origine."));
+        tl("Taille Large pendant la Rage (Voie du Géant)"),
+        tl("Barbares avec 'Giant's Havoc' : le token passe en 2x2 (Large) pendant la Rage, puis revient à sa taille d'origine.")));
     game.settings.register(MOD, "enableLargeForm", B(
-        "Taille Large — Goliath (Large Form)",
-        "Goliaths avec 'Large Form' : utiliser la feature bascule le token en 2x2 (Large) et inversement."));
+        tl("Taille Large — Goliath (Large Form)"),
+        tl("Goliaths avec 'Large Form' : utiliser la feature bascule le token en 2x2 (Large) et inversement.")));
     game.settings.register(MOD, "enableHealerReroll", B(
-        "Healer (Guérisseur) — relance des 1 sur les soins",
-        "Personnages qui ont le don Healer : à chaque jet de soins d'un sort (ou du Battle Medic du don), les dés qui font 1 sont relancés une fois (« r1 » ajouté à la formule). Les PV temporaires ne sont pas concernés."));
+        tl("Healer (Guérisseur) — relance des 1 sur les soins"),
+        tl("Personnages qui ont le don Healer : à chaque jet de soins d'un sort (ou du Battle Medic du don), les dés qui font 1 sont relancés une fois (« r1 » ajouté à la formule). Les PV temporaires ne sont pas concernés.")));
     game.settings.register(MOD, "enableAlertSwap", B(
-        "Alert (Vigilant) — échange d'initiative",
-        "Pour les MJ : bouton « échanger » dans le suivi de combat sur la ligne des personnages qui ont le don Alert. Il échange leur initiative avec celle d'un autre joueur du combat (non neutralisé) et l'annonce dans le chat."));
+        tl("Alert (Vigilant) — échange d'initiative"),
+        tl("Pour les MJ : bouton « échanger » dans le suivi de combat sur la ligne des personnages qui ont le don Alert. Il échange leur initiative avec celle d'un autre joueur du combat (non neutralisé) et l'annonce dans le chat.")));
     game.settings.register(MOD, "enableFormOfTheBeast", B(
-        "Armes naturelles — Voie de la Bête (Form of the Beast)",
-        "Barbares dont une feature a l'identifiant 'form-of-the-beast' : le module crée 3 armes naturelles (Morsure, Griffes, Queue) avec jets d'attaque/dégâts, et les retire si la feature disparaît.",
+        tl("Armes naturelles — Voie de la Bête (Form of the Beast)"),
+        tl("Barbares dont une feature a l'identifiant 'form-of-the-beast' : le module crée 3 armes naturelles (Morsure, Griffes, Queue) avec jets d'attaque/dégâts, et les retire si la feature disparaît."),
         false, { requiresReload: true }));
     game.settings.register(MOD, "enablePolymorph", B(
-        "Activer la transformation (Wild Shape / Polymorphie)",
-        "Deux systèmes distincts basés sur le moteur dnd5e : Wild Shape (druide) et Polymorphie (sort). Formes configurées sur la fiche (onglet Apparence), boutons dans le HUD du token."));
+        tl("Activer la transformation (Wild Shape / Polymorphie)"),
+        tl("Deux systèmes distincts basés sur le moteur dnd5e : Wild Shape (druide) et Polymorphie (sort). Formes configurées sur la fiche (onglet Apparence), boutons dans le HUD du token.")));
     game.settings.register(MOD, "transformEnforceCr", B(
-        "Appliquer les limites de FP",
-        "Vérifie le facteur de puissance (FP) de la bête : ≤ niveau/FP de la cible pour la Polymorphie ; selon le niveau de druide pour Wild Shape (1/4 niv.2, 1/2 niv.4, 1 niv.8 ; Cercle de la Lune = niveau/3). Décoché = aucune limite.",
+        tl("Appliquer les limites de FP"),
+        tl("Vérifie le facteur de puissance (FP) de la bête : ≤ niveau/FP de la cible pour la Polymorphie ; selon le niveau de druide pour Wild Shape (1/4 niv.2, 1/2 niv.4, 1 niv.8 ; Cercle de la Lune = niveau/3). Décoché = aucune limite."),
         true));
     game.settings.register(MOD, "transformStrictCr", B(
-        "Bloquer au-dessus de la limite de FP",
-        "Coché : une forme au-dessus de la limite est refusée (un MJ peut confirmer pour passer outre). Décoché : simple avertissement, la transformation est autorisée. Sans effet si « Appliquer les limites de FP » est décoché.",
+        tl("Bloquer au-dessus de la limite de FP"),
+        tl("Coché : une forme au-dessus de la limite est refusée (un MJ peut confirmer pour passer outre). Décoché : simple avertissement, la transformation est autorisée. Sans effet si « Appliquer les limites de FP » est décoché."),
         true));
     game.settings.register(MOD, "enableTgcm", B(
-        "Protégé TGCM (token immunisé à la mort)",
-        "Bouton bouclier dans le HUD (GM). Un token protégé ne tombe jamais à 0 PV (reste à 1 PV)."));
+        tl("Protégé TGCM (token immunisé à la mort)"),
+        tl("Bouton bouclier dans le HUD (GM). Un token protégé ne tombe jamais à 0 PV (reste à 1 PV).")));
     game.settings.register(MOD, "enableCompanions", B(
-        "Compagnons évolutifs",
-        "Resynchronise les stats d'une créature liée (compagnon, invocation) sur le niveau de son maître, via des profils de formules. Complète l'activité « Summon » du système (ne la remplace pas).",
+        tl("Compagnons évolutifs"),
+        tl("Resynchronise les stats d'une créature liée (compagnon, invocation) sur le niveau de son maître, via des profils de formules. Complète l'activité « Summon » du système (ne la remplace pas)."),
         false, { requiresReload: true }));
     // Surcharges/ajouts de profils par le MJ (les profils par défaut sont livrés
     // dans companions.js ; ce réglage ne stocke que les modifications du MJ).
@@ -533,23 +534,23 @@ export function registerSettings() {
         scope: "world", config: false, type: Object, default: {}
     });
     game.settings.register(MOD, "enableFolderMove", B(
-        "Déplacer/Dupliquer vers… (sidebar)",
-        "Ajoute 'Déplacer vers…' et 'Dupliquer vers…' dans le menu contextuel des scènes, acteurs, objets et journaux."));
+        tl("Déplacer/Dupliquer vers… (sidebar)"),
+        tl("Ajoute 'Déplacer vers…' et 'Dupliquer vers…' dans le menu contextuel des scènes, acteurs, objets et journaux.")));
     game.settings.register(MOD, "enableToolAbilityFix", B(
-        "Correction de la stat des outils (tools)",
-        "À la création d'un outil sans stat, corrige automatiquement vers la stat canonique dnd5e."));
+        tl("Correction de la stat des outils (tools)"),
+        tl("À la création d'un outil sans stat, corrige automatiquement vers la stat canonique dnd5e.")));
     // Le masquage de la barre de macros (joueurs/GM) est désormais géré
     // uniquement par le panneau « Interface — Masquer des éléments » (uihide.js),
     // qui couvre la hotbar avec ses deux colonnes Joueurs/GM. Les anciens
     // réglages dédiés « enableHideHotbar » ont été retirés (doublon).
     game.settings.register(MOD, "enableConnStats", {
-        name: "Fenêtre d'infos de connexion",
-        hint: "Affiche au chargement, en haut au centre de l'écran, le temps de connexion, le nombre de modules actifs et la durée moyenne de connexion. Prend effet au prochain chargement.",
+        name: tl("Fenêtre d'infos de connexion"),
+        hint: tl("Affiche au chargement, en haut au centre de l'écran, le temps de connexion, le nombre de modules actifs et la durée moyenne de connexion. Prend effet au prochain chargement."),
         scope: "world", config: false, type: Boolean, default: true, requiresReload: false
     });
     game.settings.register(MOD, "enablePlayerListCompact", {
-        name: "Liste des joueurs compacte + recherche",
-        hint: "Limite la liste des joueurs à environ 4 lignes (avec défilement) et ajoute une barre de recherche pour filtrer les joueurs par nom.",
+        name: tl("Liste des joueurs compacte + recherche"),
+        hint: tl("Limite la liste des joueurs à environ 4 lignes (avec défilement) et ajoute une barre de recherche pour filtrer les joueurs par nom."),
         scope: "world", config: false, type: Boolean, default: true, requiresReload: false,
         onChange: () => ui.players?.render()
     });
@@ -564,36 +565,36 @@ export function registerSettings() {
     });
     // ---- Échange entre joueurs ----
     game.settings.register(MOD, "enableTrade", B(
-        "Échange entre joueurs",
-        "Ajoute un bouton « Échanger » dans la liste des joueurs : fenêtre d'échange synchronisée (objets + monnaies), arbitrée par le MJ. Interdit en party sans expédition ; en expédition, uniquement entre membres de la même expédition ; libre en ville.",
+        tl("Échange entre joueurs"),
+        tl("Ajoute un bouton « Échanger » dans la liste des joueurs : fenêtre d'échange synchronisée (objets + monnaies), arbitrée par le MJ. Interdit en party sans expédition ; en expédition, uniquement entre membres de la même expédition ; libre en ville."),
         true));
     // ---- Cartes de chat ----
     game.settings.register(MOD, "enableChatCards", {
-        name: "Activer l'habillage des cartes de chat",
-        hint: "Interrupteur général. Les options ci-dessous n'ont d'effet que si celui-ci est activé.",
+        name: tl("Activer l'habillage des cartes de chat"),
+        hint: tl("Interrupteur général. Les options ci-dessous n'ont d'effet que si celui-ci est activé."),
         scope: "world", config: false, type: Boolean, default: true,
         onChange: () => applyChatCardPrefs()
     });
     game.settings.register(MOD, "chatCardsTheme", {
-        name: "Thème (couleurs & bordures)",
-        hint: "Reteinte les cartes (fond crème par défaut, bordures dorées, titres, pastilles). Chaque joueur choisit sa couleur dans « Accessibilité ».",
+        name: tl("Thème (couleurs & bordures)"),
+        hint: tl("Reteinte les cartes (fond crème par défaut, bordures dorées, titres, pastilles). Chaque joueur choisit sa couleur dans « Accessibilité »."),
         scope: "world", config: false, type: Boolean, default: true,
         onChange: () => applyChatCardPrefs()
     });
     game.settings.register(MOD, "chatCardsBigButtons", {
-        name: "Gros boutons Attaque / Dégâts",
-        hint: "Boutons de jet pleine largeur et plus hauts, plus faciles à cliquer.",
+        name: tl("Gros boutons Attaque / Dégâts"),
+        hint: tl("Boutons de jet pleine largeur et plus hauts, plus faciles à cliquer."),
         scope: "world", config: false, type: Boolean, default: true,
         onChange: () => applyChatCardPrefs()
     });
     game.settings.register(MOD, "chatCardsExpandDice", {
-        name: "Déplier les jets de dés par défaut",
-        hint: "Affiche d'office le détail du jet (dés individuels, bonus et provenance).",
+        name: tl("Déplier les jets de dés par défaut"),
+        hint: tl("Affiche d'office le détail du jet (dés individuels, bonus et provenance)."),
         scope: "world", config: false, type: Boolean, default: true
     });
     game.settings.register(MOD, "chatCardsFoldDescription", {
-        name: "Replier la description par défaut",
-        hint: "La description de l'objet/sort est repliée à l'ouverture de la carte ; un clic sur l'en-tête la déplie (mécanisme natif dnd5e). Décoché : la description est affichée d'emblée. Pilote le réglage dnd5e « Auto Collapse Item Cards » de chaque client.",
+        name: tl("Replier la description par défaut"),
+        hint: tl("La description de l'objet/sort est repliée à l'ouverture de la carte ; un clic sur l'en-tête la déplie (mécanisme natif dnd5e). Décoché : la description est affichée d'emblée. Pilote le réglage dnd5e « Auto Collapse Item Cards » de chaque client."),
         scope: "world", config: false, type: Boolean, default: true,
         onChange: () => applyChatCardPrefs()
     });
@@ -603,120 +604,120 @@ export function registerSettings() {
         onChange: () => applyChatCardPrefs()
     });
     game.settings.register(MOD, "enableTemplateSnap", B(
-        "Snap des templates AoE au dixième de pied",
-        "Pendant le placement d'un template, la taille s'incrémente par paliers de 0,1 ft. Nécessite lib-wrapper pour le snap live."));
+        tl("Snap des templates AoE au dixième de pied"),
+        tl("Pendant le placement d'un template, la taille s'incrémente par paliers de 0,1 ft. Nécessite lib-wrapper pour le snap live.")));
     game.settings.register(MOD, "enableFollowTemplates", B(
-        "Zones (gabarits / régions) qui suivent le token",
-        "Si tu poses une zone AoE en démarrant SUR un token, elle s'y attache et suit ses déplacements (recentrée sur lui ; rotation non suivie). Gère les gabarits de mesure ET les Régions (Foundry v14). La zone est supprimée si le token l'est. Le suivi n'agit que si un MJ est connecté.",
+        tl("Zones (gabarits / régions) qui suivent le token"),
+        tl("Si tu poses une zone AoE en démarrant SUR un token, elle s'y attache et suit ses déplacements (recentrée sur lui ; rotation non suivie). Gère les gabarits de mesure ET les Régions (Foundry v14). La zone est supprimée si le token l'est. Le suivi n'agit que si un MJ est connecté."),
         false));
     game.settings.register(MOD, "enableMejShopFix", B(
-        "Correctifs boutiques Monk's Enhanced Journal",
-        "Bouton 'Groupe uniquement' dans 'Show to Players' de MEJ, et fix des objets cachés visibles côté joueur."));
+        tl("Correctifs boutiques Monk's Enhanced Journal"),
+        tl("Bouton 'Groupe uniquement' dans 'Show to Players' de MEJ, et fix des objets cachés visibles côté joueur.")));
     game.settings.register(MOD, "enableMejRestock", B(
-        "Réapprovisionnement automatique des boutiques",
-        "Active/désactive le système de réapprovisionnement des boutiques MEJ."));
+        tl("Réapprovisionnement automatique des boutiques"),
+        tl("Active/désactive le système de réapprovisionnement des boutiques MEJ.")));
     game.settings.register(MOD, "shopRestockDays", N(
-        "Réapprovisionnement — Délai par défaut (jours)",
-        "Délai utilisé si aucune valeur par rareté n'est définie. 0 = pas de fallback.", 7));
+        tl("Réapprovisionnement — Délai par défaut (jours)"),
+        tl("Délai utilisé si aucune valeur par rareté n'est définie. 0 = pas de fallback."), 7));
     game.settings.register(MOD, "shopRestockDaysCommon", N(
-        "Réapprovisionnement — Commun (jours)", "Délai pour la rareté Commun. 0 = désactivé.", 0));
+        tl("Réapprovisionnement — Commun (jours)"), tl("Délai pour la rareté Commun. 0 = désactivé."), 0));
     game.settings.register(MOD, "shopRestockDaysUncommon", N(
-        "Réapprovisionnement — Peu commun (jours)", "Délai pour la rareté Peu commun. 0 = désactivé.", 0));
+        tl("Réapprovisionnement — Peu commun (jours)"), tl("Délai pour la rareté Peu commun. 0 = désactivé."), 0));
     game.settings.register(MOD, "shopRestockDaysRare", N(
-        "Réapprovisionnement — Rare (jours)", "Délai pour la rareté Rare. 0 = désactivé.", 0));
+        tl("Réapprovisionnement — Rare (jours)"), tl("Délai pour la rareté Rare. 0 = désactivé."), 0));
     game.settings.register(MOD, "shopRestockDaysVeryRare", N(
-        "Réapprovisionnement — Très rare (jours)", "Délai pour la rareté Très rare. 0 = désactivé.", 0));
+        tl("Réapprovisionnement — Très rare (jours)"), tl("Délai pour la rareté Très rare. 0 = désactivé."), 0));
     game.settings.register(MOD, "shopRestockDaysLegendary", N(
-        "Réapprovisionnement — Légendaire (jours)", "Délai pour la rareté Légendaire. 0 = désactivé.", 0));
+        tl("Réapprovisionnement — Légendaire (jours)"), tl("Délai pour la rareté Légendaire. 0 = désactivé."), 0));
 
     // ============================================================
     // RELATIONS (clés préfixées relations*)
     // ============================================================
     game.settings.register(MOD, "relationsEnabled", B(
-        "Relations — Activer",
-        "Ajoute un onglet 'Relations' sur les fiches PJ et détecte automatiquement les rencontres sur les scènes."));
+        tl("Relations — Activer"),
+        tl("Ajoute un onglet 'Relations' sur les fiches PJ et détecte automatiquement les rencontres sur les scènes.")));
     game.settings.register(MOD, "relationsAnonymization", B(
-        "Relations — Anonymisation",
-        "Ajoute les boutons 'Révéler'/'Masquer' dans l'en-tête des fiches (GM). Contrôle l'affichage 'Inconnu'."));
+        tl("Relations — Anonymisation"),
+        tl("Ajoute les boutons 'Révéler'/'Masquer' dans l'en-tête des fiches (GM). Contrôle l'affichage 'Inconnu'.")));
     game.settings.register(MOD, "relationsFolderPJ", S(
-        "Relations — Dossier des PJ",
-        "Dossier acteur des joueurs. Leur présence sur une scène déclenche la détection de rencontres."));
+        tl("Relations — Dossier des PJ"),
+        tl("Dossier acteur des joueurs. Leur présence sur une scène déclenche la détection de rencontres.")));
     game.settings.register(MOD, "relationsFolderPNJ", S(
-        "Relations — Dossier des PNJ",
-        "Dossier acteur des PNJ récurrents (alliés, marchands, figures importantes)."));
+        tl("Relations — Dossier des PNJ"),
+        tl("Dossier acteur des PNJ récurrents (alliés, marchands, figures importantes).")));
     game.settings.register(MOD, "relationsPackPNJ", S(
-        "Relations — Compendium des PNJ",
-        "Compendium d'acteurs PNJ. Ses personnages sont proposés dans le sélecteur de relations (groupe PNJ)."));
+        tl("Relations — Compendium des PNJ"),
+        tl("Compendium d'acteurs PNJ. Ses personnages sont proposés dans le sélecteur de relations (groupe PNJ).")));
     game.settings.register(MOD, "relationsPackCemetery", S(
-        "Relations — Compendium cimetière des joueurs",
-        "Compendium des PJ décédés. Ses personnages sont proposés dans le sélecteur de relations (groupe Joueurs)."));
+        tl("Relations — Compendium cimetière des joueurs"),
+        tl("Compendium des PJ décédés. Ses personnages sont proposés dans le sélecteur de relations (groupe Joueurs).")));
 
     // ============================================================
     // BESTIAIRE (clés préfixées bestiary*)
     // ============================================================
     game.settings.register(MOD, "bestiaryEnabled", B(
-        "Bestiaire — Activer",
-        "Active la détection automatique des créatures rencontrées sur les scènes et l'onglet Bestiaire."));
+        tl("Bestiaire — Activer"),
+        tl("Active la détection automatique des créatures rencontrées sur les scènes et l'onglet Bestiaire.")));
     game.settings.register(MOD, "relationsLastSeen", B(
-        "Relations — Date de dernière rencontre",
-        "Date (calendrier du monde, sinon date réelle) à laquelle le personnage a vu ce PJ / PNJ pour la dernière fois, mise à jour automatiquement."));
+        tl("Relations — Date de dernière rencontre"),
+        tl("Date (calendrier du monde, sinon date réelle) à laquelle le personnage a vu ce PJ / PNJ pour la dernière fois, mise à jour automatiquement.")));
     game.settings.register(MOD, "bestiaryAnonymization", B(
-        "Bestiaire — Anonymisation",
-        "Boutons 'Révéler'/'Masquer' dans l'en-tête des fiches (GM). Utilisé si Relations est désactivé."));
+        tl("Bestiaire — Anonymisation"),
+        tl("Boutons 'Révéler'/'Masquer' dans l'en-tête des fiches (GM). Utilisé si Relations est désactivé.")));
     game.settings.register(MOD, "bestiaryLastPosition", B(
-        "Bestiaire — Dernière position",
-        "Champ « Dernière position » sur chaque créature : rempli avec la scène où le personnage l'a vue en dernier, mis à jour automatiquement (non modifiable)."));
+        tl("Bestiaire — Dernière position"),
+        tl("Champ « Dernière position » sur chaque créature : rempli avec la scène où le personnage l'a vue en dernier, mis à jour automatiquement (non modifiable).")));
     game.settings.register(MOD, "bestiaryLastSeen", B(
-        "Bestiaire — Date de dernière rencontre",
-        "Date (calendrier du monde, sinon date réelle) à laquelle le personnage a vu la créature pour la dernière fois, mise à jour automatiquement."));
+        tl("Bestiaire — Date de dernière rencontre"),
+        tl("Date (calendrier du monde, sinon date réelle) à laquelle le personnage a vu la créature pour la dernière fois, mise à jour automatiquement.")));
     game.settings.register(MOD, "bestiaryDamageTags", B(
-        "Bestiaire — Faiblesses, résistances, immunités",
-        "Une étiquette par type de dégâts sur chaque créature. Chaque clic change son état : neutre → faiblesse → résistance → immunité → neutre. Le joueur note ce qu'il a découvert."));
+        tl("Bestiaire — Faiblesses, résistances, immunités"),
+        tl("Une étiquette par type de dégâts sur chaque créature. Chaque clic change son état : neutre → faiblesse → résistance → immunité → neutre. Le joueur note ce qu'il a découvert.")));
     game.settings.register(MOD, "bestiaryArmorClass", B(
-        "Bestiaire — Classe d'armure estimée",
-        "Liste « CA » sur chaque créature (très faible → extrême) que le joueur remplit selon ce qu'il a constaté en combat."));
+        tl("Bestiaire — Classe d'armure estimée"),
+        tl("Liste « CA » sur chaque créature (très faible → extrême) que le joueur remplit selon ce qu'il a constaté en combat.")));
     game.settings.register(MOD, "bestiaryFolderPJ", S(
-        "Bestiaire — Dossier des PJ",
-        "Dossier acteur des joueurs. Chaque joueur voit les créatures rencontrées par son personnage."));
+        tl("Bestiaire — Dossier des PJ"),
+        tl("Dossier acteur des joueurs. Chaque joueur voit les créatures rencontrées par son personnage.")));
     game.settings.register(MOD, "bestiaryPackCreatures", S(
-        "Bestiaire — Compendium des créatures (ID)",
-        "ID du compendium des monstres/créatures (ex : world.creatures). La détection automatique et l'ajout manuel lisent uniquement depuis ce compendium.",
+        tl("Bestiaire — Compendium des créatures (ID)"),
+        tl("ID du compendium des monstres/créatures (ex : world.creatures). La détection automatique et l'ajout manuel lisent uniquement depuis ce compendium."),
         "world.creature"));
 
     // ============================================================
     // CARNET & EXPÉDITIONS (clés préfixées carnet*)
     // ============================================================
     game.settings.register(MOD, "carnetEnabled", B(
-        "Carnet & Expéditions — Activer",
-        "Ajoute les onglets Carnet et Expéditions sur les fiches PJ. Nécessite un rechargement.",
+        tl("Carnet & Expéditions — Activer"),
+        tl("Ajoute les onglets Carnet et Expéditions sur les fiches PJ. Nécessite un rechargement."),
         true, { requiresReload: true }));
     game.settings.register(MOD, "enablePcStatus", B(
-        "Statut de disponibilité des PJ",
-        "Affiche à droite de chaque personnage, dans le répertoire des Acteurs, un badge « Disponible » ou « En expédition ». Le statut est déduit automatiquement des expéditions : un PJ avec une expédition ouverte (date de début sans date de fin) est « En expédition ». Modifiable sans rechargement.",
+        tl("Statut de disponibilité des PJ"),
+        tl("Affiche à droite de chaque personnage, dans le répertoire des Acteurs, un badge « Disponible » ou « En expédition ». Le statut est déduit automatiquement des expéditions : un PJ avec une expédition ouverte (date de début sans date de fin) est « En expédition ». Modifiable sans rechargement."),
         true, { onChange: () => ui.actors?.render() }));
 
     // ============================================================
     // CARTE DES EXPÉDITIONS (clés inchangées)
     // ============================================================
     game.settings.register(MOD, "enableExpeditionMap", B(
-        "Carte des expéditions",
-        "Synchronise la permission Owner de l'acteur Groupe avec les joueurs membres, pour la vision/brouillard sur la carte du monde."));
+        tl("Carte des expéditions"),
+        tl("Synchronise la permission Owner de l'acteur Groupe avec les joueurs membres, pour la vision/brouillard sur la carte du monde.")));
     game.settings.register(MOD, "expeditionMapSceneId", S(
-        "Carte des expéditions — Scène principale",
-        "Scène sur laquelle le brouillard de guerre est suivi par personnage plutôt que par compte joueur."));
+        tl("Carte des expéditions — Scène principale"),
+        tl("Scène sur laquelle le brouillard de guerre est suivi par personnage plutôt que par compte joueur.")));
     // Scènes SUPPLÉMENTAIRES de carte (ex. archipel : plusieurs îles). Chaque
     // scène garde son propre brouillard (exploration indépendante par scène).
     game.settings.register(MOD, "expeditionMapSceneIds", {
         scope: "world", config: false, type: Array, default: [],
-        name: "Carte des expéditions — Scènes supplémentaires",
-        hint: "Sélectionnez d'autres scènes à traiter comme cartes d'expédition (Ctrl/Cmd-clic pour en choisir plusieurs). Chacune a son propre brouillard, indépendant des autres et de la scène principale. Idéal pour un archipel (une scène par île)."
+        name: tl("Carte des expéditions — Scènes supplémentaires"),
+        hint: tl("Sélectionnez d'autres scènes à traiter comme cartes d'expédition (Ctrl/Cmd-clic pour en choisir plusieurs). Chacune a son propre brouillard, indépendant des autres et de la scène principale. Idéal pour un archipel (une scène par île).")
     });
     game.settings.register(MOD, "expeditionMapTemplateFolder", S(
-        "Carte des expéditions — Dossier du token modèle",
-        "Dossier d'acteurs où ranger l'acteur Groupe modèle « Token à copier et rennomer ». Vide : dossier « Tokens de groupe » (or orangé) créé automatiquement à la racine."));
+        tl("Carte des expéditions — Dossier du token modèle"),
+        tl("Dossier d'acteurs où ranger l'acteur Groupe modèle « Token à copier et rennomer ». Vide : dossier « Tokens de groupe » (or orangé) créé automatiquement à la racine.")));
     game.settings.register(MOD, "expeditionRevealRadius", N(
-        "Carte des expéditions — Rayon de révélation (en cases)",
-        "Nombre de cases (hex) révélées autour du token de groupe lors de son déplacement. 0 = seulement la case du token, 1 = la case + ses voisines, etc.",
+        tl("Carte des expéditions — Rayon de révélation (en cases)"),
+        tl("Nombre de cases (hex) révélées autour du token de groupe lors de son déplacement. 0 = seulement la case du token, 1 = la case + ses voisines, etc."),
         1));
     // Zones toujours éclairées (villes, lieux connus de tous) — peintes par le MJ.
     // Liste de clés de case "i.j". Non affiché (édité via l'outil sur la carte).
@@ -728,11 +729,11 @@ export function registerSettings() {
     // MISE EN SCÈNE — CUES AUDIO (clés sceneCues*)
     // ============================================================
     game.settings.register(MOD, "enableSceneCues", B(
-        "Mise en scène — Cues audio",
-        "Attache à un token un « cue » audio (fichier, seconde de départ, volume, fondu, boucle) via un bouton dans son HUD. Le son se déclenche pour tous les joueurs quand le token perd son invisibilité GM, ou manuellement. Diffusion en local sur chaque client (faible latence), avec préchargement au chargement de la scène. Outil réservé au MJ."));
+        tl("Mise en scène — Cues audio"),
+        tl("Attache à un token un « cue » audio (fichier, seconde de départ, volume, fondu, boucle) via un bouton dans son HUD. Le son se déclenche pour tous les joueurs quand le token perd son invisibilité GM, ou manuellement. Diffusion en local sur chaque client (faible latence), avec préchargement au chargement de la scène. Outil réservé au MJ.")));
     game.settings.register(MOD, "sceneCuesDefaultVolume", N(
-        "Cues audio — Volume par défaut",
-        "Volume initial (0 à 1) proposé pour un nouveau cue.",
+        tl("Cues audio — Volume par défaut"),
+        tl("Volume initial (0 à 1) proposé pour un nouveau cue."),
         0.8));
     // Stockage central des cues (au niveau du monde) : survivent à la
     // suppression des tokens auxquels ils sont liés. Édités via le gestionnaire.
@@ -744,25 +745,25 @@ export function registerSettings() {
     // MIDI RANGE FIX (clés préfixées rangeFix*)
     // ============================================================
     game.settings.register(MOD, "rangeFixEnabled", B(
-        "Midi Range Fix — Activer",
-        "Corrige le calcul de portée midi-qol pour les tokens Large+. Nécessite un rechargement. Sans midi-qol, sans effet.",
+        tl("Midi Range Fix — Activer"),
+        tl("Corrige le calcul de portée midi-qol pour les tokens Large+. Nécessite un rechargement. Sans midi-qol, sans effet."),
         true, { requiresReload: true }));
     game.settings.register(MOD, "rangeAdjust", N(
-        "Midi Range Fix — Marge depuis le bord (ft)",
-        "Marge soustraite à la portée pour le calcul bord→bord. 2.5 = défaut D&D 5e (demi-case). Ne pas dépasser la portée de l'arme.",
+        tl("Midi Range Fix — Marge depuis le bord (ft)"),
+        tl("Marge soustraite à la portée pour le calcul bord→bord. 2.5 = défaut D&D 5e (demi-case). Ne pas dépasser la portée de l'arme."),
         2.5));
 
     // ============================================================
     // TUTORIEL
     // ============================================================
     game.settings.register(MOD, "tutoEnabled", B(
-        "Tutoriel — Activer",
-        "Active le bouton tutoriel ('?') dans la barre WestMarch et la fenêtre de bienvenue. Nécessite un rechargement.",
+        tl("Tutoriel — Activer"),
+        tl("Active le bouton tutoriel ('?') dans la barre WestMarch et la fenêtre de bienvenue. Nécessite un rechargement."),
         true, { requiresReload: true }));
     game.settings.register(MOD, "serverName", S(
-        "Tutoriel — Nom affiché dans le message de bienvenue",
-        "Titre de la fenêtre d'accueil des joueurs.",
-        "Bienvenue sur le serveur !"));
+        tl("Tutoriel — Nom affiché dans le message de bienvenue"),
+        tl("Titre de la fenêtre d'accueil des joueurs."),
+        tl("Bienvenue sur le serveur !")));
     // Suivi interne : la fiche démo du tutoriel a-t-elle déjà été créée ?
     // (évite de la recréer si le GM la supprime volontairement).
     game.settings.register(MOD, "tutorialActorCreated", {
@@ -778,11 +779,11 @@ export function registerSettings() {
     for (const { key, label } of TUTO_TOGGLES) {
         game.settings.register(MOD, key, B(
             `Tutoriel — ${label}`,
-            "Inclure les étapes de tutoriel pour cette fonctionnalité."));
+            tl("Inclure les étapes de tutoriel pour cette fonctionnalité.")));
     }
     game.settings.register(MOD, "showWelcome", B(
-        "Tutoriel — Afficher la fenêtre de bienvenue au login",
-        "Si activé, la fenêtre d'accueil s'affiche à chaque connexion (sauf « Ne plus afficher »).",
+        tl("Tutoriel — Afficher la fenêtre de bienvenue au login"),
+        tl("Si activé, la fenêtre d'accueil s'affiche à chaque connexion (sauf « Ne plus afficher »)."),
         false));
     game.settings.register(MOD, "hideWelcome", {
         scope: "client", config: false, type: Boolean, default: false
@@ -792,18 +793,18 @@ export function registerSettings() {
     // RÉCOLTE (HARVEST)
     // ============================================================
     game.settings.register(MOD, "enableHarvest", B(
-        "Système de récolte",
-        "Permet de récolter (dépecer) une créature morte ciblée pour en tirer des matériaux via une RollTable que vous associez à la créature. Le module ne fournit pas de tables : il utilise les vôtres.",
+        tl("Système de récolte"),
+        tl("Permet de récolter (dépecer) une créature morte ciblée pour en tirer des matériaux via une RollTable que vous associez à la créature. Le module ne fournit pas de tables : il utilise les vôtres."),
         false, { requiresReload: true }));
     game.settings.register(MOD, "harvestDcBase", N(
-        "Récolte — DC de base", "Difficulté de base du jet de récolte, avant ajout selon le CR.", 10));
+        tl("Récolte — DC de base"), tl("Difficulté de base du jet de récolte, avant ajout selon le CR."), 10));
     game.settings.register(MOD, "harvestDcPerCr", N(
-        "Récolte — DC ajouté par CR", "Ajout à la DC par point de facteur de puissance (CR) de la créature. Ex. 0.5 = +1 tous les 2 CR.", 0.5));
+        tl("Récolte — DC ajouté par CR"), tl("Ajout à la DC par point de facteur de puissance (CR) de la créature. Ex. 0.5 = +1 tous les 2 CR."), 0.5));
     game.settings.register(MOD, "harvestBaseDraws", N(
-        "Récolte — Tirages de base", "Nombre de tirages sur la RollTable en cas de réussite normale. +1 par tranche de 5 au-dessus de la DC ; échec = 1 tirage. Une dépouille « abîmée » réduit ce nombre de moitié.", 2));
+        tl("Récolte — Tirages de base"), tl("Nombre de tirages sur la RollTable en cas de réussite normale. +1 par tranche de 5 au-dessus de la DC ; échec = 1 tirage. Une dépouille « abîmée » réduit ce nombre de moitié."), 2));
     game.settings.register(MOD, "harvestBloodImage", S(
-        "Récolte — Image de la tache de sang",
-        "Chemin d'image posée à la place du token quand la dépouille est entièrement récoltée. Laisser vide pour utiliser au hasard une des taches de sang fournies avec le module."));
+        tl("Récolte — Image de la tache de sang"),
+        tl("Chemin d'image posée à la place du token quand la dépouille est entièrement récoltée. Laisser vide pour utiliser au hasard une des taches de sang fournies avec le module.")));
     // Associations créature → RollTable. { byType: {beast: id…}, byName: {"Loup": id…} }
     game.settings.register(MOD, "harvestTables", {
         scope: "world", config: false, type: Object, default: { byType: {}, byName: {} }
@@ -820,8 +821,8 @@ export function registerSettings() {
     // seul le MJ peut l'écrire, même si le champ code est visible par tous.
     game.settings.register(MOD, "moduleDeactivated", {
         scope: "world", config: false, type: Boolean, default: false, requiresReload: false,
-        name: "Module désactivé",
-        hint: "Coché = toutes les fonctions du module sont désactivées sur ce serveur (le module reste installé, la fenêtre « À propos » reste accessible). Décochez pour réactiver. Se pilote aussi par code depuis « À propos ». Le changement recharge automatiquement les clients.",
+        name: tl("Module désactivé"),
+        hint: tl("Coché = toutes les fonctions du module sont désactivées sur ce serveur (le module reste installé, la fenêtre « À propos » reste accessible). Décochez pour réactiver. Se pilote aussi par code depuis « À propos ». Le changement recharge automatiquement les clients."),
         onChange: () => foundry.utils.debouncedReload()
     });
 
@@ -861,25 +862,25 @@ export function registerSettings() {
 function registerAboutMenu() {
     try {
         game.settings.registerMenu(MOD, "menu-about", {
-            name:  "À propos",
-            label: "Ouvrir",
-            hint:  "Informations sur le module, auteur et droits.",
+            name:  tl("À propos"),
+            label: tl("Ouvrir"),
+            hint:  tl("Informations sur le module, auteur et droits."),
             icon:  "fas fa-circle-info",
-            type:  makeLauncher({ firstKey: "about", title: "À propos", icon: "fa-circle-info", open: () => openAboutDialog() }),
+            type:  makeLauncher({ firstKey: "about", title: tl("À propos"), icon: "fa-circle-info", open: () => openAboutDialog() }),
             restricted: false   // visible par tout le monde (joueurs inclus)
         });
     } catch (e) {
-        journal.critique(`[${MOD}] registerMenu « À propos » échec :`, e);
+        journal.critique(tl("[{0}] registerMenu « À propos » échec :", MOD), e);
     }
 }
 
 async function openAboutDialog() {
     const mod     = game.modules.get(MOD);
     const version = mod?.version ?? "?";
-    const author  = "Soruta (Discord : s0ruta)";
+    const author  = tl("Soruta (Discord : s0ruta)");
     const desc    = mod?.description
         ? mod.description
-        : "Module unifié West March pour Foundry VTT (dnd5e).";
+        : tl("Module unifié West March pour Foundry VTT (dnd5e).");
     const deactivated = game.settings.get(MOD, "moduleDeactivated") === true;
 
     const content = `
@@ -888,50 +889,36 @@ async function openAboutDialog() {
                 <i class="fa-solid fa-hammer" style="font-size:22px;color:#c9a227;"></i>
                 <div>
                     <div style="font-weight:700;font-size:15px;">Soruta — Completed Westmarch</div>
-                    <div style="font-size:12px;opacity:.75;">Version ${version}</div>
+                    <div style="font-size:12px;opacity:.75;">${tl("Version {0}", version)}</div>
                 </div>
             </div>
             <div style="font-size:12px;line-height:1.5;opacity:.9;">${desc}</div>
             <hr style="border:none;border-top:1px solid rgba(255,255,255,.12);margin:2px 0;">
             <div style="font-size:12px;line-height:1.6;">
-                <div><strong>Auteur :</strong> ${author}</div>
-                <div><strong>Droits :</strong> © 2026 Soruta — Tous droits réservés.</div>
-                <div><strong>Site :</strong> <a href="${URL_PAGE_MODULE}" target="_blank" rel="noopener">altheia.eu — Nos modules</a>
-                    <span style="opacity:.75;">(nouveautés, mises à jour, licence)</span></div>
+                <div>${tl("<strong>Auteur :</strong> {0}", author)}</div>
+                <div>${tl("<strong>Droits :</strong> © 2026 Soruta — Tous droits réservés.")}</div>
+                <div>${tl("<strong>Site :</strong> <a href=\"{0}\" target=\"_blank\" rel=\"noopener\">altheia.eu — Nos modules</a>", URL_PAGE_MODULE)}
+                    <span style="opacity:.75;">${tl("(nouveautés, mises à jour, licence)")}</span></div>
                 <div style="opacity:.75;margin-top:4px;">
-                    Ce module et son contenu (code, textes, ressources) sont une œuvre de
-                    l'esprit protégée par le droit d'auteur. Toute redistribution, revente,
-                    modification ou réutilisation sans autorisation écrite de l'auteur est interdite.
+                    ${tl("Ce module et son contenu (code, textes, ressources) sont une œuvre de\n                    l'esprit protégée par le droit d'auteur. Toute redistribution, revente,\n                    modification ou réutilisation sans autorisation écrite de l'auteur est interdite.")}
                 </div>
                 <details style="margin-top:6px;">
                     <summary style="cursor:pointer;color:#c9a227;font-weight:600;">
-                        Cadre légal &amp; sanctions encourues
+                        ${tl("Cadre légal &amp; sanctions encourues")}
                     </summary>
                     <div style="font-size:11px;line-height:1.55;opacity:.9;margin-top:4px;
                                 max-height:180px;overflow-y:auto;padding-right:4px;">
                         <p style="margin:0 0 5px;">
-                            France — <em>Code de la propriété intellectuelle</em> (CPI) :
+                            ${tl("France — <em>Code de la propriété intellectuelle</em> (CPI) :")}
                         </p>
                         <ul style="margin:0 0 5px;padding-left:16px;">
-                            <li><strong>Art. L122-4</strong> — Toute reproduction ou représentation,
-                                intégrale ou partielle, faite sans le consentement de l'auteur
-                                (y compris adaptation, traduction ou transformation) est illicite.</li>
-                            <li><strong>Art. L335-3</strong> — La reproduction, la représentation ou
-                                la diffusion d'une œuvre en violation des droits de l'auteur
-                                constitue un délit de contrefaçon ; cela vise aussi la violation
-                                des droits sur un logiciel (art. L122-6).</li>
-                            <li><strong>Art. L335-2</strong> — La contrefaçon est punie de
-                                <strong>3 ans d'emprisonnement et 300 000 € d'amende</strong> ;
-                                portés à <strong>7 ans et 750 000 €</strong> lorsqu'elle est
-                                commise en bande organisée.</li>
-                            <li><strong>Art. L331-1-3</strong> — S'y ajoutent des
-                                <strong>dommages-intérêts</strong> réparant le préjudice subi
-                                (manque à gagner, bénéfices réalisés par le contrefacteur,
-                                préjudice moral).</li>
+                            <li>${tl("<strong>Art. L122-4</strong> — Toute reproduction ou représentation,\n                                intégrale ou partielle, faite sans le consentement de l'auteur\n                                (y compris adaptation, traduction ou transformation) est illicite.")}</li>
+                            <li>${tl("<strong>Art. L335-3</strong> — La reproduction, la représentation ou\n                                la diffusion d'une œuvre en violation des droits de l'auteur\n                                constitue un délit de contrefaçon ; cela vise aussi la violation\n                                des droits sur un logiciel (art. L122-6).")}</li>
+                            <li>${tl("<strong>Art. L335-2</strong> — La contrefaçon est punie de\n                                <strong>3 ans d'emprisonnement et 300 000 € d'amende</strong> ;\n                                portés à <strong>7 ans et 750 000 €</strong> lorsqu'elle est\n                                commise en bande organisée.")}</li>
+                            <li>${tl("<strong>Art. L331-1-3</strong> — S'y ajoutent des\n                                <strong>dommages-intérêts</strong> réparant le préjudice subi\n                                (manque à gagner, bénéfices réalisés par le contrefacteur,\n                                préjudice moral).")}</li>
                         </ul>
                         <p style="margin:0;opacity:.7;font-style:italic;">
-                            Mention informative — le droit applicable peut varier selon le pays
-                            et évoluer dans le temps.
+                            ${tl("Mention informative — le droit applicable peut varier selon le pays\n                            et évoluer dans le temps.")}
                         </p>
                     </div>
                 </details>
@@ -939,23 +926,23 @@ async function openAboutDialog() {
             <hr style="border:none;border-top:1px solid rgba(255,255,255,.12);margin:2px 0;">
             <div style="font-size:12px;opacity:.8;">${etatLicence()}</div>
             <label style="font-size:12px;display:block;">
-                <span style="opacity:.7;">Clé de licence ou code</span>
+                <span style="opacity:.7;">${tl("Clé de licence ou code")}</span>
                 <input type="password" name="scwm-about-code" autocomplete="off"
-                       placeholder="Code…" style="width:100%;box-sizing:border-box;margin-top:3px;">
+                       placeholder="${tl("Code…")}" style="width:100%;box-sizing:border-box;margin-top:3px;">
             </label>
             <div style="font-size:11px;opacity:.6;">
-                ${deactivated ? "⚠️ Le module est actuellement désactivé." : ""}
+                ${deactivated ? tl("⚠️ Le module est actuellement désactivé.") : ""}
             </div>
         </div>`;
 
     await foundry.applications.api.DialogV2.wait({
-        window:      { title: "À propos — Soruta Completed Westmarch", icon: "fas fa-circle-info" },
+        window:      { title: tl("À propos — Soruta Completed Westmarch"), icon: "fas fa-circle-info" },
         position:    { width: 460 },
         rejectClose: false,
         content,
         buttons: [
             {
-                action: "validate", label: "Valider", icon: '<i class="fa-solid fa-check"></i>', default: true,
+                action: "validate", label: tl("Valider"), icon: '<i class="fa-solid fa-check"></i>', default: true,
                 callback: async (ev, btn) => {
                     const input = btn.form?.elements?.["scwm-about-code"];
                     const code  = (input?.value ?? "").trim();
@@ -966,7 +953,7 @@ async function openAboutDialog() {
                     //    licence (et lève toute désactivation). Réservé au MJ.
                     if (/^alt-/i.test(code)) {
                         if (!game.user?.isGM) {
-                            ui.notifications?.warn("L'activation est réservée au MJ.");
+                            ui.notifications?.warn(tl("L'activation est réservée au MJ."));
                             return;
                         }
                         const res = await activerLicence(code);
@@ -977,21 +964,21 @@ async function openAboutDialog() {
                         if (game.settings.get(MOD, "moduleDeactivated") === true) {
                             await game.settings.set(MOD, "moduleDeactivated", false);
                         }
-                        ui.notifications?.info("Licence activée.");
+                        ui.notifications?.info(tl("Licence activée."));
                         foundry.utils.debouncedReload();
                         return;
                     }
 
                     // 2) Code de DÉSACTIVATION → bascule le kill-switch.
                     if (!DEACTIVATION_CODE || code !== DEACTIVATION_CODE) {
-                        ui.notifications?.error("Code invalide.");
+                        ui.notifications?.error(tl("Code invalide."));
                         return;
                     }
                     if (game.user?.isGM) {
                         // MJ : écriture directe du réglage monde.
                         const next = !(game.settings.get(MOD, "moduleDeactivated") === true);
                         await game.settings.set(MOD, "moduleDeactivated", next);
-                        ui.notifications?.info(next ? "Module désactivé." : "Module réactivé.");
+                        ui.notifications?.info(next ? tl("Module désactivé.") : tl("Module réactivé."));
                         foundry.utils.debouncedReload();
                         return;
                     }
@@ -999,23 +986,23 @@ async function openAboutDialog() {
                     // écrire un réglage monde). Nécessite qu'un MJ soit en ligne.
                     const gm = game.users.find(u => u.isGM && u.active);
                     if (!gm) {
-                        ui.notifications?.warn("Aucun MJ connecté pour appliquer le changement.");
+                        ui.notifications?.warn(tl("Aucun MJ connecté pour appliquer le changement."));
                         return;
                     }
                     try {
                         const res = await gm.query("completed-westmarch.toggleDeactivation", { code });
                         if (res === "off" || res === "on") {
-                            ui.notifications?.info(res === "off" ? "Module désactivé." : "Module réactivé.");
+                            ui.notifications?.info(res === "off" ? tl("Module désactivé.") : tl("Module réactivé."));
                             foundry.utils.debouncedReload();
                         } else {
-                            ui.notifications?.error("Le MJ n'a pas pu appliquer le changement.");
+                            ui.notifications?.error(tl("Le MJ n'a pas pu appliquer le changement."));
                         }
                     } catch (e) {
-                        ui.notifications?.error("Échec de la demande au MJ.");
+                        ui.notifications?.error(tl("Échec de la demande au MJ."));
                     }
                 }
             },
-            { action: "close", label: "Fermer", icon: '<i class="fa-solid fa-xmark"></i>', callback: () => {} }
+            { action: "close", label: tl("Fermer"), icon: '<i class="fa-solid fa-xmark"></i>', callback: () => {} }
         ]
     });
 }
@@ -1047,7 +1034,7 @@ function registerCategoryToggles() {
             const wrap = document.createElement("label");
             wrap.className = "scwm-cat-toggle";
             wrap.style.cssText = "display:inline-flex;align-items:center;gap:5px;margin-left:10px;cursor:pointer;font-size:11px;font-weight:600;color:#8fd19e;vertical-align:middle;";
-            wrap.innerHTML = `<input type="checkbox" ${on ? "checked" : ""} style="width:15px;height:15px;margin:0;"> Activé`;
+            wrap.innerHTML = `<input type="checkbox" ${on ? "checked" : ""} style="width:15px;height:15px;margin:0;"> ${tl("Activé")}`;
 
             const cb = wrap.querySelector("input");
             cb.addEventListener("change", async () => {
@@ -1055,8 +1042,8 @@ function registerCategoryToggles() {
                 wrap.style.color = cb.checked ? "#8fd19e" : "#e58f8f";
                 if (CAT_RELOAD.has(cat.master)) {
                     const ok = await foundry.applications.api.DialogV2.confirm({
-                        window:  { title: "Rechargement requis" },
-                        content: "<p>Ce changement nécessite un rechargement pour s'appliquer pleinement. Recharger maintenant ?</p>"
+                        window:  { title: tl("Rechargement requis") },
+                        content: `<p>${tl("Ce changement nécessite un rechargement pour s'appliquer pleinement. Recharger maintenant ?")}</p>`
                     });
                     if (ok) window.location.reload();
                 }
@@ -1124,95 +1111,95 @@ function renderTweakTree(nodes, depth = 0) {
             const on = !!game.settings.get(MOD, node.key);
             return `<label class="scwm-set" data-key="${node.key}" style="display:flex;align-items:center;gap:8px;padding:3px 0 3px ${pad}px;font-weight:400;cursor:pointer;">
                 <input type="checkbox" name="${node.key}" ${on ? "checked" : ""} style="width:16px;height:16px;flex-shrink:0;">
-                <span>${label}</span></label>`;
+                <span>${tl(label)}</span></label>`;
         }
         const inner = renderTweakTree(node.children ?? {}, depth + 1);
         const body = inner.trim() ? inner
-            : `<p style="margin:2px 0 4px ${pad + 16}px;color:#777;font-size:.85em;font-style:italic;">— aucune entrée —</p>`;
+            : `<p style="margin:2px 0 4px ${pad + 16}px;color:#777;font-size:.85em;font-style:italic;">${tl("— aucune entrée —")}</p>`;
         return `<details style="margin:2px 0 2px ${pad}px;" ${depth < 1 ? "open" : ""}>
-            <summary style="cursor:pointer;font-weight:600;padding:2px 0;">${node.icon ? `<i class="fa-solid ${node.icon}"></i> ` : ""}${label}</summary>
+            <summary style="cursor:pointer;font-weight:600;padding:2px 0;">${node.icon ? `<i class="fa-solid ${node.icon}"></i> ` : ""}${tl(label)}</summary>
             ${body}</details>`;
     }).join("");
 }
 
 const CATEGORIES = [
-    { firstKey: "tweakTree", icon: "fa-sitemap", title: "Modifications ciblées",
-      desc: "Active/désactive les modifications propres à une classe, sous-classe, espèce, sort, feature ou background. Chaque branche est dépliable.",
+    { firstKey: "tweakTree", icon: "fa-sitemap", title: tl("Modifications ciblées"),
+      desc: tl("Active/désactive les modifications propres à une classe, sous-classe, espèce, sort, feature ou background. Chaque branche est dépliable."),
       tree: TWEAK_TREE, keys: collectTweakKeys() },
-    { firstKey: "companionProfiles", icon: "fa-dna", title: "Profils de compagnons",
-      desc: "Ajouter ou surcharger les profils de formules des compagnons évolutifs (JSON).",
+    { firstKey: "companionProfiles", icon: "fa-dna", title: tl("Profils de compagnons"),
+      desc: tl("Ajouter ou surcharger les profils de formules des compagnons évolutifs (JSON)."),
       open: () => openProfilesEditor(), keys: [] },
-    { firstKey: "uihide", icon: "fa-eye-slash", title: "Interface — Masquer des éléments",
-      desc: "Masque des icônes de la barre d'outils et de grandes zones de l'interface, avec deux colonnes : Joueurs et GM. Chaque client applique la colonne de son rôle.",
+    { firstKey: "uihide", icon: "fa-eye-slash", title: tl("Interface — Masquer des éléments"),
+      desc: tl("Masque des icônes de la barre d'outils et de grandes zones de l'interface, avec deux colonnes : Joueurs et GM. Chaque client applique la colonne de son rôle."),
       open: () => openUiHideDialog(), keys: [] },
-    { firstKey: "commonFolderPJ", icon: "fa-folder-tree", title: "Dossiers & Compendiums",
-      desc: "Dossiers et compendiums communs, renseignés une seule fois ici et utilisés par toutes les fonctions (Relations, Bestiaire, Création de personnages, Temps morts).",
+    { firstKey: "commonFolderPJ", icon: "fa-folder-tree", title: tl("Dossiers & Compendiums"),
+      desc: tl("Dossiers et compendiums communs, renseignés une seule fois ici et utilisés par toutes les fonctions (Relations, Bestiaire, Création de personnages, Temps morts)."),
       keys: ["commonFolderPJ","autoPlayerFolder","gmAutoFolderParent","commonFolderPNJ","commonFolderNewChars","commonPackPNJ","commonPackCemetery","commonPackCreatures","commonPackCraft"] },
-    { firstKey: "enableParty", master: "enableParty",           icon: "fa-users",           title: "Système de Party",
-      desc: "Groupes de joueurs : chat filtré, combat par party, téléportation de groupe, journal de session, anti-cheat.",
+    { firstKey: "enableParty", master: "enableParty",           icon: "fa-users",           title: tl("Système de Party"),
+      desc: tl("Groupes de joueurs : chat filtré, combat par party, téléportation de groupe, journal de session, anti-cheat."),
       keys: ["enableParty","enableJoinScene","enableShowParty","enablePlayerGrouping","enableGoWithPartyScenes","enableGoWithPartyJournal","enableChatFilter","enableChatTabs","enableTrade","enableNoteLink","enableSessionLog","sessionLogWebhookUrl","sessionLogForum","sessionTags","enableCombatParty","enableCombatTurnLock","enablePartyPause","enableAntiCheat"] },
-    { firstKey: "enableStarXp", master: "enableStarXp", icon: "fa-star", title: "Système d'étoiles",
-      desc: "XP par étoiles : le MJ attribue 1 à 3 étoiles à la clôture de session ; le tableau fixe le coût en étoiles de chaque niveau (avec le total = nombre de sessions). Sur la fiche, l'XP est remplacée par un compteur d'étoiles.",
+    { firstKey: "enableStarXp", master: "enableStarXp", icon: "fa-star", title: tl("Système d'étoiles"),
+      desc: tl("XP par étoiles : le MJ attribue 1 à 3 étoiles à la clôture de session ; le tableau fixe le coût en étoiles de chaque niveau (avec le total = nombre de sessions). Sur la fiche, l'XP est remplacée par un compteur d'étoiles."),
       keys: ["enableStarXp","starXpLevels"] },
     { firstKey: "xpProgEnabled", master: "xpProgEnabled", icon: "fa-chart-line", title: "Progression XP (D&D 5e)",
-      desc: "Pour jouer avec l'XP de base : niveau max, XP par session (proposée dans « Clore la session » avec les bonus de plage), sessions par semaine, et paliers de niveau : ceux de D&D par défaut (le module montre le temps qu'il faut) ou mis à l'échelle d'un objectif en mois réels, en gardant la courbe de D&D. Tableau modifiable niveau par niveau. Le niveau max autorisé s'applique toujours, même interrupteur éteint et même avec le système d'étoiles.",
+      desc: tl("Pour jouer avec l'XP de base : niveau max, XP par session (proposée dans « Clore la session » avec les bonus de plage), sessions par semaine, et paliers de niveau : ceux de D&D par défaut (le module montre le temps qu'il faut) ou mis à l'échelle d'un objectif en mois réels, en gardant la courbe de D&D. Tableau modifiable niveau par niveau. Le niveau max autorisé s'applique toujours, même interrupteur éteint et même avec le système d'étoiles."),
       keys: ["xpProgEnabled","xpLevelCap","xpPerSession","xpThresholdMode","xpMonthsToCap","xpSessionsPerWeek","xpGrowthOverrides","xpBonusRanges"] },
-    { firstKey: "mondeEnabled", master: "mondeEnabled", icon: "fa-book-atlas", title: "Registre du monde",
-      desc: "Fiches de PNJ, lieux et organisations dans Monk's Enhanced Journal, rédigées sur un modèle commun (rubriques ci-dessous), reliées aux acteurs, aux scènes, à la carte du monde et entre elles. PNJ et organisations sont rangés dans des compendiums (chargés à la demande), les lieux dans un dossier du monde (pour leurs épingles). Tout se retrouve dans l'onglet « Monde » du Casier. Nécessite Monk's Enhanced Journal.",
+    { firstKey: "mondeEnabled", master: "mondeEnabled", icon: "fa-book-atlas", title: tl("Registre du monde"),
+      desc: tl("Fiches de PNJ, lieux et organisations dans Monk's Enhanced Journal, rédigées sur un modèle commun (rubriques ci-dessous), reliées aux acteurs, aux scènes, à la carte du monde et entre elles. PNJ et organisations sont rangés dans des compendiums (chargés à la demande), les lieux dans un dossier du monde (pour leurs épingles). Tout se retrouve dans l'onglet « Monde » du Casier. Nécessite Monk's Enhanced Journal."),
       keys: ["mondeEnabled","mondeDecouverte","mondeDecouverteMessage","mondeBanniere","mondeBanniereSon","mondeEpinglesPartout","mondeTailleEpingle","mondePackPerson","mondePackPersonFolder","mondePackOrg","mondePackOrgFolder","mondeFolderPlace","mondeRubriques"] },
-    { firstKey: "enableCharValidation", master: "enableCharValidation", icon: "fa-id-card", title: "Création de personnages",
-      desc: "Les joueurs demandent la création d'un personnage ; un GM valide depuis le Casier, puis le joueur construit et soumet sa fiche ; à la validation elle est verrouillée. Le dossier de destination se règle dans « Dossiers & Compendiums ».",
+    { firstKey: "enableCharValidation", master: "enableCharValidation", icon: "fa-id-card", title: tl("Création de personnages"),
+      desc: tl("Les joueurs demandent la création d'un personnage ; un GM valide depuis le Casier, puis le joueur construit et soumet sa fiche ; à la validation elle est verrouillée. Le dossier de destination se règle dans « Dossiers & Compendiums »."),
       keys: ["enableCharValidation","charMaxTotal","charMaxActive","charFreeLevelUp","charNotifyLevelUp","blockPlayerPlutonium"] },
-    { firstKey: "disableElectrum", icon: "fa-coins", title: "Monnaie",
-      desc: "Règles de bourse. ⚠️ Pour que les modules qui lisent la richesse sur la fiche (ex. Temps morts) fonctionnent correctement, forcez les pièces à rester sur la fiche (option « Pièces dans les contenants »).",
+    { firstKey: "disableElectrum", icon: "fa-coins", title: tl("Monnaie"),
+      desc: tl("Règles de bourse. ⚠️ Pour que les modules qui lisent la richesse sur la fiche (ex. Temps morts) fonctionnent correctement, forcez les pièces à rester sur la fiche (option « Pièces dans les contenants »)."),
       keys: ["disableElectrum","currencyContainerBlock"] },
-    { firstKey: "enableSourceControl", master: "enableSourceControl", icon: "fa-book-skull", title: "Contrôle des sources",
-      desc: "Réglemente les livres/extensions D&D (Xanathar, Tal'Dorei, etc.) autorisés sur les fiches PJ, via deux listes blanches (joueurs / MJ). Le contenu d'une source non autorisée est bloqué avec un avertissement, quelle que soit la méthode d'ajout.",
+    { firstKey: "enableSourceControl", master: "enableSourceControl", icon: "fa-book-skull", title: tl("Contrôle des sources"),
+      desc: tl("Réglemente les livres/extensions D&D (Xanathar, Tal'Dorei, etc.) autorisés sur les fiches PJ, via deux listes blanches (joueurs / MJ). Le contenu d'une source non autorisée est bloqué avec un avertissement, quelle que soit la méthode d'ajout."),
       keys: ["enableSourceControl","sourceAllowPlayers","sourceAllowGm","sourceDeny","sourceMatchField","sourceMatchExact","sourceBlockUnknown"] },
-    { firstKey: "enableHarvest", master: "enableHarvest", icon: "fa-hand-holding-droplet", title: "Récolte (harvest)",
-      desc: "Récolte de matériaux sur les créatures mortes. Le module utilise des RollTables que vous créez et associez aux créatures (bouton « Associations » dans l'onglet WestMarch). Butin partagé sur la dépouille, pourriture avec le temps, tache de sang une fois vidée.",
+    { firstKey: "enableHarvest", master: "enableHarvest", icon: "fa-hand-holding-droplet", title: tl("Récolte (harvest)"),
+      desc: tl("Récolte de matériaux sur les créatures mortes. Le module utilise des RollTables que vous créez et associez aux créatures (bouton « Associations » dans l'onglet WestMarch). Butin partagé sur la dépouille, pourriture avec le temps, tache de sang une fois vidée."),
       keys: ["enableHarvest","harvestDcBase","harvestDcPerCr","harvestBaseDraws","harvestBloodImage"] },
-    { firstKey: "enableXpBlock",         icon: "fa-server",          title: "Serveur",
-      desc: "Personnalisations du serveur : blocage XP / Level Up, logs Discord, webhooks.",
+    { firstKey: "enableXpBlock",         icon: "fa-server",          title: tl("Serveur"),
+      desc: tl("Personnalisations du serveur : blocage XP / Level Up, logs Discord, webhooks."),
       keys: ["enableXpBlock","enableFakeWarning","enableGmNotes","hidePlayerStarTab","createPantheonFolder","downtimeWebhookUrl","tmWebhookUrl"] },
-    { firstKey: "enableDiscordLog", master: "enableDiscordLog", icon: "fa-clipboard-list", title: "Log Discord",
-      desc: "Envoie un message Discord à chaque modification de fiche (objets, XP, pièces, niveaux…) et, en option, à la création/suppression de fiches, scènes et journaux. Cochez précisément ce qui est loggé, et si les PNJ sont inclus.",
+    { firstKey: "enableDiscordLog", master: "enableDiscordLog", icon: "fa-clipboard-list", title: tl("Log Discord"),
+      desc: tl("Envoie un message Discord à chaque modification de fiche (objets, XP, pièces, niveaux…) et, en option, à la création/suppression de fiches, scènes et journaux. Cochez précisément ce qui est loggé, et si les PNJ sont inclus."),
       keys: ["enableDiscordLog","discordLogWebhookUrl","logInventory","logXp","logCurrency","logLevelsElements","logSheetEdits","logModuleErrors","logActors","logScenes","logJournals","logIncludeNpc"] },
-    { firstKey: "enableChatCards", master: "enableChatCards", icon: "fa-comment-dots", title: "Cartes de chat",
-      desc: "Habillage des cartes de chat dnd5e (attaques, sorts, objets). Interrupteur général + choix de ce qui est activé. La couleur reste un choix par joueur (fenêtre « Accessibilité »).",
+    { firstKey: "enableChatCards", master: "enableChatCards", icon: "fa-comment-dots", title: tl("Cartes de chat"),
+      desc: tl("Habillage des cartes de chat dnd5e (attaques, sorts, objets). Interrupteur général + choix de ce qui est activé. La couleur reste un choix par joueur (fenêtre « Accessibilité »)."),
       keys: ["enableChatCards","chatCardsTheme","chatCardsBigButtons","chatCardsExpandDice","chatCardsFoldDescription"] },
-    { firstKey: "enablePolymorph", master: "enablePolymorph", icon: "fa-paw", title: "Transformation",
-      desc: "Wild Shape (druide) et Polymorphie (sort) — deux systèmes distincts via le moteur dnd5e. Active/désactive l'ensemble et règle l'application des limites de facteur de puissance (FP).",
+    { firstKey: "enablePolymorph", master: "enablePolymorph", icon: "fa-paw", title: tl("Transformation"),
+      desc: tl("Wild Shape (druide) et Polymorphie (sort) — deux systèmes distincts via le moteur dnd5e. Active/désactive l'ensemble et règle l'application des limites de facteur de puissance (FP)."),
       keys: ["enablePolymorph","transformEnforceCr","transformStrictCr"] },
-    { firstKey: "enableReactReminder", icon: "fa-bolt", title: "Rappels de combat",
-      desc: "Assistant de combat contextuel (dépend de Midi-QOL) : rappel des réactions (avec notif au MJ de la party), actions bonus utiles (Smite…), maîtrises d'arme, et avantage/désavantage. Chaque point est activable séparément.",
+    { firstKey: "enableReactReminder", icon: "fa-bolt", title: tl("Rappels de combat"),
+      desc: tl("Assistant de combat contextuel (dépend de Midi-QOL) : rappel des réactions (avec notif au MJ de la party), actions bonus utiles (Smite…), maîtrises d'arme, et avantage/désavantage. Chaque point est activable séparément."),
       keys: ["enableReactReminder","enableBonusReminder","enableMasteryReminder","enableAdvantageReminder"] },
-    { firstKey: "tmSkillBase", master: "tmEnabled", icon: "fa-hourglass-half",  title: "Temps morts",
-      desc: "Règles configurables des temps morts : valeurs, formules (gain de compétence, artisanat) et tables (parchemins, objets magiques). Chaque serveur peut avoir ses propres règles.",
+    { firstKey: "tmSkillBase", master: "tmEnabled", icon: "fa-hourglass-half",  title: tl("Temps morts"),
+      desc: tl("Règles configurables des temps morts : valeurs, formules (gain de compétence, artisanat) et tables (parchemins, objets magiques). Chaque serveur peut avoir ses propres règles."),
       keys: ["tmEnabled","tmSkillBase","tmAddAbilityMod","tmBonusMaitrise","tmBonusExpertise","tmBonusTools","tmRollMinDays","tmReliableTalent","tmSkillFormula","tmCraftNonMagicCostDiv","tmCraftNonMagicDaysPerGp","tmCraftNonMagicCostFormula","tmCraftNonMagicDaysFormula","tmSingleUseFactor","tmScrollTable","tmMagicTable","tmRollTable"] },
     { firstKey: "enableTokenAppearance", icon: "fa-toolbox",         title: "Toolkit",
-      desc: "Apparences de tokens, transformations, tailles Large, TGCM, utilitaires GM, templates AoE, boutiques MEJ et réapprovisionnement.",
+      desc: tl("Apparences de tokens, transformations, tailles Large, TGCM, utilitaires GM, templates AoE, boutiques MEJ et réapprovisionnement."),
       keys: ["enableTokenAppearance","enableTokenPortraitButton","enableGmNotesNpc","enableTgcm","enableCompanions","enableFolderMove","enableToolAbilityFix","enableConnStats","enablePlayerListCompact","enableTemplateSnap","enableFollowTemplates","enableMejShopFix","enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
-    { firstKey: "relationsEnabled", master: "relationsEnabled",      icon: "fa-heart",           title: "Fiche PJ — Relations",
-      desc: "Onglet Relations : liens entre personnages, détection automatique des rencontres, anonymisation.",
+    { firstKey: "relationsEnabled", master: "relationsEnabled",      icon: "fa-heart",           title: tl("Fiche PJ — Relations"),
+      desc: tl("Onglet Relations : liens entre personnages, détection automatique des rencontres, anonymisation."),
       keys: ["relationsEnabled","relationsAnonymization","relationsLastSeen"] },
-    { firstKey: "bestiaryEnabled", master: "bestiaryEnabled",       icon: "fa-dragon",          title: "Fiche PJ — Bestiaire",
-      desc: "Onglet Bestiaire : créatures rencontrées, répertoriées par personnage.",
+    { firstKey: "bestiaryEnabled", master: "bestiaryEnabled",       icon: "fa-dragon",          title: tl("Fiche PJ — Bestiaire"),
+      desc: tl("Onglet Bestiaire : créatures rencontrées, répertoriées par personnage."),
       keys: ["bestiaryEnabled","bestiaryAnonymization","bestiaryLastPosition","bestiaryLastSeen","bestiaryDamageTags","bestiaryArmorClass"] },
-    { firstKey: "carnetEnabled", master: "carnetEnabled",         icon: "fa-book-open",       title: "Fiche PJ — Carnet & Expéditions",
-      desc: "Onglets Carnet (notes enrichies) et Expéditions (dates + durée).",
+    { firstKey: "carnetEnabled", master: "carnetEnabled",         icon: "fa-book-open",       title: tl("Fiche PJ — Carnet & Expéditions"),
+      desc: tl("Onglets Carnet (notes enrichies) et Expéditions (dates + durée)."),
       keys: ["carnetEnabled","enablePcStatus"] },
-    { firstKey: "enableExpeditionMap", master: "enableExpeditionMap",   icon: "fa-map",             title: "Carte des expéditions",
-      desc: "Brouillard de guerre par party et par personnage sur une scène dédiée.",
+    { firstKey: "enableExpeditionMap", master: "enableExpeditionMap",   icon: "fa-map",             title: tl("Carte des expéditions"),
+      desc: tl("Brouillard de guerre par party et par personnage sur une scène dédiée."),
       keys: ["enableExpeditionMap","expeditionMapSceneId","expeditionMapSceneIds","expeditionMapTemplateFolder","expeditionRevealRadius"] },
-    { firstKey: "enableSceneCues", master: "enableSceneCues",       icon: "fa-clapperboard",    title: "Mise en scène — Cues audio",
-      desc: "Cues audio attachés aux tokens : déclenchement auto quand le token perd son invisibilité GM, ou manuel. Réglage de la seconde de départ, du volume et du fondu.",
+    { firstKey: "enableSceneCues", master: "enableSceneCues",       icon: "fa-clapperboard",    title: tl("Mise en scène — Cues audio"),
+      desc: tl("Cues audio attachés aux tokens : déclenchement auto quand le token perd son invisibilité GM, ou manuel. Réglage de la seconde de départ, du volume et du fondu."),
       keys: ["enableSceneCues","sceneCuesDefaultVolume"] },
-    { firstKey: "rangeFixEnabled", master: "rangeFixEnabled",       icon: "fa-bullseye",        title: "Midi Range Fix",
-      desc: "Correction du calcul de portée midi-qol pour les tokens Large et plus.",
+    { firstKey: "rangeFixEnabled", master: "rangeFixEnabled",       icon: "fa-bullseye",        title: tl("Midi Range Fix"),
+      desc: tl("Correction du calcul de portée midi-qol pour les tokens Large et plus."),
       keys: ["rangeFixEnabled","rangeAdjust"] },
-    { firstKey: "serverName", master: "tutoEnabled", icon: "fa-circle-question", title: "Tutoriel",
-      desc: "Fenêtre de bienvenue et guide interactif, configurable section par section.",
+    { firstKey: "serverName", master: "tutoEnabled", icon: "fa-circle-question", title: tl("Tutoriel"),
+      desc: tl("Fenêtre de bienvenue et guide interactif, configurable section par section."),
       keys: ["tutoEnabled","serverName","tutoBarreWestmarch","tutoTourFiche","tutoNoteGm","tutoMonPerso","tutoBestiary","tutoRelations","tutoCarnet","tutoCasier","tutoCues","tutoBoutiques","tutoTempsMorts","tutoApparenceTokens","tutoOutilsGm","tutoAccessibilite","tutoEchange","tutoTransformation","tutoCompagnons","tutoPantheon","showWelcome"] },
 ];
 
@@ -1228,17 +1215,17 @@ const TM_TABLE_SCHEMAS = {
         fallback: TM_DEFAULT_SCROLL,
         rowLabel: (i) => `Niveau ${i}${i === 0 ? " (mineur)" : ""}`,
         cols: [
-            { field: "days", label: "Jours",     type: "number" },
-            { field: "cost", label: "Coût (PO)", type: "number" }
+            { field: "days", label: tl("Jours"),     type: "number" },
+            { field: "cost", label: tl("Coût (PO)"), type: "number" }
         ]
     },
     tmMagicTable: {
         fallback: TM_DEFAULT_MAGIC,
         rowLabel: (i, row) => row.key,
         cols: [
-            { field: "label", label: "Nom",         type: "text"   },
-            { field: "days",  label: "Jours",       type: "number" },
-            { field: "cost",  label: "Coût (PO)",   type: "number" },
+            { field: "label", label: tl("Nom"),         type: "text"   },
+            { field: "days",  label: tl("Jours"),       type: "number" },
+            { field: "cost",  label: tl("Coût (PO)"),   type: "number" },
             { field: "lvl",   label: "Niv. requis", type: "number" }
         ]
     },
@@ -1246,9 +1233,9 @@ const TM_TABLE_SCHEMAS = {
         fallback: TM_DEFAULT_ROLL,
         rowLabel: (i) => `Palier ${i + 1}`,
         cols: [
-            { field: "max",   label: "Résultat ≤", type: "number" },
-            { field: "mult",  label: "Multipl.",   type: "number" },
-            { field: "label", label: "Libellé",    type: "text"   }
+            { field: "max",   label: tl("Résultat ≤"), type: "number" },
+            { field: "mult",  label: tl("Multipl."),   type: "number" },
+            { field: "label", label: tl("Libellé"),    type: "text"   }
         ]
     }
 };
@@ -1304,7 +1291,7 @@ function starTableHtml(cfg) {
     const rows = normalizeStarLevels();
     const total = rows.reduce((a, b) => a + b, 0);
     const body = rows.map((n, i) => `<tr>
-        <td style="font-size:.8em;color:#aaa;white-space:nowrap;padding:2px 6px 2px 0;">Niveau ${i + 1} → ${i + 2}</td>
+        <td style="font-size:.8em;color:#aaa;white-space:nowrap;padding:2px 6px 2px 0;">${tl("Niveau {0} → {1}", i + 1, i + 2)}</td>
         <td style="padding:1px 4px;">
             <input type="number" min="1" step="1" class="scwm-starxp-input" name="starXpLevels__${i}"
                    value="${n}" style="width:80px;box-sizing:border-box;">
@@ -1312,15 +1299,15 @@ function starTableHtml(cfg) {
         </td>
     </tr>`).join("");
     return `<div class="scwm-set" data-key="starXpLevels" style="padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.06);">
-        <label style="display:block;font-weight:600;margin-bottom:4px;">Coût en étoiles par niveau</label>
-        <p style="margin:0 0 6px;font-size:.8em;color:#999;">Nombre d'étoiles à accumuler pour passer chaque niveau. Le total indique combien de sessions représente une progression complète (niveau 1 → 20).</p>
+        <label style="display:block;font-weight:600;margin-bottom:4px;">${tl("Coût en étoiles par niveau")}</label>
+        <p style="margin:0 0 6px;font-size:.8em;color:#999;">${tl("Nombre d'étoiles à accumuler pour passer chaque niveau. Le total indique combien de sessions représente une progression complète (niveau 1 → 20).")}</p>
         <table style="width:100%;border-collapse:collapse;"><tbody>${body}</tbody></table>
         <div class="scwm-starxp-total" style="margin-top:8px;padding-top:6px;border-top:1px solid rgba(230,190,60,0.4);font-weight:700;color:#e6be3c;">
-            Total : <span class="scwm-starxp-total-n">${total}</span> ★
+            ${tl("Total :")} <span class="scwm-starxp-total-n">${total}</span> ★
             <span style="font-weight:400;color:#999;font-size:.85em;">
-                (≈ <span class="scwm-starxp-total-s1">${total}</span> sessions à 1★,
-                <span class="scwm-starxp-total-s2">${Math.ceil(total / 2)}</span> à 2★,
-                <span class="scwm-starxp-total-s3">${Math.ceil(total / 3)}</span> à 3★)
+                (≈ <span class="scwm-starxp-total-s1">${total}</span> ${tl("sessions à 1★,")}
+                <span class="scwm-starxp-total-s2">${Math.ceil(total / 2)}</span> ${tl("à 2★,")}
+                <span class="scwm-starxp-total-s3">${Math.ceil(total / 3)}</span> ${tl("à 3★)")}
             </span>
         </div>
     </div>`;
@@ -1345,9 +1332,9 @@ function readStarTableFromForm(root) {
 // Regroupement des catégories (firstKey) par thème. Les catégories non
 // listées ici sont ajoutées automatiquement à « Divers ».
 const CONFIG_GROUPS = [
-    { title: "Fiche PJ & personnages", icon: "fa-id-card",
+    { title: tl("Fiche PJ & personnages"), icon: "fa-id-card",
       cats: ["relationsEnabled", "bestiaryEnabled", "carnetEnabled", "enableCharValidation", "enableStarXp", "xpProgEnabled", "enableSourceControl", "disableElectrum"] },
-    { title: "Party & jeu de groupe", icon: "fa-users",
+    { title: tl("Party & jeu de groupe"), icon: "fa-users",
       cats: ["enableParty", "enableExpeditionMap", "enableHarvest"] },
     { title: "Combat", icon: "fa-bolt",
       cats: ["enableReactReminder", "rangeFixEnabled", "enablePolymorph"] },
@@ -1355,7 +1342,7 @@ const CONFIG_GROUPS = [
       cats: ["enableXpBlock", "mondeEnabled", "enableDiscordLog", "tmSkillBase", "enableSceneCues", "commonFolderPJ"] },
     { title: "Personnalisation & interface", icon: "fa-sliders",
       cats: ["enableChatCards", "enableTokenAppearance", "uihide", "tweakTree", "companionProfiles"] },
-    { title: "Aide & découverte", icon: "fa-circle-question",
+    { title: tl("Aide & découverte"), icon: "fa-circle-question",
       cats: ["serverName"] }
 ];
 
@@ -1368,22 +1355,22 @@ function _groupedCategories() {
     }));
     for (const g of groups) for (const c of g.cats) used.add(c.firstKey);
     const misc = CATEGORIES.filter(c => !used.has(c.firstKey));
-    if (misc.length) groups.push({ title: "Divers", icon: "fa-ellipsis", cats: misc });
+    if (misc.length) groups.push({ title: tl("Divers"), icon: "fa-ellipsis", cats: misc });
     return groups.filter(g => g.cats.length);
 }
 
 function registerConfigHub() {
     try {
         game.settings.registerMenu(MOD, "menu-config-hub", {
-            name:  "⚙ Panneau de configuration (tout)",
-            label: "Ouvrir le panneau",
-            hint:  "Tous les réglages du module, classés par thème avec des sections repliables. Point d'entrée recommandé.",
+            name:  tl("⚙ Panneau de configuration (tout)"),
+            label: tl("Ouvrir le panneau"),
+            hint:  tl("Tous les réglages du module, classés par thème avec des sections repliables. Point d'entrée recommandé."),
             icon:  "fas fa-gears",
-            type:  makeLauncher({ firstKey: "config-hub", title: "Panneau de configuration", icon: "fa-gears", open: () => openConfigHub() }),
+            type:  makeLauncher({ firstKey: "config-hub", title: tl("Panneau de configuration"), icon: "fa-gears", open: () => openConfigHub() }),
             restricted: true
         });
     } catch (e) {
-        journal.critique(`[${MOD}] registerMenu « Panneau de configuration » échec :`, e);
+        journal.critique(tl("[{0}] registerMenu « Panneau de configuration » échec :", MOD), e);
     }
 }
 
@@ -1403,7 +1390,7 @@ export async function openConfigHub() {
                     <div><i class="fa-solid ${cat.icon}"></i> <strong>${cat.title}</strong>
                         <div class="scwm-hub-launch-desc">${cat.desc ?? ""}</div></div>
                     <button type="button" class="scwm-hub-open" data-cat="${cat.firstKey}">
-                        <i class="fa-solid fa-up-right-from-square"></i> Ouvrir</button>
+                        ${tl("<i class=\"fa-solid fa-up-right-from-square\"></i> Ouvrir")}</button>
                 </div>`;
             }
             return `<details class="scwm-hub-cat">
@@ -1454,7 +1441,7 @@ export async function openConfigHub() {
     };
 
     await foundry.applications.api.DialogV2.wait({
-        window:      { title: "Soruta — Panneau de configuration", icon: "fas fa-gears" },
+        window:      { title: tl("Soruta — Panneau de configuration"), icon: "fas fa-gears" },
         position:    { width: 780 },
         rejectClose: false,
         content,
@@ -1462,7 +1449,7 @@ export async function openConfigHub() {
         buttons: [
             {
                 action: "save", default: true,
-                label: "Tout enregistrer", icon: '<i class="fa-solid fa-save"></i>',
+                label: tl("Tout enregistrer"), icon: '<i class="fa-solid fa-save"></i>',
                 callback: async () => {
                     let reload = false;
                     for (const g of groups) for (const cat of g.cats) {
@@ -1470,17 +1457,17 @@ export async function openConfigHub() {
                         const host = document.getElementById(_hubHostId(cat));
                         if (host) reload = (await saveCategoryForm(cat, host, { silent: true })) || reload;
                     }
-                    ui.notifications?.info("Réglages enregistrés.");
+                    ui.notifications?.info(tl("Réglages enregistrés."));
                     if (reload) {
                         const ok = await foundry.applications.api.DialogV2.confirm({
-                            window:  { title: "Rechargement requis" },
-                            content: "<p>Certains changements nécessitent un rechargement pour s'appliquer. Recharger maintenant ?</p>"
+                            window:  { title: tl("Rechargement requis") },
+                            content: `<p>${tl("Certains changements nécessitent un rechargement pour s'appliquer. Recharger maintenant ?")}</p>`
                         });
                         if (ok) window.location.reload();
                     }
                 }
             },
-            { action: "close", label: "Fermer", icon: '<i class="fa-solid fa-xmark"></i>', callback: () => {} }
+            { action: "close", label: tl("Fermer"), icon: '<i class="fa-solid fa-xmark"></i>', callback: () => {} }
         ]
     });
 }
@@ -1498,14 +1485,14 @@ function registerCategoryMenus() {
         try {
             game.settings.registerMenu(MOD, `menu-${cat.firstKey}`, {
                 name:       cat.title,
-                label:      "Configurer",
+                label:      tl("Configurer"),
                 hint:       cat.desc,
                 icon:       `fas ${cat.icon}`,
                 type:       makeLauncher(cat),
                 restricted: true   // GM uniquement (réglages "world")
             });
         } catch (e) {
-            journal.critique(`[${MOD}] registerMenu "${cat.title}" échec :`, e);
+            journal.critique(tl("[{0}] registerMenu \"{1}\" échec :", MOD, cat.title), e);
         }
     }
 }
@@ -1536,10 +1523,10 @@ async function openCategoryDialog(category) {
         buttons: [
             {
                 action: "save", default: true,
-                label: "Enregistrer", icon: '<i class="fa-solid fa-save"></i>',
+                label: tl("Enregistrer"), icon: '<i class="fa-solid fa-save"></i>',
                 callback: async () => await saveCategoryForm(category, document.getElementById(uid))
             },
-            { action: "close", label: "Fermer", icon: '<i class="fa-solid fa-xmark"></i>', callback: () => {} }
+            { action: "close", label: tl("Fermer"), icon: '<i class="fa-solid fa-xmark"></i>', callback: () => {} }
         ]
     });
 }
@@ -1551,9 +1538,9 @@ function boolKeysOf(category) {
 function buildCategoryForm(category, uid, { banner = true } = {}) {
     const toggleBar = boolKeysOf(category).length >= 2 ? `
         <div style="display:flex;gap:12px;justify-content:flex-end;margin:0 4px 8px;font-size:.8em;">
-            <a class="scwm-all-on"  style="color:#8fd19e;cursor:pointer;">Tout activer</a>
+            ${tl("<a class=\"scwm-all-on\"  style=\"color:#8fd19e;cursor:pointer;\">Tout activer</a>")}
             <span style="color:#555;">·</span>
-            <a class="scwm-all-off" style="color:#e58f8f;cursor:pointer;">Tout désactiver</a>
+            ${tl("<a class=\"scwm-all-off\" style=\"color:#e58f8f;cursor:pointer;\">Tout désactiver</a>")}
         </div>` : "";
     return `
     <div id="${uid}" class="scwm-cat-form" style="display:flex;flex-direction:column;max-height:60vh;overflow-y:auto;padding-right:4px;">
@@ -1574,9 +1561,7 @@ export function licenseBannerHtml() {
                 background:linear-gradient(180deg,rgba(201,162,39,0.12),rgba(0,0,0,0.15));">
         <i class="fa-solid fa-shield-halved" style="color:${ACCENT};font-size:15px;"></i>
         <div style="font-size:.78em;line-height:1.4;color:#d8cfa8;">
-            <strong>Soruta — Completed Westmarch</strong> · v${version}<br>
-            © 2026 Soruta — Tous droits réservés. Usage personnel autorisé ; toute
-            redistribution, modification ou usage commercial est interdit sans autorisation écrite.
+            ${tl("<strong>Soruta — Completed Westmarch</strong> · v{0}<br>\n            © 2026 Soruta — Tous droits réservés. Usage personnel autorisé ; toute\n            redistribution, modification ou usage commercial est interdit sans autorisation écrite.", version)}
         </div>
     </div>`;
 }
@@ -1592,13 +1577,13 @@ function settingControlHtml(key) {
     if (key === "sessionTags") return tagListControlHtml();
     if (TM_TABLE_SCHEMAS[key]) return tableControlHtml(key, cfg);
     const val    = game.settings.get(MOD, key);
-    const reload = cfg.requiresReload ? ` <span style="color:${ACCENT};font-size:.78em;">⟳ rechargement</span>` : "";
+    const reload = cfg.requiresReload ? ` <span style="color:${ACCENT};font-size:.78em;">${tl("⟳ rechargement")}</span>` : "";
     const hint   = cfg.hint ? `<p style="margin:3px 0 0;font-size:.8em;color:#999;">${cfg.hint}</p>` : "";
     const wrap   = "padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.06);";
 
     if (cfg.type === Boolean) {
         const frozen = FROZEN_SETTINGS.has(key);
-        const frozenNote = frozen ? ` <span style="color:${ACCENT};font-size:.78em;">⏸ temporairement désactivé</span>` : "";
+        const frozenNote = frozen ? ` <span style="color:${ACCENT};font-size:.78em;">${tl("⏸ temporairement désactivé")}</span>` : "";
         return `<div class="scwm-set" data-key="${key}" style="${wrap}${frozen ? "opacity:.5;" : ""}">
             <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:${frozen ? "not-allowed" : "pointer"};font-weight:600;margin:0;">
                 <span>${cfg.name}${reload}${frozenNote}</span>
@@ -1622,24 +1607,24 @@ function settingControlHtml(key) {
     } else if (key === "gmAutoFolderParent") {
         // Nom de dossier saisi librement (PAS un sélecteur : le même nom sert
         // dans Acteurs, Journaux et Scènes).
-        control = `<input type="text" name="${key}" value="${escapeAttr(val ?? "")}" placeholder="Nom du dossier parent (ex. Game Master)" style="width:100%;">`;
+        control = `<input type="text" name="${key}" value="${escapeAttr(val ?? "")}" placeholder="${tl("Nom du dossier parent (ex. Game Master)")}" style="width:100%;">`;
     } else if (key === "mondeTailleEpingle") {
         // Curseur + valeur affichée (8 à 512 px).
         const v = Math.min(512, Math.max(8, Number(val) || 32));
         control = `<div style="display:flex;align-items:center;gap:8px;">
             <input type="range" name="${key}" class="scwm-taille-epingle" min="8" max="512" step="4" value="${v}" style="flex:1;">
-            <span class="scwm-taille-epingle-v" style="flex:0 0 56px;text-align:right;">${v} px</span></div>`;
+            <span class="scwm-taille-epingle-v" style="flex:0 0 56px;text-align:right;">${tl("{0} px", v)}</span></div>`;
     } else if (key === "mondeFolderPlace") {
         // Registre du monde : NOM du dossier de journaux (créé au besoin).
         control = `<input type="text" name="${key}" value="${escapeAttr(val ?? "")}" placeholder="Lieux" style="width:100%;">`;
     } else if (key === "mondePackPerson" || key === "mondePackOrg") {
         // Registre du monde : compendium de JOURNAUX (vide = créé automatiquement).
-        control = `<select name="${key}" style="width:100%;">${packOptionsHtml(val, "JournalEntry").replace("— aucun —", "— créé automatiquement —")}</select>`;
+        control = `<select name="${key}" style="width:100%;">${packOptionsHtml(val, "JournalEntry").replace(tl("— aucun —"), tl("— créé automatiquement —"))}</select>`;
     } else if (key === "mondePackPersonFolder" || key === "mondePackOrgFolder") {
         // Registre du monde : NOM d'un dossier DANS le compendium (créé au besoin).
-        control = `<input type="text" name="${key}" value="${escapeAttr(val ?? "")}" placeholder="(racine du compendium)" style="width:100%;">`;
+        control = `<input type="text" name="${key}" value="${escapeAttr(val ?? "")}" placeholder="${tl("(racine du compendium)")}" style="width:100%;">`;
     } else if (key === "expeditionMapTemplateFolder") {
-        control = `<select name="${key}" style="width:100%;">${folderOptionsHtml(val).replace("— aucun —", "— « Tokens de groupe » (automatique) —")}</select>`;
+        control = `<select name="${key}" style="width:100%;">${folderOptionsHtml(val).replace(tl("— aucun —"), tl("— « Tokens de groupe » (automatique) —"))}</select>`;
     } else if (key.includes("Folder")) {
         control = `<select name="${key}" style="width:100%;">${folderOptionsHtml(val)}</select>`;
     } else if (key.includes("Pack")) {
@@ -1656,7 +1641,7 @@ function settingControlHtml(key) {
             <button type="button" class="scwm-scene-add"
                     style="margin-top:2px;padding:3px 10px;border-radius:4px;cursor:pointer;
                            border:1px solid rgba(201,162,39,0.4);background:rgba(201,162,39,0.12);color:#c9a227;">
-                <i class="fa-solid fa-plus"></i> Ajouter une carte
+                ${tl("<i class=\"fa-solid fa-plus\"></i> Ajouter une carte")}
             </button>
         </div>`;
     } else if (key === "activationCode") {
@@ -1665,9 +1650,9 @@ function settingControlHtml(key) {
     } else if (key.endsWith("Son")) {
         // Chemin audio avec « Parcourir » (FilePicker audio) et « Tester ».
         control = `<div style="display:flex;gap:4px;">
-            <input type="text" name="${key}" value="${escapeAttr(val ?? "")}" placeholder="Aucun son" style="flex:1 1 auto;min-width:0;">
-            <button type="button" class="scwm-filepicker" data-target="${key}" data-fptype="audio" title="Parcourir" style="flex:0 0 auto;width:34px;"><i class="fa-solid fa-file-audio"></i></button>
-            ${key === "mondeBanniereSon" ? `<button type="button" class="scwm-test-banniere" data-target="${key}" title="Tester la bannière (sur ton écran)" style="flex:0 0 auto;width:34px;"><i class="fa-solid fa-play"></i></button>` : ""}
+            <input type="text" name="${key}" value="${escapeAttr(val ?? "")}" placeholder="${tl("Aucun son")}" style="flex:1 1 auto;min-width:0;">
+            <button type="button" class="scwm-filepicker" data-target="${key}" data-fptype="audio" title="${tl("Parcourir")}" style="flex:0 0 auto;width:34px;"><i class="fa-solid fa-file-audio"></i></button>
+            ${key === "mondeBanniereSon" ? `<button type="button" class="scwm-test-banniere" data-target="${key}" title="${tl("Tester la bannière (sur ton écran)")}" style="flex:0 0 auto;width:34px;"><i class="fa-solid fa-play"></i></button>` : ""}
         </div>`;
     } else if (key.endsWith("Image")) {
         // Chemin d'image avec bouton « Parcourir » (FilePicker).
@@ -1693,7 +1678,7 @@ function wireCategoryForm(category, root) {
         btn.disabled = true;
         try {
             await saveCategoryForm(category, root, { silent: true });   // le guide lit les réglages enregistrés
-            if (await genererEtOuvrirGuide()) btn.innerHTML = `<i class="fa-solid fa-book"></i> Mettre à jour et ouvrir le journal`;
+            if (await genererEtOuvrirGuide()) btn.innerHTML = `${tl("<i class=\"fa-solid fa-book\"></i> Mettre à jour et ouvrir le journal")}`;
         } finally { btn.disabled = false; }
     });
 
@@ -1725,7 +1710,7 @@ function wireCategoryForm(category, root) {
     // Registre du monde : aperçu de la bannière « Nouveau lieu découvert ».
     root.querySelectorAll(".scwm-test-banniere").forEach(btn => btn.addEventListener("click", (e) => {
         e.preventDefault();
-        afficherBanniere("Port de Brume", root.querySelector(`[name="${btn.dataset.target}"]`)?.value ?? "");
+        afficherBanniere(tl("Port de Brume"), root.querySelector(`[name="${btn.dataset.target}"]`)?.value ?? "");
     }));
 
     // Liste dynamique de cartes d'expédition : + ajoute une ligne, × retire.
@@ -1872,11 +1857,11 @@ async function saveCategoryForm(category, root, { silent = false } = {}) {
         }
     }
     if (silent) return needsReload;
-    ui.notifications?.info(`${category.title} — réglages enregistrés.`);
+    ui.notifications?.info(tl("{0} — réglages enregistrés.", category.title));
     if (needsReload) {
         const ok = await foundry.applications.api.DialogV2.confirm({
-            window:  { title: "Rechargement requis" },
-            content: "<p>Certains changements nécessitent un rechargement de la page pour s'appliquer. Recharger maintenant ?</p>"
+            window:  { title: tl("Rechargement requis") },
+            content: `<p>${tl("Certains changements nécessitent un rechargement de la page pour s'appliquer. Recharger maintenant ?")}</p>`
         });
         if (ok) window.location.reload();
     }
@@ -1896,12 +1881,12 @@ function folderOptionsHtml(currentVal) {
             `<option value="${f.id}" ${f.id === currentVal ? "selected" : ""}>${"  ".repeat(depth * 2)}${depth > 0 ? "└ " : ""}${f.name}</option>`,
             ...walk(f.id, depth + 1)
         ]);
-    return [`<option value="">— aucun —</option>`, ...walk(null, 0)].join("");
+    return [`<option value="">${tl("— aucun —")}</option>`, ...walk(null, 0)].join("");
 }
 
 function sceneOptionsHtml(currentVal) {
     return [
-        `<option value="">— Aucune —</option>`,
+        `<option value="">${tl("— Aucune —")}</option>`,
         ...game.scenes.contents.map(s => `<option value="${s.id}" ${s.id === currentVal ? "selected" : ""}>${s.name}</option>`)
     ].join("");
 }
@@ -1909,8 +1894,8 @@ function sceneOptionsHtml(currentVal) {
 // Liste d'intrigues (tags de rapports) — rangées de champs texte + / −.
 function tagRowHtml(val = "") {
     return `<div class="scwm-tag-row" style="display:flex;gap:4px;margin-bottom:4px;">
-        <input type="text" class="scwm-tag-input" value="${escapeAttr(val)}" placeholder="Nom de l'intrigue…" style="flex:1 1 auto;min-width:0;">
-        <button type="button" class="scwm-tag-del" title="Retirer cette intrigue"
+        <input type="text" class="scwm-tag-input" value="${escapeAttr(val)}" placeholder="${tl("Nom de l'intrigue…")}" style="flex:1 1 auto;min-width:0;">
+        <button type="button" class="scwm-tag-del" title="${tl("Retirer cette intrigue")}"
                 style="flex:0 0 auto;width:30px;border-radius:4px;cursor:pointer;
                        border:1px solid rgba(192,57,43,0.4);background:rgba(192,57,43,0.12);color:#e58f8f;">
             <i class="fa-solid fa-xmark"></i>
@@ -1921,14 +1906,14 @@ function tagListControlHtml() {
     const tags = (game.settings.get(MOD, "sessionTags") || []).filter(Boolean);
     const rows = tags.map(t => tagRowHtml(t)).join("");
     return `<div class="scwm-set" data-key="sessionTags" style="padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.06);">
-        <label style="display:block;font-weight:600;margin-bottom:4px;">Intrigues (tags de rapports)</label>
-        <p style="margin:0 0 6px;font-size:.8em;color:#999;">Liste d'intrigues/trames que le MJ pourra cocher sur ses rapports de session, pour relier plusieurs quêtes (récompense finale, joueurs liés, recrutement…).</p>
+        <label style="display:block;font-weight:600;margin-bottom:4px;">${tl("Intrigues (tags de rapports)")}</label>
+        <p style="margin:0 0 6px;font-size:.8em;color:#999;">${tl("Liste d'intrigues/trames que le MJ pourra cocher sur ses rapports de session, pour relier plusieurs quêtes (récompense finale, joueurs liés, recrutement…).")}</p>
         <div class="scwm-tag-list" data-key="sessionTags">
             <div class="scwm-tag-rows">${rows}</div>
             <button type="button" class="scwm-tag-add"
                     style="margin-top:2px;padding:3px 10px;border-radius:4px;cursor:pointer;
                            border:1px solid rgba(201,162,39,0.4);background:rgba(201,162,39,0.12);color:#c9a227;">
-                <i class="fa-solid fa-plus"></i> Ajouter une intrigue
+                ${tl("<i class=\"fa-solid fa-plus\"></i> Ajouter une intrigue")}
             </button>
         </div>
     </div>`;
@@ -1952,7 +1937,7 @@ function packOptionsHtml(currentVal, docType = "Actor") {
     const packs = game.packs.filter(p => p.documentName === docType)
         .sort((a, b) => (a.title ?? a.metadata?.label ?? "").localeCompare(b.title ?? b.metadata?.label ?? ""));
     return [
-        `<option value="">— aucun —</option>`,
+        `<option value="">${tl("— aucun —")}</option>`,
         ...packs.map(p => {
             const label = p.title ?? p.metadata?.label ?? p.collection;
             return `<option value="${p.collection}" ${p.collection === currentVal ? "selected" : ""}>${escapeAttr(label)}</option>`;

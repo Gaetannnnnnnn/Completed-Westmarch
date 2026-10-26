@@ -1,11 +1,12 @@
 import { MOD } from "./const.js";
 import { partyFeatureEnabled } from './settings.js';
 import { pullUserToScene } from './socket.js';
+import { tl } from "./i18n.js";
 
 export function ScenesHooks() {
     Hooks.on('getSceneContextOptions', (html, contextMenu) => {
         contextMenu.push({
-            name: "Go With Party",
+            name: tl("Go With Party"),
             icon: '<i class="fa-solid fa-people-arrows"></i>',
             callback: li => {
                 var destination = game.scenes.get(li.dataset.entryId ?? li.dataset.sceneId ?? li.dataset.documentId);
@@ -16,7 +17,7 @@ export function ScenesHooks() {
     });
     Hooks.on('getSceneDirectoryEntryContextOptions', (html, contextMenu) => {
         contextMenu.push({
-            name: "Go With Party",
+            name: tl("Go With Party"),
             icon: '<i class="fa-solid fa-people-arrows"></i>',
             callback: li => {
                 var destination = game.scenes.get(li.dataset.sceneId ?? li.dataset.entryId ?? li.dataset.documentId);
@@ -29,7 +30,7 @@ export function ScenesHooks() {
 
 function GoWithParty(destination){
     if (!destination) {
-        ui.notifications.warn("Scène de destination introuvable.");
+        ui.notifications.warn(tl("Scène de destination introuvable."));
         return;
     }
     // myPartyId doit être vérifié en plus de l'égalité stricte : sinon
@@ -44,5 +45,5 @@ function GoWithParty(destination){
             pullUserToScene(destination.id, user.id);
         }
     });
-    ui.notifications.info(`Groupe téléporté vers ${destination.name} (${count} membre(s)).`);
+    ui.notifications.info(tl("Groupe téléporté vers {0} ({1} membre(s)).", destination.name, count));
 }

@@ -8,6 +8,7 @@ import { journal } from "./log.js";
 import { partyFeatureEnabled } from './settings.js';
 import { starXpEnabled, starAwardBlockHtml, wireStarAwardBlock, readStarAward, awardStars, progressFor } from './starxp.js';
 import { xpProgEnabled, blocClotureHtml, wireBlocCloture, lireDetailCloture, texteDetailRapport, seuilsActifs } from './xpprogress.js';
+import { tl, locale } from "./i18n.js";
 
 // Données capturées en début de session
 var sessionData = {
@@ -41,7 +42,7 @@ function getCloseBtnSingleton() {
     closeBtnSingleton = $(`
         <div class="westmarch-close-session-wrap">
             <button type="button" class="westmarch-close-session">
-                <i class="fa-solid fa-book"></i> Clore la session
+                ${tl("<i class=\"fa-solid fa-book\"></i> Clore la session")}
             </button>
         </div>
     `);
@@ -50,8 +51,8 @@ function getCloseBtnSingleton() {
         try {
             await closeSession(currentPlayersApp);
         } catch (err) {
-            journal.erreur("[WestMarch] Erreur lors de la clôture de session :", err);
-            ui.notifications.error("Erreur lors de la clôture de la session (voir console).");
+            journal.erreur(tl("[WestMarch] Erreur lors de la clôture de session :"), err);
+            ui.notifications.error(tl("Erreur lors de la clôture de la session (voir console)."));
         }
     });
     return closeBtnSingleton;
@@ -224,7 +225,7 @@ export function startSessionLog(partyId) {
         });
     });
 
-    journal.debug("[WestMarch] Session démarrée pour la party", partyId);
+    journal.debug(tl("[WestMarch] Session démarrée pour la party"), partyId);
 }
 
 // ============================================================
@@ -263,7 +264,7 @@ function promptSessionClose(partyId) {
     const rows = pcs.map(pc => `
         <div style="display:flex;align-items:center;gap:8px;margin:4px 0;">
             <label style="flex:1;">${esc(pc.name)}
-                <span style="opacity:0.6;font-size:0.85em;">(XP actuel : ${pc.currentXp})</span>
+                <span style="opacity:0.6;font-size:0.85em;">${tl("(XP actuel : {0})", pc.currentXp)}</span>
             </label>
             <input type="number" min="0" step="1" class="scwm-xp-pc"
                    data-actor-id="${esc(pc.actorId)}" value="0" style="width:90px;">
@@ -280,18 +281,18 @@ function promptSessionClose(partyId) {
         </label>`;
     const tagsBlock = `
         <div style="margin-top:10px;">
-            <label style="display:block;font-weight:bold;margin-bottom:4px;">Intrigues liées</label>
+            <label style="display:block;font-weight:bold;margin-bottom:4px;">${tl("Intrigues liées")}</label>
             ${worldTags.length
                 ? `<div class="scwm-close-tags" style="display:flex;flex-wrap:wrap;gap:6px;">${worldTags.map(tagChip).join("")}</div>`
-                : `<p style="font-size:.8em;opacity:.6;margin:0;">Aucune intrigue partagée (Paramètres → Système de Party).</p>`}
-            <label style="display:block;font-weight:bold;margin:8px 0 4px;">Mes intrigues
-                <span style="font-weight:400;opacity:.6;font-size:.85em;">— perso, pour organiser vos expéditions</span></label>
+                : `<p style="font-size:.8em;opacity:.6;margin:0;">${tl("Aucune intrigue partagée (Paramètres → Système de Party).")}</p>`}
+            <label style="display:block;font-weight:bold;margin:8px 0 4px;">${tl("Mes intrigues")}
+                <span style="font-weight:400;opacity:.6;font-size:.85em;">${tl("— perso, pour organiser vos expéditions")}</span></label>
             <div class="scwm-close-tags scwm-close-tags-perso" style="display:flex;flex-wrap:wrap;gap:6px;">${persoTags.map(tagChip).join("")}</div>
             <div style="display:flex;gap:4px;margin-top:6px;">
-                <input type="text" class="scwm-close-newtag" placeholder="Nouvelle intrigue perso…" style="flex:1 1 auto;min-width:0;">
+                <input type="text" class="scwm-close-newtag" placeholder="${tl("Nouvelle intrigue perso…")}" style="flex:1 1 auto;min-width:0;">
                 <button type="button" class="scwm-close-addtag"
                         style="flex:0 0 auto;padding:2px 10px;border-radius:4px;cursor:pointer;border:1px solid rgba(201,162,39,0.4);background:rgba(201,162,39,0.12);color:#c9a227;">
-                    <i class="fa-solid fa-plus"></i> Ajouter
+                    ${tl("<i class=\"fa-solid fa-plus\"></i> Ajouter")}
                 </button>
             </div>
         </div>`;
@@ -304,33 +305,33 @@ function promptSessionClose(partyId) {
     const xpBlock = progBlock ? progBlock : pcs.length ? `
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;
                         padding-bottom:8px;border-bottom:1px solid var(--color-border-light-tertiary,#bbb);">
-                <label style="flex:1;font-weight:bold;">XP pour tous</label>
+                <label style="flex:1;font-weight:bold;">${tl("XP pour tous")}</label>
                 <input type="number" min="0" step="1" class="scwm-xp-all" value="0" style="width:90px;">
             </div>
             ${rows}`
-        : `<p style="opacity:0.7;">Aucun PJ dans la party — attribution d'XP indisponible.</p>`;
+        : `<p style="opacity:0.7;">${tl("Aucun PJ dans la party — attribution d'XP indisponible.")}</p>`;
 
     // Système d'étoiles actif → sélecteur 1–3 étoiles à la place des champs d'XP.
     const awardBlock = starOn
-        ? (pcs.length ? starAwardBlockHtml(pcs) : `<p style="opacity:0.7;">Aucun PJ dans la party — attribution d'étoiles indisponible.</p>`)
+        ? (pcs.length ? starAwardBlockHtml(pcs) : `<p style="opacity:0.7;">${tl("Aucun PJ dans la party — attribution d'étoiles indisponible.")}</p>`)
         : xpBlock;
-    const introLabel = starOn ? "Attribution des étoiles de fin de session." : "Attribution d'XP de fin de session.";
+    const introLabel = starOn ? tl("Attribution des étoiles de fin de session.") : tl("Attribution d'XP de fin de session.");
 
     const content = `
         <form class="scwm-close-form">
             <p style="margin:0 0 8px;">${introLabel}</p>
             ${awardBlock}
             <div style="margin-top:10px;">
-                <label style="display:block;font-weight:bold;margin-bottom:4px;">Notes de session</label>
+                <label style="display:block;font-weight:bold;margin-bottom:4px;">${tl("Notes de session")}</label>
                 <textarea class="scwm-close-notes" rows="4" style="width:100%;box-sizing:border-box;"
-                    placeholder="Résumé, événements marquants… (peut être complété plus tard dans le Casier)"></textarea>
+                    placeholder="${tl("Résumé, événements marquants… (peut être complété plus tard dans le Casier)")}"></textarea>
             </div>
             ${tagsBlock}
             ${pcs.length ? `
             <label style="display:flex;align-items:flex-start;gap:8px;margin-top:10px;cursor:pointer;">
                 <input type="checkbox" class="scwm-defer-award" style="margin-top:2px;flex:0 0 auto;">
-                <span style="font-size:.9em;">N'attribuer ${starOn ? "les étoiles" : "l'XP"} qu'<strong>une fois le rapport envoyé sur Discord</strong>.
-                    <span style="opacity:.7;">Pratique si vous hésitez : vous pourrez encore l'ajuster dans le Casier avant l'envoi.</span></span>
+                <span style="font-size:.9em;">${tl("N'attribuer {0} qu'<strong>une fois le rapport envoyé sur Discord</strong>.", starOn ? tl("les étoiles") : "l'XP")}
+                    <span style="opacity:.7;">${tl("Pratique si vous hésitez : vous pourrez encore l'ajuster dans le Casier avant l'envoi.")}</span></span>
             </label>` : ""}
         </form>`;
 
@@ -366,11 +367,11 @@ function promptSessionClose(partyId) {
     };
 
     const dlg = new foundry.applications.api.DialogV2({
-        window: { title: "Clôture de session", icon: "fa-solid fa-flag-checkered" },
+        window: { title: tl("Clôture de session"), icon: "fa-solid fa-flag-checkered" },
         content,
         buttons: [
             {
-                action: "send", label: "Clôturer et envoyer", icon: "fa-solid fa-paper-plane", default: true,
+                action: "send", label: tl("Clôturer et envoyer"), icon: "fa-solid fa-paper-plane", default: true,
                 callback: async (event, button, dialog) => {
                     const root = dialog.element;
                     const notes = root.querySelector(".scwm-close-notes")?.value ?? "";
@@ -383,7 +384,7 @@ function promptSessionClose(partyId) {
                 }
             },
             {
-                action: "draft", label: "Enregistrer pour plus tard", icon: "fa-solid fa-box-archive",
+                action: "draft", label: tl("Enregistrer pour plus tard"), icon: "fa-solid fa-box-archive",
                 callback: async (event, button, dialog) => {
                     const root = dialog.element;
                     const notes = root.querySelector(".scwm-close-notes")?.value ?? "";
@@ -527,7 +528,7 @@ function buildReportData(partyId, xpBeforeById, notes, starN = 0) {
         gmName:      sessionData.gmName ?? game.user.name,
         partyId,
         dateISO:     new Date().toISOString(),
-        dateDisplay: new Date().toLocaleDateString("fr-FR"),
+        dateDisplay: new Date().toLocaleDateString(locale()),
         players,
         combatants:  [...(sessionData.combatants ?? [])],
         npcs,
@@ -547,7 +548,7 @@ export function buildSessionEmbed(data) {
             let l = `**${p.name}**`;
             if (s.gain > 0) l += ` — ⭐ +${s.gain}`;
             if (s.max)            l += ` — Niveau ${s.level} (max)`;
-            else if (s.ready)     l += ` — ⬆ **Prêt à monter niveau ${s.level + 1} !**`;
+            else if (s.ready)     l += ` ${tl("— ⬆ **Prêt à monter niveau {0} !**", s.level + 1)}`;
             else if (s.threshold) l += ` — ${s.stars}/${s.threshold} ★ avant niveau ${s.level + 1}`;
             return l;
         }
@@ -556,8 +557,8 @@ export function buildSessionEmbed(data) {
         if (p.levelUp)      l += ` ⬆ **Level Up ! (Niveau ${p.levelAfter})**`;
         return l;
     });
-    const fields = [{ name: "Joueurs", value: trunc(playersLines.join("\n") || "—") }];
-    if (data.xpDetail) fields.push({ name: "✨ XP de la session", value: trunc(texteDetailRapport(data.xpDetail)) });
+    const fields = [{ name: tl("Joueurs"), value: trunc(playersLines.join("\n") || "—") }];
+    if (data.xpDetail) fields.push({ name: tl("✨ XP de la session"), value: trunc(texteDetailRapport(data.xpDetail)) });
 
     if ((data.tags ?? []).length > 0) {
         fields.push({ name: "🧩 Intrigues", value: trunc(data.tags.map(t => `\`${t}\``).join(" · ")) });
@@ -568,24 +569,24 @@ export function buildSessionEmbed(data) {
             if (e.cr !== null && e.cr !== undefined) l += ` — CR ${e.cr}`;
             if (e.hp !== null && e.hp !== undefined) l += ` — HP ${e.hp}`;
             if (e.ac !== null && e.ac !== undefined) l += ` — CA ${e.ac}`;
-            if (e.legendaryActions)     l += ` — Actions lég. : ${e.legendaryActions}`;
-            if (e.legendaryResistances) l += ` — Résist. lég. : ${e.legendaryResistances}`;
+            if (e.legendaryActions)     l += ` ${tl("— Actions lég. : {0}", e.legendaryActions)}`;
+            if (e.legendaryResistances) l += ` ${tl("— Résist. lég. : {0}", e.legendaryResistances)}`;
             return l;
         });
-        fields.push({ name: "Ennemis rencontrés", value: trunc(lines.join("\n")) });
+        fields.push({ name: tl("Ennemis rencontrés"), value: trunc(lines.join("\n")) });
     }
     if ((data.npcs ?? []).length > 0) {
-        fields.push({ name: "PNJ rencontrés", value: trunc(data.npcs.map(n => n.name).join("\n")) });
+        fields.push({ name: tl("PNJ rencontrés"), value: trunc(data.npcs.map(n => n.name).join("\n")) });
     }
     if ((data.items ?? []).length > 0) {
-        fields.push({ name: "Objets récupérés", value: trunc(data.items.map(i => `**${i.playerName}** — ${i.itemName}`).join("\n")) });
+        fields.push({ name: tl("Objets récupérés"), value: trunc(data.items.map(i => `**${i.playerName}** — ${i.itemName}`).join("\n")) });
     }
     if (data.notes?.trim()) {
-        fields.push({ name: "Notes", value: trunc(data.notes.trim()) });
+        fields.push({ name: tl("Notes"), value: trunc(data.notes.trim()) });
     }
 
     return {
-        title:       `Rapport de session — ${data.dateDisplay}`,
+        title:       tl("Rapport de session — {0}", data.dateDisplay),
         description: `**Meneur :** ${data.gmName}`,
         color:       0xe67e22,
         fields
@@ -596,7 +597,7 @@ export function buildSessionEmbed(data) {
 export async function sendSessionReport(data) {
     const webhookUrl = game.settings.get(MOD, "sessionLogWebhookUrl");
     if (!webhookUrl) {
-        ui.notifications.warn("Aucun webhook Discord configuré (Paramètres → Système de Party → URL webhook rapport de session).");
+        ui.notifications.warn(tl("Aucun webhook Discord configuré (Paramètres → Système de Party → URL webhook rapport de session)."));
         return false;
     }
     const embed = buildSessionEmbed(data);
@@ -613,8 +614,8 @@ export async function sendSessionReport(data) {
         });
         return true;
     } catch (err) {
-        journal.erreur("[WestMarch] Webhook rapport de session :", err);
-        ui.notifications.warn("Échec de l'envoi du rapport sur Discord (voir console).");
+        journal.erreur(tl("[WestMarch] Webhook rapport de session :"), err);
+        ui.notifications.warn(tl("Échec de l'envoi du rapport sur Discord (voir console)."));
         return false;
     }
 }
@@ -624,7 +625,7 @@ export async function sendSessionReport(data) {
 async function sendSessionReportToForum(webhookUrl, embed, data) {
     const base       = webhookUrl.split("?")[0];             // URL sans paramètres
     const key        = data.gmId || data.gmName || "gm";
-    const threadName = (data.gmName || "Meneur").slice(0, 90); // titre du post de forum
+    const threadName = (data.gmName || tl("Meneur")).slice(0, 90); // titre du post de forum
     const headers    = { "Content-Type": "application/json" };
 
     const threads = foundry.utils.deepClone(game.settings.get(MOD, "sessionForumThreads") ?? {});
@@ -636,7 +637,7 @@ async function sendSessionReportToForum(webhookUrl, embed, data) {
             method: "POST", headers, body: JSON.stringify({ embeds: [embed] })
         });
         if (res.ok) return true;
-        journal.info(`[WestMarch] Fil forum du meneur introuvable (${res.status}) — recréation.`);
+        journal.info(tl("[WestMarch] Fil forum du meneur introuvable ({0}) — recréation.", res.status));
     }
 
     // 2) Sinon, créer un nouveau post de forum au nom du meneur.
@@ -646,8 +647,8 @@ async function sendSessionReportToForum(webhookUrl, embed, data) {
     });
     if (!res.ok) {
         const txt = await res.text().catch(() => "");
-        journal.erreur("[WestMarch] Création du post de forum échouée :", res.status, txt);
-        ui.notifications.warn("Échec de l'envoi du rapport sur Discord (forum — voir console).");
+        journal.erreur(tl("[WestMarch] Création du post de forum échouée :"), res.status, txt);
+        ui.notifications.warn(tl("Échec de l'envoi du rapport sur Discord (forum — voir console)."));
         return false;
     }
     // Mémorise l'id du fil créé pour réutilisation (channel_id = id du thread).
@@ -702,7 +703,7 @@ async function appendSessionLog(data) {
         const log = getSessionLog();
         log.push(entry);
         await game.settings.set(MOD, "sessionLog", log);
-    } catch (e) { journal.avert("[WestMarch] Journal de session :", e); }
+    } catch (e) { journal.avert(tl("[WestMarch] Journal de session :"), e); }
 }
 
 // Met à jour les tags d'une entrée du journal (édition depuis le Casier) —
@@ -726,7 +727,7 @@ export async function setSessionLogTags(id, tags) {
 async function closeSession(playerListApp) {
     const partyId = sessionData.partyId ?? game.user.getFlag(MOD, "partyId");
     if (!partyId) {
-        ui.notifications.warn("Aucune session en cours (aucune party active).");
+        ui.notifications.warn(tl("Aucune session en cours (aucune party active)."));
         return;
     }
 
@@ -755,22 +756,22 @@ async function closeSession(playerListApp) {
         const ok = await sendSessionReport(reportData);
         if (ok) {
             if (res.defer) await applyDeferredAward(res.award);   // appliqué APRÈS envoi réussi
-            ui.notifications.info(res.defer ? "Session close — rapport envoyé et attribution appliquée." : "Session close — rapport envoyé sur Discord.");
+            ui.notifications.info(res.defer ? tl("Session close — rapport envoyé et attribution appliquée.") : tl("Session close — rapport envoyé sur Discord."));
         } else if (res.defer) {
             // Envoi échoué + attribution différée → on ne perd rien : on range le
             // rapport en brouillon (avec l'attribution en attente) dans le Casier.
             await saveSessionDraft(reportData);
             try { ui.controls?.render?.(); } catch (e) {}
-            ui.notifications.warn("Rapport NON envoyé — enregistré dans le Casier ; l'attribution sera appliquée à l'envoi.");
+            ui.notifications.warn(tl("Rapport NON envoyé — enregistré dans le Casier ; l'attribution sera appliquée à l'envoi."));
         } else {
-            ui.notifications.info("Session close — rapport NON envoyé (voir avertissement).");
+            ui.notifications.info(tl("Session close — rapport NON envoyé (voir avertissement)."));
         }
     } else if (res.action === "draft") {
         await saveSessionDraft(reportData);
         try { ui.controls?.render?.(); } catch (e) {}   // rafraîchit la pastille du Casier
         ui.notifications.info(res.defer
-            ? "Session close — rapport au Casier ; l'attribution sera appliquée à l'envoi (ajustable avant)."
-            : "Session close — rapport enregistré dans votre Casier (à finaliser plus tard).");
+            ? tl("Session close — rapport au Casier ; l'attribution sera appliquée à l'envoi (ajustable avant).")
+            : tl("Session close — rapport enregistré dans votre Casier (à finaliser plus tard)."));
     }
 
     // Leave Party

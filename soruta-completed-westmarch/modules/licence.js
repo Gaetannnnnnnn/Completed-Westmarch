@@ -23,6 +23,7 @@
 import { MOD } from "./const.js";
 
 import { journal } from "./log.js";
+import { tl } from "./i18n.js";
 const URL_LICENCE = "https://licence.altheia.eu/validate";
 
 // Clé publique du serveur de licence (générée sur le VPS par generer-cles.mjs).
@@ -34,16 +35,16 @@ const AVERTIR_AVANT_MS    = 2 * 24 * 3600 * 1000; // prévient le MJ 2 jours ava
 const DELAI_RESEAU_MS     = 10000;
 
 const MESSAGES = {
-    cle_invalide:       "Clé de licence inconnue. Vérifie la saisie.",
-    revoquee:           "Cette licence a été révoquée.",
-    limite:             "Cette clé est déjà utilisée sur le nombre maximal de mondes. Contacte Soruta pour libérer une activation.",
-    monde:              "Ce monde n'est plus associé à la licence.",
-    jeton_invalide:     "La licence enregistrée dans ce monde n'est pas valide.",
-    jeton_trop_ancien:  "La licence de ce monde n'a pas été renouvelée depuis trop longtemps. Ressaisis ta clé.",
-    signature:          "La licence enregistrée dans ce monde n'est pas valide.",
-    trop_de_tentatives: "Trop de tentatives. Réessaie dans une heure.",
-    reseau:             "Serveur de licence injoignable. Vérifie ta connexion, puis réessaie.",
-    requete:            "Requête refusée par le serveur de licence."
+    cle_invalide:       tl("Clé de licence inconnue. Vérifie la saisie."),
+    revoquee:           tl("Cette licence a été révoquée."),
+    limite:             tl("Cette clé est déjà utilisée sur le nombre maximal de mondes. Contacte Soruta pour libérer une activation."),
+    monde:              tl("Ce monde n'est plus associé à la licence."),
+    jeton_invalide:     tl("La licence enregistrée dans ce monde n'est pas valide."),
+    jeton_trop_ancien:  tl("La licence de ce monde n'a pas été renouvelée depuis trop longtemps. Ressaisis ta clé."),
+    signature:          tl("La licence enregistrée dans ce monde n'est pas valide."),
+    trop_de_tentatives: tl("Trop de tentatives. Réessaie dans une heure."),
+    reseau:             tl("Serveur de licence injoignable. Vérifie ta connexion, puis réessaie."),
+    requete:            tl("Requête refusée par le serveur de licence.")
 };
 const message = (code) => MESSAGES[code] ?? `Activation impossible (${code ?? "erreur inconnue"}).`;
 export const messageLicence = message;
@@ -93,11 +94,11 @@ export function licenceValide() {
 // Résumé pour la fenêtre « À propos ».
 export function etatLicence() {
     const j = decouper(jetonActuel());
-    if (!j) return "Licence : non activée.";
+    if (!j) return tl("Licence : non activée.");
     const jusquA = new Date(j.contenu.exp).toLocaleDateString();
     return licenceValide()
-        ? `Licence : active (vérifiée le ${new Date(j.contenu.iat).toLocaleDateString()}, valable sans contact jusqu'au ${jusquA}).`
-        : `Licence : expirée le ${jusquA}.`;
+        ? tl("Licence : active (vérifiée le {0}, valable sans contact jusqu'au {1}).", new Date(j.contenu.iat).toLocaleDateString(), jusquA)
+        : tl("Licence : expirée le {0}.", jusquA);
 }
 
 // ------------------------------------------------------------------ signature
@@ -277,8 +278,8 @@ async function renouvelerSiBesoin() {
     if (reponse.statut === 403) return invalider(reponse.erreur);   // refus explicite : on s'arrête
     // Serveur injoignable ou en panne : le jeton actuel reste valable jusqu'à son échéance.
     if (j.contenu.exp - Date.now() < AVERTIR_AVANT_MS) {
-        ui.notifications?.warn(`Soruta — Completed Westmarch : le serveur de licence est injoignable. `
-            + `Sans contact d'ici le ${new Date(j.contenu.exp).toLocaleString()}, le module s'arrêtera.`, { permanent: true });
+        ui.notifications?.warn(`${tl("Soruta — Completed Westmarch : le serveur de licence est injoignable.")} `
+            + tl("Sans contact d'ici le {0}, le module s'arrêtera.", new Date(j.contenu.exp).toLocaleString()), { permanent: true });
     }
 }
 
@@ -300,7 +301,7 @@ export async function renouvelerJetonExpire() {
 }
 
 async function invalider(code) {
-    journal.info(`[${MOD}] Licence refusée : ${code}`);
+    journal.info(tl("[{0}] Licence refusée : {1}", MOD, code));
     if (game.user?.isGM) {
         ui.notifications?.error(`Soruta — Completed Westmarch : ${message(code)}`, { permanent: true });
         if (estMjResponsable()) await game.settings.set(MOD, "licenceJeton", "");   // recharge tous les clients
@@ -314,10 +315,10 @@ export async function proposerActivation() {
     for (;;) {
         const cle = await demanderCle(erreur);
         if (cle == null) return false;                       // annulé
-        if (!cle.trim()) { erreur = "Saisis ta clé de licence."; continue; }
+        if (!cle.trim()) { erreur = tl("Saisis ta clé de licence."); continue; }
         const resultat = await activerLicence(cle);
         if (resultat.ok) {
-            ui.notifications?.info("Licence activée. Rechargement…");
+            ui.notifications?.info(tl("Licence activée. Rechargement…"));
             foundry.utils.debouncedReload();
             return true;
         }
@@ -329,16 +330,16 @@ async function demanderCle(erreur) {
     const echapper = (t) => String(t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
     try {
         return await foundry.applications.api.DialogV2.wait({
-            window: { title: "Soruta — Completed Westmarch", icon: "fas fa-key" },
-            content: `<p style="margin:0 0 8px;">Ce module nécessite une licence. Saisis ta clé pour l'activer sur ce monde.</p>
+            window: { title: tl("Soruta — Completed Westmarch"), icon: "fas fa-key" },
+            content: `<p style="margin:0 0 8px;">${tl("Ce module nécessite une licence. Saisis ta clé pour l'activer sur ce monde.")}</p>
                       <input type="text" name="scwm-cle" style="width:100%;box-sizing:border-box;font-family:monospace;"
                              placeholder="ALT-XXXX-XXXX-XXXX-XXXX" autocomplete="off" spellcheck="false" autofocus>
                       ${erreur ? `<p style="margin:8px 0 0;color:#e06c6c;">${echapper(erreur)}</p>` : ""}`,
             rejectClose: false,
             buttons: [
-                { action: "ok", label: "Activer", icon: "fas fa-check", default: true,
+                { action: "ok", label: tl("Activer"), icon: "fas fa-check", default: true,
                   callback: (ev, btn) => btn.form.elements["scwm-cle"]?.value ?? "" },
-                { action: "cancel", label: "Annuler", icon: "fas fa-xmark", callback: () => null }
+                { action: "cancel", label: tl("Annuler"), icon: "fas fa-xmark", callback: () => null }
             ]
         });
     } catch (e) { return null; }

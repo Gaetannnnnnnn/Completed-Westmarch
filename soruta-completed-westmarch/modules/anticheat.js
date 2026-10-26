@@ -1,5 +1,6 @@
 import { MOD } from "./const.js";
 import { journal } from "./log.js";
+import { tl } from "./i18n.js";
 // ============================================================
 // anticheat.js — Surveillance des modifications suspectes en combat
 // Avertit les GM (en privé) quand un joueur modifie ses sorts
@@ -22,12 +23,12 @@ export function AntiCheatHooks() {
         if (!game.user.isGM) return false;
         try {
             await ChatMessage.create({
-                content: `⚠️ <strong>Anti-Cheat</strong> — <strong>${data.actorName}</strong> (joueur : ${data.authorName}) ${(data.events ?? []).join(", ")} <em>pendant le combat</em>.`,
+                content: `${tl("⚠️ <strong>Anti-Cheat</strong> — <strong>{0}</strong> (joueur : {1}) {2} <em>pendant le combat</em>.", data.actorName, data.authorName, (data.events ?? []).join(", "))}`,
                 whisper: [game.user.id],
-                speaker: { alias: "Anti-Cheat" }
+                speaker: { alias: tl("Anti-Cheat") }
             });
             return true;
-        } catch (e) { journal.erreur(`[${MOD}] Anti-Cheat (création message GM) :`, e); return false; }
+        } catch (e) { journal.erreur(tl("[{0}] Anti-Cheat (création message GM) :", MOD), e); return false; }
     };
 
     // Helper commun : envoie l'alerte AU GM de la party concernée, qui la
@@ -35,7 +36,7 @@ export function AntiCheatHooks() {
     // joueur (le client qui initie la modification).
     const reportToGm = (actor, userId, events) => {
         if (!events || events.length === 0) return;
-        const author = game.users.get(userId)?.name ?? "Inconnu";
+        const author = game.users.get(userId)?.name ?? tl("Inconnu");
 
         // La partyId d'un joueur correspond à l'id du GM qui a créé la party.
         const partyId = game.users.get(userId)?.getFlag(MOD, "partyId");
@@ -92,7 +93,7 @@ export function AntiCheatHooks() {
                 preparable = item.system?.preparation?.mode === "prepared";
             }
             if (before !== undefined && preparable && before !== after) {
-                events.push(`${after ? "a préparé" : "a dé-préparé"} le sort <strong>${item.name}</strong>`);
+                events.push(`${tl("{0} le sort <strong>{1}</strong>", after ? tl("a préparé") : tl("a dé-préparé"), item.name)}`);
             }
         }
 
@@ -101,7 +102,7 @@ export function AntiCheatHooks() {
             const before = item.system.attuned;
             const after = changes.system.attuned;
             if (before !== after) {
-                events.push(`${after ? "s'est attuné à" : "s'est désattuné de"} <strong>${item.name}</strong>`);
+                events.push(`${after ? tl("s'est attuné à") : tl("s'est désattuné de")} <strong>${item.name}</strong>`);
             }
         }
 
@@ -110,7 +111,7 @@ export function AntiCheatHooks() {
             const before = item.system.equipped;
             const after = changes.system.equipped;
             if (before !== after) {
-                events.push(`${after ? "a équipé" : "a déséquipé"} <strong>${item.name}</strong>`);
+                events.push(`${after ? tl("a équipé") : tl("a déséquipé")} <strong>${item.name}</strong>`);
             }
         }
 
@@ -124,14 +125,14 @@ export function AntiCheatHooks() {
             const after = changes.system.uses.spent;
             if (after < before) {
                 const max = item.system.uses?.max ?? "?";
-                events.push(`a regagné des utilisations de <strong>${item.name}</strong> (${max - before} → ${max - after})`);
+                events.push(`${tl("a regagné des utilisations de <strong>{0}</strong> ({1} → {2})", item.name, max - before, max - after)}`);
             }
         }
         if (changes.system?.uses?.max !== undefined && item.type === "feat") {
             const before = item.system.uses?.max ?? 0;
             const after = changes.system.uses.max;
             if (after !== before) {
-                events.push(`a modifié le maximum d'utilisations de <strong>${item.name}</strong> (${before} → ${after})`);
+                events.push(`${tl("a modifié le maximum d'utilisations de <strong>{0}</strong> ({1} → {2})", item.name, before, after)}`);
             }
         }
 
@@ -158,10 +159,10 @@ export function AntiCheatHooks() {
             // On ne signale que les hausses de "value" (récupération
             // suspecte d'emplacements) et tout changement de "max".
             if (slotChange.value !== undefined && slotChange.value > (before.value ?? 0)) {
-                events.push(`a regagné un emplacement de sort (${slotKey}) (${before.value} → ${slotChange.value})`);
+                events.push(tl("a regagné un emplacement de sort ({0}) ({1} → {2})", slotKey, before.value, slotChange.value));
             }
             if (slotChange.max !== undefined && slotChange.max !== (before.max ?? 0)) {
-                events.push(`a modifié le maximum d'emplacements de sort (${slotKey}) (${before.max} → ${slotChange.max})`);
+                events.push(tl("a modifié le maximum d'emplacements de sort ({0}) ({1} → {2})", slotKey, before.max, slotChange.max));
             }
         }
 
@@ -176,10 +177,10 @@ export function AntiCheatHooks() {
     // (game.userId === userId) pour n'émettre qu'une seule alerte.
     // ============================================================
     const ITEM_TYPE_FR = {
-        spell: "le sort", weapon: "l'arme", equipment: "l'équipement",
-        consumable: "le consommable", feat: "l'aptitude", tool: "l'outil",
-        loot: "l'objet", container: "le conteneur", background: "l'historique",
-        class: "la classe", subclass: "la sous-classe", race: "l'espèce", feature: "l'aptitude"
+        spell: tl("le sort"), weapon: "l'arme", equipment: tl("l'équipement"),
+        consumable: tl("le consommable"), feat: "l'aptitude", tool: "l'outil",
+        loot: "l'objet", container: tl("le conteneur"), background: "l'historique",
+        class: tl("la classe"), subclass: tl("la sous-classe"), race: tl("l'espèce"), feature: "l'aptitude"
     };
     Hooks.on("createItem", (item, options, userId) => {
         if (game.userId !== userId) return;        // seulement le client initiateur
@@ -190,6 +191,6 @@ export function AntiCheatHooks() {
         if (!actor || !isWatchedCombatant(actor)) return;
 
         const label = ITEM_TYPE_FR[item.type] ?? "l'objet";
-        reportToGm(actor, userId, [`a ajouté ${label} <strong>${item.name}</strong>`]);
+        reportToGm(actor, userId, [`${tl("a ajouté {0} <strong>{1}</strong>", label, item.name)}`]);
     });
 }

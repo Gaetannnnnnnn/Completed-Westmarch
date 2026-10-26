@@ -19,6 +19,7 @@
 import { expeditionSceneIds } from "./map.js";
 
 import { journal } from "./log.js";
+import { tl } from "./i18n.js";
 // La scène affichée est-elle une carte des expéditions ?
 export function surCarteExpedition() {
     try { return !!canvas.scene && expeditionSceneIds().includes(canvas.scene.id); } catch { return false; }
@@ -52,7 +53,7 @@ export function murEntre(a, b) {
             ?? foundry.canvas?.geometry?.ClockwiseSweepPolygon ?? globalThis.ClockwiseSweepPolygon;
         return !!backend?.testCollision?.(a, b, { type: "sight", mode: "any" });
     } catch (e) {
-        journal.avert("[perception] test de mur impossible", e);
+        journal.avert(tl("[perception] test de mur impossible"), e);
         return false;
     }
 }
@@ -107,6 +108,6 @@ function nomMois(m) {
 export function texteRencontre(r) {
     if (!r) return { texte: "", titre: "" };
     const reel = r.reel ? r.reel.split("-").reverse().join("/") : "";
-    if (r.jeu) return { texte: `${r.jeu.day} ${nomMois(r.jeu.month)} ${r.jeu.year}`, titre: reel ? `Date réelle : ${reel}` : "" };
-    return { texte: reel, titre: "Date réelle (pas de calendrier de jeu)" };
+    if (r.jeu) return { texte: `${r.jeu.day} ${nomMois(r.jeu.month)} ${r.jeu.year}`, titre: reel ? tl("Date réelle : {0}", reel) : "" };
+    return { texte: reel, titre: tl("Date réelle (pas de calendrier de jeu)") };
 }

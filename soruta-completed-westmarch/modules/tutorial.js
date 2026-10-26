@@ -19,6 +19,7 @@ import { openSceneCues } from "./sceneaudio.js";
 import { openPlayerHub } from "./charvalidation.js";
 import { openA11yDialog } from "./accessibility.js";
 import { openConfigHub } from "./settings.js";
+import { tl } from "./i18n.js";
 const MODULE = MOD;
 
 // Ouvre le gestionnaire de cues audio (étapes GM).
@@ -55,25 +56,25 @@ function _tutorialActor() {
 // ================================================================
 
 export const SECTION_LABELS = {
-    accessibilite:   "Accessibilité",
-    barreWestmarch:  "Barre WestMarch",
-    tourFiche:       "Tour de la fiche",
-    noteGm:          "Note GM (privé)",
-    monPerso:        "Mes personnages",
-    bestiary:        "Bestiaire",
-    relations:       "Relations",
-    carnet:          "Carnet & Expéditions",
-    casier:          "Casier du MJ",
-    carteExpedition: "Carte des expéditions",
-    cues:            "Cues audio (mise en scène)",
-    boutiques:       "Boutiques (MEJ)",
-    tempsMorts:      "Temps morts",
-    apparenceTokens: "Apparence des tokens",
-    outilsGm:        "Outils GM",
-    echange:         "Échange entre joueurs",
-    transformation:  "Transformations",
-    compagnons:      "Compagnons évolutifs",
-    pantheon:        "Panthéons",
+    accessibilite:   tl("Accessibilité"),
+    barreWestmarch:  tl("Barre WestMarch"),
+    tourFiche:       tl("Tour de la fiche"),
+    noteGm:          tl("Note GM (privé)"),
+    monPerso:        tl("Mes personnages"),
+    bestiary:        tl("Bestiaire"),
+    relations:       tl("Relations"),
+    carnet:          tl("Carnet & Expéditions"),
+    casier:          tl("Casier du MJ"),
+    carteExpedition: tl("Carte des expéditions"),
+    cues:            tl("Cues audio (mise en scène)"),
+    boutiques:       tl("Boutiques (MEJ)"),
+    tempsMorts:      tl("Temps morts"),
+    apparenceTokens: tl("Apparence des tokens"),
+    outilsGm:        tl("Outils GM"),
+    echange:         tl("Échange entre joueurs"),
+    transformation:  tl("Transformations"),
+    compagnons:      tl("Compagnons évolutifs"),
+    pantheon:        tl("Panthéons"),
 };
 
 export const SECTION_ICONS = {
@@ -331,27 +332,27 @@ async function _openTradeDemo() {
         + "background:#1b1a17;border:1px solid #c9a227;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,.6);color:#e8dcc0;font-size:13px;overflow:hidden;";
     el.innerHTML = `
         <div style="background:linear-gradient(180deg,rgba(201,162,39,.25),rgba(0,0,0,.2));padding:8px 12px;font-weight:700;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(201,162,39,.4);">
-            <i class="fa-solid fa-right-left" style="color:#c9a227;"></i> Échange avec Alya (démonstration)
+            ${tl("<i class=\"fa-solid fa-right-left\" style=\"color:#c9a227;\"></i> Échange avec Alya (démonstration)")}
         </div>
         <div style="display:flex;gap:10px;padding:12px;">
             <div data-demo="mine" style="flex:1;border:1px solid rgba(201,162,39,.4);border-radius:6px;padding:8px;min-height:120px;">
-                <div style="font-weight:700;margin-bottom:6px;color:#c9a227;">Votre offre</div>
-                <div style="opacity:.8;">• Épée longue<br>• Potion de soin ×2</div>
+                <div style="font-weight:700;margin-bottom:6px;color:#c9a227;">${tl("Votre offre")}</div>
+                <div style="opacity:.8;">${tl("• Épée longue<br>• Potion de soin ×2")}</div>
             </div>
             <div data-demo="theirs" style="flex:1;border:1px solid rgba(154,123,30,.4);border-radius:6px;padding:8px;min-height:120px;">
-                <div style="font-weight:700;margin-bottom:6px;color:#9ab;">Offre d'Alya</div>
-                <div style="opacity:.8;">• Bouclier<br>• 25 po</div>
+                <div style="font-weight:700;margin-bottom:6px;color:#9ab;">${tl("Offre d'Alya")}</div>
+                <div style="opacity:.8;">${tl("• Bouclier<br>• 25 po")}</div>
             </div>
         </div>
         <div data-demo="currency" style="display:flex;gap:10px;padding:0 12px 10px;align-items:center;">
-            <span style="opacity:.8;">Monnaie à donner :</span>
+            <span style="opacity:.8;">${tl("Monnaie à donner :")}</span>
             <span style="border:1px solid rgba(201,162,39,.4);border-radius:4px;padding:2px 8px;">PO <strong>10</strong></span>
             <span style="border:1px solid rgba(201,162,39,.4);border-radius:4px;padding:2px 8px;">PA <strong>0</strong></span>
             <span style="border:1px solid rgba(201,162,39,.4);border-radius:4px;padding:2px 8px;">PC <strong>0</strong></span>
         </div>
         <div data-demo="buttons" style="display:flex;gap:8px;padding:0 12px 12px;">
-            <button type="button" style="flex:1;padding:6px;border-radius:5px;border:1px solid #6ec06e;background:rgba(110,192,110,.18);color:#bfeabf;font-weight:700;">✔ Confirmer mon offre</button>
-            <button type="button" style="flex:0 0 auto;padding:6px 12px;border-radius:5px;border:1px solid #c0392b;background:rgba(192,57,43,.18);color:#f0b5ae;">Annuler</button>
+            <button type="button" style="flex:1;padding:6px;border-radius:5px;border:1px solid #6ec06e;background:rgba(110,192,110,.18);color:#bfeabf;font-weight:700;">${tl("✔ Confirmer mon offre")}</button>
+            <button type="button" style="flex:0 0 auto;padding:6px 12px;border-radius:5px;border:1px solid #c0392b;background:rgba(192,57,43,.18);color:#f0b5ae;">${tl("Annuler")}</button>
         </div>`;
     document.body.appendChild(el);
     await _sleep(200);
@@ -454,7 +455,7 @@ async function _openProtoTokenAppearance() {
     if (!opened) {
         Hooks.off("renderPrototypeTokenConfig", hookId);
         hookResolve(null);
-        journal.avert("[Tutoriel] _openProtoTokenAppearance : impossible d'ouvrir la config token.");
+        journal.avert(tl("[Tutoriel] _openProtoTokenAppearance : impossible d'ouvrir la config token."));
         return;
     }
 
@@ -487,7 +488,7 @@ async function _openProtoTokenAppearance() {
     }
 
     if (!tcEl) {
-        journal.avert("[Tutoriel] _openProtoTokenAppearance : fenêtre introuvable après ouverture.");
+        journal.avert(tl("[Tutoriel] _openProtoTokenAppearance : fenêtre introuvable après ouverture."));
         return;
     }
 
@@ -595,78 +596,78 @@ const STEPS_BY_FEATURE = {
         {
             beforeShow: async () => { try { ui.sidebar?.expand?.(); } catch {} await _sleep(200); },
             target:     '#sidebar [data-tab="settings"], #sidebar-tabs [data-tab="settings"], nav.tabs [data-tab="settings"], [data-action="tab"][data-tab="settings"]',
-            title:      "D'abord : l'accessibilité",
-            text:       "Avant tout, un point <strong>important</strong> : ce module propose des options d'accessibilité pour un confort de jeu adapté à chacun (daltonisme, contraste, avatars, auto-masquage…). <strong>Chaque personne règle les siennes</strong> sur son propre compte. On va les découvrir ensemble. Tout commence par l'onglet <strong>Réglages</strong> (l'engrenage) de la barre latérale.",
+            title:      tl("D'abord : l'accessibilité"),
+            text:       `${tl("Avant tout, un point <strong>important</strong> : ce module propose des options d'accessibilité pour un confort de jeu adapté à chacun (daltonisme, contraste, avatars, auto-masquage…). <strong>Chaque personne règle les siennes</strong> sur son propre compte. On va les découvrir ensemble. Tout commence par l'onglet <strong>Réglages</strong> (l'engrenage) de la barre latérale.")}`,
             position:   "left"
         },
         {
             beforeShow: _openSidebarSettingsTab,
             target:     '#settings button[data-action="configure"], button.configure-settings, [data-action="configure"], #settings .settings, #settings',
-            title:      "Les Paramètres du jeu",
-            text:       "Dans l'onglet Réglages, ouvre <strong>Configurer les paramètres</strong> (Game Settings) : c'est là que vivent tous les réglages, dont ceux de ce module.",
+            title:      tl("Les Paramètres du jeu"),
+            text:       `${tl("Dans l'onglet Réglages, ouvre <strong>Configurer les paramètres</strong> (Game Settings) : c'est là que vivent tous les réglages, dont ceux de ce module.")}`,
             position:   "left"
         },
         {
             beforeShow: _openModuleSettings,
             target:     '.tuto-a11y-highlight, .settings-config, #client-settings, .categories, section.window-content',
-            title:      "Les réglages du module",
-            text:       "Voici les réglages de <strong>Soruta — Completed Westmarch</strong>. Repère la ligne <strong>Accessibilité</strong> : son bouton <em>Ouvrir</em> donne accès à tes options personnelles. (Les réglages marqués ici sont surtout côté MJ ; l'accessibilité, elle, est pour tout le monde.)",
+            title:      tl("Les réglages du module"),
+            text:       `${tl("Voici les réglages de <strong>Soruta — Completed Westmarch</strong>. Repère la ligne <strong>Accessibilité</strong> : son bouton <em>Ouvrir</em> donne accès à tes options personnelles. (Les réglages marqués ici sont surtout côté MJ ; l'accessibilité, elle, est pour tout le monde.)")}`,
             position:   "right"
         },
         {
             beforeShow: _openA11yTour,
             target:     "#scwm-a11y-form",
-            title:      "Tes options d'accessibilité",
-            text:       "Cette fenêtre est <strong>personnelle à ton compte</strong> : elle n'affecte que ton affichage, pas celui des autres. Passons chaque option en revue.",
+            title:      tl("Tes options d'accessibilité"),
+            text:       `${tl("Cette fenêtre est <strong>personnelle à ton compte</strong> : elle n'affecte que ton affichage, pas celui des autres. Passons chaque option en revue.")}`,
             position:   "left"
         },
         {
             beforeShow: _openA11yTour,
             target:     '[data-a11y-row="dalton"]',
-            title:      "Mode daltonisme",
-            text:       "Applique un <strong>filtre de correction des couleurs</strong> sur l'interface et la carte, pour mieux distinguer les teintes. Trois types : <strong>Protanopie</strong> (rouge), <strong>Deutéranopie</strong> (vert), <strong>Tritanopie</strong> (bleu). Choisis celui qui correspond à ta vision, ou « Aucun » pour des couleurs normales.",
+            title:      tl("Mode daltonisme"),
+            text:       `${tl("Applique un <strong>filtre de correction des couleurs</strong> sur l'interface et la carte, pour mieux distinguer les teintes. Trois types : <strong>Protanopie</strong> (rouge), <strong>Deutéranopie</strong> (vert), <strong>Tritanopie</strong> (bleu). Choisis celui qui correspond à ta vision, ou « Aucun » pour des couleurs normales.")}`,
             position:   "left"
         },
         {
             beforeShow: _openA11yTour,
             target:     '[data-a11y-row="contrast"]',
-            title:      "Fort contraste",
-            text:       "Renforce le <strong>contraste</strong> du texte, des bordures et des fonds de l'interface — utile en cas de basse vision ou d'écran peu lisible.",
+            title:      tl("Fort contraste"),
+            text:       `${tl("Renforce le <strong>contraste</strong> du texte, des bordures et des fonds de l'interface — utile en cas de basse vision ou d'écran peu lisible.")}`,
             position:   "left"
         },
         {
             beforeShow: _openA11yTour,
             target:     '[data-a11y-row="contrastcol"]',
-            title:      "Couleur des contours",
-            text:       "En mode fort contraste, choisis la <strong>couleur des bordures</strong> et du contour de focus (jaune par défaut). Le lien <em>réinit.</em> remet la couleur d'origine.",
+            title:      tl("Couleur des contours"),
+            text:       `${tl("En mode fort contraste, choisis la <strong>couleur des bordures</strong> et du contour de focus (jaune par défaut). Le lien <em>réinit.</em> remet la couleur d'origine.")}`,
             position:   "left"
         },
         {
             beforeShow: _openA11yTour,
             target:     '[data-a11y-row="avatars"]',
-            title:      "Avatars des joueurs",
-            text:       "Affiche la <strong>miniature du portrait</strong> de chaque joueur à côté de son nom dans la liste des joueurs — plus facile à repérer d'un coup d'œil.",
+            title:      tl("Avatars des joueurs"),
+            text:       `${tl("Affiche la <strong>miniature du portrait</strong> de chaque joueur à côté de son nom dans la liste des joueurs — plus facile à repérer d'un coup d'œil.")}`,
             position:   "left"
         },
         {
             beforeShow: _openA11yTour,
             target:     '[data-a11y-row="autohide"]',
-            title:      "Auto-masquage de l'interface",
-            text:       "<strong>Estompe</strong> les contrôles, la navigation, les macros et la liste des joueurs tant que la souris ne les survole pas : l'écran reste épuré et tu te concentres sur la scène.",
+            title:      tl("Auto-masquage de l'interface"),
+            text:       `${tl("<strong>Estompe</strong> les contrôles, la navigation, les macros et la liste des joueurs tant que la souris ne les survole pas : l'écran reste épuré et tu te concentres sur la scène.")}`,
             position:   "left"
         },
         {
             beforeShow: _openA11yTour,
             target:     '[data-a11y-row="compact"]',
-            title:      "Contrôles de gauche compacts",
-            text:       "<strong>Réduit la taille</strong> des icônes de la barre d'outils de gauche, pour gagner de la place à l'écran.",
+            title:      tl("Contrôles de gauche compacts"),
+            text:       `${tl("<strong>Réduit la taille</strong> des icônes de la barre d'outils de gauche, pour gagner de la place à l'écran.")}`,
             position:   "left"
         },
         {
             beforeShow: _openA11yTour,
             target:     '[data-a11y-row="chatcol"]',
-            title:      "Couleur des cartes de chat",
-            text:       "Choisis la <strong>couleur de fond</strong> de tes cartes de chat (blanc crème par défaut) ; le texte s'adapte automatiquement pour rester lisible. C'est un réglage personnel. <strong>N'oublie pas d'Enregistrer</strong> en bas de la fenêtre pour appliquer tes choix !",
+            title:      tl("Couleur des cartes de chat"),
+            text:       `${tl("Choisis la <strong>couleur de fond</strong> de tes cartes de chat (blanc crème par défaut) ; le texte s'adapte automatiquement pour rester lisible. C'est un réglage personnel. <strong>N'oublie pas d'Enregistrer</strong> en bas de la fenêtre pour appliquer tes choix !")}`,
             position:   "left"
         }
     ],
@@ -675,23 +676,23 @@ const STEPS_BY_FEATURE = {
     barreWestmarch: [
         {
             target:   "#controls, #scene-controls, nav.scene-controls",
-            title:    "La barre de contrôles",
-            text:     "La barre latérale gauche contient les outils de la table. Le groupe <strong>WestMarch</strong>, propre à ce serveur, y ajoute des fonctions spéciales accessibles à tous.",
-            textGM:   "La barre latérale gauche contient les outils de la table. Le groupe <strong>WestMarch</strong> regroupe vos outils de gestion : expéditions, temps morts, boutiques et plus.",
+            title:    tl("La barre de contrôles"),
+            text:     `${tl("La barre latérale gauche contient les outils de la table. Le groupe <strong>WestMarch</strong>, propre à ce serveur, y ajoute des fonctions spéciales accessibles à tous.")}`,
+            textGM:   `${tl("La barre latérale gauche contient les outils de la table. Le groupe <strong>WestMarch</strong> regroupe vos outils de gestion : expéditions, temps morts, boutiques et plus.")}`,
             position: "right"
         },
         {
             target:   "[data-control='westmarch'], [data-group='westmarch']",
-            title:    "Groupe WestMarch",
-            text:     "Cliquez ici pour déplier les outils WestMarch. Vous y trouverez le bouton tutoriel et les fonctions spéciales de ce serveur.",
-            textGM:   "Cliquez ici pour déplier les outils WestMarch. En tant que GM, vous avez accès à des boutons supplémentaires : gestion des expéditions, temps morts, et faux message de maintenance.",
+            title:    tl("Groupe WestMarch"),
+            text:     tl("Cliquez ici pour déplier les outils WestMarch. Vous y trouverez le bouton tutoriel et les fonctions spéciales de ce serveur."),
+            textGM:   tl("Cliquez ici pour déplier les outils WestMarch. En tant que GM, vous avez accès à des boutons supplémentaires : gestion des expéditions, temps morts, et faux message de maintenance."),
             position: "right"
         },
         {
             beforeShow: _expandWestmarch,
             target:     "[data-tool='tutoriel']",
-            title:      "Bouton Tutoriel",
-            text:       "Ce bouton <i class='fa-solid fa-circle-question'></i> relance ce tutoriel à tout moment. Accessible à <strong>tous les joueurs</strong>. Appuyez sur <kbd>Echap</kbd> pour fermer à tout moment.",
+            title:      tl("Bouton Tutoriel"),
+            text:       `${tl("Ce bouton <i class='fa-solid fa-circle-question'></i> relance ce tutoriel à tout moment. Accessible à <strong>tous les joueurs</strong>. Appuyez sur <kbd>Echap</kbd> pour fermer à tout moment.")}`,
             position:   "right"
         },
     ],
@@ -701,43 +702,43 @@ const STEPS_BY_FEATURE = {
         {
             beforeShow: _openSheet,
             target:     ".document-name, .sheet-header .name, [name='name']",
-            title:      "Le nom du personnage",
-            text:       "En haut de la fiche : le <strong>nom</strong> du personnage, et à gauche son <strong>portrait</strong>. Un clic sur le portrait permet de le changer.",
+            title:      tl("Le nom du personnage"),
+            text:       `${tl("En haut de la fiche : le <strong>nom</strong> du personnage, et à gauche son <strong>portrait</strong>. Un clic sur le portrait permet de le changer.")}`,
             position:   "bottom"
         },
         {
             beforeShow: _openSheet,
             targets:    [".sheet-header .right", ".meter.exp"],
-            title:      "Niveau, expérience & repos",
-            text:       "Cette zone de l'en-tête regroupe : le <strong>niveau global</strong> (badge rond, ici 12) et la <strong>barre d'expérience</strong> vers le niveau suivant, l'<strong>Inspiration héroïque</strong> (un bonus ponctuel qui peut venir du MJ, mais aussi d'une aptitude, d'une espèce ou d'autres sources), et les boutons de <strong>Repos court</strong> et <strong>Repos long</strong> (récupération de PV, sorts et capacités).",
+            title:      tl("Niveau, expérience & repos"),
+            text:       `${tl("Cette zone de l'en-tête regroupe : le <strong>niveau global</strong> (badge rond, ici 12) et la <strong>barre d'expérience</strong> vers le niveau suivant, l'<strong>Inspiration héroïque</strong> (un bonus ponctuel qui peut venir du MJ, mais aussi d'une aptitude, d'une espèce ou d'autres sources), et les boutons de <strong>Repos court</strong> et <strong>Repos long</strong> (récupération de PV, sorts et capacités).")}`,
             position:   "bottom"
         },
         {
             beforeShow: _openSheet,
             target:     ".ac-badge",
-            title:      "Classe d'armure (CA)",
-            text:       "L'écusson affiche la <strong>Classe d'Armure</strong> : la difficulté pour vous toucher au combat.",
+            title:      tl("Classe d'armure (CA)"),
+            text:       `${tl("L'écusson affiche la <strong>Classe d'Armure</strong> : la difficulté pour vous toucher au combat.")}`,
             position:   "right"
         },
         {
             beforeShow: _openSheet,
             target:     ".stats .lozenges",
-            title:      "Initiative, Vitesse & Maîtrise",
-            text:       "Les valeurs clés : le bonus d'<strong>Initiative</strong>, la <strong>Vitesse</strong> de déplacement et le <strong>bonus de maîtrise</strong> (Proficiency).",
+            title:      tl("Initiative, Vitesse & Maîtrise"),
+            text:       `${tl("Les valeurs clés : le bonus d'<strong>Initiative</strong>, la <strong>Vitesse</strong> de déplacement et le <strong>bonus de maîtrise</strong> (Proficiency).")}`,
             position:   "right"
         },
         {
             beforeShow: _openSheet,
             target:     ".stats .meter-group",
-            title:      "Points de vie",
-            text:       "La barre de <strong>points de vie</strong> (actuels / max), avec les points de vie <strong>temporaires</strong>.",
+            title:      tl("Points de vie"),
+            text:       `${tl("La barre de <strong>points de vie</strong> (actuels / max), avec les points de vie <strong>temporaires</strong>.")}`,
             position:   "right"
         },
         {
             beforeShow: _openSheet,
             target:     ".stats .meter-group + .meter-group",
-            title:      "Dés de vie",
-            text:       "Les <strong>dés de vie</strong> servent à récupérer des PV lors d'un repos court. Ici 12 dés (un par niveau).",
+            title:      tl("Dés de vie"),
+            text:       `${tl("Les <strong>dés de vie</strong> servent à récupérer des PV lors d'un repos court. Ici 12 dés (un par niveau).")}`,
             position:   "right"
         },
         {
@@ -750,64 +751,64 @@ const STEPS_BY_FEATURE = {
                 ".ability-scores [data-ability='wis']",
                 ".ability-scores [data-ability='cha']"
             ],
-            title:      "Caractéristiques",
-            text:       "La rangée du haut affiche les six <strong>caractéristiques</strong> (Force, Dextérité, Constitution, Intelligence, Sagesse, Charisme) avec leur score et leur modificateur. Cliquez-en une pour lancer un test de caractéristique.",
+            title:      tl("Caractéristiques"),
+            text:       `${tl("La rangée du haut affiche les six <strong>caractéristiques</strong> (Force, Dextérité, Constitution, Intelligence, Sagesse, Charisme) avec leur score et leur modificateur. Cliquez-en une pour lancer un test de caractéristique.")}`,
             position:   "bottom"
         },
         {
             beforeShow: _openSheet,
             target:     ".tab[data-tab='details'] .left, .sheet-body .left",
-            title:      "Compétences",
-            text:       "La colonne <strong>Skills</strong> liste les <strong>compétences</strong> (Acrobaties, Arcanes, Perception…) avec la caractéristique associée et le bonus. Cliquez une compétence pour lancer son jet.",
+            title:      tl("Compétences"),
+            text:       `${tl("La colonne <strong>Skills</strong> liste les <strong>compétences</strong> (Acrobaties, Arcanes, Perception…) avec la caractéristique associée et le bonus. Cliquez une compétence pour lancer son jet.")}`,
             position:   "right"
         },
         {
             beforeShow: _openSheet,
             target:     ".saves, filigree-box.saves",
-            title:      "Jets de sauvegarde & défense",
-            text:       "Le bloc <strong>Saving Throws</strong> liste vos <strong>jets de sauvegarde</strong>. Selon la menace, votre défense passe soit par un <strong>jet de sauvegarde</strong> (ce bloc), soit par la <strong>Classe d'Armure</strong> (vue plus haut) face aux attaques.",
+            title:      tl("Jets de sauvegarde & défense"),
+            text:       `${tl("Le bloc <strong>Saving Throws</strong> liste vos <strong>jets de sauvegarde</strong>. Selon la menace, votre défense passe soit par un <strong>jet de sauvegarde</strong> (ce bloc), soit par la <strong>Classe d'Armure</strong> (vue plus haut) face aux attaques.")}`,
             position:   "left"
         },
         {
             beforeShow: _openSheet,
             target:     "nav.tabs:has([data-tab='features']), .sheet.actor nav.tabs, .dnd5e2 nav.tabs",
-            title:      "Les onglets de la fiche",
-            text:       "La barre d'onglets donne accès au reste : <strong>Aptitudes</strong>, <strong>Inventaire</strong>, <strong>Sorts</strong>, <strong>Biographie</strong>… ainsi qu'aux onglets ajoutés par le serveur (Relations, Bestiaire, Carnet, Expéditions).",
+            title:      tl("Les onglets de la fiche"),
+            text:       `${tl("La barre d'onglets donne accès au reste : <strong>Aptitudes</strong>, <strong>Inventaire</strong>, <strong>Sorts</strong>, <strong>Biographie</strong>… ainsi qu'aux onglets ajoutés par le serveur (Relations, Bestiaire, Carnet, Expéditions).")}`,
             position:   "bottom"
         },
         {
             beforeShow: _toSheet("inventory"),
             target:     "nav.tabs [data-tab='inventory'], .tabs [data-tab='inventory']",
             title:      "Inventaire & argent",
-            text:       "L'onglet <strong>Inventaire</strong> liste l'équipement (armes, armures, objets) et la <strong>bourse</strong> (or, argent, cuivre…).",
+            text:       `${tl("L'onglet <strong>Inventaire</strong> liste l'équipement (armes, armures, objets) et la <strong>bourse</strong> (or, argent, cuivre…).")}`,
             position:   "bottom"
         },
         {
             beforeShow: _toSheet("features"),
             target:     "nav.tabs [data-tab='features'], .tabs [data-tab='features']",
-            title:      "Aptitudes (Features)",
-            text:       "L'onglet <strong>Aptitudes</strong> regroupe les capacités de classe, d'espèce et d'historique du personnage.",
+            title:      tl("Aptitudes (Features)"),
+            text:       `${tl("L'onglet <strong>Aptitudes</strong> regroupe les capacités de classe, d'espèce et d'historique du personnage.")}`,
             position:   "bottom"
         },
         {
             beforeShow: _toSheet("spells"),
             target:     "nav.tabs [data-tab='spells'], .tabs [data-tab='spells']",
-            title:      "Sorts",
-            text:       "L'onglet <strong>Sorts</strong> présente les sorts connus/préparés et les emplacements de sorts par niveau.",
+            title:      tl("Sorts"),
+            text:       `${tl("L'onglet <strong>Sorts</strong> présente les sorts connus/préparés et les emplacements de sorts par niveau.")}`,
             position:   "bottom"
         },
         {
             beforeShow: _toSheet("effects"),
             target:     "nav.tabs [data-tab='effects'], .tabs [data-tab='effects']",
-            title:      "Effets",
-            text:       "L'onglet <strong>Effets</strong> liste les effets actifs sur le personnage : bonus/malus temporaires, conditions (empoisonné, à terre…) et effets de sorts ou d'objets en cours.",
+            title:      tl("Effets"),
+            text:       `${tl("L'onglet <strong>Effets</strong> liste les effets actifs sur le personnage : bonus/malus temporaires, conditions (empoisonné, à terre…) et effets de sorts ou d'objets en cours.")}`,
             position:   "bottom"
         },
         {
             beforeShow: _toSheet("biography"),
             target:     "nav.tabs [data-tab='biography'], .tabs [data-tab='biography']",
-            title:      "Biographie",
-            text:       "L'onglet <strong>Biographie</strong> contient l'histoire, l'apparence et les notes personnelles du personnage.",
+            title:      tl("Biographie"),
+            text:       `${tl("L'onglet <strong>Biographie</strong> contient l'histoire, l'apparence et les notes personnelles du personnage.")}`,
             position:   "bottom"
         },
     ],
@@ -817,16 +818,16 @@ const STEPS_BY_FEATURE = {
         {
             beforeShow: _toSheet("gmnotes"),
             target:     "nav.tabs [data-tab='gmnotes'], .tabs [data-tab='gmnotes']",
-            title:      "Onglet Note GM",
-            textGM:     "Sur chaque fiche de personnage, l'onglet <strong>Note GM</strong> <i class='fa-solid fa-user-secret'></i> n'est visible que par vous — il n'existe même pas côté joueur. Idéal pour vos secrets et rappels sur un PJ. <strong>Le même onglet existe aussi sur les fiches de PNJ</strong> (réglable séparément dans Réglages → Toolkit), pratique pour noter secrets, motivations et projets d'un PNJ.",
+            title:      tl("Onglet Note GM"),
+            textGM:     `${tl("Sur chaque fiche de personnage, l'onglet <strong>Note GM</strong> <i class='fa-solid fa-user-secret'></i> n'est visible que par vous — il n'existe même pas côté joueur. Idéal pour vos secrets et rappels sur un PJ. <strong>Le même onglet existe aussi sur les fiches de PNJ</strong> (réglable séparément dans Réglages → Toolkit), pratique pour noter secrets, motivations et projets d'un PNJ.")}`,
             position:   "bottom",
             gmOnly:     true
         },
         {
             beforeShow: _toSheet("gmnotes"),
             target:     ".scwm-gmnotes-input, .scwm-gmnotes",
-            title:      "Vos notes privées",
-            textGM:     "Écrivez ici tout ce que vous voulez retenir sur ce personnage (plans, secrets, dettes…). Sauvegarde automatique à la perte de focus. Le joueur ne peut pas les lire dans son interface.",
+            title:      tl("Vos notes privées"),
+            textGM:     tl("Écrivez ici tout ce que vous voulez retenir sur ce personnage (plans, secrets, dettes…). Sauvegarde automatique à la perte de focus. Le joueur ne peut pas les lire dans son interface."),
             position:   "left",
             gmOnly:     true
         },
@@ -837,15 +838,15 @@ const STEPS_BY_FEATURE = {
         // ── Le principe (avant l'interface) ──────────────────────
         {
             target:     null,
-            title:      "Comment fonctionne la création de personnage",
-            text:       "Sur ce serveur, les personnages passent par un <strong>circuit de validation</strong> avec le MJ. Le principe, étape par étape :<br><br>"
-                      + "<strong>1. Demande</strong> — vous demandez la création d'un personnage (un nom, une idée générale).<br>"
-                      + "<strong>2. Validation</strong> — un MJ accepte : une fiche vierge est créée dans vos acteurs, vous en devenez propriétaire.<br>"
-                      + "<strong>3. Construction</strong> — vous montez librement votre personnage (classe, sorts, équipement…).<br>"
-                      + "<strong>4. Soumission</strong> — quand c'est prêt, vous le soumettez au MJ.<br>"
-                      + "<strong>5. Verrouillage</strong> — le MJ valide : la fiche est <strong>verrouillée</strong>. Vous jouez normalement (PV, sorts, or, conditions…) mais vous ne pouvez plus changer sa <em>construction</em> (caractéristiques, classe, aptitudes…) sans repasser par le MJ.<br><br>"
-                      + "<strong>Monter de niveau :</strong> quand vous avez assez d'XP, un bouton apparaît ; vous en faites la demande, le MJ l'autorise (la fiche se déverrouille), vous montez de niveau, puis vous re-soumettez.<br><br>"
-                      + "<strong>Plusieurs personnages :</strong> vous pouvez en avoir plusieurs, dans la limite fixée par le MJ. Au-delà du nombre de personnages <em>actifs</em> autorisés, les autres passent <strong>en stock</strong> (non jouables) ; vous en activez un à la place d'un autre.",
+            title:      tl("Comment fonctionne la création de personnage"),
+            text:       `${tl("Sur ce serveur, les personnages passent par un <strong>circuit de validation</strong> avec le MJ. Le principe, étape par étape :<br><br>")}`
+                      + `${tl("<strong>1. Demande</strong> — vous demandez la création d'un personnage (un nom, une idée générale).<br>")}`
+                      + `${tl("<strong>2. Validation</strong> — un MJ accepte : une fiche vierge est créée dans vos acteurs, vous en devenez propriétaire.<br>")}`
+                      + `${tl("<strong>3. Construction</strong> — vous montez librement votre personnage (classe, sorts, équipement…).<br>")}`
+                      + `${tl("<strong>4. Soumission</strong> — quand c'est prêt, vous le soumettez au MJ.<br>")}`
+                      + `${tl("<strong>5. Verrouillage</strong> — le MJ valide : la fiche est <strong>verrouillée</strong>. Vous jouez normalement (PV, sorts, or, conditions…) mais vous ne pouvez plus changer sa <em>construction</em> (caractéristiques, classe, aptitudes…) sans repasser par le MJ.<br><br>")}`
+                      + `${tl("<strong>Monter de niveau :</strong> quand vous avez assez d'XP, un bouton apparaît ; vous en faites la demande, le MJ l'autorise (la fiche se déverrouille), vous montez de niveau, puis vous re-soumettez.<br><br>")}`
+                      + `${tl("<strong>Plusieurs personnages :</strong> vous pouvez en avoir plusieurs, dans la limite fixée par le MJ. Au-delà du nombre de personnages <em>actifs</em> autorisés, les autres passent <strong>en stock</strong> (non jouables) ; vous en activez un à la place d'un autre.")}`,
             position:   "center",
             playerOnly: true
         },
@@ -853,8 +854,8 @@ const STEPS_BY_FEATURE = {
         {
             beforeShow: _expandWestmarch,
             target:     "[data-tool='charValidation']",
-            title:      "Le bouton « Mes personnages »",
-            text:       "Tout se passe depuis le bouton <i class='fa-solid fa-id-card'></i> de la barre WestMarch : il ouvre <strong>« Mes personnages »</strong>, d'où vous demandez, suivez et soumettez vos personnages.",
+            title:      tl("Le bouton « Mes personnages »"),
+            text:       `${tl("Tout se passe depuis le bouton <i class='fa-solid fa-id-card'></i> de la barre WestMarch : il ouvre <strong>« Mes personnages »</strong>, d'où vous demandez, suivez et soumettez vos personnages.")}`,
             position:   "right",
             playerOnly: true
         },
@@ -862,8 +863,8 @@ const STEPS_BY_FEATURE = {
         {
             beforeShow: _openMonPerso,
             target:     ".scwm-cv-hub",
-            title:      "Demander & gérer",
-            text:       "« <strong>Demander un nouveau personnage</strong> » envoie une demande au MJ (dans la limite autorisée). Une fois le perso créé et construit, cliquez <strong>Soumettre</strong> : le MJ le valide et le verrouille. En haut, un compteur indique vos personnages <strong>actifs</strong> ; au-delà de la limite, les autres passent <strong>en stock</strong> <i class='fa-solid fa-lock'></i> — vous les activez / mettez en stock selon vos places. Le bouton <strong>Monter de niveau</strong> n'apparaît que lorsque le PJ a assez d'XP.",
+            title:      tl("Demander & gérer"),
+            text:       `${tl("« <strong>Demander un nouveau personnage</strong> » envoie une demande au MJ (dans la limite autorisée). Une fois le perso créé et construit, cliquez <strong>Soumettre</strong> : le MJ le valide et le verrouille. En haut, un compteur indique vos personnages <strong>actifs</strong> ; au-delà de la limite, les autres passent <strong>en stock</strong> <i class='fa-solid fa-lock'></i> — vous les activez / mettez en stock selon vos places. Le bouton <strong>Monter de niveau</strong> n'apparaît que lorsque le PJ a assez d'XP.")}`,
             position:   "left",
             playerOnly: true
         },
@@ -874,25 +875,25 @@ const STEPS_BY_FEATURE = {
         {
             beforeShow: _toSheet("bestiary"),
             target:     "nav.tabs [data-tab='bestiary'], .tabs .item[data-tab='bestiary']",
-            title:      "Onglet Bestiaire",
-            text:       "L'onglet <strong>Bestiaire</strong> liste les créatures que vous avez rencontrées. Les entrées sont ajoutées <strong>automatiquement</strong> quand <strong>votre personnage</strong> (celui choisi dans la configuration du joueur) <strong>voit</strong> une créature : pas à travers un mur ou une porte fermée, ni dans le noir — vous n'avez rien à faire.",
-            textGM:     "Le Bestiaire se remplit <strong>automatiquement</strong> : dès que le jeton du personnage sur lequel un joueur est connecté <strong>voit</strong> une créature (ligne de vue sans mur bloquant la vue ni porte fermée ; lumière et vision si la scène utilise la vision des jetons ; jamais un jeton caché ; jamais sur les cartes des expéditions), une entrée est créée dans son Bestiaire. Vous pouvez aussi en ajouter manuellement via le bouton Ajouter sur la fiche du joueur.",
+            title:      tl("Onglet Bestiaire"),
+            text:       `${tl("L'onglet <strong>Bestiaire</strong> liste les créatures que vous avez rencontrées. Les entrées sont ajoutées <strong>automatiquement</strong> quand <strong>votre personnage</strong> (celui choisi dans la configuration du joueur) <strong>voit</strong> une créature : pas à travers un mur ou une porte fermée, ni dans le noir — vous n'avez rien à faire.")}`,
+            textGM:     `${tl("Le Bestiaire se remplit <strong>automatiquement</strong> : dès que le jeton du personnage sur lequel un joueur est connecté <strong>voit</strong> une créature (ligne de vue sans mur bloquant la vue ni porte fermée ; lumière et vision si la scène utilise la vision des jetons ; jamais un jeton caché ; jamais sur les cartes des expéditions), une entrée est créée dans son Bestiaire. Vous pouvez aussi en ajouter manuellement via le bouton Ajouter sur la fiche du joueur.")}`,
             position:   "bottom"
         },
         {
             beforeShow: _toSheet("bestiary"),
             target:   ".bst-toggle",
-            title:    "Consulter une entrée",
-            text:     "Cliquez sur la flèche d'une entrée pour déplier les notes du GM sur cette créature.",
-            textGM:   "Cliquez sur la flèche d'une entrée pour la déplier. Vous pouvez y renseigner la scène de première rencontre et ajouter des notes visibles par le joueur.",
+            title:    tl("Consulter une entrée"),
+            text:     tl("Cliquez sur la flèche d'une entrée pour déplier les notes du GM sur cette créature."),
+            textGM:   tl("Cliquez sur la flèche d'une entrée pour la déplier. Vous pouvez y renseigner la scène de première rencontre et ajouter des notes visibles par le joueur."),
             position: "left"
         },
         {
             beforeShow: _toSheet("bestiary"),
             target:     ".bst-delete",
-            title:      "Retirer une entrée",
-            text:       "L'icône <i class='fa-solid fa-trash'></i> à droite d'une entrée retire définitivement cette créature de votre bestiaire. Une confirmation est demandée avant la suppression.",
-            textGM:     "L'icône <i class='fa-solid fa-trash'></i> retire la créature du bestiaire du joueur. Elle pourra être ré-ajoutée automatiquement si le personnage du joueur la revoit en scène.",
+            title:      tl("Retirer une entrée"),
+            text:       `${tl("L'icône <i class='fa-solid fa-trash'></i> à droite d'une entrée retire définitivement cette créature de votre bestiaire. Une confirmation est demandée avant la suppression.")}`,
+            textGM:     `${tl("L'icône <i class='fa-solid fa-trash'></i> retire la créature du bestiaire du joueur. Elle pourra être ré-ajoutée automatiquement si le personnage du joueur la revoit en scène.")}`,
             position:   "left"
         },
     ],
@@ -902,58 +903,58 @@ const STEPS_BY_FEATURE = {
         {
             beforeShow: _toSheet("relations"),
             target:     "nav.tabs [data-tab='relations'], .tabs .item[data-tab='relations']",
-            title:      "Onglet Relations",
-            text:       "L'onglet <strong>Relations</strong> liste vos liens avec les PJ et PNJ. Les entrées sont ajoutées <strong>automatiquement</strong> quand <strong>votre personnage</strong> (celui choisi dans la configuration du joueur) <strong>voit</strong> quelqu'un : pas à travers un mur ou une porte fermée, ni dans le noir. Vous pouvez aussi en ajouter manuellement via le bouton <strong>+</strong>.",
-            textGM:     "Les Relations se remplissent <strong>automatiquement</strong> : dès que le jeton du personnage sur lequel un joueur est connecté (configuration du joueur) <strong>voit</strong> un autre PJ ou PNJ (ligne de vue sans mur ni porte fermée ; lumière et vision si la scène utilise la vision des jetons ; jamais un jeton caché), une entrée est créée dans ses Relations (jamais sur les cartes des expéditions). Vous pouvez aussi en ajouter ou modifier depuis la fiche d'un joueur.",
+            title:      tl("Onglet Relations"),
+            text:       `${tl("L'onglet <strong>Relations</strong> liste vos liens avec les PJ et PNJ. Les entrées sont ajoutées <strong>automatiquement</strong> quand <strong>votre personnage</strong> (celui choisi dans la configuration du joueur) <strong>voit</strong> quelqu'un : pas à travers un mur ou une porte fermée, ni dans le noir. Vous pouvez aussi en ajouter manuellement via le bouton <strong>+</strong>.")}`,
+            textGM:     `${tl("Les Relations se remplissent <strong>automatiquement</strong> : dès que le jeton du personnage sur lequel un joueur est connecté (configuration du joueur) <strong>voit</strong> un autre PJ ou PNJ (ligne de vue sans mur ni porte fermée ; lumière et vision si la scène utilise la vision des jetons ; jamais un jeton caché), une entrée est créée dans ses Relations (jamais sur les cartes des expéditions). Vous pouvez aussi en ajouter ou modifier depuis la fiche d'un joueur.")}`,
             position:   "bottom"
         },
         {
             beforeShow: _toSheet("relations"),
             target:     ".tab[data-tab='relations']",
-            title:      "Gérer ses relations",
-            text:       "Chaque relation a un type (allié, ennemi, neutre…) et un espace de notes libre. Elle n'est visible que par vous et le GM.",
-            textGM:     "Chaque relation a un type et un espace de notes. Elle est visible par le joueur et par vous. Vous pouvez modifier ou supprimer n'importe quelle entrée.",
+            title:      tl("Gérer ses relations"),
+            text:       tl("Chaque relation a un type (allié, ennemi, neutre…) et un espace de notes libre. Elle n'est visible que par vous et le GM."),
+            textGM:     tl("Chaque relation a un type et un espace de notes. Elle est visible par le joueur et par vous. Vous pouvez modifier ou supprimer n'importe quelle entrée."),
             position:   "right"
         },
         {
             beforeShow: _toSheet("relations"),
             target:     ".rel-delete",
-            title:      "Supprimer une relation",
-            text:       "L'icône <i class='fa-solid fa-trash'></i> à droite d'une relation la supprime. Elle pourra être recréée automatiquement si votre personnage revoit ce personnage en scène.",
-            textGM:     "L'icône <i class='fa-solid fa-trash'></i> supprime la relation du joueur. Elle sera recréée automatiquement si le personnage du joueur revoit ce personnage en scène.",
+            title:      tl("Supprimer une relation"),
+            text:       `${tl("L'icône <i class='fa-solid fa-trash'></i> à droite d'une relation la supprime. Elle pourra être recréée automatiquement si votre personnage revoit ce personnage en scène.")}`,
+            textGM:     `${tl("L'icône <i class='fa-solid fa-trash'></i> supprime la relation du joueur. Elle sera recréée automatiquement si le personnage du joueur revoit ce personnage en scène.")}`,
             position:   "left"
         },
         {
             beforeShow: _toSheet("relations"),
             target:     ".scwm-exclude-btn",
-            title:      "Bloquer l'ajout automatique",
-            text:       "Le bouton <i class='fa-solid fa-ban'></i> dans l'en-tête de la fiche <strong>empêche ce personnage d'être ajouté automatiquement</strong> aux Relations et au Bestiaire. Il ne touche pas aux listes déjà existantes. Cliquez à nouveau pour réactiver.",
-            textGM:     "Le bouton <i class='fa-solid fa-ban'></i> dans l'en-tête <strong>bloque les ajouts automatiques futurs</strong> (Relations & Bestiaire) sans rien retirer des listes existantes. Devient rouge quand actif ; cliquez à nouveau pour réactiver. S'applique à n'importe quelle fiche PJ ou PNJ.",
+            title:      tl("Bloquer l'ajout automatique"),
+            text:       `${tl("Le bouton <i class='fa-solid fa-ban'></i> dans l'en-tête de la fiche <strong>empêche ce personnage d'être ajouté automatiquement</strong> aux Relations et au Bestiaire. Il ne touche pas aux listes déjà existantes. Cliquez à nouveau pour réactiver.")}`,
+            textGM:     `${tl("Le bouton <i class='fa-solid fa-ban'></i> dans l'en-tête <strong>bloque les ajouts automatiques futurs</strong> (Relations & Bestiaire) sans rien retirer des listes existantes. Devient rouge quand actif ; cliquez à nouveau pour réactiver. S'applique à n'importe quelle fiche PJ ou PNJ.")}`,
             position:   "bottom",
             gmOnly:     true
         },
         {
             beforeShow: _toSheet("relations"),
             target:     ".scwm-removeall-btn",
-            title:      "Retirer de chez tous les joueurs",
-            text:       "Le bouton <i class='fa-solid fa-users-slash'></i> <strong>retire ce personnage des Relations et du Bestiaire de tous les joueurs</strong>, d'un coup. Une confirmation est demandée. Sans blocage, il pourra revenir s'il est recroisé.",
-            textGM:     "Le bouton <i class='fa-solid fa-users-slash'></i> <strong>nettoie immédiatement</strong> ce personnage des listes de <strong>tous les joueurs</strong> (Relations & Bestiaire), avec confirmation. Indépendant du blocage <i class='fa-solid fa-ban'></i> : combinez les deux pour retirer ET empêcher tout retour automatique.",
+            title:      tl("Retirer de chez tous les joueurs"),
+            text:       `${tl("Le bouton <i class='fa-solid fa-users-slash'></i> <strong>retire ce personnage des Relations et du Bestiaire de tous les joueurs</strong>, d'un coup. Une confirmation est demandée. Sans blocage, il pourra revenir s'il est recroisé.")}`,
+            textGM:     `${tl("Le bouton <i class='fa-solid fa-users-slash'></i> <strong>nettoie immédiatement</strong> ce personnage des listes de <strong>tous les joueurs</strong> (Relations & Bestiaire), avec confirmation. Indépendant du blocage <i class='fa-solid fa-ban'></i> : combinez les deux pour retirer ET empêcher tout retour automatique.")}`,
             position:   "bottom",
             gmOnly:     true
         },
         {
             beforeShow: _toSheet("relations"),
             target:     ".scwm-reveal-btn",
-            title:      "Révéler à la party",
-            textGM:     "Le bouton <i class='fa-solid fa-eye'></i> <strong>révèle</strong> ce personnage à toute la party d'un coup : son vrai nom apparaît dans les Relations et le Bestiaire de chaque joueur, même s'il était anonyme.",
+            title:      tl("Révéler à la party"),
+            textGM:     `${tl("Le bouton <i class='fa-solid fa-eye'></i> <strong>révèle</strong> ce personnage à toute la party d'un coup : son vrai nom apparaît dans les Relations et le Bestiaire de chaque joueur, même s'il était anonyme.")}`,
             position:   "bottom",
             gmOnly:     true
         },
         {
             beforeShow: _toSheet("relations"),
             target:     ".scwm-anon-btn",
-            title:      "Rendre anonyme",
-            textGM:     "Le bouton <i class='fa-solid fa-eye-slash'></i> rend ce personnage <strong>anonyme</strong> : dans les Relations et le Bestiaire des joueurs, il s'affiche « Inconnu » tant qu'il n'est pas révélé. Devient rouge quand actif ; recliquez pour lever l'anonymat.",
+            title:      tl("Rendre anonyme"),
+            textGM:     `${tl("Le bouton <i class='fa-solid fa-eye-slash'></i> rend ce personnage <strong>anonyme</strong> : dans les Relations et le Bestiaire des joueurs, il s'affiche « Inconnu » tant qu'il n'est pas révélé. Devient rouge quand actif ; recliquez pour lever l'anonymat.")}`,
             position:   "bottom",
             gmOnly:     true
         },
@@ -965,86 +966,86 @@ const STEPS_BY_FEATURE = {
         {
             beforeShow: _toSheet("carnet-journal"),
             target:     "nav.tabs [data-tab='carnet-journal'], .tabs .item[data-tab='carnet-journal']",
-            title:      "Onglet Carnet",
-            text:       "L'onglet <strong>Carnet</strong> est votre journal de bord personnel. Il contient des <strong>notes libres</strong> que vous pouvez organiser, réordonner et formater à votre guise. Personne d'autre que vous (et le GM) ne peut les lire.",
-            textGM:     "L'onglet <strong>Carnet</strong> est le journal de bord du joueur. En tant que GM, vous pouvez consulter et modifier les notes de n'importe quel personnage. Les notes sont privées : un joueur ne voit que les siennes.",
+            title:      tl("Onglet Carnet"),
+            text:       `${tl("L'onglet <strong>Carnet</strong> est votre journal de bord personnel. Il contient des <strong>notes libres</strong> que vous pouvez organiser, réordonner et formater à votre guise. Personne d'autre que vous (et le GM) ne peut les lire.")}`,
+            textGM:     `${tl("L'onglet <strong>Carnet</strong> est le journal de bord du joueur. En tant que GM, vous pouvez consulter et modifier les notes de n'importe quel personnage. Les notes sont privées : un joueur ne voit que les siennes.")}`,
             position:   "bottom"
         },
         // ── Ajouter une note ─────────────────────────────────────
         {
             beforeShow: _toSheet("carnet-journal"),
             target:     ".carnet-add-note",
-            title:      "Ajouter une note",
-            text:       "Le bouton <strong>+ Note</strong> crée une nouvelle note vide. Donnez-lui un titre en cliquant directement dessus, puis cliquez <strong>Modifier</strong> pour rédiger son contenu.",
-            textGM:     "Le bouton <strong>+ Note</strong> crée une note sur la fiche du joueur. Vous pouvez en ajouter autant que vous voulez, y compris pour y coller des résumés de session ou des informations secrètes.",
+            title:      tl("Ajouter une note"),
+            text:       `${tl("Le bouton <strong>+ Note</strong> crée une nouvelle note vide. Donnez-lui un titre en cliquant directement dessus, puis cliquez <strong>Modifier</strong> pour rédiger son contenu.")}`,
+            textGM:     `${tl("Le bouton <strong>+ Note</strong> crée une note sur la fiche du joueur. Vous pouvez en ajouter autant que vous voulez, y compris pour y coller des résumés de session ou des informations secrètes.")}`,
             position:   "bottom"
         },
         // ── Sections ─────────────────────────────────────────────
         {
             beforeShow: _toSheet("carnet-journal"),
             target:     ".carnet-add-section",
-            title:      "Organiser en sections",
-            text:       "Le bouton <strong>Section</strong> insère un séparateur nommé entre vos notes. Utilisez-le pour regrouper vos notes par thème (par ex. <em>Quêtes</em>, <em>PNJ rencontrés</em>, <em>Secrets</em>…). Cliquez le chevron d'une section pour la replier et masquer toutes ses notes.",
-            textGM:     "Les <strong>sections</strong> sont des séparateurs que le joueur (ou vous, le MJ) peut créer pour organiser ses notes. Replier une section masque toutes les notes qu'elle contient jusqu'à la section suivante.",
+            title:      tl("Organiser en sections"),
+            text:       `${tl("Le bouton <strong>Section</strong> insère un séparateur nommé entre vos notes. Utilisez-le pour regrouper vos notes par thème (par ex. <em>Quêtes</em>, <em>PNJ rencontrés</em>, <em>Secrets</em>…). Cliquez le chevron d'une section pour la replier et masquer toutes ses notes.")}`,
+            textGM:     `${tl("Les <strong>sections</strong> sont des séparateurs que le joueur (ou vous, le MJ) peut créer pour organiser ses notes. Replier une section masque toutes les notes qu'elle contient jusqu'à la section suivante.")}`,
             position:   "bottom"
         },
         // ── Réordonner par drag & drop ───────────────────────────
         {
             beforeShow: _toSheet("carnet-journal"),
             target:     ".carnet-drag-handle",
-            title:      "Réordonner les notes",
-            text:       "La <strong>poignée <i class='fa-solid fa-grip-vertical'></i></strong> à gauche de chaque note ou section permet de la faire glisser pour changer son ordre. Attrapez-la et déposez la note à l'endroit souhaité — la ligne dorée indique où elle va s'insérer.",
-            textGM:     "La <strong>poignée <i class='fa-solid fa-grip-vertical'></i></strong> à gauche permet de déplacer les notes et les sections par glisser-déposer. L'ordre est sauvegardé automatiquement sur la fiche du joueur.",
+            title:      tl("Réordonner les notes"),
+            text:       `${tl("La <strong>poignée <i class='fa-solid fa-grip-vertical'></i></strong> à gauche de chaque note ou section permet de la faire glisser pour changer son ordre. Attrapez-la et déposez la note à l'endroit souhaité — la ligne dorée indique où elle va s'insérer.")}`,
+            textGM:     `${tl("La <strong>poignée <i class='fa-solid fa-grip-vertical'></i></strong> à gauche permet de déplacer les notes et les sections par glisser-déposer. L'ordre est sauvegardé automatiquement sur la fiche du joueur.")}`,
             position:   "right"
         },
         // ── Replier une note ─────────────────────────────────────
         {
             beforeShow: _toSheet("carnet-journal"),
             target:     ".carnet-toggle-note",
-            title:      "Replier une note",
-            text:       "Cliquez le <strong>chevron <i class='fa-solid fa-chevron-down'></i></strong> à gauche du titre pour replier ou déplier une note individuellement. Pratique quand le carnet commence à s'allonger.",
+            title:      tl("Replier une note"),
+            text:       `${tl("Cliquez le <strong>chevron <i class='fa-solid fa-chevron-down'></i></strong> à gauche du titre pour replier ou déplier une note individuellement. Pratique quand le carnet commence à s'allonger.")}`,
             position:   "right"
         },
         // ── Barre recherche / tout replier-déplier ───────────────
         {
             beforeShow: _toSheet("carnet-journal"),
             target:     ".carnet-tools-bar, .carnet-search",
-            title:      "Rechercher & tout replier",
-            text:       "En haut du carnet : un champ de <strong>recherche</strong> masque instantanément les notes qui ne contiennent pas votre texte (titre + contenu), et les boutons <i class='fa-solid fa-angles-down'></i>/<i class='fa-solid fa-angles-up'></i> <strong>déplient ou replient toutes les notes</strong> d'un coup. Pratique quand le carnet s'allonge.",
+            title:      tl("Rechercher & tout replier"),
+            text:       `${tl("En haut du carnet : un champ de <strong>recherche</strong> masque instantanément les notes qui ne contiennent pas votre texte (titre + contenu), et les boutons <i class='fa-solid fa-angles-down'></i>/<i class='fa-solid fa-angles-up'></i> <strong>déplient ou replient toutes les notes</strong> d'un coup. Pratique quand le carnet s'allonge.")}`,
             position:   "bottom"
         },
         // ── Éditeur de texte ─────────────────────────────────────
         {
             beforeShow: _openCarnetNoteExpanded,
             target:     ".carnet-edit-note",
-            title:      "Éditeur de note",
-            text:       "Le bouton <strong>Modifier</strong> ouvre l'éditeur « grimoire ». La barre d'outils propose : <strong>Gras</strong>, <em>Italique</em>, Souligné, Barré, deux niveaux de <strong>titres</strong> (T1/T2), paragraphe, listes, une <strong>taille en points</strong> (comme Word), la <strong>couleur du texte</strong> <i class='fa-solid fa-palette'></i> et l'<strong>insertion de lien</strong> <i class='fa-solid fa-link'></i> (sélectionnez le texte puis l'URL). Tout est <strong>sauvegardé automatiquement</strong> : même en fermant par la croix, rien n'est perdu.",
-            textGM:     "Le bouton <strong>Modifier</strong> ouvre l'éditeur enrichi : gras, italique, titres, listes, <strong>taille en points</strong>, <strong>couleur</strong> et <strong>liens</strong>. Le contenu est sauvegardé en continu (aucune perte, même en fermant sans « Sauvegarder »).",
+            title:      tl("Éditeur de note"),
+            text:       `${tl("Le bouton <strong>Modifier</strong> ouvre l'éditeur « grimoire ». La barre d'outils propose : <strong>Gras</strong>, <em>Italique</em>, Souligné, Barré, deux niveaux de <strong>titres</strong> (T1/T2), paragraphe, listes, une <strong>taille en points</strong> (comme Word), la <strong>couleur du texte</strong> <i class='fa-solid fa-palette'></i> et l'<strong>insertion de lien</strong> <i class='fa-solid fa-link'></i> (sélectionnez le texte puis l'URL). Tout est <strong>sauvegardé automatiquement</strong> : même en fermant par la croix, rien n'est perdu.")}`,
+            textGM:     `${tl("Le bouton <strong>Modifier</strong> ouvre l'éditeur enrichi : gras, italique, titres, listes, <strong>taille en points</strong>, <strong>couleur</strong> et <strong>liens</strong>. Le contenu est sauvegardé en continu (aucune perte, même en fermant sans « Sauvegarder »).")}`,
             position:   "top"
         },
         // ── Lier à une expédition ────────────────────────────────
         {
             beforeShow: _openCarnetNoteExpanded,
             target:     ".carnet-link-exp",
-            title:      "Lier une note à une expédition",
-            text:       "Le lien <i class='fa-solid fa-link'></i> <strong>Lier</strong> associe une note à une expédition précise. Une fois liée, le nom de l'expédition apparaît dans la note, et un lien <i class='fa-solid fa-calendar-alt'></i> permet de sauter directement à l'expédition dans l'onglet Expéditions. Pour délier, cliquez <i class='fa-solid fa-unlink'></i>.",
+            title:      tl("Lier une note à une expédition"),
+            text:       `${tl("Le lien <i class='fa-solid fa-link'></i> <strong>Lier</strong> associe une note à une expédition précise. Une fois liée, le nom de l'expédition apparaît dans la note, et un lien <i class='fa-solid fa-calendar-alt'></i> permet de sauter directement à l'expédition dans l'onglet Expéditions. Pour délier, cliquez <i class='fa-solid fa-unlink'></i>.")}`,
             position:   "left"
         },
         // ── Onglet Expéditions ───────────────────────────────────
         {
             beforeShow: _toSheet("carnet-downtime"),
             target:     "nav.tabs [data-tab='carnet-downtime'], .tabs .item[data-tab='carnet-downtime']",
-            title:      "Onglet Expéditions",
-            text:       "L'onglet <strong>Expéditions</strong> liste toutes vos sessions de jeu avec leur date de début, de fin et leur durée en jours calculée automatiquement. Cliquez sur le nom d'une expédition pour naviguer vers les notes qui lui sont liées dans le Carnet.",
-            textGM:     "L'onglet <strong>Expéditions</strong> liste les sessions avec dates et durée. Les dates sont enregistrées via le bouton <i class='fa-solid fa-calendar-plus'></i> dans la barre WestMarch. Depuis ici vous pouvez aussi renommer une expédition ou la supprimer.",
+            title:      tl("Onglet Expéditions"),
+            text:       `${tl("L'onglet <strong>Expéditions</strong> liste toutes vos sessions de jeu avec leur date de début, de fin et leur durée en jours calculée automatiquement. Cliquez sur le nom d'une expédition pour naviguer vers les notes qui lui sont liées dans le Carnet.")}`,
+            textGM:     `${tl("L'onglet <strong>Expéditions</strong> liste les sessions avec dates et durée. Les dates sont enregistrées via le bouton <i class='fa-solid fa-calendar-plus'></i> dans la barre WestMarch. Depuis ici vous pouvez aussi renommer une expédition ou la supprimer.")}`,
             position:   "bottom"
         },
         // ── Bouton GM Date Expédition ────────────────────────────
         {
             beforeShow: _expandWestmarch,
             target:     "[data-tool='carnetDate']",
-            title:      "Bouton Date Expédition",
-            text:       "Ce bouton enregistre la <strong>date de début d'une nouvelle expédition</strong> pour toute la party en un seul clic, en utilisant la date du calendrier du monde. Recliquez-le en fin de session pour enregistrer la <strong>date de fin</strong> et clôturer l'expédition.",
+            title:      tl("Bouton Date Expédition"),
+            text:       `${tl("Ce bouton enregistre la <strong>date de début d'une nouvelle expédition</strong> pour toute la party en un seul clic, en utilisant la date du calendrier du monde. Recliquez-le en fin de session pour enregistrer la <strong>date de fin</strong> et clôturer l'expédition.")}`,
             position:   "right",
             gmOnly:     true
         },
@@ -1052,16 +1053,16 @@ const STEPS_BY_FEATURE = {
         {
             beforeShow: _showPcStatus,
             target:     ".tuto-status-highlight, #actors .scwm-pc-status, .scwm-pc-status",
-            title:      "Statut de disponibilité",
-            text:       "Dans le répertoire des <strong>Acteurs</strong>, un badge à droite de chaque personnage indique s'il est <strong>Disponible</strong> ou <strong>En expédition</strong>. Le statut est automatique : dès qu'une expédition est ouverte (date de début sans date de fin), le PJ passe « En expédition » ; sa clôture le repasse « Disponible ». Pratique pour voir d'un coup d'œil qui est déjà parti.",
+            title:      tl("Statut de disponibilité"),
+            text:       `${tl("Dans le répertoire des <strong>Acteurs</strong>, un badge à droite de chaque personnage indique s'il est <strong>Disponible</strong> ou <strong>En expédition</strong>. Le statut est automatique : dès qu'une expédition est ouverte (date de début sans date de fin), le PJ passe « En expédition » ; sa clôture le repasse « Disponible ». Pratique pour voir d'un coup d'œil qui est déjà parti.")}`,
             position:   "right"
         },
         // ── Clore la session (GM) — transition vers le Casier ────
         {
             beforeShow: async () => { ui.players?.render?.(); await new Promise(r => setTimeout(r, 300)); },
             target:     ".westmarch-close-session",
-            title:      "Clore la session",
-            textGM:     "Sous la liste des joueurs, le bouton <i class='fa-solid fa-book'></i> <strong>Clore la session</strong> ouvre la fenêtre de clôture. On y trouve : l'attribution d'<strong>XP</strong> à la party (champ « pour tous » + un champ par PJ) — ou un sélecteur <strong>1 à 3 étoiles</strong> si le système d'étoiles est actif ; une case pour <strong>n'attribuer qu'une fois le rapport envoyé</strong> (pratique si vous hésitez : ajustable ensuite dans le Casier) ; le choix des <strong>intrigues liées</strong> (tags partagés ou vos intrigues perso, créables à la volée) ; un champ de <strong>notes</strong> ; et deux issues — <strong>Clôturer &amp; envoyer</strong> sur Discord, ou <strong>Enregistrer pour plus tard</strong> dans votre Casier. C'est ce Casier qu'on va voir maintenant.",
+            title:      tl("Clore la session"),
+            textGM:     `${tl("Sous la liste des joueurs, le bouton <i class='fa-solid fa-book'></i> <strong>Clore la session</strong> ouvre la fenêtre de clôture. On y trouve : l'attribution d'<strong>XP</strong> à la party (champ « pour tous » + un champ par PJ) — ou un sélecteur <strong>1 à 3 étoiles</strong> si le système d'étoiles est actif ; une case pour <strong>n'attribuer qu'une fois le rapport envoyé</strong> (pratique si vous hésitez : ajustable ensuite dans le Casier) ; le choix des <strong>intrigues liées</strong> (tags partagés ou vos intrigues perso, créables à la volée) ; un champ de <strong>notes</strong> ; et deux issues — <strong>Clôturer &amp; envoyer</strong> sur Discord, ou <strong>Enregistrer pour plus tard</strong> dans votre Casier. C'est ce Casier qu'on va voir maintenant.")}`,
             position:   "top",
             gmOnly:     true
         },
@@ -1072,15 +1073,15 @@ const STEPS_BY_FEATURE = {
         {
             beforeShow: () => _openCasier("dashboard"),
             target:     ".scwm-casier-dashboard",
-            title:      "Le Casier du MJ",
-            textGM:     "Le bouton <i class='fa-solid fa-box-archive'></i> <strong>Casier</strong> dans la barre WestMarch ouvre votre tableau de bord de meneur. L'onglet <strong>Dashboard</strong> résume vos rapports à finaliser, l'état de votre party et le nombre d'expéditions en cours.",
+            title:      tl("Le Casier du MJ"),
+            textGM:     `${tl("Le bouton <i class='fa-solid fa-box-archive'></i> <strong>Casier</strong> dans la barre WestMarch ouvre votre tableau de bord de meneur. L'onglet <strong>Dashboard</strong> résume vos rapports à finaliser, l'état de votre party et le nombre d'expéditions en cours.")}`,
             position:   "left"
         },
         {
             beforeShow: () => _openCasier("dashboard"),
             target:     ".scwm-casier-presentation",
-            title:      "Votre présentation",
-            textGM:     "Ce champ libre vous laisse noter votre présentation, vos critères, vos horaires… Sauvegardé automatiquement et propre à chaque meneur.",
+            title:      tl("Votre présentation"),
+            textGM:     tl("Ce champ libre vous laisse noter votre présentation, vos critères, vos horaires… Sauvegardé automatiquement et propre à chaque meneur."),
             position:   "top"
         },
         // Onglets présentés DE HAUT EN BAS, dans l'ordre de la barre du Casier.
@@ -1088,79 +1089,79 @@ const STEPS_BY_FEATURE = {
         {
             beforeShow: () => _openCasier("reports"),
             target:     ".scwm-casier-tab[data-tab='reports']",
-            title:      "Rapports à finaliser",
-            textGM:     "Les rapports <strong>enregistrés pour plus tard</strong> à la clôture arrivent ici. Sélectionnez-en un pour compléter ses notes, ajuster les <strong>intrigues</strong> et l'attribution en attente, puis <strong>Clôturer &amp; envoyer sur Discord</strong>. Une pastille sur le bouton Casier et un message à la connexion vous rappellent les rapports en attente.",
+            title:      tl("Rapports à finaliser"),
+            textGM:     `${tl("Les rapports <strong>enregistrés pour plus tard</strong> à la clôture arrivent ici. Sélectionnez-en un pour compléter ses notes, ajuster les <strong>intrigues</strong> et l'attribution en attente, puis <strong>Clôturer &amp; envoyer sur Discord</strong>. Une pastille sur le bouton Casier et un message à la connexion vous rappellent les rapports en attente.")}`,
             position:   "right"
         },
         {
             beforeShow: () => _openCasier("expeditions"),
             target:     ".scwm-casier-tab[data-tab='expeditions']",
-            title:      "Expéditions en cours",
-            textGM:     "Vos expéditions en cours (issues de l'onglet Expédition), regroupées par expédition avec leurs participants. Un badge <strong>En session</strong> marque celle qui correspond à votre party active.",
+            title:      tl("Expéditions en cours"),
+            textGM:     `${tl("Vos expéditions en cours (issues de l'onglet Expédition), regroupées par expédition avec leurs participants. Un badge <strong>En session</strong> marque celle qui correspond à votre party active.")}`,
             position:   "right"
         },
         {
             beforeShow: () => _openCasier("downtime"),
             target:     ".scwm-casier-tab[data-tab='downtime'], .scwm-casier-downtime",
-            title:      "Temps morts (dans le Casier)",
-            textGM:     "L'onglet <strong>Temps morts</strong> affiche directement toutes les déclarations des joueurs (gains de compétence et artisanat). Vous les modifiez/refusez au besoin, puis <strong>Appliquer les gains</strong> applique tout en un clic — l'objet fabriqué est ajouté automatiquement depuis le compendium configuré.",
+            title:      tl("Temps morts (dans le Casier)"),
+            textGM:     `${tl("L'onglet <strong>Temps morts</strong> affiche directement toutes les déclarations des joueurs (gains de compétence et artisanat). Vous les modifiez/refusez au besoin, puis <strong>Appliquer les gains</strong> applique tout en un clic — l'objet fabriqué est ajouté automatiquement depuis le compendium configuré.")}`,
             position:   "right"
         },
         {
             beforeShow: () => _openCasier("validation"),
             target:     ".scwm-casier-tab[data-tab='validation'], .scwm-casier-validation",
-            title:      "Validation des personnages",
-            textGM:     "L'onglet <strong>Validation</strong> regroupe les <strong>demandes de création</strong> (Créer &amp; assigner), les <strong>fiches à valider</strong> (Valider &amp; verrouiller) et les <strong>montées de niveau</strong> à autoriser. C'est ici que vous gérez tout le cycle de vie des personnages joueurs.",
+            title:      tl("Validation des personnages"),
+            textGM:     `${tl("L'onglet <strong>Validation</strong> regroupe les <strong>demandes de création</strong> (Créer &amp; assigner), les <strong>fiches à valider</strong> (Valider &amp; verrouiller) et les <strong>montées de niveau</strong> à autoriser. C'est ici que vous gérez tout le cycle de vie des personnages joueurs.")}`,
             position:   "right"
         },
         // Groupe « Statistiques » : Intrigues, Suivi des GM, Registre, Statistiques, Disponibilités, Assiduité, Poids du monde.
         {
             beforeShow: () => _openCasier("intrigues"),
             target:     ".scwm-casier-tab[data-tab='intrigues'], .scwm-intrigue",
-            title:      "Intrigues",
-            textGM:     "L'onglet <strong>Intrigues</strong> regroupe vos rapports par <strong>trame narrative</strong> (les intrigues cochées à la clôture). Pour chaque intrigue : les <strong>MJ impliqués</strong>, les <strong>joueurs liés</strong> et la liste des sessions. Parfait pour préparer une <strong>récompense finale</strong>, retrouver les joueurs d'une même trame ou recruter. La liste d'intrigues partagées se règle dans les paramètres (Système de Party) ; chaque MJ a aussi ses <strong>intrigues perso</strong>.",
+            title:      tl("Intrigues"),
+            textGM:     `${tl("L'onglet <strong>Intrigues</strong> regroupe vos rapports par <strong>trame narrative</strong> (les intrigues cochées à la clôture). Pour chaque intrigue : les <strong>MJ impliqués</strong>, les <strong>joueurs liés</strong> et la liste des sessions. Parfait pour préparer une <strong>récompense finale</strong>, retrouver les joueurs d'une même trame ou recruter. La liste d'intrigues partagées se règle dans les paramètres (Système de Party) ; chaque MJ a aussi ses <strong>intrigues perso</strong>.")}`,
             position:   "left"
         },
         {
             beforeShow: () => _openCasier("gms"),
             target:     ".scwm-casier-tab[data-tab='gms']",
-            title:      "Suivi des GM",
-            textGM:     "Pour chaque meneur : le nombre d'expéditions en cours, leur nom et les joueurs qui y participent — pratique pour se coordonner à plusieurs MJ.",
+            title:      tl("Suivi des GM"),
+            textGM:     tl("Pour chaque meneur : le nombre d'expéditions en cours, leur nom et les joueurs qui y participent — pratique pour se coordonner à plusieurs MJ."),
             position:   "left"
         },
         {
             beforeShow: () => _openCasier("registre"),
             target:     ".scwm-casier-tab[data-tab='registre'], .scwm-reg-table",
-            title:      "Registre des personnages",
-            textGM:     "L'onglet <strong>Registre</strong> liste tous les PJ (joueur, perso, classes/sous-classes/niveaux, espèce, niveau total), déduit automatiquement des fiches. <strong>Triable</strong> (clic sur un en-tête), <strong>filtrable</strong> (barre de recherche) et <strong>exportable en CSV</strong>. Un <strong>clic sur une ligne</strong> ouvre la fiche ; les joueurs <strong>inactifs</strong> (90 j) sont grisés avec une 🌙.",
+            title:      tl("Registre des personnages"),
+            textGM:     `${tl("L'onglet <strong>Registre</strong> liste tous les PJ (joueur, perso, classes/sous-classes/niveaux, espèce, niveau total), déduit automatiquement des fiches. <strong>Triable</strong> (clic sur un en-tête), <strong>filtrable</strong> (barre de recherche) et <strong>exportable en CSV</strong>. Un <strong>clic sur une ligne</strong> ouvre la fiche ; les joueurs <strong>inactifs</strong> (90 j) sont grisés avec une 🌙.")}`,
             position:   "left"
         },
         {
             beforeShow: () => _openCasier("stats"),
             target:     ".scwm-casier-tab[data-tab='stats'], .scwm-stat-grid",
-            title:      "Statistiques",
-            textGM:     "L'onglet <strong>Statistiques</strong> compte les personnages par classe, sous-classe, espèce, joueur et par niveau, avec le total de joueurs, de persos et de multiclassés — une vue d'ensemble de la population du serveur.",
+            title:      tl("Statistiques"),
+            textGM:     `${tl("L'onglet <strong>Statistiques</strong> compte les personnages par classe, sous-classe, espèce, joueur et par niveau, avec le total de joueurs, de persos et de multiclassés — une vue d'ensemble de la population du serveur.")}`,
             position:   "left"
         },
         {
             beforeShow: () => _openCasier("dispos"),
             target:     ".scwm-casier-tab[data-tab='dispos'], .scwm-reg-table",
-            title:      "Disponibilités des joueurs",
-            textGM:     "L'onglet <strong>Disponibilités</strong> montre, par joueur, ses PJ, leur nombre, ses expéditions en cours et sa dernière session. Les inactifs y sont aussi signalés.",
+            title:      tl("Disponibilités des joueurs"),
+            textGM:     `${tl("L'onglet <strong>Disponibilités</strong> montre, par joueur, ses PJ, leur nombre, ses expéditions en cours et sa dernière session. Les inactifs y sont aussi signalés.")}`,
             position:   "left"
         },
         {
             beforeShow: () => _openCasier("attendance"),
             target:     ".scwm-casier-tab[data-tab='attendance']",
-            title:      "Assiduité",
-            textGM:     "L'onglet <strong>Assiduité</strong> mesure l'activité : nombre d'expéditions par joueur et par MJ, dernière activité de chacun (session ou expédition close), et qui est <strong>actif</strong> sur le trimestre (90 jours). Idéal pour repérer les joueurs qui décrochent.",
+            title:      tl("Assiduité"),
+            textGM:     `${tl("L'onglet <strong>Assiduité</strong> mesure l'activité : nombre d'expéditions par joueur et par MJ, dernière activité de chacun (session ou expédition close), et qui est <strong>actif</strong> sur le trimestre (90 jours). Idéal pour repérer les joueurs qui décrochent.")}`,
             position:   "left"
         },
         {
             beforeShow: () => _openCasier("scenesize"),
             target:     ".scwm-casier-tab[data-tab='scenesize']",
-            title:      "Poids du monde",
-            textGM:     "L'onglet <strong>Poids du monde</strong> mesure la taille (données + médias) de vos scènes, acteurs, objets et journaux — pour repérer ce qui alourdit le monde et faire le ménage si besoin.",
+            title:      tl("Poids du monde"),
+            textGM:     `${tl("L'onglet <strong>Poids du monde</strong> mesure la taille (données + médias) de vos scènes, acteurs, objets et journaux — pour repérer ce qui alourdit le monde et faire le ménage si besoin.")}`,
             position:   "left"
         },
     ],
@@ -1169,56 +1170,56 @@ const STEPS_BY_FEATURE = {
     carteExpedition: [
         {
             target:   null,
-            title:    "Carte des expéditions — le principe",
-            text:     "Cette carte du monde a un <strong>brouillard « maison »</strong>, géré par le module (pas celui de Foundry). Son intérêt : le brouillard est <strong>propre à CHAQUE personnage</strong>. Chaque PJ ne voit sur la carte que les zones que <em>lui</em> a découvertes — deux personnages d'un même joueur ont chacun leur exploration.<br><br>"
-                    + "En pratique : la scène est entièrement visible « nativement » (vision par token désactivée), et le module pose par-dessus un calque noir qui laisse des trous aux cases explorées du personnage joué. C'est fiable et isolé par perso, contrairement au brouillard natif de Foundry.<br><br>"
-                    + "La scène concernée est celle définie dans <strong>Réglages → Carte des expéditions → Scène</strong>. Tout ce qui suit ne s'applique qu'à cette scène.",
+            title:    tl("Carte des expéditions — le principe"),
+            text:     `${tl("Cette carte du monde a un <strong>brouillard « maison »</strong>, géré par le module (pas celui de Foundry). Son intérêt : le brouillard est <strong>propre à CHAQUE personnage</strong>. Chaque PJ ne voit sur la carte que les zones que <em>lui</em> a découvertes — deux personnages d'un même joueur ont chacun leur exploration.<br><br>")}`
+                    + `${tl("En pratique : la scène est entièrement visible « nativement » (vision par token désactivée), et le module pose par-dessus un calque noir qui laisse des trous aux cases explorées du personnage joué. C'est fiable et isolé par perso, contrairement au brouillard natif de Foundry.<br><br>")}`
+                    + `${tl("La scène concernée est celle définie dans <strong>Réglages → Carte des expéditions → Scène</strong>. Tout ce qui suit ne s'applique qu'à cette scène.")}`,
             position: "center",
             gmOnly:   true
         },
         {
             target:   null,
-            title:    "Plusieurs cartes (archipel)",
-            text:     "Tu n'es pas limité à une seule carte. Dans <strong>Réglages → Carte des expéditions</strong>, le bouton <strong>« + Ajouter une carte »</strong> ajoute autant de <strong>scènes</strong> que tu veux (une par île, par région…).<br><br>"
-                    + "Chaque scène garde son <strong>propre brouillard</strong>, totalement indépendant : explorer une île ne dévoile rien sur les autres. Les zones toujours éclairées (villes) sont elles aussi propres à chaque scène. Tout ce qui suit s'applique à <strong>chacune</strong> des cartes déclarées.",
+            title:    tl("Plusieurs cartes (archipel)"),
+            text:     `${tl("Tu n'es pas limité à une seule carte. Dans <strong>Réglages → Carte des expéditions</strong>, le bouton <strong>« + Ajouter une carte »</strong> ajoute autant de <strong>scènes</strong> que tu veux (une par île, par région…).<br><br>")}`
+                    + `${tl("Chaque scène garde son <strong>propre brouillard</strong>, totalement indépendant : explorer une île ne dévoile rien sur les autres. Les zones toujours éclairées (villes) sont elles aussi propres à chaque scène. Tout ce qui suit s'applique à <strong>chacune</strong> des cartes déclarées.")}`,
             position: "center",
             gmOnly:   true
         },
         {
             target:   null,
-            title:    "Le token de groupe (qui explore)",
-            text:     "L'exploration se fait via un <strong>token de groupe</strong>. Le module crée un acteur modèle <strong>« Token à copier et rennomer »</strong> dans le dossier configuré.<br><br>"
-                    + "<strong>1.</strong> Duplique cet acteur : une petite fenêtre s'ouvre pour le <strong>renommer</strong> (le nom s'applique à la fiche et au prototype token).<br>"
-                    + "<strong>2.</strong> Ouvre la fiche du groupe et ajoute comme <strong>Membres</strong> les personnages de l'expédition (leurs PJ assignés).<br>"
-                    + "<strong>3.</strong> Pose son token sur la carte.<br><br>"
-                    + "Ce sont les <strong>membres</strong> du groupe qui recevront la révélation quand tu déplaces ce token.",
+            title:    tl("Le token de groupe (qui explore)"),
+            text:     `${tl("L'exploration se fait via un <strong>token de groupe</strong>. Le module crée un acteur modèle <strong>« Token à copier et rennomer »</strong> dans le dossier configuré.<br><br>")}`
+                    + `${tl("<strong>1.</strong> Duplique cet acteur : une petite fenêtre s'ouvre pour le <strong>renommer</strong> (le nom s'applique à la fiche et au prototype token).<br>")}`
+                    + `${tl("<strong>2.</strong> Ouvre la fiche du groupe et ajoute comme <strong>Membres</strong> les personnages de l'expédition (leurs PJ assignés).<br>")}`
+                    + `${tl("<strong>3.</strong> Pose son token sur la carte.<br><br>")}`
+                    + `${tl("Ce sont les <strong>membres</strong> du groupe qui recevront la révélation quand tu déplaces ce token.")}`,
             position: "center",
             gmOnly:   true
         },
         {
             target:   null,
-            title:    "Révéler en déplaçant",
-            text:     "Quand tu <strong>déplaces le token de groupe</strong> sur la carte, les cases (hex) du <strong>trajet parcouru</strong> se révèlent automatiquement pour chaque personnage <strong>membre</strong> du groupe — pas pour les autres.<br><br>"
-                    + "Le nombre de cases révélées autour du token se règle avec <strong>« Rayon de révélation (en cases) »</strong> dans les réglages (0 = seulement la case du token, 1 = la case + ses voisines, etc.).<br><br>"
-                    + "Astuce : pour pré-explorer proprement une zone pour un personnage, assure-toi qu'il est bien <strong>membre</strong> du groupe, puis promène le token.",
+            title:    tl("Révéler en déplaçant"),
+            text:     `${tl("Quand tu <strong>déplaces le token de groupe</strong> sur la carte, les cases (hex) du <strong>trajet parcouru</strong> se révèlent automatiquement pour chaque personnage <strong>membre</strong> du groupe — pas pour les autres.<br><br>")}`
+                    + `${tl("Le nombre de cases révélées autour du token se règle avec <strong>« Rayon de révélation (en cases) »</strong> dans les réglages (0 = seulement la case du token, 1 = la case + ses voisines, etc.).<br><br>")}`
+                    + `${tl("Astuce : pour pré-explorer proprement une zone pour un personnage, assure-toi qu'il est bien <strong>membre</strong> du groupe, puis promène le token.")}`,
             position: "center",
             gmOnly:   true
         },
         {
             beforeShow: _expandWestmarch,
             target:     "[data-tool='scwmLightZone']",
-            title:      "Bouton « Éclairer une zone » (villes)",
-            text:       "Cet outil <i class='fa-solid fa-city'></i> te permet de marquer des zones <strong>toujours éclairées pour tout le monde</strong> — typiquement les villes et lieux connus de tous, indépendamment de l'exploration.<br><br>"
-                      + "Active-le, puis sur la carte : <strong>clic gauche</strong> éclaire une case, <strong>clic droit</strong> la masque. Ces zones apparaissent pour tous les personnages, en plus de leur propre exploration. Pense à désactiver l'outil quand tu as fini.",
+            title:      tl("Bouton « Éclairer une zone » (villes)"),
+            text:       `${tl("Cet outil <i class='fa-solid fa-city'></i> te permet de marquer des zones <strong>toujours éclairées pour tout le monde</strong> — typiquement les villes et lieux connus de tous, indépendamment de l'exploration.<br><br>")}`
+                      + `${tl("Active-le, puis sur la carte : <strong>clic gauche</strong> éclaire une case, <strong>clic droit</strong> la masque. Ces zones apparaissent pour tous les personnages, en plus de leur propre exploration. Pense à désactiver l'outil quand tu as fini.")}`,
             position:   "right",
             gmOnly:     true
         },
         {
             beforeShow: _expandWestmarch,
             target:     "[data-tool='scwmFogReset']",
-            title:      "Bouton « Réinitialiser le brouillard »",
-            text:       "Cet outil <i class='fa-solid fa-eraser'></i> ouvre une fenêtre pour effacer le brouillard exploré.<br><br>"
-                      + "Tu peux réinitialiser <strong>un seul personnage</strong> (choisi dans la liste) ou <strong>tout le monde</strong>. La réinitialisation totale est protégée par plusieurs avertissements et une confirmation à <strong>taper</strong>, car elle est <strong>irréversible</strong> : les zones effacées ne se récupèrent pas, chaque joueur reverra sa carte noire jusqu'à ré-exploration.",
+            title:      tl("Bouton « Réinitialiser le brouillard »"),
+            text:       `${tl("Cet outil <i class='fa-solid fa-eraser'></i> ouvre une fenêtre pour effacer le brouillard exploré.<br><br>")}`
+                      + `${tl("Tu peux réinitialiser <strong>un seul personnage</strong> (choisi dans la liste) ou <strong>tout le monde</strong>. La réinitialisation totale est protégée par plusieurs avertissements et une confirmation à <strong>taper</strong>, car elle est <strong>irréversible</strong> : les zones effacées ne se récupèrent pas, chaque joueur reverra sa carte noire jusqu'à ré-exploration.")}`,
             position:   "right",
             gmOnly:     true
         },
@@ -1229,24 +1230,24 @@ const STEPS_BY_FEATURE = {
         {
             beforeShow: _expandWestmarch,
             target:     "[data-tool='sceneCues']",
-            title:      "Cues audio — le bouton",
-            textGM:     "Le bouton <i class='fa-solid fa-clapperboard'></i> <strong>Cues audio</strong> dans la barre WestMarch ouvre le gestionnaire de mise en scène : des sons préparés que vous déclenchez au bon moment, uniquement pour votre party.",
+            title:      tl("Cues audio — le bouton"),
+            textGM:     `${tl("Le bouton <i class='fa-solid fa-clapperboard'></i> <strong>Cues audio</strong> dans la barre WestMarch ouvre le gestionnaire de mise en scène : des sons préparés que vous déclenchez au bon moment, uniquement pour votre party.")}`,
             position:   "right",
             gmOnly:     true
         },
         {
             beforeShow: _openCues,
             target:     ".scwm-cue-toolbar",
-            title:      "Préparer un cue",
-            textGM:     "« <strong>Nouveau cue</strong> » crée un son (fichier, seconde de départ, volume, fondu, boucle). « <strong>Section</strong> » regroupe et replie vos cues. Le bouton 🎵 à côté du fichier ouvre vos playlists (monde &amp; compendiums) pour <strong>écouter et choisir</strong> un son.",
+            title:      tl("Préparer un cue"),
+            textGM:     `${tl("« <strong>Nouveau cue</strong> » crée un son (fichier, seconde de départ, volume, fondu, boucle). « <strong>Section</strong> » regroupe et replie vos cues. Le bouton 🎵 à côté du fichier ouvre vos playlists (monde &amp; compendiums) pour <strong>écouter et choisir</strong> un son.")}`,
             position:   "bottom",
             gmOnly:     true
         },
         {
             beforeShow: _openCues,
             target:     ".scwm-cue-trigger, .scwm-cue-card",
-            title:      "Le déclencheur",
-            textGM:     "Chaque cue a un <strong>déclencheur</strong> : <em>Manuel</em> (bouton ▶), <em>Révélation du token lié</em> (le son part quand vous retirez l'invisibilité GM du token), ou <em>Début de combat</em>. Reliez un cue au token sélectionné avec « Lier au token ». Depuis le HUD du token, le bouton <i class='fa-solid fa-clapperboard'></i> rejoue les cues liés.",
+            title:      tl("Le déclencheur"),
+            textGM:     `${tl("Chaque cue a un <strong>déclencheur</strong> : <em>Manuel</em> (bouton ▶), <em>Révélation du token lié</em> (le son part quand vous retirez l'invisibilité GM du token), ou <em>Début de combat</em>. Reliez un cue au token sélectionné avec « Lier au token ». Depuis le HUD du token, le bouton <i class='fa-solid fa-clapperboard'></i> rejoue les cues liés.")}`,
             position:   "left",
             gmOnly:     true
         },
@@ -1256,15 +1257,15 @@ const STEPS_BY_FEATURE = {
     boutiques: [
         {
             target:   null,
-            title:    "Boutiques — Afficher aux joueurs",
-            text:     "Les boutiques fonctionnent via <strong>Monk's Enhanced Journal</strong>. Ouvrez un journal de type Boutique, ajoutez vos articles, puis cliquez <strong>Afficher aux joueurs</strong> pour ouvrir la boutique à votre groupe. Les joueurs peuvent y acheter directement, même sans accès à la fiche de la party.",
+            title:    tl("Boutiques — Afficher aux joueurs"),
+            text:     `${tl("Les boutiques fonctionnent via <strong>Monk's Enhanced Journal</strong>. Ouvrez un journal de type Boutique, ajoutez vos articles, puis cliquez <strong>Afficher aux joueurs</strong> pour ouvrir la boutique à votre groupe. Les joueurs peuvent y acheter directement, même sans accès à la fiche de la party.")}`,
             position: "center",
             gmOnly:   true
         },
         {
             target:   null,
-            title:    "Réapprovisionnement automatique",
-            text:     "Quand un article tombe à 0, il se remet à 1 automatiquement après un délai. Les délais par rareté (Commun, Peu commun, Rare, Très rare, Légendaire) sont configurables dans les <strong>paramètres du module Toolkit</strong>.",
+            title:    tl("Réapprovisionnement automatique"),
+            text:     `${tl("Quand un article tombe à 0, il se remet à 1 automatiquement après un délai. Les délais par rareté (Commun, Peu commun, Rare, Très rare, Légendaire) sont configurables dans les <strong>paramètres du module Toolkit</strong>.")}`,
             position: "center",
             gmOnly:   true
         },
@@ -1281,8 +1282,8 @@ const STEPS_BY_FEATURE = {
                 await new Promise(r => setTimeout(r, 600));
             },
             target:     ".westmarch-tm-declare",
-            title:      "Le bouton Temps mort",
-            text:       "Le sablier <i class='fa-solid fa-hourglass-half'></i> dans l'en-tête de votre fiche indique l'état de votre temps mort entre deux sessions. <span style='color:#888'>Gris</span> = rien déclaré. <span style='color:#e67e22'>Orange</span> = activité ajoutée mais pas encore soumise. <span style='color:#2ecc71'>Vert</span> = déclaration envoyée au GM. Cliquez-le pour ouvrir le formulaire.",
+            title:      tl("Le bouton Temps mort"),
+            text:       `${tl("Le sablier <i class='fa-solid fa-hourglass-half'></i> dans l'en-tête de votre fiche indique l'état de votre temps mort entre deux sessions.")} <span style='color:#888'>${tl("Gris")}</span> ${tl("= rien déclaré.")} <span style='color:#e67e22'>${tl("Orange")}</span> ${tl("= activité ajoutée mais pas encore soumise.")} <span style='color:#2ecc71'>${tl("Vert")}</span> ${tl("= déclaration envoyée au GM. Cliquez-le pour ouvrir le formulaire.")}`,
             position:   "bottom",
             playerOnly: true
         },
@@ -1295,8 +1296,8 @@ const STEPS_BY_FEATURE = {
                 await new Promise(r => setTimeout(r, 400));
             },
             target:     null,
-            title:      "Déclarer une activité",
-            text:       "La fenêtre se divise en deux blocs :<br><br><strong>Gain de compétence</strong> — choisissez une compétence ou maîtrise dans la liste, entrez les dates de début et fin de votre temps mort. Le nombre de jours et le bonus sont calculés automatiquement. Si vous cochez <strong>Tools</strong>, un champ <strong>« Outil utilisé »</strong> apparaît : indiquez l'outil (la compétence choisie ne sert alors qu'à la caractéristique associée), et c'est le nom de l'outil qui figurera dans le récap.<br><br><strong>Artisanat</strong> — choisissez le type d'objet à fabriquer (arme, armure, parchemin…), sa rareté, son prix de base et les dates. Le coût en po et la progression sont calculés à la volée.<br><br>Cliquez <strong>Ajouter au panier</strong> pour chaque activité, puis <strong>Déclarer</strong> pour envoyer au GM. Vous pouvez combiner plusieurs activités dans une même déclaration.",
+            title:      tl("Déclarer une activité"),
+            text:       `${tl("La fenêtre se divise en deux blocs :<br><br><strong>Gain de compétence</strong> — choisissez une compétence ou maîtrise dans la liste, entrez les dates de début et fin de votre temps mort. Le nombre de jours et le bonus sont calculés automatiquement. Si vous cochez <strong>Tools</strong>, un champ <strong>« Outil utilisé »</strong> apparaît : indiquez l'outil (la compétence choisie ne sert alors qu'à la caractéristique associée), et c'est le nom de l'outil qui figurera dans le récap.<br><br><strong>Artisanat</strong> — choisissez le type d'objet à fabriquer (arme, armure, parchemin…), sa rareté, son prix de base et les dates. Le coût en po et la progression sont calculés à la volée.<br><br>Cliquez <strong>Ajouter au panier</strong> pour chaque activité, puis <strong>Déclarer</strong> pour envoyer au GM. Vous pouvez combiner plusieurs activités dans une même déclaration.")}`,
             position:   "center",
             playerOnly: true
         },
@@ -1309,8 +1310,8 @@ const STEPS_BY_FEATURE = {
                 await new Promise(r => setTimeout(r, 400));
             },
             target:     ".westmarch-tm-declare",
-            title:      "Après la déclaration",
-            text:       "Une fois déclaré, le sablier passe au <span style='color:#2ecc71'>vert</span> et affiche un résumé de vos activités au survol. Le GM sera notifié et pourra valider lors de la prochaine session. Si vous devez modifier votre déclaration, rouvrez simplement la fenêtre — elle conserve votre saisie.",
+            title:      tl("Après la déclaration"),
+            text:       `${tl("Une fois déclaré, le sablier passe au")} <span style='color:#2ecc71'>${tl("vert")}</span> ${tl("et affiche un résumé de vos activités au survol. Le GM sera notifié et pourra valider lors de la prochaine session. Si vous devez modifier votre déclaration, rouvrez simplement la fenêtre — elle conserve votre saisie.")}`,
             position:   "bottom",
             playerOnly: true
         },
@@ -1323,8 +1324,8 @@ const STEPS_BY_FEATURE = {
         // ── Portrait HUD ─────────────────────────────────────────
         {
             target:   null,
-            title:    "Voir le portrait",
-            text:     "<strong>Clic droit</strong> sur un token → HUD → bouton portrait <i class='fa-solid fa-image'></i> : affiche en grand l'image de la fiche du personnage.",
+            title:    tl("Voir le portrait"),
+            text:     `${tl("<strong>Clic droit</strong> sur un token → HUD → bouton portrait <i class='fa-solid fa-image'></i> : affiche en grand l'image de la fiche du personnage.")}`,
             position: "center",
             native:   true
         },
@@ -1337,8 +1338,8 @@ const STEPS_BY_FEATURE = {
                 await new Promise(r => setTimeout(r, 600));
             },
             target:   '[data-action="openTokenConfig"]',
-            title:    "Ouvrir le Prototype Token",
-            text:     "Ce bouton dans l'en-tête de la fiche ouvre la configuration du <strong>Prototype Token</strong> — le token tel qu'il apparaît par défaut sur la carte. L'onglet <strong>Apparence</strong> donne accès à deux fonctions avancées : le <em>Cycle d'apparences</em> et le <em>Wild Shape / Polymorph</em>. Cliquez <strong>Suivant</strong> pour l'ouvrir automatiquement.",
+            title:    tl("Ouvrir le Prototype Token"),
+            text:     `${tl("Ce bouton dans l'en-tête de la fiche ouvre la configuration du <strong>Prototype Token</strong> — le token tel qu'il apparaît par défaut sur la carte. L'onglet <strong>Apparence</strong> donne accès à deux fonctions avancées : le <em>Cycle d'apparences</em> et le <em>Wild Shape / Polymorph</em>. Cliquez <strong>Suivant</strong> pour l'ouvrir automatiquement.")}`,
             position: "bottom",
             gmOnly:   true,
             native:   true
@@ -1347,8 +1348,8 @@ const STEPS_BY_FEATURE = {
         {
             beforeShow: _openProtoTokenAppearance,
             target:     ".tuto-proto-token",
-            title:      "Cycle d'apparences",
-            text:       "La fenêtre ouverte est le <strong>Prototype Token</strong>, onglet <strong>Apparence</strong>. La section <strong>Cycle d'apparences</strong> permet d'ajouter plusieurs images alternatives pour le token. En jeu, le bouton <i class='fa-solid fa-images'></i> dans le HUD (clic droit sur le token) bascule entre ces images — utile pour les tenues, les états visuels ou les formes mineures.",
+            title:      tl("Cycle d'apparences"),
+            text:       `${tl("La fenêtre ouverte est le <strong>Prototype Token</strong>, onglet <strong>Apparence</strong>. La section <strong>Cycle d'apparences</strong> permet d'ajouter plusieurs images alternatives pour le token. En jeu, le bouton <i class='fa-solid fa-images'></i> dans le HUD (clic droit sur le token) bascule entre ces images — utile pour les tenues, les états visuels ou les formes mineures.")}`,
             position:   "left",
             gmOnly:     true
         },
@@ -1356,8 +1357,8 @@ const STEPS_BY_FEATURE = {
         {
             beforeShow: _openProtoTokenAppearance,
             target:     ".tuto-proto-token",
-            title:      "Wild Shape / Polymorph",
-            text:       "La section <strong>Wild Shape / Polymorph</strong> du même onglet configure des formes de transformation complètes. Le bouton <i class='fa-solid fa-dragon'></i> dans le HUD (clic droit sur le token) applique la transformation en un clic — et la rétablit en re-cliquant. Accessible au GM et aux propriétaires du token.",
+            title:      tl("Wild Shape / Polymorph"),
+            text:       `${tl("La section <strong>Wild Shape / Polymorph</strong> du même onglet configure des formes de transformation complètes. Le bouton <i class='fa-solid fa-dragon'></i> dans le HUD (clic droit sur le token) applique la transformation en un clic — et la rétablit en re-cliquant. Accessible au GM et aux propriétaires du token.")}`,
             position:   "left",
             gmOnly:     true
         },
@@ -1368,69 +1369,69 @@ const STEPS_BY_FEATURE = {
         {
             beforeShow: _expandWestmarch,
             target:     "[data-tool='fakeWarning']",
-            title:      "Faux message de maintenance",
-            text:       "Ce bouton <i class='fa-solid fa-triangle-exclamation'></i> envoie une fausse notification jaune à un joueur précis — pour lui faire croire qu'un problème technique a été résolu. Vous pouvez le <strong>retirer complètement</strong> en décochant « Faux message de maintenance » dans <em>Réglages → Serveur</em>.",
+            title:      tl("Faux message de maintenance"),
+            text:       `${tl("Ce bouton <i class='fa-solid fa-triangle-exclamation'></i> envoie une fausse notification jaune à un joueur précis — pour lui faire croire qu'un problème technique a été résolu. Vous pouvez le <strong>retirer complètement</strong> en décochant « Faux message de maintenance » dans <em>Réglages → Serveur</em>.")}`,
             position:   "right",
             gmOnly:     true
         },
         {
             beforeShow: _openChatTab,
             target:     "[data-wm-action='clearParty']",
-            title:      "Vider les messages de ma party",
-            text:       "Ce bouton <i class='fa-solid fa-users-slash'></i> supprime uniquement les messages du chat dont l'auteur appartient à <strong>votre party</strong>. Les messages des autres GMs et de leurs joueurs ne sont pas touchés. Une confirmation est demandée avant la suppression.",
+            title:      tl("Vider les messages de ma party"),
+            text:       `${tl("Ce bouton <i class='fa-solid fa-users-slash'></i> supprime uniquement les messages du chat dont l'auteur appartient à <strong>votre party</strong>. Les messages des autres GMs et de leurs joueurs ne sont pas touchés. Une confirmation est demandée avant la suppression.")}`,
             position:   "top",
             gmOnly:     true
         },
         {
             beforeShow: _openChatTab,
             target:     "[data-wm-action='importParty']",
-            title:      "Importer des messages de chat",
-            text:       "Ce bouton <i class='fa-solid fa-file-import'></i> permet de réimporter un export de chat Foundry (<code>.txt</code>) ou JSON. Les messages sont recréés dans le chat en conservant leur timestamp d'origine — ils apparaîtront dans le bon ordre chronologique. Pratique pour restaurer un historique après un clear accidentel.",
+            title:      tl("Importer des messages de chat"),
+            text:       `${tl("Ce bouton <i class='fa-solid fa-file-import'></i> permet de réimporter un export de chat Foundry (<code>.txt</code>) ou JSON. Les messages sont recréés dans le chat en conservant leur timestamp d'origine — ils apparaîtront dans le bon ordre chronologique. Pratique pour restaurer un historique après un clear accidentel.")}`,
             position:   "top",
             gmOnly:     true
         },
         {
             target:   null,
-            title:    "Protection TGCM",
-            text:     "Le bouton <i class='fa-solid fa-shield-halved'></i> dans le HUD d'un token (GM uniquement) le protège de la mort. Un token TGCM ne peut jamais tomber à 0 PV — tout dégât fatal le laisse à 1 PV.",
+            title:    tl("Protection TGCM"),
+            text:     `${tl("Le bouton <i class='fa-solid fa-shield-halved'></i> dans le HUD d'un token (GM uniquement) le protège de la mort. Un token TGCM ne peut jamais tomber à 0 PV — tout dégât fatal le laisse à 1 PV.")}`,
             position: "center",
             gmOnly:   true
         },
         {
             target:   null,
-            title:    "Blocage XP et Level Up",
-            text:     "Activez le <strong>blocage XP</strong> dans les paramètres de <em>Serveur</em> pour empêcher les joueurs de modifier leur XP ou monter de niveau eux-mêmes. Seul le GM peut le faire.",
+            title:    tl("Blocage XP et Level Up"),
+            text:     `${tl("Activez le <strong>blocage XP</strong> dans les paramètres de <em>Serveur</em> pour empêcher les joueurs de modifier leur XP ou monter de niveau eux-mêmes. Seul le GM peut le faire.")}`,
             position: "center",
             gmOnly:   true
         },
         {
             target:   null,
-            title:    "Logs Discord",
-            text:     "Configurez des URLs <strong>webhook</strong> dans les paramètres de <em>Serveur</em> pour recevoir des notifications automatiques sur Discord : modifications d'objets, changements de date de jeu, et résultats des temps morts.",
+            title:    tl("Logs Discord"),
+            text:     `${tl("Configurez des URLs <strong>webhook</strong> dans les paramètres de <em>Serveur</em> pour recevoir des notifications automatiques sur Discord : modifications d'objets, changements de date de jeu, et résultats des temps morts.")}`,
             position: "center",
             gmOnly:   true
         },
         {
             target:   null,
-            title:    "Exporter un personnage",
-            text:     "Faites un <strong>clic droit</strong> sur n'importe quel acteur dans la sidebar et choisissez <strong>Exporter</strong>. Une fenêtre vous propose deux formats : <br><br><i class='fa-solid fa-layer-group'></i> <strong>Fiche actuelle</strong> — export complet avec toutes les données (expéditions, relations, bestiaire, flags modules). À réimporter uniquement sur un serveur avec les mêmes modules.<br><br><i class='fa-solid fa-dice-d20'></i> <strong>Fiche originale dnd5e</strong> — réinitialise la fiche au format dnd5e standard et supprime toutes les données propres au serveur. Compatible partout.",
+            title:    tl("Exporter un personnage"),
+            text:     `${tl("Faites un <strong>clic droit</strong> sur n'importe quel acteur dans la sidebar et choisissez <strong>Exporter</strong>. Une fenêtre vous propose deux formats : <br><br><i class='fa-solid fa-layer-group'></i> <strong>Fiche actuelle</strong> — export complet avec toutes les données (expéditions, relations, bestiaire, flags modules). À réimporter uniquement sur un serveur avec les mêmes modules.<br><br><i class='fa-solid fa-dice-d20'></i> <strong>Fiche originale dnd5e</strong> — réinitialise la fiche au format dnd5e standard et supprime toutes les données propres au serveur. Compatible partout.")}`,
             position: "center",
             gmOnly:   true
         },
         {
             target:   null,
-            title:    "Masquer des éléments d'interface",
-            text:     "<strong>Réglages → Interface — Masquer des éléments</strong> ouvre un panneau qui liste ce qui est présent sur l'interface (icônes de la barre d'outils, barre de macros, liste des joueurs, navigation…). Chaque élément a <strong>deux colonnes de cases</strong> : <strong>Joueurs</strong> et <strong>GM</strong>. Cochez ce que vous voulez cacher pour chaque rôle ; chaque client applique la colonne de son rôle. « Tout réafficher » remet tout.",
+            title:    tl("Masquer des éléments d'interface"),
+            text:     `${tl("<strong>Réglages → Interface — Masquer des éléments</strong> ouvre un panneau qui liste ce qui est présent sur l'interface (icônes de la barre d'outils, barre de macros, liste des joueurs, navigation…). Chaque élément a <strong>deux colonnes de cases</strong> : <strong>Joueurs</strong> et <strong>GM</strong>. Cochez ce que vous voulez cacher pour chaque rôle ; chaque client applique la colonne de son rôle. « Tout réafficher » remet tout.")}`,
             position: "center",
             gmOnly:   true
         },
         {
             target:   null,
-            title:    "À propos & activation / désactivation",
-            text:     "<strong>Réglages → À propos</strong> (visible par tous) affiche version, auteur et protection des droits. Tout en bas, un <strong>champ code</strong> :<br><br>"
-                    + "• votre <strong>code d'activation</strong> active le module ;<br>"
-                    + "• votre <strong>code de désactivation</strong> le coupe pour tout le serveur (le ressaisir le réactive).<br><br>"
-                    + "Un joueur peut aussi saisir le code (sa demande est relayée à un MJ connecté). Le module désactivé, la fenêtre « À propos » reste accessible pour le réactiver.",
+            title:    tl("À propos & activation / désactivation"),
+            text:     `${tl("<strong>Réglages → À propos</strong> (visible par tous) affiche version, auteur et protection des droits. Tout en bas, un <strong>champ code</strong> :<br><br>")}`
+                    + `${tl("• votre <strong>code d'activation</strong> active le module ;<br>")}`
+                    + `${tl("• votre <strong>code de désactivation</strong> le coupe pour tout le serveur (le ressaisir le réactive).<br><br>")}`
+                    + tl("Un joueur peut aussi saisir le code (sa demande est relayée à un MJ connecté). Le module désactivé, la fenêtre « À propos » reste accessible pour le réactiver."),
             position: "center",
             gmOnly:   true
         },
@@ -1441,22 +1442,22 @@ const STEPS_BY_FEATURE = {
         {
             beforeShow: async () => { _closeTradeDemo(); try { ui.players?.render?.(); } catch {} await _sleep(250); },
             target:     "#players, #players-active, .players",
-            title:      "Échange entre joueurs",
-            text:       "Ce serveur permet d'<strong>échanger objets et monnaie</strong> entre joueurs, façon Dofus. Pour lancer un échange : dans la <strong>liste des joueurs</strong>, survolez un joueur en ligne — un bouton <i class='fa-solid fa-right-left'></i> <strong>Échanger</strong> apparaît. (On ne peut pas échanger pendant une party ; en expédition, uniquement avec les membres de l'expédition ; sinon librement.)",
+            title:      tl("Échange entre joueurs"),
+            text:       `${tl("Ce serveur permet d'<strong>échanger objets et monnaie</strong> entre joueurs, façon Dofus. Pour lancer un échange : dans la <strong>liste des joueurs</strong>, survolez un joueur en ligne — un bouton <i class='fa-solid fa-right-left'></i> <strong>Échanger</strong> apparaît. (On ne peut pas échanger pendant une party ; en expédition, uniquement avec les membres de l'expédition ; sinon librement.)")}`,
             position:   "right"
         },
         {
             beforeShow: _openTradeDemo,
             target:     "#scwm-trade-demo",
-            title:      "La fenêtre d'échange",
-            text:       "Voici (en <strong>démonstration</strong>) à quoi ressemble un échange. Deux zones : <strong>votre offre</strong> à gauche, celle de l'autre à droite. Vous y glissez vos objets et réglez la <strong>monnaie</strong> à donner. Tant que personne n'a validé, chacun peut modifier son offre.",
+            title:      tl("La fenêtre d'échange"),
+            text:       `${tl("Voici (en <strong>démonstration</strong>) à quoi ressemble un échange. Deux zones : <strong>votre offre</strong> à gauche, celle de l'autre à droite. Vous y glissez vos objets et réglez la <strong>monnaie</strong> à donner. Tant que personne n'a validé, chacun peut modifier son offre.")}`,
             position:   "left"
         },
         {
             beforeShow: _openTradeDemo,
             target:     '#scwm-trade-demo [data-demo="buttons"]',
-            title:      "Confirmer l'échange",
-            text:       "Chaque joueur doit <strong>Confirmer son offre</strong> : l'échange ne se fait que lorsque les <strong>deux</strong> ont confirmé — tout est transféré d'un coup, sans risque. <strong>Annuler</strong> ferme l'échange sans rien transférer. Côté demandeur, une petite fenêtre « en attente d'acceptation » s'affiche (impossible à fermer, seulement annuler) tant que l'autre n'a pas répondu.",
+            title:      tl("Confirmer l'échange"),
+            text:       `${tl("Chaque joueur doit <strong>Confirmer son offre</strong> : l'échange ne se fait que lorsque les <strong>deux</strong> ont confirmé — tout est transféré d'un coup, sans risque. <strong>Annuler</strong> ferme l'échange sans rien transférer. Côté demandeur, une petite fenêtre « en attente d'acceptation » s'affiche (impossible à fermer, seulement annuler) tant que l'autre n'a pas répondu.")}`,
             position:   "left"
         },
     ],
@@ -1466,21 +1467,21 @@ const STEPS_BY_FEATURE = {
         {
             beforeShow: _openSidebarSettingsTab,
             target:     '#settings button[data-action="configure"], button.configure-settings, [data-action="configure"], #settings',
-            title:      "Transformations — où régler",
-            text:       "Le module gère deux systèmes distincts via le moteur dnd5e : la <strong>Forme sauvage</strong> (druide) et la <strong>Polymorphie</strong> (sort), avec les règles PHB 2024. Les options se trouvent dans <strong>Réglages → Configurer les paramètres</strong>, catégorie <strong>Transformation</strong>.",
+            title:      tl("Transformations — où régler"),
+            text:       `${tl("Le module gère deux systèmes distincts via le moteur dnd5e : la <strong>Forme sauvage</strong> (druide) et la <strong>Polymorphie</strong> (sort), avec les règles PHB 2024. Les options se trouvent dans <strong>Réglages → Configurer les paramètres</strong>, catégorie <strong>Transformation</strong>.")}`,
             position:   "left"
         },
         {
             beforeShow: _openConfigHubTour,
             target:     "#scwm-hub",
-            title:      "Catégorie « Transformation »",
-            text:       "Dans le <strong>Panneau de configuration</strong> → groupe <strong>Combat</strong> → <strong>Transformation</strong> : activez/désactivez l'ensemble et réglez l'application des limites de <strong>facteur de puissance (FP)</strong>.",
+            title:      tl("Catégorie « Transformation »"),
+            text:       `${tl("Dans le <strong>Panneau de configuration</strong> → groupe <strong>Combat</strong> → <strong>Transformation</strong> : activez/désactivez l'ensemble et réglez l'application des limites de <strong>facteur de puissance (FP)</strong>.")}`,
             position:   "right"
         },
         {
             target:     null,
-            title:      "Comment ça marche en jeu",
-            text:       "En combat, sélectionnez le token du personnage : des boutons apparaissent dans le <strong>HUD du token</strong> — <strong>Forme sauvage</strong> (druide) et/ou <strong>Polymorphie</strong>, puis <strong>Revenir</strong> à la forme d'origine. Choisissez la bête : le moteur dnd5e applique la transformation (garde l'essentiel du perso selon le type), vérifie le FP max autorisé, et <strong>Revenir</strong> restaure la fiche. Deux listes de formes mémorisées (Wild Shape / Polymorphie) évitent de re-chercher à chaque fois.",
+            title:      tl("Comment ça marche en jeu"),
+            text:       `${tl("En combat, sélectionnez le token du personnage : des boutons apparaissent dans le <strong>HUD du token</strong> — <strong>Forme sauvage</strong> (druide) et/ou <strong>Polymorphie</strong>, puis <strong>Revenir</strong> à la forme d'origine. Choisissez la bête : le moteur dnd5e applique la transformation (garde l'essentiel du perso selon le type), vérifie le FP max autorisé, et <strong>Revenir</strong> restaure la fiche. Deux listes de formes mémorisées (Wild Shape / Polymorphie) évitent de re-chercher à chaque fois.")}`,
             position:   "center"
         },
     ],
@@ -1489,23 +1490,23 @@ const STEPS_BY_FEATURE = {
     compagnons: [
         {
             target:     null,
-            title:      "Compagnons évolutifs — le principe",
-            textGM:     "Un <strong>compagnon évolutif</strong> (familier, invocation, animal) voit ses stats (CA, PV, bonus…) <strong>recalculées automatiquement</strong> selon le niveau de son <strong>maître</strong> (le PJ). Plus besoin de refaire sa fiche à chaque niveau : le module resynchronise via des <strong>formules</strong>.",
+            title:      tl("Compagnons évolutifs — le principe"),
+            textGM:     `${tl("Un <strong>compagnon évolutif</strong> (familier, invocation, animal) voit ses stats (CA, PV, bonus…) <strong>recalculées automatiquement</strong> selon le niveau de son <strong>maître</strong> (le PJ). Plus besoin de refaire sa fiche à chaque niveau : le module resynchronise via des <strong>formules</strong>.")}`,
             position:   "center",
             gmOnly:     true
         },
         {
             target:     null,
-            title:      "Attribuer un compagnon",
-            textGM:     "Ouvrez la fiche de la <strong>créature (PNJ)</strong> à lier. Dans la <strong>barre de titre</strong> de sa fenêtre, un bouton <i class='fa-solid fa-dna'></i> apparaît (MJ) : cliquez-le pour ouvrir le dialogue, choisissez le <strong>maître</strong> (le PJ) et le <strong>profil</strong> de formules à appliquer, puis validez. Le compagnon est lié et se mettra à jour tout seul quand le maître monte de niveau.",
+            title:      tl("Attribuer un compagnon"),
+            textGM:     `${tl("Ouvrez la fiche de la <strong>créature (PNJ)</strong> à lier. Dans la <strong>barre de titre</strong> de sa fenêtre, un bouton <i class='fa-solid fa-dna'></i> apparaît (MJ) : cliquez-le pour ouvrir le dialogue, choisissez le <strong>maître</strong> (le PJ) et le <strong>profil</strong> de formules à appliquer, puis validez. Le compagnon est lié et se mettra à jour tout seul quand le maître monte de niveau.")}`,
             position:   "center",
             gmOnly:     true
         },
         {
             beforeShow: _openConfigHubTour,
             target:     "#scwm-hub",
-            title:      "Personnaliser les profils (JSON)",
-            textGM:     "Les profils de formules sont <strong>personnalisables</strong>. Dans le <strong>Panneau de configuration</strong> → groupe <strong>Personnalisation &amp; interface</strong> → <strong>Profils de compagnons</strong>, vous pouvez ajouter ou surcharger des profils en <strong>JSON</strong> : chaque champ (ex. <code>system.attributes.hp.max</code>) reçoit une <strong>formule</strong> pouvant référencer <code>@level</code> (niveau du maître), <code>@master</code>, <code>@pb</code>… Parfait pour coller à vos règles maison.",
+            title:      tl("Personnaliser les profils (JSON)"),
+            textGM:     `${tl("Les profils de formules sont <strong>personnalisables</strong>. Dans le <strong>Panneau de configuration</strong> → groupe <strong>Personnalisation &amp; interface</strong> → <strong>Profils de compagnons</strong>, vous pouvez ajouter ou surcharger des profils en <strong>JSON</strong> : chaque champ (ex. <code>system.attributes.hp.max</code>) reçoit une <strong>formule</strong> pouvant référencer <code>@level</code> (niveau du maître), <code>@master</code>, <code>@pb</code>… Parfait pour coller à vos règles maison.")}`,
             position:   "right",
             gmOnly:     true
         },
@@ -1516,9 +1517,9 @@ const STEPS_BY_FEATURE = {
         {
             beforeShow: _openPantheonFolder,
             target:     ".tuto-a11y-highlight, #journal .folder, .journal .directory-item.folder",
-            title:      "Le dossier Panthéons",
-            text:       "Dans l'onglet <strong>Journaux</strong>, le module ajoute un dossier <strong>Panthéons</strong> contenant un compendium complet des <strong>Dieux de Faerûn</strong> (tous les panthéons). Il est <strong>visible par tout le monde</strong> : cliquez le journal pour consulter les divinités, leurs domaines et symboles.",
-            textGM:     "Dans l'onglet <strong>Journaux</strong>, le module crée au premier lancement un dossier <strong>Panthéons</strong> (Dieux de Faerûn, tous les panthéons), <strong>visible par tous les joueurs</strong>. Vous pouvez le consulter, le déplacer ou le supprimer ; il ne sera pas recréé. L'option se coupe dans <strong>Réglages → Serveur</strong> si vous n'en voulez pas.",
+            title:      tl("Le dossier Panthéons"),
+            text:       `${tl("Dans l'onglet <strong>Journaux</strong>, le module ajoute un dossier <strong>Panthéons</strong> contenant un compendium complet des <strong>Dieux de Faerûn</strong> (tous les panthéons). Il est <strong>visible par tout le monde</strong> : cliquez le journal pour consulter les divinités, leurs domaines et symboles.")}`,
+            textGM:     `${tl("Dans l'onglet <strong>Journaux</strong>, le module crée au premier lancement un dossier <strong>Panthéons</strong> (Dieux de Faerûn, tous les panthéons), <strong>visible par tous les joueurs</strong>. Vous pouvez le consulter, le déplacer ou le supprimer ; il ne sera pas recréé. L'option se coupe dans <strong>Réglages → Serveur</strong> si vous n'en voulez pas.")}`,
             position:   "right"
         },
     ],
@@ -1534,14 +1535,14 @@ async function _askFoundryExperience() {
     const DialogV2 = foundry.applications.api.DialogV2;
     try {
         const res = await DialogV2.wait({
-            window: { title: "Avant de commencer", icon: "fa-solid fa-circle-question" },
+            window: { title: tl("Avant de commencer"), icon: "fa-solid fa-circle-question" },
             position: { width: 460 },
             rejectClose: false,
-            content: `<p style="margin:0 0 8px;">Connais-tu déjà <strong>Foundry VTT</strong> et l'as-tu déjà utilisé ?</p>
-                      <p style="margin:0;font-size:.85em;opacity:.75;">Si oui, on passe directement aux fonctions propres à ce serveur (on saute le tour des bases : fiche de personnage, tokens…).</p>`,
+            content: `<p style="margin:0 0 8px;">${tl("Connais-tu déjà <strong>Foundry VTT</strong> et l'as-tu déjà utilisé ?")}</p>
+                      <p style="margin:0;font-size:.85em;opacity:.75;">${tl("Si oui, on passe directement aux fonctions propres à ce serveur (on saute le tour des bases : fiche de personnage, tokens…).")}</p>`,
             buttons: [
-                { action: "yes", label: "Oui, je connais Foundry", icon: "fa-solid fa-user-check", callback: () => "yes" },
-                { action: "no",  label: "Non / première fois", icon: "fa-solid fa-graduation-cap", default: true, callback: () => "no" }
+                { action: "yes", label: tl("Oui, je connais Foundry"), icon: "fa-solid fa-user-check", callback: () => "yes" },
+                { action: "no",  label: tl("Non / première fois"), icon: "fa-solid fa-graduation-cap", default: true, callback: () => "no" }
             ]
         });
         if (res === "yes") return true;
@@ -1587,7 +1588,7 @@ export async function startTutorial(selectedSections = null, onComplete = null) 
     }
 
     if (!_steps.length) {
-        ui.notifications.warn("[Tutoriel] Aucun contenu activé. Activez des fonctionnalités dans les paramètres du tutoriel.");
+        ui.notifications.warn(tl("[Tutoriel] Aucun contenu activé. Activez des fonctionnalités dans les paramètres du tutoriel."));
         return;
     }
 
@@ -1633,18 +1634,18 @@ function _promptHideWelcome() {
     if (!game.settings.get(MODULE, "tutoEnabled")) return;
     if (game.settings.get(MODULE, "hideWelcome"))  return;   // déjà masquée
     new Dialog({
-        title:   "Guide terminé",
-        content: `<p>Vous avez terminé le guide. Souhaitez-vous <strong>ne plus afficher la fenêtre de bienvenue</strong> à la connexion ?</p>
-                  <p style="opacity:.7;font-size:12px;">Vous pourrez toujours relancer le guide via le bouton « ? » dans la barre WestMarch.</p>`,
+        title:   tl("Guide terminé"),
+        content: `<p>${tl("Vous avez terminé le guide. Souhaitez-vous <strong>ne plus afficher la fenêtre de bienvenue</strong> à la connexion ?")}</p>
+                  <p style="opacity:.7;font-size:12px;">${tl("Vous pourrez toujours relancer le guide via le bouton « ? » dans la barre WestMarch.")}</p>`,
         buttons: {
             hide: {
-                icon: '<i class="fa-solid fa-eye-slash"></i>', label: "Ne plus afficher",
+                icon: '<i class="fa-solid fa-eye-slash"></i>', label: tl("Ne plus afficher"),
                 callback: () => {
                     game.settings.set(MODULE, "hideWelcome", true);
-                    ui.notifications.info("[Tutoriel] La fenêtre d'accueil ne s'affichera plus. Bouton « ? » dans la barre WestMarch pour relancer le guide.");
+                    ui.notifications.info(tl("[Tutoriel] La fenêtre d'accueil ne s'affichera plus. Bouton « ? » dans la barre WestMarch pour relancer le guide."));
                 }
             },
-            keep: { icon: '<i class="fa-solid fa-check"></i>', label: "Garder l'accueil", callback: () => {} }
+            keep: { icon: '<i class="fa-solid fa-check"></i>', label: tl("Garder l'accueil"), callback: () => {} }
         },
         default: "hide"
     }).render(true);
@@ -1773,27 +1774,27 @@ async function _showStep(idx) {
     const canGoPrevCat = !atSectionStart || !!prevSection;   // début de catégorie OU catégorie précédente
     const catPrevDis   = canGoPrevCat ? "" : " disabled";
     const catNextDis   = nextSection ? "" : " disabled";
-    const catPrevTip   = !atSectionStart ? "Revenir au début de la catégorie"
-                         : prevSection ? `Catégorie précédente : ${SECTION_LABELS[prevSection] ?? prevSection}`
-                         : "Aucune catégorie précédente";
-    const catNextTip   = nextSection ? `Catégorie suivante : ${SECTION_LABELS[nextSection] ?? nextSection}`
-                         : "Dernière catégorie";
+    const catPrevTip   = !atSectionStart ? tl("Revenir au début de la catégorie")
+                         : prevSection ? tl("Catégorie précédente : {0}", SECTION_LABELS[prevSection] ?? prevSection)
+                         : tl("Aucune catégorie précédente");
+    const catNextTip   = nextSection ? tl("Catégorie suivante : {0}", SECTION_LABELS[nextSection] ?? nextSection)
+                         : tl("Dernière catégorie");
 
     const bubble = document.createElement("div");
     bubble.id = "tuto-bubble";
     bubble.innerHTML = `
         <div class="tuto-bubble-header">
             <button class="tuto-cat-btn tuto-cat-prev" title="${catPrevTip}"${catPrevDis}>
-                <i class="fa-solid fa-angle-left"></i> Retour
+                ${tl("<i class=\"fa-solid fa-angle-left\"></i> Retour")}
             </button>
             <span class="tuto-step-counter">
                 <span class="tuto-step-dots">${_renderDots(idx, _steps.length)}</span>
                 ${idx + 1} / ${_steps.length}
             </span>
             <button class="tuto-cat-btn tuto-cat-next" title="${catNextTip}"${catNextDis}>
-                Suivant <i class="fa-solid fa-angle-right"></i>
+                ${tl("Suivant <i class=\"fa-solid fa-angle-right\"></i>")}
             </button>
-            <button class="tuto-close-btn" title="Fermer le tutoriel (Echap)">
+            <button class="tuto-close-btn" title="${tl("Fermer le tutoriel (Echap)")}">
                 <i class="fa-solid fa-times"></i>
             </button>
         </div>
@@ -1803,12 +1804,12 @@ async function _showStep(idx) {
         </div>
         <div class="tuto-bubble-footer">
             <button class="tuto-btn tuto-prev"${isFirst ? " disabled" : ""}>
-                <i class="fa-solid fa-chevron-left"></i> Précédent
+                ${tl("<i class=\"fa-solid fa-chevron-left\"></i> Précédent")}
             </button>
             <button class="tuto-btn tuto-next primary">
                 ${isLast
-                    ? '<i class="fa-solid fa-check"></i> Terminer'
-                    : 'Suivant <i class="fa-solid fa-chevron-right"></i>'}
+                    ? `${tl("<i class=\"fa-solid fa-check\"></i> Terminer")}`
+                    : `${tl("Suivant <i class=\"fa-solid fa-chevron-right\"></i>")}`}
             </button>
         </div>`;
 

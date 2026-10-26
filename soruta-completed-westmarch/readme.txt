@@ -212,6 +212,38 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
 
+v6.6.3 | 2026-10-26
+   - Anglais par défaut : tout le texte du module (réglages, fiches, onglets,
+     Casier, fenêtres, messages de chat, notifications, journal Discord,
+     tutoriel, guide « Où ranger quoi ? ») s'affiche en anglais, sauf pour
+     les utilisateurs dont la langue Foundry est le français, qui gardent le
+     texte d'origine. Chaque utilisateur voit sa langue (réglage « Langue »
+     de Foundry). Dates et nombres suivent aussi la langue.
+     Fichiers : modules/i18n.js (fonction tl, langue, memeNom) et
+     modules/i18n-en.js (dictionnaire français → anglais, ~2 400 entrées).
+     Un texte absent du dictionnaire reste en français, sans erreur.
+   - Noms créés par le module (dossiers « Tokens de groupe », « Panthéons »,
+     « Carnet commun », « Tutoriel », « Import », acteur modèle « Token à
+     copier et rennomer », compendiums « Registre — PNJ / Organisations »,
+     pages du guide) : reconnus dans les deux langues, pas de doublon si
+     des MJ de langues différentes se succèdent.
+   - Dossiers par défaut (validation des personnages, fiches de lieux) :
+     fixés une fois dans la langue du MJ au premier lancement, pour que tous
+     les clients lisent le même nom.
+   - Contrôle des sources : le mot-clé « species » (et « espece ») est
+     accepté comme « race ».
+   - Nouveau réglage client « Module language / Langue du module »
+     (Automatique / English / Français, rechargement) : chaque utilisateur
+     peut avoir le module dans une autre langue que Foundry, par exemple
+     Foundry en anglais et le module en français.
+   - Messages de la console (F12) traduits aussi.
+   - Dieux de Faerûn : version anglaise livrée (data/dieux-de-faerun-en.json,
+     101 pages, noms anglais officiels, tri alphabétique anglais). Le dossier
+     « Panthéons » est créé dans la langue du MJ au premier lancement.
+   - Inchangé : le contenu de base de la fiche démo du tutoriel reste en
+     français ; les noms de mois du calendrier servent de repère et ne sont
+     pas traduits.
+
 v6.6.2 | 2026-10-26
    - Corrections : l'icône « géré par le module » n'apparaît plus en double
      sur les lignes de la fiche ; « Dernière position » et « Dernière

@@ -1,6 +1,7 @@
 import { MOD } from "./const.js";
 import { journal } from "./log.js";
 import { Dialog } from "./compat.js";
+import { tl } from "./i18n.js";
 // ============================================================
 // export-dialog.js — Export d'acteur avec choix de fiche
 //
@@ -15,7 +16,7 @@ import { Dialog } from "./compat.js";
 // ================================================================
 
 export function ExportDialogHooks() {
-    journal.debug("[Toolkit Export] ExportDialogHooks() démarré");
+    journal.debug(tl("[Toolkit Export] ExportDialogHooks() démarré"));
 
     // Toutes les données custom des features sont désormais regroupées
     // sous le scope unique MOD (plus de liste de modules à nettoyer).
@@ -29,13 +30,13 @@ export function ExportDialogHooks() {
         || (typeof o.label === "string" && /export/i.test(o.label));
 
     const handler = (_html, options) => {
-        journal.debug("[Toolkit Export] hook contextuel déclenché, options :",
+        journal.debug(tl("[Toolkit Export] hook contextuel déclenché, options :"),
             options.map(o => ({ name: o.name, label: o.label, icon: o.icon }))
         );
 
         const idx = options.findIndex(isExportOption);
         journal.debug("[Toolkit Export] idx export :", idx,
-            idx !== -1 ? options[idx] : "(non trouvée)"
+            idx !== -1 ? options[idx] : tl("(non trouvée)")
         );
 
         const entry = {
@@ -46,7 +47,7 @@ export function ExportDialogHooks() {
                 return actor?.isOwner ?? false;
             },
             callback: async (li) => {
-                journal.debug("[Toolkit Export] callback export déclenché");
+                journal.debug(tl("[Toolkit Export] callback export déclenché"));
                 const actor = _getActor(li);
                 journal.debug("[Toolkit Export] acteur :", actor?.name);
                 if (!actor) return;
@@ -79,7 +80,7 @@ export function ExportDialogHooks() {
 // ================================================================
 
 async function _exportWithChoice(actor) {
-    journal.debug("[Toolkit Export] _exportWithChoice appelé pour", actor.name);
+    journal.debug(tl("[Toolkit Export] _exportWithChoice appelé pour"), actor.name);
     const choice = await _showDialog(actor);
     journal.debug("[Toolkit Export] choix =", choice);
     if (choice === null) return;
@@ -100,21 +101,17 @@ async function _showDialog(actor) {
         const content = `
         <form class="tko-export-form">
             <p class="tko-export-intro">
-                <i class="fa-solid fa-info-circle"></i>
-                Cet acteur contient des données liées aux modules du serveur
-                (expéditions, relations, bestiaire…).
-                Choisissez le format d'export.
+                ${tl("<i class=\"fa-solid fa-info-circle\"></i>\n                Cet acteur contient des données liées aux modules du serveur\n                (expéditions, relations, bestiaire…).\n                Choisissez le format d'export.")}
             </p>
 
             <label class="tko-export-opt">
                 <input type="radio" name="export-mode" value="current" checked>
                 <div class="tko-export-opt-body">
                     <span class="tko-export-opt-title">
-                        <i class="fa-solid fa-layer-group"></i> Fiche actuelle
+                        ${tl("<i class=\"fa-solid fa-layer-group\"></i> Fiche actuelle")}
                     </span>
                     <span class="tko-export-opt-desc">
-                        Inclut toutes les données (expéditions, notes, flags modules).
-                        À importer uniquement sur un serveur avec les mêmes modules installés.
+                        ${tl("Inclut toutes les données (expéditions, notes, flags modules).\n                        À importer uniquement sur un serveur avec les mêmes modules installés.")}
                     </span>
                 </div>
             </label>
@@ -123,12 +120,10 @@ async function _showDialog(actor) {
                 <input type="radio" name="export-mode" value="original">
                 <div class="tko-export-opt-body">
                     <span class="tko-export-opt-title">
-                        <i class="fa-solid fa-dice-d20"></i> Fiche originale dnd5e
+                        ${tl("<i class=\"fa-solid fa-dice-d20\"></i> Fiche originale dnd5e")}
                     </span>
                     <span class="tko-export-opt-desc">
-                        Réinitialise la fiche au format dnd5e standard et supprime
-                        les données propres aux modules. Compatible avec n'importe
-                        quel serveur Foundry.
+                        ${tl("Réinitialise la fiche au format dnd5e standard et supprime\n                        les données propres aux modules. Compatible avec n'importe\n                        quel serveur Foundry.")}
                     </span>
                 </div>
             </label>
@@ -140,7 +135,7 @@ async function _showDialog(actor) {
             buttons: {
                 export: {
                     icon:  '<i class="fa-solid fa-file-export"></i>',
-                    label: "Exporter",
+                    label: tl("Exporter"),
                     callback: (html) => {
                         // v13 : html peut être un HTMLElement ou un jQuery selon le contexte.
                         const el = html instanceof HTMLElement
@@ -152,7 +147,7 @@ async function _showDialog(actor) {
                 },
                 cancel: {
                     icon:  '<i class="fa-solid fa-times"></i>',
-                    label: "Annuler",
+                    label: tl("Annuler"),
                     callback: () => resolve(null)
                 }
             },
@@ -211,7 +206,7 @@ function _exportOriginal(actor) {
     URL.revokeObjectURL(url);
 
     ui.notifications.info(
-        `${actor.name} — exporté avec la fiche originale dnd5e (données modules supprimées).`
+        tl("{0} — exporté avec la fiche originale dnd5e (données modules supprimées).", actor.name)
     );
 }
 

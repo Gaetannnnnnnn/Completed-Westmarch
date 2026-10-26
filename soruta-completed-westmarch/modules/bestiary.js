@@ -15,6 +15,7 @@ import { MOD } from "./const.js";
 import { journal } from "./log.js";
 import { commonFolderPJ, commonPackCreatures } from "./settings.js";
 import { jetonDuPersonnage, voit, surCarteExpedition, ouvrirImage, dateDeRencontre, memeRencontre, texteRencontre } from "./perception.js";
+import { tl } from "./i18n.js";
 export const MODULE = MOD;
 
 // ---- État de session ---------------------------------------
@@ -27,11 +28,11 @@ let   _sightTimer = null;       // Debounce sightRefresh
 // ---- Niveaux d'hostilité (-2 → +2) -------------------------
 
 const HOSTILITY_CFG = {
-    "-2": { icon: "fa-skull",              color: "#8b0000", label: "Très hostile" },
+    "-2": { icon: "fa-skull",              color: "#8b0000", label: tl("Très hostile") },
     "-1": { icon: "fa-fire",               color: "#e74c3c", label: "Hostile"      },
-     "0": { icon: "fa-question",           color: "#888888", label: "Inconnue"     },
-     "1": { icon: "fa-eye",                color: "#a8d5a2", label: "Observée"     },
-     "2": { icon: "fa-handshake",          color: "#27ae60", label: "Amicale"      },
+     "0": { icon: "fa-question",           color: "#888888", label: tl("Inconnue")     },
+     "1": { icon: "fa-eye",                color: "#a8d5a2", label: tl("Observée")     },
+     "2": { icon: "fa-handshake",          color: "#27ae60", label: tl("Amicale")      },
 };
 
 function hostilityIcon(h) {
@@ -64,26 +65,26 @@ const escB = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<
 
 // Types de dégâts (identifiants dnd5e) et leur nom affiché.
 const DEGATS = [
-    ["acid", "Acide"], ["bludgeoning", "Contondant"], ["cold", "Froid"], ["fire", "Feu"],
-    ["force", "Force"], ["lightning", "Foudre"], ["necrotic", "Nécrotique"], ["piercing", "Perforant"],
-    ["poison", "Poison"], ["psychic", "Psychique"], ["radiant", "Radiant"], ["slashing", "Tranchant"],
-    ["thunder", "Tonnerre"]
+    ["acid", tl("Acide")], ["bludgeoning", tl("Contondant")], ["cold", tl("Froid")], ["fire", tl("Feu")],
+    ["force", tl("Force")], ["lightning", tl("Foudre")], ["necrotic", tl("Nécrotique")], ["piercing", tl("Perforant")],
+    ["poison", tl("Poison")], ["psychic", tl("Psychique")], ["radiant", tl("Radiant")], ["slashing", tl("Tranchant")],
+    ["thunder", tl("Tonnerre")]
 ];
 // Les 4 états d'une étiquette, dans l'ordre des clics. Chacun a sa forme :
 // neutre = pointillés gris ; faiblesse = rouge, coins carrés ; résistance =
 // bleu, arrondi ; immunité = doré, plein, en forme de pilule.
 const ETATS_DEGATS = ["", "faiblesse", "resistance", "immunite"];
 const STYLE_ETAT = {
-    "":          { icon: "",                   label: "non noté",   css: "border:1px dashed rgba(255,255,255,.25);color:#888;background:transparent;border-radius:3px;" },
-    faiblesse:   { icon: "fa-heart-crack",     label: "Faiblesse",  css: "border:1px solid #c0392b;color:#ff8a7a;background:rgba(192,57,43,.18);border-radius:0;" },
-    resistance:  { icon: "fa-shield-halved",   label: "Résistance", css: "border:1px solid #2e86c1;color:#8cc8f0;background:rgba(46,134,193,.18);border-radius:6px;" },
-    immunite:    { icon: "fa-shield",          label: "Immunité",   css: "border:1px solid #c9a227;color:#1b1406;background:#c9a227;border-radius:999px;font-weight:700;" }
+    "":          { icon: "",                   label: tl("non noté"),   css: "border:1px dashed rgba(255,255,255,.25);color:#888;background:transparent;border-radius:3px;" },
+    faiblesse:   { icon: "fa-heart-crack",     label: tl("Faiblesse"),  css: "border:1px solid #c0392b;color:#ff8a7a;background:rgba(192,57,43,.18);border-radius:0;" },
+    resistance:  { icon: "fa-shield-halved",   label: tl("Résistance"), css: "border:1px solid #2e86c1;color:#8cc8f0;background:rgba(46,134,193,.18);border-radius:6px;" },
+    immunite:    { icon: "fa-shield",          label: tl("Immunité"),   css: "border:1px solid #c9a227;color:#1b1406;background:#c9a227;border-radius:999px;font-weight:700;" }
 };
 const etatSuivant = (e) => ETATS_DEGATS[(ETATS_DEGATS.indexOf(e ?? "") + 1) % ETATS_DEGATS.length];
 
 function etiquetteDegatHtml(cle, nom, etat, canEdit) {
     const st = STYLE_ETAT[etat ?? ""] ?? STYLE_ETAT[""];
-    const titre = canEdit ? `${nom} : ${st.label} (cliquer pour changer)` : `${nom} : ${st.label}`;
+    const titre = canEdit ? tl("{0} : {1} (cliquer pour changer)", nom, st.label) : `${nom} : ${st.label}`;
     return `<a class="bst-dmg${canEdit ? " bst-dmg-edit" : ""}" data-dmg="${cle}" data-etat="${etat ?? ""}" title="${escB(titre)}"
         style="display:inline-flex;align-items:center;gap:3px;padding:1px 6px;margin:2px;font-size:11px;line-height:16px;cursor:${canEdit ? "pointer" : "default"};user-select:none;${st.css}">${st.icon ? `<i class="fa-solid ${st.icon}" style="font-size:9px;"></i>` : ""}${escB(nom)}</a>`;
 }
@@ -98,17 +99,15 @@ function degatsTries(d) {
 function listeDegatsHtml(entry, canEdit) {
     const d = entry.degats ?? {};
     const liste = degatsTries(d).filter(([k]) => canEdit || d[k]);
-    return liste.length ? liste.map(([k, nom]) => etiquetteDegatHtml(k, nom, d[k], canEdit)).join("") : `<em style="font-size:11px;opacity:.7;">Rien de noté.</em>`;
+    return liste.length ? liste.map(([k, nom]) => etiquetteDegatHtml(k, nom, d[k], canEdit)).join("") : `${tl("<em style=\"font-size:11px;opacity:.7;\">Rien de noté.</em>")}`;
 }
 
 function blocDegatsHtml(entry, canEdit) {
     const legende = `<span style="font-size:10px;opacity:.65;margin-left:4px;">
-        <i class="fa-solid fa-heart-crack" style="color:#ff8a7a;"></i> faiblesse ·
-        <i class="fa-solid fa-shield-halved" style="color:#8cc8f0;"></i> résistance ·
-        <i class="fa-solid fa-shield" style="color:#c9a227;"></i> immunité</span>`;
+        ${tl("<i class=\"fa-solid fa-heart-crack\" style=\"color:#ff8a7a;\"></i> faiblesse ·\n        <i class=\"fa-solid fa-shield-halved\" style=\"color:#8cc8f0;\"></i> résistance ·\n        <i class=\"fa-solid fa-shield\" style=\"color:#c9a227;\"></i> immunité")}</span>`;
     return `<div class="bst-dmg-row" style="margin:6px 0;">
         <div style="display:flex;align-items:center;gap:6px;"><i class="fa-solid fa-burst"></i>
-            <span class="bst-field-label">Dégâts :</span>${legende}</div>
+            <span class="bst-field-label">${tl("Dégâts :")}</span>${legende}</div>
         <div class="bst-dmg-list" data-bst-id="${entry.id}" style="display:flex;flex-wrap:wrap;margin-top:2px;transition:opacity .15s;">
             ${listeDegatsHtml(entry, canEdit)}
         </div>
@@ -117,9 +116,9 @@ function blocDegatsHtml(entry, canEdit) {
 
 // Classe d'armure estimée par le joueur.
 const CA_NIVEAUX = [
-    ["", "— inconnue —"], ["tres-faible", "Très faible (13 ou moins)"], ["faible", "Faible (14–15)"],
-    ["moyenne", "Moyenne (16–17)"], ["elevee", "Élevée (18–19)"], ["tres-elevee", "Très élevée (20–21)"],
-    ["extreme", "Extrême (22 ou plus)"]
+    ["", "— inconnue —"], ["tres-faible", tl("Très faible (13 ou moins)")], ["faible", tl("Faible (14–15)")],
+    ["moyenne", tl("Moyenne (16–17)")], ["elevee", tl("Élevée (18–19)")], ["tres-elevee", tl("Très élevée (20–21)")],
+    ["extreme", tl("Extrême (22 ou plus)")]
 ];
 // Jauge de CA : 6 barres de hauteur croissante, remplies jusqu'au niveau
 // choisi (style du bestiaire, pas de liste déroulante native). Cliquer sur
@@ -134,14 +133,14 @@ function jaugeCaHtml(val, canEdit) {
                    background:${rempli ? "linear-gradient(180deg,#f0d27a,#c9a227)" : "rgba(255,255,255,0.08)"};
                    border:1px solid ${rempli ? "#c9a227" : "rgba(201,162,39,0.3)"};box-sizing:border-box;"></a>`;
     }).join("");
-    const lib = niv > 0 ? CA_NIVEAUX[niv][1] : "Inconnue";
+    const lib = niv > 0 ? CA_NIVEAUX[niv][1] : tl("Inconnue");
     return `<span class="bst-ca-jauge" style="display:inline-flex;align-items:flex-end;height:24px;">${barres}</span>
         <span class="bst-ca-label" style="font-size:12px;color:${niv > 0 ? "#e0c169" : "#888"};${niv > 0 ? "" : "font-style:italic;"}">${escB(lib)}</span>`;
 }
 function blocCaHtml(entry, canEdit) {
     return `<div class="bst-ca-row" data-bst-id="${entry.id}" style="display:flex;align-items:center;gap:8px;margin:6px 0;">
         <i class="fa-solid fa-shield-heart"></i>
-        <span class="bst-field-label">CA :</span>
+        <span class="bst-field-label">${tl("CA :")}</span>
         ${jaugeCaHtml(entry.ca ?? "", canEdit)}
     </div>`;
 }
@@ -151,8 +150,8 @@ function blocDernierePositionHtml(entry) {
     const val = escB(entry.lastPosition ?? entry.firstScene ?? "");
     return `<div class="bst-scene-row">
         <i class="fa-solid fa-location-crosshairs"></i>
-        <span class="bst-field-label">Dernière position :</span>
-        <span class="bst-scene-value bst-last-value" data-bst-id="${entry.id}" title="Mise à jour automatiquement quand le personnage revoit la créature">${val || "<em>Inconnue</em>"}</span>
+        <span class="bst-field-label">${tl("Dernière position :")}</span>
+        <span class="bst-scene-value bst-last-value" data-bst-id="${entry.id}" title="${tl("Mise à jour automatiquement quand le personnage revoit la créature")}">${val || `${tl("<em>Inconnue</em>")}`}</span>
     </div>`;
 }
 
@@ -161,8 +160,8 @@ function blocDerniereRencontreHtml(entry) {
     const { texte, titre } = texteRencontre(entry.lastSeen);
     return `<div class="bst-scene-row">
         <i class="fa-solid fa-calendar-day"></i>
-        <span class="bst-field-label">Dernière rencontre :</span>
-        <span class="bst-scene-value bst-seen-value" data-bst-id="${entry.id}" title="${escB(titre)}">${texte ? escB(texte) : "<em>Inconnue</em>"}</span>
+        <span class="bst-field-label">${tl("Dernière rencontre :")}</span>
+        <span class="bst-scene-value bst-seen-value" data-bst-id="${entry.id}" title="${escB(titre)}">${texte ? escB(texte) : `${tl("<em>Inconnue</em>")}`}</span>
     </div>`;
 }
 
@@ -223,7 +222,7 @@ async function ensureCreatureIndex() {
         _creatureIndex = new Set(idx.map(e => e.name));
         _creatureIndexPack = packId;
     } catch (e) {
-        journal.avert("[Bestiaire] Index du compendium illisible :", e);
+        journal.avert(tl("[Bestiaire] Index du compendium illisible :"), e);
         _creatureIndex = null;
     }
 }
@@ -276,7 +275,7 @@ function isCreatureToken(token) {
 function emptyStateHtml() {
     return `<div class="bst-empty">
         <i class="fa-solid fa-dragon"></i>
-        <span>Aucune créature répertoriée.</span>
+        <span>${tl("Aucune créature répertoriée.")}</span>
     </div>`;
 }
 
@@ -286,7 +285,7 @@ function buildRowHtml(entry, actor, canEdit) {
     const src      = target ? null : compendiumIndexEntry(entry);
     const revealed = entry.revealed ?? true;
     const img      = target?.img  ?? src?.img  ?? entry.targetImg  ?? "icons/svg/mystery-man.svg";
-    const name     = revealed ? (target?.name ?? src?.name ?? entry.targetName ?? "Inconnue") : "Inconnue";
+    const name     = revealed ? (target?.name ?? src?.name ?? entry.targetName ?? tl("Inconnue")) : tl("Inconnue");
     const open   = _expanded.has(entry.id);
 
     return `
@@ -297,15 +296,15 @@ function buildRowHtml(entry, actor, canEdit) {
             ${hostilitySelector(entry.hostility ?? 0, canEdit)}
             <div class="bst-btns">
                 ${game.user.isGM && (target || src) ? `<a class="bst-open-sheet" data-target-id="${entry.targetId}" data-source-uuid="${target ? "" : (src?.uuid ?? "")}" title="Ouvrir la fiche"><i class="fa-solid fa-external-link-alt"></i></a>` : ""}
-                <a class="bst-toggle" title="Notes"><i class="fa-solid fa-chevron-${open ? "up" : "down"}"></i></a>
+                <a class="bst-toggle" title="${tl("Notes")}"><i class="fa-solid fa-chevron-${open ? "up" : "down"}"></i></a>
                 ${canEdit ? `<a class="bst-delete" title="Retirer du bestiaire"><i class="fa-solid fa-trash"></i></a>` : ""}
             </div>
         </div>
         <div class="bst-notes"${open ? "" : ' style="display:none;"'}>
             <div class="bst-scene-row">
                 <i class="fa-solid fa-map-marker-alt"></i>
-                <span class="bst-field-label">Première rencontre :</span>
-                <span class="bst-scene-value" title="Scène où le personnage a vu la créature pour la première fois">${escB(entry.firstScene ?? "") || "<em>Inconnue</em>"}</span>
+                <span class="bst-field-label">${tl("Première rencontre :")}</span>
+                <span class="bst-scene-value" title="${tl("Scène où le personnage a vu la créature pour la première fois")}">${escB(entry.firstScene ?? "") || `${tl("<em>Inconnue</em>")}`}</span>
             </div>
             ${opt("bestiaryLastPosition") ? blocDernierePositionHtml(entry) : ""}
             ${opt("bestiaryLastSeen") ? blocDerniereRencontreHtml(entry) : ""}
@@ -313,9 +312,9 @@ function buildRowHtml(entry, actor, canEdit) {
             ${opt("bestiaryDamageTags") ? blocDegatsHtml(entry, canEdit) : ""}
             ${canEdit ? `
             <textarea class="bst-note-input" data-bst-id="${entry.id}"
-                placeholder="Notes sur cette créature…">${escB(entry.note)}</textarea>
+                placeholder="${tl("Notes sur cette créature…")}">${escB(entry.note)}</textarea>
             ` : `
-            <p class="bst-note-ro" style="white-space:pre-wrap;">${entry.note ? escB(entry.note) : "<em>Aucune note.</em>"}</p>
+            <p class="bst-note-ro" style="white-space:pre-wrap;">${entry.note ? escB(entry.note) : `${tl("<em>Aucune note.</em>")}`}</p>
             `}
         </div>
     </div>`;
@@ -351,19 +350,16 @@ export function buildTabHtml(actor) {
     <div class="bst-tab" data-actor-id="${actor.id}">
         <div style="${S.titleBar}">
             <span style="${S.title}">
-                <i class="fa-solid fa-dragon" style="color:#e0a13a;font-size:15px;filter:drop-shadow(0 1px 1px rgba(0,0,0,0.5));"></i>
-                Bestiaire
+                ${tl("<i class=\"fa-solid fa-dragon\" style=\"color:#e0a13a;font-size:15px;filter:drop-shadow(0 1px 1px rgba(0,0,0,0.5));\"></i>\n                Bestiaire")}
             </span>
-            ${isGM ? `<a class="bst-add-btn">
-                <i class="fa-solid fa-plus" style="font-size:10px;"></i> Ajouter
-            </a>` : ""}
+            ${isGM ? `${tl("<a class=\"bst-add-btn\">\n                <i class=\"fa-solid fa-plus\" style=\"font-size:10px;\"></i> Ajouter\n            </a>")}` : ""}
         </div>
         <div style="${S.searchBar}">
             <div class="bst-search-wrap" style="${S.wrap}">
                 <i class="fa-solid fa-search" style="${S.srchIcon}"></i>
                 <input class="bst-search-input" type="text"
-                    placeholder="Rechercher une créature…" style="${S.srchInput}">
-                <a class="bst-search-clear" style="${S.clear}" title="Effacer">
+                    placeholder="${tl("Rechercher une créature…")}" style="${S.srchInput}">
+                <a class="bst-search-clear" style="${S.clear}" title="${tl("Effacer")}">
                     <i class="fa-solid fa-times"></i>
                 </a>
             </div>
@@ -390,7 +386,7 @@ function buildCreaturePickerHtml(creatures, uid) {
                    border:1px solid #555;border-radius:4px;background:#111;color:#ddd;font-size:12px;">
         <div class="bst-picker-list" style="max-height:280px;overflow-y:auto;">
             ${rows || `<p style="color:#666;font-style:italic;font-size:12px;text-align:center;padding:12px 0;">
-                Aucune créature disponible.</p>`}
+                ${tl("Aucune créature disponible.")}</p>`}
         </div>
     </div>`;
 }
@@ -404,7 +400,7 @@ async function openAddDialog(actor) {
     let result      = null;
 
     await foundry.applications.api.DialogV2.wait({
-        window:      { title: "Ajouter au bestiaire" },
+        window:      { title: tl("Ajouter au bestiaire") },
         position:    { width: 360 },
         rejectClose: false,
         content:     buildCreaturePickerHtml(creatures, uid),
@@ -434,7 +430,7 @@ async function openAddDialog(actor) {
         buttons: [
             {
                 action: "confirm", default: true,
-                label: "Ajouter", icon: '<i class="fa-solid fa-check"></i>',
+                label: tl("Ajouter"), icon: '<i class="fa-solid fa-check"></i>',
                 callback: () => {
                     if (!selectedId) return;
                     // Acteur monde ou acteur compendium (retrouvé via l'index du dialog)
@@ -442,7 +438,7 @@ async function openAddDialog(actor) {
                     const s = compendiumSourceOf(target);
                     result = {
                         targetId:   selectedId,
-                        targetName: target?.name ?? "Inconnue",
+                        targetName: target?.name ?? tl("Inconnue"),
                         targetImg:  target?.img  ?? "",
                         sourcePack: s?.pack ?? null,
                         sourceId:   s?.id ?? null,
@@ -455,7 +451,7 @@ async function openAddDialog(actor) {
                     };
                 }
             },
-            { action: "cancel", label: "Annuler", icon: '<i class="fa-solid fa-times"></i>', callback: () => {} }
+            { action: "cancel", label: tl("Annuler"), icon: '<i class="fa-solid fa-times"></i>', callback: () => {} }
         ]
     });
 
@@ -484,7 +480,7 @@ export function wireTab(actor, $html) {
         if (!entry) return;
         const target = game.actors.get(entry.targetId);
         const img    = target?.img  ?? entry.targetImg  ?? "icons/svg/mystery-man.svg";
-        const name   = target?.name ?? entry.targetName ?? "Inconnue";
+        const name   = target?.name ?? entry.targetName ?? tl("Inconnue");
         ouvrirImage(img, name);
     });
 
@@ -550,9 +546,8 @@ export function wireTab(actor, $html) {
         const entry = beastList(actor).find(e => e.id === id);
         if (!entry) return;
         const ok = await foundry.applications.api.DialogV2.confirm({
-            window: { title: "Retirer du bestiaire" },
-            content: `<p>Retirer <strong>${escB(entry.targetName)}</strong> du bestiaire ?<br>
-                      <small style="color:#999;">Cette action est irréversible.</small></p>`,
+            window: { title: tl("Retirer du bestiaire") },
+            content: `<p>${tl("Retirer <strong>{0}</strong> du bestiaire ?<br>\n                      <small style=\"color:#999;\">Cette action est irréversible.</small>", escB(entry.targetName))}</p>`,
         });
         if (!ok) return;
         _expanded.delete(id);
@@ -645,7 +640,7 @@ export function wireTab(actor, $html) {
             $tab.find(".bst-list").append(
                 `<div class="bst-no-results bst-empty">
                     <i class="fa-solid fa-search"></i>
-                    <span>Aucune créature trouvée.</span>
+                    <span>${tl("Aucune créature trouvée.")}</span>
                 </div>`
             );
         }
@@ -833,7 +828,7 @@ export function BestiaryHooks() {
         btnAnon.classList.add("header-control", "icon", "fa-solid", "fa-eye-slash", "scwm-anon-btn");
         const refreshAnon = () => {
             btnAnon.style.color     = isAnon() ? "#e74c3c" : "";
-            btnAnon.dataset.tooltip = isAnon() ? "Anonyme — cliquer pour désactiver" : "Rendre anonyme";
+            btnAnon.dataset.tooltip = isAnon() ? tl("Anonyme — cliquer pour désactiver") : tl("Rendre anonyme");
         };
         refreshAnon();
         btnAnon.addEventListener("click", async () => {
@@ -844,7 +839,7 @@ export function BestiaryHooks() {
         const btnReveal = document.createElement("button");
         btnReveal.type = "button";
         btnReveal.classList.add("header-control", "icon", "fa-solid", "fa-eye", "scwm-reveal-btn");
-        btnReveal.dataset.tooltip = "Révéler à la party";
+        btnReveal.dataset.tooltip = tl("Révéler à la party");
         btnReveal.addEventListener("click", () => Hooks.callAll("scwm:revealToParty", id));
 
         // Bouton 1 : bloquer l'ajout automatique (toggle des flags uniquement).
@@ -857,7 +852,7 @@ export function BestiaryHooks() {
         const refreshBlock = () => {
             btnBlock.style.color     = isExcluded() ? "#e74c3c" : "";
             btnBlock.dataset.tooltip = isExcluded()
-                ? "Ajout automatique bloqué — cliquer pour réactiver"
+                ? tl("Ajout automatique bloqué — cliquer pour réactiver")
                 : "Bloquer l'ajout automatique (Relations & Bestiaire)";
         };
         refreshBlock();
@@ -872,17 +867,17 @@ export function BestiaryHooks() {
         const btnRemove = document.createElement("button");
         btnRemove.type = "button";
         btnRemove.classList.add("header-control", "icon", "fa-solid", "fa-users-slash", "scwm-removeall-btn");
-        btnRemove.dataset.tooltip = "Retirer de chez tous les joueurs (Relations & Bestiaire)";
+        btnRemove.dataset.tooltip = tl("Retirer de chez tous les joueurs (Relations & Bestiaire)");
         btnRemove.addEventListener("click", async () => {
             const ok = await foundry.applications.api.DialogV2.confirm({
-                window:  { title: "Retirer de chez tous les joueurs" },
-                content: `<p>Retirer <strong>${escB(actor.name)}</strong> des Relations et du Bestiaire de <strong>tous les joueurs</strong> ?</p>
-                          <p style="opacity:0.7;font-size:0.9em;">Les listes existantes sont nettoyées. Sans blocage, ce personnage pourra être ré-ajouté automatiquement s'il est recroisé.</p>`
+                window:  { title: tl("Retirer de chez tous les joueurs") },
+                content: `<p>${tl("Retirer <strong>{0}</strong> des Relations et du Bestiaire de <strong>tous les joueurs</strong> ?", escB(actor.name))}</p>
+                          <p style="opacity:0.7;font-size:0.9em;">${tl("Les listes existantes sont nettoyées. Sans blocage, ce personnage pourra être ré-ajouté automatiquement s'il est recroisé.")}</p>`
             });
             if (!ok) return;
             Hooks.callAll("scwm:removeFromRelations", id);
             Hooks.callAll("scwm:removeFromBestiary",  id);
-            ui.notifications.info(`${actor.name} retiré des listes de tous les joueurs.`);
+            ui.notifications.info(tl("{0} retiré des listes de tous les joueurs.", actor.name));
         });
 
         const title = header.querySelector(".window-title");

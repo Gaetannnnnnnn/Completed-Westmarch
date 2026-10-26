@@ -1,5 +1,6 @@
 import { MOD } from "./const.js";
 import { journal } from "./log.js";
+import { tl } from "./i18n.js";
 // ============================================================
 // Correctifs pour les boutiques de Monk's Enhanced Journal (MEJ),
 // module tiers — on ne touche jamais à ses fichiers, tout passe
@@ -48,7 +49,7 @@ export function MejShopHooks() {
         btn.type = "button";
         btn.classList.add("party-only-show");
         btn.style.marginLeft = "4px";
-        btn.textContent = "Groupe uniquement";
+        btn.textContent = tl("Groupe uniquement");
         btn.addEventListener("click", () => {
             const myPartyId = game.user.getFlag(MOD, "partyId");
             let matched = 0;
@@ -59,7 +60,7 @@ export function MejShopHooks() {
                 if (inMyParty) matched++;
             });
             if (matched === 0) {
-                ui.notifications.warn("Aucun membre de la party connecté.");
+                ui.notifications.warn(tl("Aucun membre de la party connecté."));
             }
         });
 
@@ -185,10 +186,10 @@ export function MejShopHooks() {
         }
 
         if (!hiddenIds.size) {
-            journal.debug("[toolkit] _hideMejItems — aucun item caché dans", journal.name);
+            journal.debug(tl("[toolkit] _hideMejItems — aucun item caché dans"), journal.name);
             return;
         }
-        journal.debug("[toolkit] _hideMejItems — ids cachés :", [...hiddenIds]);
+        journal.debug(tl("[toolkit] _hideMejItems — ids cachés :"), [...hiddenIds]);
 
         // ── Retirer les rows du DOM.
         const _removeHidden = (root) => {
@@ -196,7 +197,7 @@ export function MejShopHooks() {
             root.querySelectorAll("[data-id]").forEach(row => {
                 if (hiddenIds.has(row.dataset.id)) { row.remove(); count++; }
             });
-            if (count) journal.debug(`[toolkit] _hideMejItems — ${count} item(s) retiré(s) du DOM`);
+            if (count) journal.debug(tl("[toolkit] _hideMejItems — {0} item(s) retiré(s) du DOM", count));
         };
 
         _removeHidden(element);

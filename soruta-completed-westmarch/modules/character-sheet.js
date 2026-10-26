@@ -16,6 +16,7 @@ import { buildTabHtml as bstBuildTab, wireTab as bstWireTab } from "./bestiary.j
 import {
     buildJournalHtml, buildDowntimeHtml, wireJournalTab, wireDowntimeTab
 } from "./carnet.js";
+import { tl } from "./i18n.js";
 
 // Onglet « Note GM » — notes privées du MJ, invisibles pour les joueurs.
 const _escNotes = (s) => String(s ?? "").replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
@@ -24,14 +25,14 @@ export function buildGmNotesHtml(actor) {
     return `<div class="scwm-gmnotes">
         <div class="scwm-gmnotes-header">
             <i class="fa-solid fa-user-secret"></i>
-            <span class="scwm-gmnotes-title">Notes du MJ</span>
-            <span class="scwm-gmnotes-badge"><i class="fa-solid fa-lock"></i> Privé</span>
+            <span class="scwm-gmnotes-title">${tl("Notes du MJ")}</span>
+            <span class="scwm-gmnotes-badge">${tl("<i class=\"fa-solid fa-lock\"></i> Privé")}</span>
         </div>
-        <p class="scwm-gmnotes-sub">Visibles et modifiables uniquement par les MJ — le joueur ne les voit jamais.</p>
+        <p class="scwm-gmnotes-sub">${tl("Visibles et modifiables uniquement par les MJ — le joueur ne les voit jamais.")}</p>
         <div class="scwm-gmnotes-paper">
-            <textarea class="scwm-gmnotes-input" placeholder="Écrivez ici vos notes sur ${_escNotes(actor.name)} : secrets, projets, dettes, rappels…">${_escNotes(notes)}</textarea>
+            <textarea class="scwm-gmnotes-input" placeholder="${tl("Écrivez ici vos notes sur {0} : secrets, projets, dettes, rappels…", _escNotes(actor.name))}">${_escNotes(notes)}</textarea>
         </div>
-        <p class="scwm-gmnotes-foot"><i class="fa-solid fa-cloud-arrow-up"></i> Sauvegarde automatique quand vous cliquez ailleurs.</p>
+        <p class="scwm-gmnotes-foot">${tl("<i class=\"fa-solid fa-cloud-arrow-up\"></i> Sauvegarde automatique quand vous cliquez ailleurs.")}</p>
     </div>`;
 }
 export function wireGmNotes(actor, htmlElement) {
@@ -96,13 +97,13 @@ export function setupCharacterSheet() {
             };
 
             static TABS = [
-                ...(gmNotesOn ? [{ tab: "gmnotes", group: "primary", label: "Note GM", icon: "fa-solid fa-user-secret" }] : []),
+                ...(gmNotesOn ? [{ tab: "gmnotes", group: "primary", label: tl("Note GM"), icon: "fa-solid fa-user-secret" }] : []),
                 ...super.TABS,
-                ...(relOn    ? [{ tab: "relations",       group: "primary", label: "Relations",    icon: "fa-solid fa-heart" }] : []),
-                ...(bestOn   ? [{ tab: "bestiary",        group: "primary", label: "Bestiaire",    icon: "fa-solid fa-dragon" }] : []),
+                ...(relOn    ? [{ tab: "relations",       group: "primary", label: tl("Relations"),    icon: "fa-solid fa-heart" }] : []),
+                ...(bestOn   ? [{ tab: "bestiary",        group: "primary", label: tl("Bestiaire"),    icon: "fa-solid fa-dragon" }] : []),
                 ...(carnetOn ? [
-                    { tab: "carnet-journal",  group: "primary", label: "Carnet",      icon: "fa-solid fa-book-open" },
-                    { tab: "carnet-downtime", group: "primary", label: "Expéditions", icon: "fa-solid fa-hourglass-half" }
+                    { tab: "carnet-journal",  group: "primary", label: tl("Carnet"),      icon: "fa-solid fa-book-open" },
+                    { tab: "carnet-downtime", group: "primary", label: tl("Expéditions"), icon: "fa-solid fa-hourglass-half" }
                 ] : [])
             ];
 
@@ -152,7 +153,7 @@ export function setupCharacterSheet() {
         Actors.registerSheet("dnd5e", SorutaCharacterSheet, {
             types:       ["character"],
             makeDefault: true,
-            label:       "Soruta — Fiche personnage"
+            label:       tl("Soruta — Fiche personnage")
         });
 
         // ── Fiche PNJ : uniquement l'onglet « Note GM » (les autres onglets
@@ -180,7 +181,7 @@ export function setupCharacterSheet() {
 
                 static TABS = [
                     ...super.TABS,
-                    { tab: "gmnotes", group: "primary", label: "Note GM", icon: "fa-solid fa-user-secret" }
+                    { tab: "gmnotes", group: "primary", label: tl("Note GM"), icon: "fa-solid fa-user-secret" }
                 ];
 
                 // Même nom que la fiche native → remplace sans multiplier les entrées.
@@ -201,10 +202,10 @@ export function setupCharacterSheet() {
             Actors.registerSheet("dnd5e", SorutaNPCSheet, {
                 types:       ["npc"],
                 makeDefault: true,
-                label:       "Soruta — Fiche PNJ"
+                label:       tl("Soruta — Fiche PNJ")
             });
         } else if (npcNotesOn && !NPCBase) {
-            journal.critique(`[${MOD}] Fiche PNJ dnd5e introuvable : onglet Note GM PNJ non injecté sur la fiche native.`);
+            journal.critique(tl("[{0}] Fiche PNJ dnd5e introuvable : onglet Note GM PNJ non injecté sur la fiche native.", MOD));
         }
     });
 }

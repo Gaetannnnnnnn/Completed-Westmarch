@@ -6,6 +6,7 @@ import { startTutorial, SECTION_LABELS, SECTION_ICONS, SETTING_KEYS, isSectionAv
 import { Dialog } from "./compat.js";
 
 import { MOD } from "./const.js";
+import { tl } from "./i18n.js";
 const MODULE = MOD;
 
 /**
@@ -80,30 +81,28 @@ export function showTutorialHub() {
     const content = `
     <div class="tuto-hub-body">
         <p style="margin:0 0 8px;font-size:13px;">
-            Chaque section est courte, et tu <strong>reviens à ce menu</strong> après.
-            Commence par les sections <strong style="color:#8fd19e;">à connaître</strong> ;
-            le reste est optionnel. Ferme la fenêtre (croix) quand tu as fini.
+            ${tl("Chaque section est courte, et tu <strong>reviens à ce menu</strong> après.\n            Commence par les sections <strong style=\"color:#8fd19e;\">à connaître</strong> ;\n            le reste est optionnel. Ferme la fenêtre (croix) quand tu as fini.")}
         </p>
         <p style="margin:0 0 8px;color:#e0a13a;font-size:12px;display:flex;gap:6px;align-items:flex-start;">
             <i class="fa-solid fa-triangle-exclamation" style="margin-top:2px;"></i>
-            <span>Ferme les fiches/fenêtres ouvertes avant : le guide ouvre lui-même celles qu'il explique.</span>
+            <span>${tl("Ferme les fiches/fenêtres ouvertes avant : le guide ouvre lui-même celles qu'il explique.")}</span>
         </p>
         <div class="tuto-hub-list" style="max-height:52vh;overflow-y:auto;padding-right:4px;">
             ${(essential.length || optional.length)
-                ? groupHtml("À connaître", "(essentiel)", "#8fd19e", essential)
-                  + groupHtml("Optionnel", "(pour aller plus loin)", "#c9a227", optional)
-                : '<p style="opacity:.7;">Aucune section disponible.</p>'}
+                ? groupHtml(tl("À connaître"), "(essentiel)", "#8fd19e", essential)
+                  + groupHtml(tl("Optionnel"), tl("(pour aller plus loin)"), "#c9a227", optional)
+                : `<p style="opacity:.7;">${tl("Aucune section disponible.")}</p>`}
         </div>
     </div>`;
 
     let dlg;
     dlg = new Dialog({
-        title:   "Guide du serveur",
+        title:   tl("Guide du serveur"),
         content,
         buttons: {
             essentials: {
                 icon:  '<i class="fa-solid fa-star"></i>',
-                label: "Les essentiels",
+                label: tl("Les essentiels"),
                 callback: () => startTutorial(essential.map(([k]) => k), () => {
                     essential.forEach(([k]) => _doneSections.add(k));
                     showTutorialHub();
@@ -111,7 +110,7 @@ export function showTutorialHub() {
             },
             all: {
                 icon:  '<i class="fa-solid fa-list-check"></i>',
-                label: "Tout faire",
+                label: tl("Tout faire"),
                 callback: () => startTutorial(entries.map(([k]) => k), () => {
                     entries.forEach(([k]) => _doneSections.add(k));
                     showTutorialHub();
@@ -119,13 +118,13 @@ export function showTutorialHub() {
             },
             hide: {
                 icon:  '<i class="fa-solid fa-eye-slash"></i>',
-                label: "Ne plus afficher à la connexion",
+                label: tl("Ne plus afficher à la connexion"),
                 callback: () => {
                     game.settings.set(MODULE, "hideWelcome", true);
-                    ui.notifications.info("[Guide] La fenêtre d'accueil ne s'affichera plus. Bouton « ? » dans la barre WestMarch pour rouvrir le menu.");
+                    ui.notifications.info(tl("[Guide] La fenêtre d'accueil ne s'affichera plus. Bouton « ? » dans la barre WestMarch pour rouvrir le menu."));
                 }
             },
-            close: { icon: '<i class="fa-solid fa-times"></i>', label: "Fermer" }
+            close: { icon: '<i class="fa-solid fa-times"></i>', label: tl("Fermer") }
         },
         default: "close",
         render: (html) => {
@@ -158,23 +157,20 @@ export function showWelcome() {
         </div>
         <h2 class="tuto-welcome-title">${serverName}</h2>
         <p class="tuto-welcome-text">
-            Des fonctionnalités spéciales sont disponibles sur ce serveur.<br>
-            On commence par <strong>l'essentiel</strong> (court), puis un <strong>menu</strong>
-            vous laisse explorer le reste à votre rythme.
+            ${tl("Des fonctionnalités spéciales sont disponibles sur ce serveur.<br>\n            On commence par <strong>l'essentiel</strong> (court), puis un <strong>menu</strong>\n            vous laisse explorer le reste à votre rythme.")}
         </p>
         <p class="tuto-welcome-warn" style="margin-top:8px;color:#e0a13a;font-size:12px;">
-            <i class="fa-solid fa-triangle-exclamation"></i>
-            Fermez toutes les fiches et fenêtres ouvertes avant de commencer, pour le bon déroulement du guide.
+            ${tl("<i class=\"fa-solid fa-triangle-exclamation\"></i>\n            Fermez toutes les fiches et fenêtres ouvertes avant de commencer, pour le bon déroulement du guide.")}
         </p>
     </div>`;
 
     new Dialog({
-        title:   "Bienvenue",
+        title:   tl("Bienvenue"),
         content,
         buttons: {
             start: {
                 icon:     '<i class="fa-solid fa-play"></i>',
-                label:    "Commencer (l'essentiel puis le menu)",
+                label:    tl("Commencer (l'essentiel puis le menu)"),
                 callback: () => startEssentialsThenHub()
             }
         },

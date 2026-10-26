@@ -1,5 +1,6 @@
 import { MOD } from "./const.js";
 import { journal } from "./log.js";
+import { tl } from "./i18n.js";
 // ============================================================
 // caldate.js — Notification Discord lors d'un changement de jour
 // Utilise l'API calendrier native de Foundry v13 :
@@ -12,9 +13,9 @@ import { journal } from "./log.js";
 // La comparaison est normalisée (sans accents, insensible à la casse) pour
 // absorber les variations de saisie ou de localisation du calendrier.
 const CALENDAR_SPECIAL_EVENTS = [
-    { month: "Blanche Brebis", day: 19, label: "🌸 Équinoxe de printemps" },
+    { month: "Blanche Brebis", day: 19, label: tl("🌸 Équinoxe de printemps") },
     { month: "Moisson Dorée",  day:  1, label: "🌿 Greengrass"            },
-    { month: "Douce Vie",      day: 20, label: "☀️ Solstice d'été"        },
+    { month: "Douce Vie",      day: 20, label: tl("☀️ Solstice d'été")        },
     { month: "Sombrebois",     day:  1, label: "🌞 Midsummer"             },
     { month: "Grise Lumiere",  day:  1, label: "🛡️ Shieldmeet"           },
     { month: "Findefroid",     day:  1, label: "❄️ Midwinter"             },
@@ -37,9 +38,9 @@ export function CalDateHooks() {
             if (!cal) return;
             const c = cal.timeToComponents(game.time.worldTime);
             lastSentDateKey = `${c.year}-${c.month}-${c.dayOfMonth}`;
-            journal.debug(`westmarch | CalDate : date initiale mémorisée = ${lastSentDateKey}`);
+            journal.debug(tl("westmarch | CalDate : date initiale mémorisée = {0}", lastSentDateKey));
         } catch(e) {
-            journal.avert("westmarch | CalDate : impossible de lire la date initiale", e);
+            journal.avert(tl("westmarch | CalDate : impossible de lire la date initiale"), e);
         }
     });
 
@@ -81,8 +82,8 @@ export function CalDateHooks() {
             );
 
             const messageContent = special
-                ? `📅 La date est maintenant le **${dateStr}**.\n${special.label}`
-                : `📅 La date est maintenant le **${dateStr}**.`;
+                ? tl("📅 La date est maintenant le **{0}**.\n{1}", dateStr, special.label)
+                : tl("📅 La date est maintenant le **{0}**.", dateStr);
 
             journal.debug(`westmarch | CalDate : envoi webhook Discord — ${dateStr}${special ? ` (${special.label})` : ""}`);
 
@@ -93,7 +94,7 @@ export function CalDateHooks() {
             }).catch(err => journal.erreur("westmarch | Webhook date Discord :", err));
 
         } catch(e) {
-            journal.erreur("westmarch | CalDate : erreur lors du traitement", e);
+            journal.erreur(tl("westmarch | CalDate : erreur lors du traitement"), e);
         }
     });
 }

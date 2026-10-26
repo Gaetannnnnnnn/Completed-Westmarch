@@ -15,6 +15,7 @@ import { journal } from "./log.js";
 
 import { partyFeatureEnabled } from './settings.js';
 import { registerSoundFilter } from './audio.js';
+import { tl } from "./i18n.js";
 
 // Mémorise, pour le combat en cours de changement de tour, la position de
 // la caméra d'un joueur hors-party AVANT que Foundry ne la déplace
@@ -89,7 +90,7 @@ function installTrackerViewOverride() {
         };
         wrapped.__scwmWrapped = true;
         Object.defineProperty(proto, "viewed", { ...desc, get: wrapped });
-    } catch (e) { journal.critique(`[${MOD}] Override tracker.viewed échoué :`, e); }
+    } catch (e) { journal.critique(tl("[{0}] Override tracker.viewed échoué :", MOD), e); }
 }
 
 // Trouve (ou crée) le combat de MA party sur une scène donnée, puis y ajoute
@@ -113,7 +114,7 @@ async function routeCombatantToMyCombat(sceneId, data) {
         // Pas de doublon si le token est déjà dans notre combat.
         if (data?.tokenId && mine.combatants.some(cb => cb.tokenId === data.tokenId)) return;
         await mine.createEmbeddedDocuments("Combatant", [data]);
-    } catch (e) { journal.erreur(`[${MOD}] Aiguillage combattant échoué :`, e); }
+    } catch (e) { journal.erreur(tl("[{0}] Aiguillage combattant échoué :", MOD), e); }
 }
 
 export function CombatHooks() {
@@ -224,7 +225,7 @@ export function CombatHooks() {
 
             if (kept === 0) {
                 root.empty().append(
-                    `<p style="padding:8px; opacity:0.7; font-style:italic;">Aucun combat en cours pour votre party.</p>`
+                    `<p style="padding:8px; opacity:0.7; font-style:italic;">${tl("Aucun combat en cours pour votre party.")}</p>`
                 );
             }
         }
@@ -426,7 +427,7 @@ export function CombatHooks() {
         const now = Date.now();
         if (now - lastTurnLockWarn > 2000) {
             lastTurnLockWarn = now;
-            ui.notifications?.warn("Ce n'est pas encore votre tour de jouer.");
+            ui.notifications?.warn(tl("Ce n'est pas encore votre tour de jouer."));
         }
         return false;
     });

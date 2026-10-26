@@ -1,4 +1,5 @@
 import { MOD } from "./const.js";
+import { tl } from "./i18n.js";
 // ============================================================
 // currency.js — Règles de monnaie (bourse)
 // ------------------------------------------------------------
@@ -78,7 +79,7 @@ export function CurrencyHooks() {
         }
         if (increased) {
             delete changes.system.currency;   // on annule la modif de pièces (le reste passe)
-            ui.notifications?.warn("Les pièces doivent être rangées sur la fiche du personnage, pas dans un contenant (sac, poche…).");
+            ui.notifications?.warn(tl("Les pièces doivent être rangées sur la fiche du personnage, pas dans un contenant (sac, poche…)."));
         }
     });
 

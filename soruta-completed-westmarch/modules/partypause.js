@@ -17,6 +17,7 @@
 import { MOD } from "./const.js";
 
 import { journal } from "./log.js";
+import { tl } from "./i18n.js";
 // Référence vers le vrai game.togglePause (avant patch), pour pouvoir annuler
 // une éventuelle pause globale dans le filet de sécurité.
 let _origTogglePause = null;
@@ -71,11 +72,11 @@ async function forceGlobalUnpause() {
         const state = pauseState();
         if (Object.keys(state).length) await game.settings.set(MOD, "partyPauseState", {});
         applyPartyPause();
-        ui.notifications?.info("Reprise forcée : pauses globale et de party enlevées.");
-        journal.debug("westmarch | partypause : reprise forcée (bouton de secours)");
+        ui.notifications?.info(tl("Reprise forcée : pauses globale et de party enlevées."));
+        journal.debug(tl("westmarch | partypause : reprise forcée (bouton de secours)"));
     } catch (e) {
-        journal.avert("westmarch | partypause : reprise forcée échouée", e);
-        ui.notifications?.warn("Échec de la reprise forcée (voir console).");
+        journal.avert(tl("westmarch | partypause : reprise forcée échouée"), e);
+        ui.notifications?.warn(tl("Échec de la reprise forcée (voir console)."));
     }
 }
 
@@ -89,7 +90,7 @@ function clearResidualGlobalPause() {
     try {
         const unpause = _origTogglePause ?? game.togglePause?._scwmOrig;
         unpause?.(false, { broadcast: true });
-        journal.debug("westmarch | partypause : pause globale résiduelle annulée");
+        journal.debug(tl("westmarch | partypause : pause globale résiduelle annulée"));
     } catch (e) { journal.avert("westmarch | partypause : nettoyage pause globale", e); }
 }
 
@@ -175,7 +176,7 @@ export function PartyPauseHooks() {
         }
         controls.westmarch.tools.scwmForceResume = {
             name: "scwmForceResume",
-            title: "Forcer la reprise (débloquer une pause globale)",
+            title: tl("Forcer la reprise (débloquer une pause globale)"),
             icon: "fa-solid fa-play",
             button: true,
             visible: true,
@@ -195,7 +196,7 @@ export function PartyPauseHooks() {
         if (!("x" in changes) && !("y" in changes)) return;
         if (!tokenDoc.actor?.isOwner) return;
         if (!isMyPartyPaused()) return;
-        ui.notifications?.warn("La partie est en pause.");
+        ui.notifications?.warn(tl("La partie est en pause."));
         return false;
     });
 }

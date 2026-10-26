@@ -24,6 +24,7 @@ import {
 } from "./charvalidation.js";
 import { downtimeContentHtml, wireDowntime, applyDowntimeFromRoot } from "./tm.js";
 import { mondeActif, ongletMondeHtml, cablerOngletMonde } from "./monde.js";
+import { tl, locale } from "./i18n.js";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -54,8 +55,8 @@ function gmExpeditions(gmId = game.user.id) {
             if (!e.startDate || e.endDate) continue;
             // Uniquement les expéditions dont CE GM est le MJ (tag gmId).
             if (e.gmId !== gmId) continue;
-            const key = `${e.name || "Expédition"}|${JSON.stringify(e.startDate)}`;
-            if (!groups.has(key)) groups.set(key, { name: e.name || "Expédition sans nom", startDate: e.startDate, gmId: e.gmId, startReal: e.startReal ?? null, endReal: null, participants: [] });
+            const key = `${e.name || tl("Expédition")}|${JSON.stringify(e.startDate)}`;
+            if (!groups.has(key)) groups.set(key, { name: e.name || tl("Expédition sans nom"), startDate: e.startDate, gmId: e.gmId, startReal: e.startReal ?? null, endReal: null, participants: [] });
             groups.get(key).participants.push({ id: actor.id, name: actor.name });
         }
     }
@@ -258,7 +259,7 @@ const isPlayerActive = (iso) => !!iso && (Date.now() - new Date(iso).getTime()) 
 // ============================================================
 // Poids du monde (données + médias) — tous types de documents.
 // ============================================================
-const fmtBytes = (b) => b >= 1048576 ? (b / 1048576).toFixed(2) + " Mo" : (b / 1024).toFixed(1) + " Ko";
+const fmtBytes = (b) => b >= 1048576 ? (b / 1048576).toFixed(2) + tl(" Mo") : (b / 1024).toFixed(1) + tl(" Ko");
 
 async function measureWorld() {
     const size = (o) => new Blob([JSON.stringify(o ?? {})]).size;
@@ -308,7 +309,7 @@ async function measureWorld() {
         try { data = size(doc.toObject()); } catch (e) {}
         const uniq = [...new Set((srcs ?? []).filter(s => typeof s === "string" && s && !s.startsWith("data:")))];
         const media = (await Promise.all(uniq.map(fileSize))).reduce((a, b) => a + b, 0);
-        items.push({ type, nom: doc.name ?? "(sans nom)", dossier: doc.folder?.name ?? "", data, media });
+        items.push({ type, nom: doc.name ?? tl("(sans nom)"), dossier: doc.folder?.name ?? "", data, media });
     };
     const imgsFromHtml = (html) => {
         const out = [];
@@ -319,22 +320,22 @@ async function measureWorld() {
 
     const jobs = [];
     for (const s of (game.scenes ?? []))
-        jobs.push(addDoc("Scène", s, [s.background?.src, ...(s.tiles ?? []).map(t => t.texture?.src)]));
+        jobs.push(addDoc(tl("Scène"), s, [s.background?.src, ...(s.tiles ?? []).map(t => t.texture?.src)]));
     for (const a of (game.actors ?? []))
-        jobs.push(addDoc("Acteur", a, [a.img, a.prototypeToken?.texture?.src, ...(a.items?.map(i => i.img) ?? [])]));
+        jobs.push(addDoc(tl("Acteur"), a, [a.img, a.prototypeToken?.texture?.src, ...(a.items?.map(i => i.img) ?? [])]));
     for (const it of (game.items ?? []))
-        jobs.push(addDoc("Objet", it, [it.img]));
+        jobs.push(addDoc(tl("Objet"), it, [it.img]));
     for (const j of (game.journal ?? [])) {
         const srcs = [];
         for (const p of (j.pages ?? [])) { if (p.src) srcs.push(p.src); srcs.push(...imgsFromHtml(p.text?.content)); }
-        jobs.push(addDoc("Journal", j, srcs));
+        jobs.push(addDoc(tl("Journal"), j, srcs));
     }
     for (const t of (game.tables ?? []))
-        jobs.push(addDoc("Table", t, [t.img, ...[...(t.results ?? [])].map(r => r.img)]));
+        jobs.push(addDoc(tl("Table"), t, [t.img, ...[...(t.results ?? [])].map(r => r.img)]));
     for (const c of (game.cards ?? [])) {
         const srcs = [c.img];
         for (const cd of (c.cards ?? [])) for (const f of (cd.faces ?? [])) srcs.push(f.img);
-        jobs.push(addDoc("Cartes", c, srcs));
+        jobs.push(addDoc(tl("Cartes"), c, srcs));
     }
     for (const pl of (game.playlists ?? [])) {
         const srcs = [];
@@ -385,20 +386,20 @@ function worldSizeTablesHtml(res) {
             <td style="text-align:right;font-weight:700;">${f(m.data + m.media)}</td>
         </tr>`).join("");
     const warn = res.echecs
-        ? `<p style="margin:6px 0 0;color:#e0a13a;font-size:12px;"><i class="fa-solid fa-triangle-exclamation"></i> ${res.echecs} média(s) non mesuré(s) (URL externe ou fichier manquant).</p>`
+        ? `<p style="margin:6px 0 0;color:#e0a13a;font-size:12px;">${tl("<i class=\"fa-solid fa-triangle-exclamation\"></i> {0} média(s) non mesuré(s) (URL externe ou fichier manquant).", res.echecs)}</p>`
         : "";
     const capNote = res.items.length > CAP
-        ? `<p style="margin:4px 0 0;font-size:12px;opacity:.7;">Affichage limité aux ${CAP} éléments les plus lourds (sur ${res.items.length}).</p>`
+        ? `<p style="margin:4px 0 0;font-size:12px;opacity:.7;">${tl("Affichage limité aux {0} éléments les plus lourds (sur {1}).", CAP, res.items.length)}</p>`
         : "";
 
     return `
-        <h3 style="margin:10px 0 4px;">Résumé par type</h3>
+        <h3 style="margin:10px 0 4px;">${tl("Résumé par type")}</h3>
         <div class="scwm-scenesize-scroll" style="max-height:30vh;overflow:auto;">
             <table class="scwm-reg-table">
-                <thead><tr><th>Type</th><th>Nb</th><th>Données</th><th>Médias</th><th>Total</th></tr></thead>
-                <tbody>${sumRows || `<tr><td colspan="5" style="opacity:.6;">Rien à mesurer.</td></tr>`}</tbody>
+                <thead><tr><th>${tl("Type")}</th><th>${tl("Nb")}</th><th>${tl("Données")}</th><th>${tl("Médias")}</th><th>${tl("Total")}</th></tr></thead>
+                <tbody>${sumRows || `<tr><td colspan="5" style="opacity:.6;">${tl("Rien à mesurer.")}</td></tr>`}</tbody>
                 <tfoot><tr style="border-top:2px solid rgba(201,162,39,0.4);">
-                    <td style="font-weight:700;">Total</td>
+                    <td style="font-weight:700;">${tl("Total")}</td>
                     <td style="text-align:center;">${res.items.length}</td>
                     <td style="text-align:right;">${f(grandData)}</td>
                     <td style="text-align:right;">${f(grandMedia)}</td>
@@ -406,11 +407,11 @@ function worldSizeTablesHtml(res) {
                 </tr></tfoot>
             </table>
         </div>
-        <h3 style="margin:14px 0 4px;">Éléments les plus lourds</h3>
+        <h3 style="margin:14px 0 4px;">${tl("Éléments les plus lourds")}</h3>
         <div class="scwm-scenesize-scroll" style="max-height:40vh;overflow:auto;">
             <table class="scwm-reg-table">
-                <thead><tr><th>Type</th><th>Nom</th><th>Dossier</th><th>Données</th><th>Médias</th><th>Total</th></tr></thead>
-                <tbody>${itemRows || `<tr><td colspan="6" style="opacity:.6;">Rien à afficher.</td></tr>`}</tbody>
+                <thead><tr><th>${tl("Type")}</th><th>${tl("Nom")}</th><th>${tl("Dossier")}</th><th>${tl("Données")}</th><th>${tl("Médias")}</th><th>${tl("Total")}</th></tr></thead>
+                <tbody>${itemRows || `<tr><td colspan="6" style="opacity:.6;">${tl("Rien à afficher.")}</td></tr>`}</tbody>
             </table>
         </div>
         ${capNote}${warn}`;
@@ -425,7 +426,7 @@ function closedExpeditions() {
         for (const e of getExpeditions(actor)) {
             if (!e.startDate || !e.endDate) continue;   // seulement clôturées
             const key = `${e.name || "?"}|${JSON.stringify(e.startDate)}|${e.gmId || ""}`;
-            if (!map.has(key)) map.set(key, { name: e.name || "Expédition sans nom", startDate: e.startDate, endDate: e.endDate, gmId: e.gmId || null, startReal: e.startReal ?? null, endReal: e.endReal ?? null, participants: new Set() });
+            if (!map.has(key)) map.set(key, { name: e.name || tl("Expédition sans nom"), startDate: e.startDate, endDate: e.endDate, gmId: e.gmId || null, startReal: e.startReal ?? null, endReal: e.endReal ?? null, participants: new Set() });
             const g = map.get(key);
             g.participants.add(actor.id);
             if (e.endReal && (!g.endReal || e.endReal > g.endReal)) g.endReal = e.endReal;      // date réelle de clôture
@@ -443,13 +444,13 @@ function realDateLabel(iso) {
     const d = new Date(iso);
     if (isNaN(d)) return "—";
     const days = Math.floor((Date.now() - d.getTime()) / 86400000);
-    const ago = days <= 0 ? "aujourd'hui" : days === 1 ? "hier" : `il y a ${days} j`;
-    return `${d.toLocaleDateString("fr-FR")} (${ago})`;
+    const ago = days <= 0 ? "aujourd'hui" : days === 1 ? "hier" : tl("il y a {0} j", days);
+    return `${d.toLocaleDateString(locale())} (${ago})`;
 }
 
 // Barres horizontales (graphique CSS, sans librairie). r.extra = texte à droite.
 function barChart(rows, color) {
-    if (!rows.length) return `<p class="scwm-casier-empty">Aucune donnée.</p>`;
+    if (!rows.length) return `<p class="scwm-casier-empty">${tl("Aucune donnée.")}</p>`;
     const max = Math.max(1, ...rows.map(r => r.value));
     return rows.map(r => `
         <div style="display:flex;align-items:center;gap:8px;margin:3px 0;">
@@ -473,8 +474,8 @@ function gmTracking() {
             if (!e.startDate || e.endDate || !e.gmId) continue;
             if (!byGm.has(e.gmId)) byGm.set(e.gmId, new Map());
             const groups = byGm.get(e.gmId);
-            const key = `${e.name || "Expédition"}|${JSON.stringify(e.startDate)}`;
-            if (!groups.has(key)) groups.set(key, { name: e.name || "Expédition sans nom", startDate: e.startDate, gmId: e.gmId, startReal: e.startReal ?? null, endReal: null, participants: [] });
+            const key = `${e.name || tl("Expédition")}|${JSON.stringify(e.startDate)}`;
+            if (!groups.has(key)) groups.set(key, { name: e.name || tl("Expédition sans nom"), startDate: e.startDate, gmId: e.gmId, startReal: e.startReal ?? null, endReal: null, participants: [] });
             groups.get(key).participants.push(actor.name);
         }
     }
@@ -490,7 +491,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
     static DEFAULT_OPTIONS = {
         id:       "scwm-casier",
         classes:  ["scwm-casier"],
-        window:   { title: "Casier", icon: "fa-solid fa-box-archive", resizable: true },
+        window:   { title: tl("Casier"), icon: "fa-solid fa-box-archive", resizable: true },
         position: { width: 760, height: 560 }
     };
 
@@ -499,7 +500,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
     #selectedId = null;
     #viewGmId = null;   // GM dont on consulte le dashboard depuis « Suivi des GM »
 
-    get title() { return `Casier de ${game.user.name}`; }
+    get title() { return tl("Casier de {0}", game.user.name); }
 
     async _renderHTML() { return this.#buildHTML(); }
     _replaceHTML(result, content) { content.innerHTML = result; this.#wire(content); }
@@ -520,27 +521,27 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
         const workTabs = [
             { key: "dashboard",   icon: "fa-gauge-high", label: "Dashboard" },
             { key: "reports",     icon: "fa-scroll",     label: `Rapports${drafts.length ? ` (${drafts.length})` : ""}` },
-            { key: "expeditions", icon: "fa-route",      label: "Expéditions" },
+            { key: "expeditions", icon: "fa-route",      label: tl("Expéditions") },
             ...(tmEnabled ? [{ key: "downtime", icon: "fa-hourglass-half", label: `Temps morts${tmDeclared ? ` (${tmDeclared})` : ""}` }] : []),
             ...(cvEnabled ? [{ key: "validation", icon: "fa-id-card", label: `Validation${cvCount ? ` (${cvCount})` : ""}` }] : []),
-            ...(mondeActif() ? [{ key: "monde", icon: "fa-book-atlas", label: "Monde" }] : [])
+            ...(mondeActif() ? [{ key: "monde", icon: "fa-book-atlas", label: tl("Monde") }] : [])
         ];
         const statTabs = [
-            { key: "gms",         icon: "fa-users-gear",   label: "Suivi des GM" },
-            { key: "registre",    icon: "fa-address-book", label: "Registre" },
-            { key: "stats",       icon: "fa-chart-pie",    label: "Statistiques" },
-            { key: "dispos",      icon: "fa-user-check",   label: "Disponibilités" },
-            { key: "attendance",  icon: "fa-chart-column", label: "Assiduité" },
-            { key: "scenesize",   icon: "fa-hard-drive",   label: "Poids du monde" }
+            { key: "gms",         icon: "fa-users-gear",   label: tl("Suivi des GM") },
+            { key: "registre",    icon: "fa-address-book", label: tl("Registre") },
+            { key: "stats",       icon: "fa-chart-pie",    label: tl("Statistiques") },
+            { key: "dispos",      icon: "fa-user-check",   label: tl("Disponibilités") },
+            { key: "attendance",  icon: "fa-chart-column", label: tl("Assiduité") },
+            { key: "scenesize",   icon: "fa-hard-drive",   label: tl("Poids du monde") }
         ];
         const tabBtn = (t) => `
             <button type="button" class="scwm-casier-tab ${this.#tab === t.key ? "active" : ""}" data-tab="${t.key}">
                 <i class="fas ${t.icon}"></i> ${t.label}
             </button>`;
         const tabsHtml = `
-            <div class="scwm-casier-tabgroup">Travail</div>
+            <div class="scwm-casier-tabgroup">${tl("Travail")}</div>
             ${workTabs.map(tabBtn).join("")}
-            <div class="scwm-casier-tabgroup">Statistiques</div>
+            <div class="scwm-casier-tabgroup">${tl("Statistiques")}</div>
             ${statTabs.map(tabBtn).join("")}`;
 
         // Liste du livret (colonne gauche) — seulement pour l'onglet Rapports.
@@ -550,16 +551,16 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                 ? drafts.map(d => `
                     <div class="scwm-casier-page ${d.id === this.#selectedId ? "active" : ""}" data-draft-id="${esc(d.id)}">
                         <i class="fa-solid fa-scroll"></i>
-                        <span class="scwm-casier-page-title">Rapport — ${esc(d.dateDisplay)}</span>
+                        <span class="scwm-casier-page-title">${tl("Rapport — {0}", esc(d.dateDisplay))}</span>
                     </div>`).join("")
-                : `<div class="scwm-casier-empty">Aucun rapport en attente.</div>`;
+                : `<div class="scwm-casier-empty">${tl("Aucun rapport en attente.")}</div>`;
         }
 
         let detail;
         if (this.#tab === "dashboard")      detail = this.#dashboardDetail(drafts);
         else if (this.#tab === "reports") {
             const draft = drafts.find(d => d.id === this.#selectedId);
-            detail = draft ? this.#draftDetail(draft) : `<div class="scwm-casier-placeholder"><i class="fa-solid fa-book-open"></i><p>Sélectionnez un rapport à finaliser dans le livret.</p></div>`;
+            detail = draft ? this.#draftDetail(draft) : `<div class="scwm-casier-placeholder"><i class="fa-solid fa-book-open"></i><p>${tl("Sélectionnez un rapport à finaliser dans le livret.")}</p></div>`;
         }
         else if (this.#tab === "expeditions") detail = this.#expeditionsDetail();
         else if (this.#tab === "downtime")    detail = this.#downtimeDetail();
@@ -588,14 +589,14 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
     #resetZoneFor(tab) {
         const zones = {
             reports: [
-                { key: "sessionDrafts",       label: "Réinitialiser les rapports en attente" },
-                { key: "sessionForumThreads", label: "Réinitialiser les fils Discord" },
+                { key: "sessionDrafts",       label: tl("Réinitialiser les rapports en attente") },
+                { key: "sessionForumThreads", label: tl("Réinitialiser les fils Discord") },
             ],
             attendance: [
-                { key: "sessionLog", label: "Réinitialiser le journal des sessions (présence, assiduité)" },
+                { key: "sessionLog", label: tl("Réinitialiser le journal des sessions (présence, assiduité)") },
             ],
             expeditions: [
-                { key: "expeditionRevealedZones", label: "Réinitialiser les zones révélées de la carte" },
+                { key: "expeditionRevealedZones", label: tl("Réinitialiser les zones révélées de la carte") },
             ],
         };
         const list = zones[tab];
@@ -607,7 +608,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
         return `
             <div class="scwm-casier-reset-zone" style="margin-top:18px;padding-top:12px;border-top:1px solid rgba(192,57,43,0.35);">
                 <div style="font-size:12px;opacity:.85;margin-bottom:6px;color:#c0392b;">
-                    <i class="fa-solid fa-triangle-exclamation"></i> Réinitialisation — tous les MJ, irréversible
+                    ${tl("<i class=\"fa-solid fa-triangle-exclamation\"></i> Réinitialisation — tous les MJ, irréversible")}
                 </div>
                 <div style="display:flex;flex-wrap:wrap;gap:8px;">${list.map(btn).join("")}</div>
             </div>`;
@@ -615,10 +616,10 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
 
     #resetDefs() {
         return {
-            sessionDrafts:           { label: "les rapports en attente",        empty: [] },
-            sessionForumThreads:     { label: "les fils Discord",               empty: {} },
-            sessionLog:              { label: "le journal des sessions (présence, assiduité)", empty: [] },
-            expeditionRevealedZones: { label: "les zones révélées de la carte",  empty: {} },
+            sessionDrafts:           { label: tl("les rapports en attente"),        empty: [] },
+            sessionForumThreads:     { label: tl("les fils Discord"),               empty: {} },
+            sessionLog:              { label: tl("le journal des sessions (présence, assiduité)"), empty: [] },
+            expeditionRevealedZones: { label: tl("les zones révélées de la carte"),  empty: {} },
         };
     }
 
@@ -627,32 +628,32 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
         if (!def) return;
         const DV2 = foundry.applications.api.DialogV2;
         const content = `
-            <p>Tu vas effacer <strong>${esc(def.label)}</strong> pour <strong>TOUS les MJ</strong>.</p>
-            <p style="color:#c0392b;margin:.3em 0;"><i class="fa-solid fa-triangle-exclamation"></i> Action <strong>irréversible</strong>.</p>
-            <p>Tape <strong>RESET</strong> ci-dessous pour confirmer :</p>
+            <p>${tl("Tu vas effacer <strong>{0}</strong> pour <strong>TOUS les MJ</strong>.", esc(def.label))}</p>
+            <p style="color:#c0392b;margin:.3em 0;">${tl("<i class=\"fa-solid fa-triangle-exclamation\"></i> Action <strong>irréversible</strong>.")}</p>
+            <p>${tl("Tape <strong>RESET</strong> ci-dessous pour confirmer :")}</p>
             <input type="text" class="scwm-reset-input" autocomplete="off" placeholder="RESET" style="width:100%;box-sizing:border-box;" />`;
         const ok = await DV2.wait({
-            window: { title: "Réinitialiser — confirmation", icon: "fa-solid fa-trash-can" },
+            window: { title: tl("Réinitialiser — confirmation"), icon: "fa-solid fa-trash-can" },
             content,
             rejectClose: false,
             buttons: [
-                { action: "cancel", label: "Annuler", icon: "fa-solid fa-xmark", default: true },
+                { action: "cancel", label: tl("Annuler"), icon: "fa-solid fa-xmark", default: true },
                 {
-                    action: "reset", label: "Réinitialiser", icon: "fa-solid fa-trash-can",
+                    action: "reset", label: tl("Réinitialiser"), icon: "fa-solid fa-trash-can",
                     callback: (e, b, dlg) => ((dlg.element.querySelector(".scwm-reset-input")?.value || "").trim().toUpperCase() === "RESET")
                 },
             ],
         }).catch(() => "cancel");
         if (ok !== true) {
-            if (ok === false) ui.notifications?.warn("Réinitialisation annulée : le mot « RESET » n'a pas été saisi correctement.");
+            if (ok === false) ui.notifications?.warn(tl("Réinitialisation annulée : le mot « RESET » n'a pas été saisi correctement."));
             return;
         }
         try {
             await game.settings.set(MOD, key, Array.isArray(def.empty) ? [] : {});
-            ui.notifications?.info(`Casier : ${def.label} — réinitialisé.`);
+            ui.notifications?.info(tl("Casier : {0} — réinitialisé.", def.label));
         } catch (err) {
-            journal.erreur("[WestMarch] Réinitialisation casier :", err);
-            ui.notifications?.error("Échec de la réinitialisation (voir console).");
+            journal.erreur(tl("[WestMarch] Réinitialisation casier :"), err);
+            ui.notifications?.error(tl("Échec de la réinitialisation (voir console)."));
         }
         this.render();
         refreshCasierBadge();
@@ -663,35 +664,35 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
         const exps = gmExpeditions();
         return `
             <div class="scwm-casier-detail scwm-casier-dashboard">
-                <h2><i class="fa-solid fa-box-archive"></i> Casier de ${esc(game.user.name)}</h2>
-                <p class="scwm-casier-meta">Tableau de bord du meneur</p>
+                <h2>${tl("<i class=\"fa-solid fa-box-archive\"></i> Casier de {0}", esc(game.user.name))}</h2>
+                <p class="scwm-casier-meta">${tl("Tableau de bord du meneur")}</p>
 
                 <div class="scwm-casier-stats">
-                    <div class="scwm-casier-stat"><b>${drafts.length}</b><span>Rapport(s) à finaliser</span></div>
-                    <div class="scwm-casier-stat"><b>${exps.length}</b><span>Expédition(s) en cours</span></div>
+                    <div class="scwm-casier-stat"><b>${drafts.length}</b><span>${tl("Rapport(s) à finaliser")}</span></div>
+                    <div class="scwm-casier-stat"><b>${exps.length}</b><span>${tl("Expédition(s) en cours")}</span></div>
                 </div>
 
-                <h3>Présentation</h3>
+                <h3>${tl("Présentation")}</h3>
                 <textarea class="scwm-casier-presentation" rows="8"
-                    placeholder="Présentez-vous, vos critères, vos horaires… (visible ici, sauvegardé automatiquement)">${esc(getPresentation(game.user.id))}</textarea>
+                    placeholder="${tl("Présentez-vous, vos critères, vos horaires… (visible ici, sauvegardé automatiquement)")}">${esc(getPresentation(game.user.id))}</textarea>
             </div>`;
     }
 
     // ---- Onglet Expéditions (du GM) ----
     #expeditionsDetail() {
         const exps = gmExpeditions();
-        if (!exps.length) return `<div class="scwm-casier-placeholder"><i class="fa-solid fa-route"></i><p>Aucune expédition en cours.</p></div>`;
+        if (!exps.length) return `<div class="scwm-casier-placeholder"><i class="fa-solid fa-route"></i><p>${tl("Aucune expédition en cours.")}</p></div>`;
         return `
             <div class="scwm-casier-detail">
-                <h2>Expéditions en cours</h2>
+                <h2>${tl("Expéditions en cours")}</h2>
                 ${exps.map(x => `
                     <div class="scwm-casier-exp-card ${x.current ? "current" : ""}">
                         <div class="scwm-casier-exp-head">
                             <i class="fa-solid fa-route"></i>
                             <span class="scwm-casier-exp-name">${esc(x.name)}</span>
-                            ${x.current ? `<span class="scwm-casier-exp-badge">En session</span>` : ""}
+                            ${x.current ? `<span class="scwm-casier-exp-badge">${tl("En session")}</span>` : ""}
                             <span class="scwm-casier-date">${esc(formatDate(x.startDate))}</span>
-                            ${x.sessions != null ? `<span class="scwm-casier-date" style="opacity:.7;">· ${x.sessions} session${x.sessions > 1 ? "s" : ""}</span>` : ""}
+                            ${x.sessions != null ? `<span class="scwm-casier-date" style="opacity:.7;">${tl("· {0} session{1}", x.sessions, x.sessions > 1 ? "s" : "")}</span>` : ""}
                         </div>
                         ${x.participants.length ? `<div class="scwm-casier-exp-parts">${x.participants.map(p => esc(p.name)).join(", ")}</div>` : ""}
                     </div>`).join("")}
@@ -702,10 +703,10 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
     #downtimeDetail() {
         return `
             <div class="scwm-casier-detail scwm-casier-downtime">
-                <h2><i class="fa-solid fa-hourglass-half"></i> Temps morts</h2>
+                <h2>${tl("<i class=\"fa-solid fa-hourglass-half\"></i> Temps morts")}</h2>
                 <div class="scwm-tm-embed">${downtimeContentHtml(true)}</div>
                 <div class="scwm-casier-actions" style="margin-top:10px;">
-                    <button type="button" class="scwm-casier-apply-tm"><i class="fa-solid fa-coins"></i> Appliquer les gains</button>
+                    <button type="button" class="scwm-casier-apply-tm">${tl("<i class=\"fa-solid fa-coins\"></i> Appliquer les gains")}</button>
                 </div>
             </div>`;
     }
@@ -718,21 +719,21 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
         const reqRows = reqs.length ? reqs.map(r => `
             <div class="scwm-casier-cv-row" data-cv-user="${esc(r.userId)}">
                 <div class="scwm-cv-info">
-                    <strong>${esc(r.name || "Sans nom")}</strong> — <em>${esc(r.userName)}</em>
+                    <strong>${esc(r.name || tl("Sans nom"))}</strong> — <em>${esc(r.userName)}</em>
                     ${r.concept ? `<br><small>${esc(r.concept)}</small>` : ""}
                 </div>
                 <div class="scwm-cv-row-actions">
-                    <button type="button" class="scwm-cv-approve" data-user="${esc(r.userId)}"><i class="fa-solid fa-check"></i> Créer &amp; assigner</button>
-                    <button type="button" class="scwm-cv-reject" data-user="${esc(r.userId)}"><i class="fa-solid fa-times"></i> Refuser</button>
+                    <button type="button" class="scwm-cv-approve" data-user="${esc(r.userId)}">${tl("<i class=\"fa-solid fa-check\"></i> Créer &amp; assigner")}</button>
+                    <button type="button" class="scwm-cv-reject" data-user="${esc(r.userId)}">${tl("<i class=\"fa-solid fa-times\"></i> Refuser")}</button>
                 </div>
-            </div>`).join("") : `<div class="scwm-casier-empty">Aucune demande de création.</div>`;
+            </div>`).join("") : `<div class="scwm-casier-empty">${tl("Aucune demande de création.")}</div>`;
 
         const pendRows = pend.length ? pend.map(a => {
             // Dépliant des modifications de montée de niveau (si présentes).
             const changes = Array.isArray(a.changes) ? a.changes : [];
             const changesBlock = (a.kind === "levelup" && changes.length) ? `
                 <details class="scwm-cv-changes" style="margin-top:6px;">
-                    <summary style="cursor:pointer;opacity:.85;font-size:.9em;"><i class="fa-solid fa-list-check"></i> Modifications de la fiche (${changes.length})</summary>
+                    <summary style="cursor:pointer;opacity:.85;font-size:.9em;">${tl("<i class=\"fa-solid fa-list-check\"></i> Modifications de la fiche ({0})", changes.length)}</summary>
                     <ul style="margin:4px 0 0;padding-left:18px;font-size:.85em;opacity:.9;">${changes.map(c => `<li>${esc(c)}</li>`).join("")}</ul>
                 </details>` : "";
             return `
@@ -740,26 +741,26 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                 <div class="scwm-cv-info">
                     <strong>${esc(a.name)}</strong> — <em>${esc(a.ownerName)}</em>
                     ${a.kind === "levelup"
-                        ? `<span class="scwm-cv-tag scwm-cv-tag-levelup"><i class="fa-solid fa-arrow-up-1-9"></i> Montée de niveau</span>`
-                        : `<span class="scwm-cv-tag scwm-cv-tag-creation"><i class="fa-solid fa-user-plus"></i> Création</span>`}
+                        ? `<span class="scwm-cv-tag scwm-cv-tag-levelup">${tl("<i class=\"fa-solid fa-arrow-up-1-9\"></i> Montée de niveau")}</span>`
+                        : `<span class="scwm-cv-tag scwm-cv-tag-creation">${tl("<i class=\"fa-solid fa-user-plus\"></i> Création")}</span>`}
                     ${changesBlock}
                 </div>
                 <div class="scwm-cv-row-actions">
-                    <button type="button" class="scwm-cv-openactor" data-actor="${esc(a.id)}" title="Ouvrir la fiche"><i class="fa-solid fa-user"></i></button>
-                    <button type="button" class="scwm-cv-validate" data-actor="${esc(a.id)}"><i class="fa-solid fa-lock"></i> Valider &amp; verrouiller</button>
-                    <button type="button" class="scwm-cv-return" data-actor="${esc(a.id)}"><i class="fa-solid fa-rotate-left"></i> Renvoyer</button>
+                    <button type="button" class="scwm-cv-openactor" data-actor="${esc(a.id)}" title="${tl("Ouvrir la fiche")}"><i class="fa-solid fa-user"></i></button>
+                    <button type="button" class="scwm-cv-validate" data-actor="${esc(a.id)}">${tl("<i class=\"fa-solid fa-lock\"></i> Valider &amp; verrouiller")}</button>
+                    <button type="button" class="scwm-cv-return" data-actor="${esc(a.id)}">${tl("<i class=\"fa-solid fa-rotate-left\"></i> Renvoyer")}</button>
                 </div>
-            </div>`; }).join("") : `<div class="scwm-casier-empty">Aucune fiche à valider.</div>`;
+            </div>`; }).join("") : `<div class="scwm-casier-empty">${tl("Aucune fiche à valider.")}</div>`;
 
         return `
             <div class="scwm-casier-detail scwm-casier-validation">
-                <h2><i class="fa-solid fa-id-card"></i> Validation des personnages</h2>
+                <h2>${tl("<i class=\"fa-solid fa-id-card\"></i> Validation des personnages")}</h2>
                 <div class="scwm-casier-cv-section">
-                    <h3>Demandes de création</h3>
+                    <h3>${tl("Demandes de création")}</h3>
                     ${reqRows}
                 </div>
                 <div class="scwm-casier-cv-section">
-                    <h3>Fiches à valider</h3>
+                    <h3>${tl("Fiches à valider")}</h3>
                     ${pendRows}
                 </div>
             </div>`;
@@ -771,26 +772,26 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
         if (this.#viewGmId) return this.#gmDashboardDetail(this.#viewGmId);
 
         const gms = gmTracking();
-        if (!gms.length) return `<div class="scwm-casier-placeholder"><i class="fa-solid fa-users-gear"></i><p>Aucun GM.</p></div>`;
+        if (!gms.length) return `<div class="scwm-casier-placeholder"><i class="fa-solid fa-users-gear"></i><p>${tl("Aucun GM.")}</p></div>`;
         return `
             <div class="scwm-casier-detail">
-                <h2>Suivi des GM</h2>
+                <h2>${tl("Suivi des GM")}</h2>
                 ${gms.map(gm => `
                     <div class="scwm-casier-gm-card ${gm.count ? "active" : ""}">
                         <div class="scwm-casier-gm-head">
                             <i class="fa-solid fa-user-shield"></i>
-                            <span class="scwm-casier-gm-name scwm-casier-gm-open" data-gm="${esc(gm.id)}" title="Voir le dashboard de ${esc(gm.name)}">${esc(gm.name)}</span>
-                            <span class="scwm-casier-gm-badge">${gm.count} expédition${gm.count > 1 ? "s" : ""}</span>
+                            <span class="scwm-casier-gm-name scwm-casier-gm-open" data-gm="${esc(gm.id)}" title="${tl("Voir le dashboard de {0}", esc(gm.name))}">${esc(gm.name)}</span>
+                            <span class="scwm-casier-gm-badge">${tl("{0} expédition{1}", gm.count, gm.count > 1 ? "s" : "")}</span>
                         </div>
                         ${gm.exps.length
                             ? `<ul class="scwm-casier-gm-exps">${gm.exps.map(e => `
                                 <li>
                                     <strong>${esc(e.name)}</strong>
                                     <span class="scwm-casier-date">(${esc(formatDate(e.startDate))})</span>
-                                    ${e.sessions != null ? `<span class="scwm-casier-date" style="opacity:.7;">· ${e.sessions} session${e.sessions > 1 ? "s" : ""}</span>` : ""}
-                                    <div class="scwm-casier-gm-parts">${e.participants.length ? e.participants.map(esc).join(", ") : "Aucun joueur"}</div>
+                                    ${e.sessions != null ? `<span class="scwm-casier-date" style="opacity:.7;">${tl("· {0} session{1}", e.sessions, e.sessions > 1 ? "s" : "")}</span>` : ""}
+                                    <div class="scwm-casier-gm-parts">${e.participants.length ? e.participants.map(esc).join(", ") : tl("Aucun joueur")}</div>
                                 </li>`).join("")}</ul>`
-                            : `<div class="scwm-casier-gm-line" style="opacity:.6;">Aucune expédition en cours.</div>`}
+                            : `<div class="scwm-casier-gm-line" style="opacity:.6;">${tl("Aucune expédition en cours.")}</div>`}
                     </div>`).join("")}
             </div>`;
     }
@@ -829,14 +830,14 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
         }
         if (!list.length) {
             return `<div class="scwm-casier-placeholder"><i class="fa-solid fa-chart-column"></i>
-                <p>Aucune expédition clôturée pour l'instant. L'assiduité se calcule sur les expéditions terminées.</p></div>`;
+                <p>${tl("Aucune expédition clôturée pour l'instant. L'assiduité se calcule sur les expéditions terminées.")}</p></div>`;
         }
 
         // Agrégats EXPÉDITIONS (par joueur / par MJ).
         const players = new Map();   // nom joueur -> count
         const gms     = new Map();   // nom MJ     -> { count, parts }
         for (const e of list) {
-            const gmName = e.gmId ? (game.users.get(e.gmId)?.name ?? "MJ inconnu") : "— (sans MJ)";
+            const gmName = e.gmId ? (game.users.get(e.gmId)?.name ?? "MJ inconnu") : tl("— (sans MJ)");
             if (!gms.has(gmName)) gms.set(gmName, { count: 0, parts: 0 });
             const g = gms.get(gmName); g.count++; g.parts += e.participants.length;
 
@@ -860,9 +861,9 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             const ns = expeditionSessionCount(e);
             return `
             <tr>
-                <td>${esc(e.name)}${ns != null ? ` <span style="opacity:.65;">(${ns} session${ns > 1 ? "s" : ""})</span>` : ""}</td>
+                <td>${esc(e.name)}${ns != null ? ` <span style="opacity:.65;">${tl("({0} session{1})", ns, ns > 1 ? "s" : "")}</span>` : ""}</td>
                 <td>${esc(formatDate(e.endDate))}</td>
-                <td style="font-size:.85em;opacity:.8;">${esc(e.endReal ? new Date(e.endReal).toLocaleDateString("fr-FR") : "—")}</td>
+                <td style="font-size:.85em;opacity:.8;">${esc(e.endReal ? new Date(e.endReal).toLocaleDateString(locale()) : "—")}</td>
                 <td>${esc(e.gmId ? (game.users.get(e.gmId)?.name ?? "?") : "—")}</td>
                 <td style="font-size:.85em;">${e.participants.map(id => esc(game.actors.get(id)?.name ?? "?")).join(", ") || "—"}</td>
             </tr>`;
@@ -873,29 +874,29 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
 
         return `
             <div class="scwm-casier-detail scwm-casier-attendance" style="overflow:auto;">
-                <h2><i class="fa-solid fa-chart-column"></i> Assiduité</h2>
+                <h2>${tl("<i class=\"fa-solid fa-chart-column\"></i> Assiduité")}</h2>
                 <div style="display:flex;gap:10px;margin:0 0 14px;">
-                    ${card(totalExp, "expéditions clôturées")}
-                    ${card(totalPlayers, "joueurs actifs (trimestre)")}
+                    ${card(totalExp, tl("expéditions clôturées"))}
+                    ${card(totalPlayers, tl("joueurs actifs (trimestre)"))}
                     ${card(totalGms, "MJ actifs (trimestre)")}
                 </div>
 
                 <div class="scwm-casier-cv-section">
-                    <h3>Expéditions par joueur <span style="font-weight:400;font-size:.75em;opacity:.7;">(nombre · dernière session jouée)</span></h3>
+                    <h3>${tl("Expéditions par joueur")} <span style="font-weight:400;font-size:.75em;opacity:.7;">${tl("(nombre · dernière session jouée)")}</span></h3>
                     ${barChart(playerRows, "#8fd19e")}
                 </div>
 
                 <div class="scwm-casier-cv-section">
-                    <h3>Expéditions menées par MJ <span style="font-weight:400;font-size:.75em;opacity:.7;">(nombre · dernière session menée)</span></h3>
+                    <h3>${tl("Expéditions menées par MJ")} <span style="font-weight:400;font-size:.75em;opacity:.7;">${tl("(nombre · dernière session menée)")}</span></h3>
                     ${barChart(gmRows, "#c9a227")}
                     <div style="font-size:.8em;opacity:.7;margin-top:4px;">${gmRows.map(g => `${esc(g.label)} : ${g.parts} participation(s)`).join(" · ")}</div>
                 </div>
 
                 <div class="scwm-casier-cv-section">
-                    <h3>Expéditions clôturées (récentes)</h3>
+                    <h3>${tl("Expéditions clôturées (récentes)")}</h3>
                     <table style="width:100%;border-collapse:collapse;font-size:.9em;">
                         <thead><tr style="text-align:left;border-bottom:1px solid rgba(255,255,255,.15);">
-                            <th style="padding:3px 4px;">Expédition</th><th style="padding:3px 4px;">Fin (IG)</th><th style="padding:3px 4px;">Clôturée (IRL)</th><th style="padding:3px 4px;">MJ</th><th style="padding:3px 4px;">Participants</th>
+                            <th style="padding:3px 4px;">${tl("Expédition")}</th><th style="padding:3px 4px;">${tl("Fin (IG)")}</th><th style="padding:3px 4px;">${tl("Clôturée (IRL)")}</th><th style="padding:3px 4px;">MJ</th><th style="padding:3px 4px;">${tl("Participants")}</th>
                         </tr></thead>
                         <tbody>${expRows}</tbody>
                     </table>
@@ -917,19 +918,19 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                     placeholder="Présentez-vous, vos critères, vos horaires… (visible ici, sauvegardé automatiquement)">${esc(pres)}</textarea>`
             : (pres
                 ? `<div class="scwm-casier-presentation-view">${esc(pres).replace(/\n/g, "<br>")}</div>`
-                : `<div class="scwm-casier-empty">Aucune présentation renseignée.</div>`);
+                : `<div class="scwm-casier-empty">${tl("Aucune présentation renseignée.")}</div>`);
         return `
             <div class="scwm-casier-detail scwm-casier-dashboard">
-                <button type="button" class="scwm-casier-gm-back"><i class="fa-solid fa-arrow-left"></i> Retour au suivi des GM</button>
-                <h2><i class="fa-solid fa-box-archive"></i> Casier de ${esc(name)}</h2>
-                <p class="scwm-casier-meta">Tableau de bord du meneur${isSelf ? "" : " — lecture seule"}</p>
+                <button type="button" class="scwm-casier-gm-back">${tl("<i class=\"fa-solid fa-arrow-left\"></i> Retour au suivi des GM")}</button>
+                <h2>${tl("<i class=\"fa-solid fa-box-archive\"></i> Casier de {0}", esc(name))}</h2>
+                <p class="scwm-casier-meta">${tl("Tableau de bord du meneur{0}", isSelf ? "" : " — lecture seule")}</p>
 
                 <div class="scwm-casier-stats">
-                    <div class="scwm-casier-stat"><b>${drafts.length}</b><span>Rapport(s) à finaliser</span></div>
-                    <div class="scwm-casier-stat"><b>${exps.length}</b><span>Expédition(s) en cours</span></div>
+                    <div class="scwm-casier-stat"><b>${drafts.length}</b><span>${tl("Rapport(s) à finaliser")}</span></div>
+                    <div class="scwm-casier-stat"><b>${exps.length}</b><span>${tl("Expédition(s) en cours")}</span></div>
                 </div>
 
-                <h3>Présentation</h3>
+                <h3>${tl("Présentation")}</h3>
                 ${presHtml}
             </div>`;
     }
@@ -938,7 +939,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
         const players = (d.players ?? []).map(p => {
             let l = `<strong>${esc(p.name)}</strong> — XP ${p.xpBefore} → ${p.xpAfter}`;
             if (p.xpGained > 0) l += ` (+${p.xpGained})`;
-            if (p.levelUp)      l += ` ⬆ <em>Niveau ${p.levelAfter}</em>`;
+            if (p.levelUp)      l += ` ${tl("⬆ <em>Niveau {0}</em>", p.levelAfter)}`;
             return `<li>${l}</li>`;
         }).join("") || "<li>—</li>";
 
@@ -948,26 +949,26 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
 
         return `
             <div class="scwm-casier-detail" data-draft-id="${esc(d.id)}">
-                <h2>Rapport de session — ${esc(d.dateDisplay)}</h2>
-                <p class="scwm-casier-meta">Meneur : ${esc(d.gmName)}</p>
+                <h2>${tl("Rapport de session — {0}", esc(d.dateDisplay))}</h2>
+                <p class="scwm-casier-meta">${tl("Meneur : {0}", esc(d.gmName))}</p>
 
-                <h3>Joueurs</h3>
+                <h3>${tl("Joueurs")}</h3>
                 <ul class="scwm-casier-players">${players}</ul>
 
                 ${this.#tagEditorHtml(d)}
 
                 ${this.#awardEditorHtml(d)}
 
-                ${enemies ? `<h3>Ennemis rencontrés</h3><ul>${enemies}</ul>` : ""}
-                ${npcs    ? `<h3>PNJ rencontrés</h3><ul>${npcs}</ul>` : ""}
-                ${items   ? `<h3>Objets récupérés</h3><ul>${items}</ul>` : ""}
+                ${enemies ? `<h3>${tl("Ennemis rencontrés")}</h3><ul>${enemies}</ul>` : ""}
+                ${npcs    ? `<h3>${tl("PNJ rencontrés")}</h3><ul>${npcs}</ul>` : ""}
+                ${items   ? `<h3>${tl("Objets récupérés")}</h3><ul>${items}</ul>` : ""}
 
-                <h3>Notes de session</h3>
-                <textarea class="scwm-casier-notes" rows="7" placeholder="Rédigez ou complétez le compte-rendu…">${esc(d.notes ?? "")}</textarea>
+                <h3>${tl("Notes de session")}</h3>
+                <textarea class="scwm-casier-notes" rows="7" placeholder="${tl("Rédigez ou complétez le compte-rendu…")}">${esc(d.notes ?? "")}</textarea>
 
                 <div class="scwm-casier-actions">
-                    <button type="button" class="scwm-casier-send"><i class="fa-solid fa-paper-plane"></i> Clôturer &amp; envoyer sur Discord</button>
-                    <button type="button" class="scwm-casier-delete"><i class="fa-solid fa-trash"></i> Supprimer</button>
+                    <button type="button" class="scwm-casier-send">${tl("<i class=\"fa-solid fa-paper-plane\"></i> Clôturer &amp; envoyer sur Discord")}</button>
+                    <button type="button" class="scwm-casier-delete">${tl("<i class=\"fa-solid fa-trash\"></i> Supprimer")}</button>
                 </div>
             </div>`;
     }
@@ -983,11 +984,11 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                     style="background:none;border:none;cursor:pointer;font-size:24px;line-height:1;padding:0 2px;color:${i <= n ? "#e6be3c" : "#888"};">★</button>`
             ).join("");
             return `
-                <h3><i class="fa-solid fa-hourglass-half"></i> Étoiles à attribuer (en attente d'envoi)</h3>
+                <h3>${tl("<i class=\"fa-solid fa-hourglass-half\"></i> Étoiles à attribuer (en attente d'envoi)")}</h3>
                 <div class="scwm-casier-award" data-type="stars" style="display:flex;align-items:center;gap:6px;">
-                    ${stars}<span class="scwm-casier-star-count" style="margin-left:8px;font-weight:600;">${n} étoile${n > 1 ? "s" : ""}</span>
+                    ${stars}<span class="scwm-casier-star-count" style="margin-left:8px;font-weight:600;">${tl("{0} étoile{1}", n, n > 1 ? "s" : "")}</span>
                 </div>
-                <p style="opacity:.7;font-size:.85em;margin:2px 0 0;">Attribuées à toute la party au moment de l'envoi du rapport.</p>`;
+                <p style="opacity:.7;font-size:.85em;margin:2px 0 0;">${tl("Attribuées à toute la party au moment de l'envoi du rapport.")}</p>`;
         }
         // XP : un champ par PJ.
         const ids = aw.actorIds ?? Object.keys(aw.perActor ?? {});
@@ -1000,9 +1001,9 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             </div>`;
         }).join("") || "<p>—</p>";
         return `
-            <h3><i class="fa-solid fa-hourglass-half"></i> XP à attribuer (en attente d'envoi)</h3>
+            <h3>${tl("<i class=\"fa-solid fa-hourglass-half\"></i> XP à attribuer (en attente d'envoi)")}</h3>
             <div class="scwm-casier-award" data-type="xp">${rows}</div>
-            <p style="opacity:.7;font-size:.85em;margin:2px 0 0;">Appliquée au moment de l'envoi du rapport.</p>`;
+            <p style="opacity:.7;font-size:.85em;margin:2px 0 0;">${tl("Appliquée au moment de l'envoi du rapport.")}</p>`;
     }
 
     // Éditeur des intrigues (tags) d'un rapport — partagées (réglages) + perso MJ.
@@ -1017,13 +1018,13 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                 <input type="checkbox" class="scwm-casier-tag" value="${esc(t)}" ${sel.has(t) ? "checked" : ""}> ${esc(t)}
             </label>`;
         const persoAll = [...perso, ...extra];
-        return `<h3><i class="fa-solid fa-puzzle-piece"></i> Intrigues liées</h3>
+        return `<h3>${tl("<i class=\"fa-solid fa-puzzle-piece\"></i> Intrigues liées")}</h3>
             ${world.length ? `<div class="scwm-casier-tags" style="display:flex;flex-wrap:wrap;gap:6px;">${world.map(chip).join("")}</div>` : ""}
-            <div style="font-size:.85em;opacity:.7;margin:6px 0 2px;">Mes intrigues (perso)</div>
+            <div style="font-size:.85em;opacity:.7;margin:6px 0 2px;">${tl("Mes intrigues (perso)")}</div>
             <div class="scwm-casier-tags scwm-casier-tags-perso" style="display:flex;flex-wrap:wrap;gap:6px;">${persoAll.map(chip).join("") || "<span style='opacity:.5;font-size:.85em;'>—</span>"}</div>
             <div style="display:flex;gap:4px;margin-top:6px;max-width:340px;">
-                <input type="text" class="scwm-casier-newtag" placeholder="Nouvelle intrigue perso…" style="flex:1 1 auto;min-width:0;">
-                <button type="button" class="scwm-casier-addtag" style="flex:0 0 auto;padding:2px 10px;border-radius:4px;cursor:pointer;border:1px solid rgba(201,162,39,0.4);background:rgba(201,162,39,0.12);color:#c9a227;"><i class="fa-solid fa-plus"></i> Ajouter</button>
+                <input type="text" class="scwm-casier-newtag" placeholder="${tl("Nouvelle intrigue perso…")}" style="flex:1 1 auto;min-width:0;">
+                <button type="button" class="scwm-casier-addtag" style="flex:0 0 auto;padding:2px 10px;border-radius:4px;cursor:pointer;border:1px solid rgba(201,162,39,0.4);background:rgba(201,162,39,0.12);color:#c9a227;">${tl("<i class=\"fa-solid fa-plus\"></i> Ajouter")}</button>
             </div>`;
     }
 
@@ -1036,7 +1037,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
         const body = rows.map(r => {
             const iso = lastMap.get(r.joueur);
             const inactive = !isPlayerActive(iso);
-            const title = inactive ? `Joueur inactif — dernière session : ${realDateLabel(iso)}` : "";
+            const title = inactive ? tl("Joueur inactif — dernière session : {0}", realDateLabel(iso)) : "";
             return `
             <tr class="scwm-reg-row scwm-reg-clickable${inactive ? " scwm-reg-inactive" : ""}"
                 data-actor="${r.id}" title="${esc(title)}"
@@ -1053,23 +1054,23 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
         }).join("");
         return `
             <div class="scwm-casier-detail">
-                <h2><i class="fa-solid fa-address-book"></i> Registre des personnages</h2>
+                <h2>${tl("<i class=\"fa-solid fa-address-book\"></i> Registre des personnages")}</h2>
                 <div class="scwm-reg-toolbar">
-                    <input type="text" class="scwm-reg-filter" placeholder="Filtrer (joueur, perso, classe, espèce)…">
+                    <input type="text" class="scwm-reg-filter" placeholder="${tl("Filtrer (joueur, perso, classe, espèce)…")}">
                     <span class="scwm-reg-count">${rows.length} PJ</span>
-                    <button type="button" class="scwm-reg-csv"><i class="fa-solid fa-file-csv"></i> Export CSV</button>
+                    <button type="button" class="scwm-reg-csv">${tl("<i class=\"fa-solid fa-file-csv\"></i> Export CSV")}</button>
                 </div>
-                <p class="scwm-reg-legend"><i class="fa-solid fa-moon"></i> joueur inactif (aucune session depuis ${ACTIVE_DAYS} j) · clic sur une ligne = ouvrir la fiche</p>
+                <p class="scwm-reg-legend">${tl("<i class=\"fa-solid fa-moon\"></i> joueur inactif (aucune session depuis {0} j) · clic sur une ligne = ouvrir la fiche", ACTIVE_DAYS)}</p>
                 <table class="scwm-reg-table">
                     <thead><tr>
-                        <th class="scwm-reg-sort" data-col="0" data-type="txt">Joueur</th>
-                        <th class="scwm-reg-sort" data-col="1" data-type="txt">Perso</th>
-                        <th class="scwm-reg-sort" data-col="2" data-type="txt">Classe(s)</th>
-                        <th class="scwm-reg-sort" data-col="3" data-type="txt">Espèce</th>
-                        <th class="scwm-reg-sort" data-col="4" data-type="num">Niv</th>
-                        <th>Multi</th>
+                        <th class="scwm-reg-sort" data-col="0" data-type="txt">${tl("Joueur")}</th>
+                        <th class="scwm-reg-sort" data-col="1" data-type="txt">${tl("Perso")}</th>
+                        <th class="scwm-reg-sort" data-col="2" data-type="txt">${tl("Classe(s)")}</th>
+                        <th class="scwm-reg-sort" data-col="3" data-type="txt">${tl("Espèce")}</th>
+                        <th class="scwm-reg-sort" data-col="4" data-type="num">${tl("Niv")}</th>
+                        <th>${tl("Multi")}</th>
                     </tr></thead>
-                    <tbody>${body || `<tr><td colspan="6" style="opacity:.6;">Aucun PJ.</td></tr>`}</tbody>
+                    <tbody>${body || `<tr><td colspan="6" style="opacity:.6;">${tl("Aucun PJ.")}</td></tr>`}</tbody>
                 </table>
             </div>`;
     }
@@ -1096,18 +1097,18 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
         };
         return `
             <div class="scwm-casier-detail">
-                <h2><i class="fa-solid fa-chart-pie"></i> Statistiques</h2>
+                <h2>${tl("<i class=\"fa-solid fa-chart-pie\"></i> Statistiques")}</h2>
                 <div class="scwm-casier-stats">
-                    <div class="scwm-casier-stat"><b>${st.nbJoueurs}</b><span>Joueur(s)</span></div>
-                    <div class="scwm-casier-stat"><b>${st.nbPerso}</b><span>Personnage(s)</span></div>
-                    <div class="scwm-casier-stat"><b>${st.multiCount}</b><span>Multiclassé(s)</span></div>
+                    <div class="scwm-casier-stat"><b>${st.nbJoueurs}</b><span>${tl("Joueur(s)")}</span></div>
+                    <div class="scwm-casier-stat"><b>${st.nbPerso}</b><span>${tl("Personnage(s)")}</span></div>
+                    <div class="scwm-casier-stat"><b>${st.multiCount}</b><span>${tl("Multiclassé(s)")}</span></div>
                 </div>
                 <div class="scwm-stat-grid">
-                    ${countTable("Par classe", st.byClass)}
-                    ${countTable("Par sous-classe", st.bySub)}
-                    ${countTable("Par espèce", st.byRace)}
-                    ${countTable("Par joueur", st.byPlayer)}
-                    ${countTable("Distribution des niveaux", st.byLevel, true)}
+                    ${countTable(tl("Par classe"), st.byClass)}
+                    ${countTable(tl("Par sous-classe"), st.bySub)}
+                    ${countTable(tl("Par espèce"), st.byRace)}
+                    ${countTable(tl("Par joueur"), st.byPlayer)}
+                    ${countTable(tl("Distribution des niveaux"), st.byLevel, true)}
                 </div>
             </div>`;
     }
@@ -1121,7 +1122,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             const inactive = !isPlayerActive(iso);
             return `
             <tr class="${inactive ? "scwm-reg-inactive" : ""}"
-                title="${inactive ? esc(`Joueur inactif — dernière session : ${realDateLabel(iso)}`) : ""}">
+                title="${inactive ? esc(tl("Joueur inactif — dernière session : {0}", realDateLabel(iso))) : ""}">
                 <td>${esc(r.joueur)}${inactive ? ' <i class="fa-solid fa-moon" title="Inactif ce trimestre"></i>' : ""}</td>
                 <td>${esc(r.pjs.join(", ")) || "—"}</td>
                 <td style="text-align:center;">${r.nb}</td>
@@ -1131,13 +1132,13 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
         }).join("");
         return `
             <div class="scwm-casier-detail">
-                <h2><i class="fa-solid fa-user-check"></i> Disponibilités des joueurs</h2>
-                <p class="scwm-reg-legend"><i class="fa-solid fa-moon"></i> joueur inactif (aucune session depuis ${ACTIVE_DAYS} j)</p>
+                <h2>${tl("<i class=\"fa-solid fa-user-check\"></i> Disponibilités des joueurs")}</h2>
+                <p class="scwm-reg-legend">${tl("<i class=\"fa-solid fa-moon\"></i> joueur inactif (aucune session depuis {0} j)", ACTIVE_DAYS)}</p>
                 <table class="scwm-reg-table">
                     <thead><tr>
-                        <th>Joueur</th><th>PJ</th><th>Nb PJ</th><th>Expé. en cours</th><th>Dernière session</th>
+                        <th>${tl("Joueur")}</th><th>${tl("PJ")}</th><th>${tl("Nb PJ")}</th><th>${tl("Expé. en cours")}</th><th>${tl("Dernière session")}</th>
                     </tr></thead>
-                    <tbody>${body || `<tr><td colspan="5" style="opacity:.6;">Aucun joueur.</td></tr>`}</tbody>
+                    <tbody>${body || `<tr><td colspan="5" style="opacity:.6;">${tl("Aucun joueur.")}</td></tr>`}</tbody>
                 </table>
             </div>`;
     }
@@ -1146,16 +1147,15 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
     #sceneSizeDetail() {
         return `
             <div class="scwm-casier-detail">
-                <h2><i class="fa-solid fa-hard-drive"></i> Poids du monde</h2>
+                <h2>${tl("<i class=\"fa-solid fa-hard-drive\"></i> Poids du monde")}</h2>
                 <div class="scwm-reg-toolbar">
                     <span style="flex:1;font-size:.85em;color:#9a8b70;">
-                        Poids des documents (données) + de leurs médias (images, audio), tous types confondus :
-                        scènes, acteurs, objets, journaux, tables, cartes, playlists, macros. Le plus lourd d'abord.
+                        ${tl("Poids des documents (données) + de leurs médias (images, audio), tous types confondus :\n                        scènes, acteurs, objets, journaux, tables, cartes, playlists, macros. Le plus lourd d'abord.")}
                     </span>
-                    <button type="button" class="scwm-scenesize-calc"><i class="fa-solid fa-rotate"></i> Recalculer</button>
+                    <button type="button" class="scwm-scenesize-calc">${tl("<i class=\"fa-solid fa-rotate\"></i> Recalculer")}</button>
                 </div>
                 <div class="scwm-scenesize-out">
-                    <p style="opacity:.7;"><i class="fa-solid fa-spinner fa-spin"></i> Calcul en cours…</p>
+                    <p style="opacity:.7;">${tl("<i class=\"fa-solid fa-spinner fa-spin\"></i> Calcul en cours…")}</p>
                 </div>
             </div>`;
     }
@@ -1187,13 +1187,13 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
         if (this.#tab === "scenesize") {
             const out = root.querySelector(".scwm-scenesize-out");
             const run = async () => {
-                if (out) out.innerHTML = `<p style="opacity:.7;"><i class="fa-solid fa-spinner fa-spin"></i> Calcul en cours…</p>`;
+                if (out) out.innerHTML = `<p style="opacity:.7;">${tl("<i class=\"fa-solid fa-spinner fa-spin\"></i> Calcul en cours…")}</p>`;
                 try {
                     const res = await measureWorld();
                     if (out) out.innerHTML = worldSizeTablesHtml(res);
                 } catch (e) {
-                    journal.avert("[casier] poids du monde :", e);
-                    if (out) out.innerHTML = `<p style="color:#c0392b;">Échec du calcul.</p>`;
+                    journal.avert(tl("[casier] poids du monde :"), e);
+                    if (out) out.innerHTML = `<p style="color:#c0392b;">${tl("Échec du calcul.")}</p>`;
                 }
             };
             run();
@@ -1245,7 +1245,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
 
             // Export CSV (lignes visibles, dans l'ordre courant).
             root.querySelector(".scwm-reg-csv")?.addEventListener("click", () => {
-                const header = ["Joueur", "Perso", "Classe(s)", "Espèce", "Niveau total", "Multiclasse"];
+                const header = [tl("Joueur"), tl("Perso"), tl("Classe(s)"), tl("Espèce"), tl("Niveau total"), tl("Multiclasse")];
                 const esc = (s) => `"${String(s).replace(/"/g, '""')}"`;
                 const lines = [header.map(esc).join(";")];
                 for (const tr of allRows()) {
@@ -1337,7 +1337,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             const paint = (n) => {
                 awardBox.querySelectorAll(".scwm-casier-star").forEach(b => { b.style.color = Number(b.dataset.n) <= n ? "#e6be3c" : "#888"; });
                 const c = awardBox.querySelector(".scwm-casier-star-count");
-                if (c) c.textContent = `${n} étoile${n > 1 ? "s" : ""}`;
+                if (c) c.textContent = tl("{0} étoile{1}", n, n > 1 ? "s" : "");
             };
             awardBox.querySelectorAll(".scwm-casier-star").forEach(b => b.addEventListener("click", async () => {
                 const n = Math.max(1, Math.min(3, Number(b.dataset.n) || 1));
@@ -1366,10 +1366,10 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             const ok = await sendSessionReport(d);
             if (!ok) return;   // avertissement déjà émis (webhook manquant / échec)
             // Attribution différée : appliquée SEULEMENT maintenant, l'envoi ayant réussi.
-            if (d.pendingAward) { try { await applyDeferredAward(d.pendingAward); } catch (e) { journal.avert("[WestMarch] Attribution différée :", e); } }
+            if (d.pendingAward) { try { await applyDeferredAward(d.pendingAward); } catch (e) { journal.avert(tl("[WestMarch] Attribution différée :"), e); } }
             await deleteSessionDraft(d.id);
             this.#selectedId = null;
-            ui.notifications.info(d.pendingAward ? "Rapport envoyé et attribution appliquée." : "Rapport de session envoyé sur Discord.");
+            ui.notifications.info(d.pendingAward ? tl("Rapport envoyé et attribution appliquée.") : tl("Rapport de session envoyé sur Discord."));
             refreshCasierBadge();
             this.render();
         });
@@ -1378,8 +1378,8 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             const d = myDrafts().find(x => x.id === this.#selectedId);
             if (!d) return;
             const ok = await foundry.applications.api.DialogV2.confirm({
-                window:  { title: "Supprimer le rapport" },
-                content: `<p>Supprimer définitivement le brouillon <strong>Rapport — ${esc(d.dateDisplay)}</strong> ?</p>`
+                window:  { title: tl("Supprimer le rapport") },
+                content: `<p>${tl("Supprimer définitivement le brouillon <strong>Rapport — {0}</strong> ?", esc(d.dateDisplay))}</p>`
             });
             if (!ok) return;
             await deleteSessionDraft(d.id);
@@ -1408,15 +1408,15 @@ export function openGmPresentations() {
         const pres = getPresentation(gm.id);
         return `<div style="border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:8px 10px;margin:0 0 8px;">
             <div style="font-weight:700;margin-bottom:4px;"><i class="fa-solid fa-user-shield"></i> ${esc(gm.name)}</div>
-            <div style="font-size:.92em;opacity:.9;">${pres ? esc(pres).replace(/\n/g, "<br>") : "<em>Aucune présentation.</em>"}</div>
+            <div style="font-size:.92em;opacity:.9;">${pres ? esc(pres).replace(/\n/g, "<br>") : `${tl("<em>Aucune présentation.</em>")}`}</div>
         </div>`;
-    }).join("") || "<p>Aucun MJ.</p>";
+    }).join("") || `<p>${tl("Aucun MJ.")}</p>`;
     foundry.applications.api.DialogV2.wait({
-        window:   { title: "Présentations des MJ", icon: "fa-solid fa-user-shield" },
+        window:   { title: tl("Présentations des MJ"), icon: "fa-solid fa-user-shield" },
         position: { width: 480 },
         content:  `<div style="max-height:60vh;overflow:auto;">${cards}</div>`,
         rejectClose: false,
-        buttons: [{ action: "close", label: "Fermer", icon: "fa-solid fa-xmark", default: true }]
+        buttons: [{ action: "close", label: tl("Fermer"), icon: "fa-solid fa-xmark", default: true }]
     }).catch(() => {});
 }
 
@@ -1428,7 +1428,7 @@ export function CasierHooks() {
         }
         controls.westmarch.tools.casier = {
             name:     "casier",
-            title:    `Casier de ${game.user.name}`,
+            title:    tl("Casier de {0}", game.user.name),
             icon:     "fa-solid fa-box-archive",
             button:   true,
             onChange: () => openCasier(),
@@ -1444,7 +1444,7 @@ export function CasierHooks() {
         }
         controls.westmarch.tools.gmPresentations = {
             name:     "gmPresentations",
-            title:    "Présentations des MJ",
+            title:    tl("Présentations des MJ"),
             icon:     "fa-solid fa-user-shield",
             button:   true,
             onChange: () => openGmPresentations(),
@@ -1474,11 +1474,11 @@ export function CasierHooks() {
             const n = myDrafts().length;
             if (n <= 0) return;
             ChatMessage.create({
-                speaker: { alias: "Casier" },
+                speaker: { alias: tl("Casier") },
                 whisper: [game.user.id],
                 content: `<div class="scwm-casier-alert">
-                    <p><i class="fa-solid fa-box-archive"></i> Vous avez <strong>${n}</strong> rapport(s) de session en attente de finalisation.</p>
-                    <button type="button" class="scwm-casier-open"><i class="fa-solid fa-up-right-from-square"></i> Ouvrir le Casier</button>
+                    <p>${tl("<i class=\"fa-solid fa-box-archive\"></i> Vous avez <strong>{0}</strong> rapport(s) de session en attente de finalisation.", n)}</p>
+                    <button type="button" class="scwm-casier-open">${tl("<i class=\"fa-solid fa-up-right-from-square\"></i> Ouvrir le Casier")}</button>
                 </div>`
             });
         }, 1500);

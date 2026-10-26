@@ -2,6 +2,7 @@ import { MOD, TM_DEFAULT_SCROLL, TM_DEFAULT_MAGIC, TM_DEFAULT_ROLL } from "./con
 import { journal } from "./log.js";
 import { Dialog } from "./compat.js";
 import { commonPackCraft } from "./settings.js";
+import { tl } from "./i18n.js";
 // ============================================================
 // tm.js — Temps morts : déclaration joueur + validation GM
 //
@@ -36,7 +37,7 @@ function tmEval(formula, vars, fallback) {
         const r = fn(...names.map(n => scope[n]));
         return Number.isFinite(r) ? r : fallback();
     } catch (e) {
-        journal.avert("[TM] Formule invalide, valeur par défaut utilisée :", formula, e);
+        journal.avert(tl("[TM] Formule invalide, valeur par défaut utilisée :"), formula, e);
         return fallback();
     }
 }
@@ -90,18 +91,18 @@ export function TmHooks() {
         const btn = document.createElement("button");
         btn.type = "button";
         btn.classList.add("header-control", "icon", "fa-solid", "fa-hourglass-half", "westmarch-tm-declare");
-        btn.setAttribute("aria-label", "Temps mort");
+        btn.setAttribute("aria-label", tl("Temps mort"));
 
         if (declared && items.length > 0) {
             const summary = items.map(i => i.type === "craft" ? `🔨 ${i.craftName || "craft"}` : i.choiceLabel).join(", ");
-            btn.dataset.tooltip = `TM déclaré (${items.length} activité${items.length > 1 ? "s" : ""}) : ${summary}`;
+            btn.dataset.tooltip = tl("TM déclaré ({0} activité{1}) : {2}", items.length, items.length > 1 ? "s" : "", summary);
             btn.style.color = "#2ecc71";
         } else if (items.length > 0) {
             const summary = items.map(i => i.type === "craft" ? `🔨 ${i.craftName || "craft"}` : i.choiceLabel).join(", ");
-            btn.dataset.tooltip = `TM (${items.length}) : ${summary} — cliquer pour déclarer`;
+            btn.dataset.tooltip = tl("TM ({0}) : {1} — cliquer pour déclarer", items.length, summary);
             btn.style.color = hasCraft ? "#3498db" : "#e67e22";
         } else {
-            btn.dataset.tooltip = "Déclarer mon activité TM";
+            btn.dataset.tooltip = tl("Déclarer mon activité TM");
         }
 
         btn.addEventListener("click", () => openDeclarationDialog(actor));
@@ -144,7 +145,7 @@ function buildSkillOptionsHtml(selectedId = null) {
 function buildMonthOptionsHtml(selectedMonth = 0) {
     const cal = game.time?.calendar;
     if (!cal?.months?.values) {
-        return `<option value="${selectedMonth}">Mois ${selectedMonth + 1}</option>`;
+        return `<option value="${selectedMonth}">${tl("Mois {0}", selectedMonth + 1)}</option>`;
     }
     return Array.from(cal.months.values).map((m, i) => {
         const name = game.i18n.localize(m?.name ?? `Mois ${i + 1}`);
@@ -245,11 +246,11 @@ function skillRowHtml(idPrefix, selectedSkillId) {
     const abilityLabel = getAbilityLabel(selectedSkillId ?? Object.keys(CONFIG.DND5E.skills)[0]);
     return `
 <div style="display:flex; gap:6px; align-items:center;">
-    <label style="min-width:90px; white-space:nowrap;">Compétence :</label>
+    <label style="min-width:90px; white-space:nowrap;">${tl("Compétence :")}</label>
     <select name="tm-skill-${idPrefix}" style="flex:1;">${buildSkillOptionsHtml(selectedSkillId)}</select>
 </div>
 <div class="tm-ability-${idPrefix}" style="font-size:0.85em; color:#888; margin-left:96px; margin-top:-2px;">
-    Caractéristique : ${abilityLabel}
+    ${tl("Caractéristique : {0}", abilityLabel)}
 </div>`;
 }
 
@@ -273,13 +274,13 @@ function toolRowHtml(idPrefix, actor) {
     return `
 <div class="tm-tool-row-${idPrefix}" style="display:none; flex-direction:column; gap:2px;">
     <div style="display:flex; gap:6px; align-items:center;">
-        <label style="min-width:90px; white-space:nowrap;">Outil utilisé :</label>
+        <label style="min-width:90px; white-space:nowrap;">${tl("Outil utilisé :")}</label>
         <input type="text" name="tm-tool-${idPrefix}" list="${listId}"
-               placeholder="ex. Outils de forgeron" style="flex:1;">
+               placeholder="${tl("ex. Outils de forgeron")}" style="flex:1;">
         <datalist id="${listId}">${options}</datalist>
     </div>
     <div style="font-size:0.82em; color:#888; margin-left:96px; margin-top:-1px;">
-        La compétence choisie ci-dessus ne sert alors qu'à la caractéristique associée.
+        ${tl("La compétence choisie ci-dessus ne sert alors qu'à la caractéristique associée.")}
     </div>
 </div>`;
 }
@@ -298,20 +299,20 @@ function profRowHtml(idPrefix, hasMaitrise, hasExpertise, hasTools) {
         <input type="checkbox" name="tm-maitrise-${idPrefix}"
                ${hasMaitrise && !hasTools ? "checked" : ""}
                ${profBlocked ? "disabled" : ""} style="margin:0;">
-        Maîtrise <em style="color:#888;">(+${tmNum("tmBonusMaitrise", 2)} po/j)</em>
+        ${tl("Maîtrise <em style=\"color:#888;\">(+{0} po/j)</em>", tmNum("tmBonusMaitrise", 2))}
     </label>
     <label style="display:flex; align-items:center; gap:5px; cursor:pointer; opacity:${profOp};">
         <input type="checkbox" name="tm-expertise-${idPrefix}"
                ${hasExpertise && !hasTools ? "checked" : ""}
                ${expBlocked ? "disabled" : ""} style="margin:0;">
-        Expertise <em style="color:#888;">(+${tmNum("tmBonusExpertise", 4)} po/j)</em>
+        ${tl("Expertise <em style=\"color:#888;\">(+{0} po/j)</em>", tmNum("tmBonusExpertise", 4))}
     </label>
-    <span style="color:#888; font-style:italic;">ou</span>
+    <span style="color:#888; font-style:italic;">${tl("ou")}</span>
     <label style="display:flex; align-items:center; gap:5px; cursor:pointer; opacity:${toolsOp};">
         <input type="checkbox" name="tm-tools-${idPrefix}"
                ${hasTools ? "checked" : ""}
                ${toolsBlocked ? "disabled" : ""} style="margin:0;">
-        Tools <em style="color:#888;">(+${tmNum("tmBonusTools", 4)} po/j)</em>
+        ${tl("Tools <em style=\"color:#888;\">(+{0} po/j)</em>", tmNum("tmBonusTools", 4))}
     </label>
 </div>`;
 }
@@ -328,28 +329,28 @@ function dateAndRollHtml(idPrefix, sDay, sMonth, sYear, eDay, eMonth, eYear, pre
     const rollOpacity  = tooFew ? " opacity:0.4;" : "";
     return `
 <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-    <label style="min-width:90px; white-space:nowrap;">Date début :</label>
+    <label style="min-width:90px; white-space:nowrap;">${tl("Date début :")}</label>
     <input type="number" name="tm-sday-${idPrefix}" value="${sDay}" min="1" max="30" style="width:50px;">
     <select name="tm-smonth-${idPrefix}">${buildMonthOptionsHtml(sMonth)}</select>
     <input type="number" name="tm-syear-${idPrefix}" value="${sYear}" min="1" style="width:70px;">
 </div>
 <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-    <label style="min-width:90px; white-space:nowrap;">Date fin :</label>
+    <label style="min-width:90px; white-space:nowrap;">${tl("Date fin :")}</label>
     <input type="number" name="tm-eday-${idPrefix}" value="${eDay}" min="1" max="30" style="width:50px;">
     <select name="tm-emonth-${idPrefix}">${buildMonthOptionsHtml(eMonth)}</select>
     <input type="number" name="tm-eyear-${idPrefix}" value="${eYear}" min="1" style="width:70px;">
 </div>
 <div class="tm-daycount-${idPrefix}" style="font-size:0.85em; color:#888; margin-left:96px; margin-top:-2px;">
-    → ${days} jour${days > 1 ? "s" : ""}
+    ${tl("→ {0} jour{1}", days, days > 1 ? "s" : "")}
 </div>
 <div class="tm-d20-row-${idPrefix}" style="display:flex; gap:6px; align-items:center;${rollOpacity}">
     <input type="checkbox" name="tm-roll-${idPrefix}"${rollChecked}${rollDisabled} style="margin:0;">
-    <label style="margin:0;">Test de compétence <em style="color:#888;">(≥ ${tmNum("tmRollMinDays", 5)} jours requis)</em></label>
+    <label style="margin:0;">${tl("Test de compétence <em style=\"color:#888;\">(≥ {0} jours requis)</em>", tmNum("tmRollMinDays", 5))}</label>
 </div>
 <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-    <label style="min-width:90px; white-space:nowrap;">Bonus au jet :</label>
+    <label style="min-width:90px; white-space:nowrap;">${tl("Bonus au jet :")}</label>
     <input type="text" name="tm-bonus-${idPrefix}" value="" placeholder="+10, 1d6…" style="width:80px;">
-    <input type="text" name="tm-bonus-src-${idPrefix}" value="" placeholder="Provenance du bonus…" style="flex:1;">
+    <input type="text" name="tm-bonus-src-${idPrefix}" value="" placeholder="${tl("Provenance du bonus…")}" style="flex:1;">
 </div>`;
 }
 
@@ -393,12 +394,12 @@ function wireControls(html, actor, idPrefix) {
         const bonusSrc     = html.find(`[name="tm-bonus-src-${idPrefix}"]`).val()?.trim() ?? "";
         const bonusPart    = bonusRaw ? ` · bonus jet : ${bonusRaw}${bonusSrc ? ` (${bonusSrc})` : ""}` : "";
         html.find(`.tm-preview-${idPrefix}`)
-            .text(`≈ ${rate} po/jour → ${Math.round(rate * days)} po sur ${days} jour${days > 1 ? "s" : ""}${bonusPart}`);
+            .text(tl("≈ {0} po/jour → {1} po sur {2} jour{3}{4}", rate, Math.round(rate * days), days, days > 1 ? "s" : "", bonusPart));
     }
 
     function refreshAbility() {
         const skillId = html.find(`[name="tm-skill-${idPrefix}"]`).val();
-        html.find(`.tm-ability-${idPrefix}`).text(`Caractéristique : ${getAbilityLabel(skillId)}`);
+        html.find(`.tm-ability-${idPrefix}`).text(tl("Caractéristique : {0}", getAbilityLabel(skillId)));
     }
 
     function refreshProf() {
@@ -576,7 +577,7 @@ async function grantCraftedItem(actor, craftName, craftUuid) {
         await actor.createEmbeddedDocuments("Item", [data]);
         return doc.name;
     } catch (e) {
-        journal.avert("[TM] Ajout de l'objet craft échoué :", e);
+        journal.avert(tl("[TM] Ajout de l'objet craft échoué :"), e);
         return null;
     }
 }
@@ -585,9 +586,9 @@ async function grantCraftedItem(actor, craftName, craftUuid) {
 // Retourne { uuid, name, priceGp } ou null.
 async function pickCraftItem() {
     const coll = commonPackCraft();
-    if (!coll) { ui.notifications?.warn("Aucun compendium d'objets craftables configuré (réglages → Temps morts)."); return null; }
+    if (!coll) { ui.notifications?.warn(tl("Aucun compendium d'objets craftables configuré (réglages → Temps morts).")); return null; }
     const pack = game.packs.get(coll);
-    if (!pack || pack.documentName !== "Item") { ui.notifications?.warn("Le compendium configuré n'est pas un compendium d'objets."); return null; }
+    if (!pack || pack.documentName !== "Item") { ui.notifications?.warn(tl("Le compendium configuré n'est pas un compendium d'objets.")); return null; }
 
     const index = await pack.getIndex({ fields: ["system.price.value", "system.price.denomination"] });
     const denomFactor = { pp: 10, gp: 1, ep: 0.5, sp: 0.1, cp: 0.01 };
@@ -596,7 +597,7 @@ async function pickCraftItem() {
         const d = e.system?.price?.denomination ?? "gp";
         return {
             uuid: `Compendium.${pack.collection}.Item.${e._id}`,
-            name: e.name ?? "Objet",
+            name: e.name ?? tl("Objet"),
             priceGp: (v != null) ? v * (denomFactor[d] ?? 1) : null
         };
     }).sort((a, b) => a.name.localeCompare(b.name));
@@ -606,8 +607,8 @@ async function pickCraftItem() {
     return await new Promise(resolve => {
         const rows = entries.map((e, i) =>
             `<div class="tm-pick-row" data-i="${i}" style="padding:4px 6px; cursor:pointer; border-bottom:1px solid rgba(128,128,128,0.2);">
-                ${esc(e.name)}${e.priceGp != null ? ` <span style="color:#888;">— ${Math.round(e.priceGp)} po</span>` : ""}
-            </div>`).join("") || `<p style="opacity:.7; padding:8px;">Ce compendium ne contient aucun objet.</p>`;
+                ${esc(e.name)}${e.priceGp != null ? ` <span style="color:#888;">${tl("— {0} po", Math.round(e.priceGp))}</span>` : ""}
+            </div>`).join("") || `<p style="opacity:.7; padding:8px;">${tl("Ce compendium ne contient aucun objet.")}</p>`;
 
         const content = `
             <input type="text" class="tm-pick-search" placeholder="Rechercher un objet…" style="width:100%; margin-bottom:6px;">
@@ -617,9 +618,9 @@ async function pickCraftItem() {
         const finish = (val) => { if (!done) { done = true; resolve(val); } };
 
         const dlg = new Dialog({
-            title: `${pack.title ?? pack.metadata?.label ?? "Compendium"} — choisir un objet`,
+            title: tl("{0} — choisir un objet", pack.title ?? pack.metadata?.label ?? "Compendium"),
             content,
-            buttons: { cancel: { icon: '<i class="fa-solid fa-times"></i>', label: "Annuler", callback: () => finish(null) } },
+            buttons: { cancel: { icon: '<i class="fa-solid fa-times"></i>', label: tl("Annuler"), callback: () => finish(null) } },
             default: "cancel",
             render: (html) => {
                 const root = html[0] ?? html;
@@ -642,9 +643,9 @@ async function pickCraftItem() {
 }
 
 function craftTypeLabel(ct) {
-    if (ct === "nonmagique") return "Non-magique";
-    if (ct === "parchemin")  return "Parchemin";
-    if (ct === "magique")    return "Objet magique";
+    if (ct === "nonmagique") return tl("Non-magique");
+    if (ct === "parchemin")  return tl("Parchemin");
+    if (ct === "magique")    return tl("Objet magique");
     return ct ?? "—";
 }
 
@@ -653,7 +654,7 @@ function craftInfoStr(item) {
     const type = item.craftType ?? "nonmagique";
     const cost = item.craftCost ?? 0;
     if (type === "parchemin") {
-        const levels = ["Sort mineur", "Niv. 1", "Niv. 2", "Niv. 3", "Niv. 4",
+        const levels = [tl("Sort mineur"), "Niv. 1", "Niv. 2", "Niv. 3", "Niv. 4",
                         "Niv. 5",    "Niv. 6", "Niv. 7", "Niv. 8", "Niv. 9"];
         return `Parchemin ${levels[item.craftScrollLevel ?? 0] ?? "?"} — ${cost} po`;
     }
@@ -663,7 +664,7 @@ function craftInfoStr(item) {
         return `${label} — ${cost} po`;
     }
     // nonmagique
-    return `Non-magique — ${cost} po`;
+    return tl("Non-magique — {0} po", cost);
 }
 
 // ============================================================
@@ -672,12 +673,12 @@ function craftInfoStr(item) {
 
 function craftDeclFormHtml(id, craftType, craftName, price, scrollLevel, rarity, singleUse, daysAlready, sDay, sMonth, sYear, eDay, eMonth, eYear, craftUuid = "") {
     const scrollOptions = [
-        "Sort mineur", "Niveau 1", "Niveau 2", "Niveau 3", "Niveau 4",
-        "Niveau 5",    "Niveau 6", "Niveau 7", "Niveau 8", "Niveau 9"
+        tl("Sort mineur"), tl("Niveau 1"), tl("Niveau 2"), tl("Niveau 3"), tl("Niveau 4"),
+        tl("Niveau 5"),    tl("Niveau 6"), tl("Niveau 7"), tl("Niveau 8"), tl("Niveau 9")
     ].map((l, i) => `<option value="${i}"${i === scrollLevel ? " selected" : ""}>${l}</option>`).join("");
 
     const rarityOptions = getMagicTable().map(r =>
-        `<option value="${r.key}"${r.key === rarity ? " selected" : ""}>${r.label} (≥ niv. ${r.lvl})</option>`
+        `<option value="${r.key}"${r.key === rarity ? " selected" : ""}>${tl("{0} (≥ niv. {1})", r.label, r.lvl)}</option>`
     ).join("");
 
     const { totalDays, cost } = getCraftStats(craftType, price, scrollLevel, rarity, singleUse);
@@ -685,58 +686,58 @@ function craftDeclFormHtml(id, craftType, craftName, price, scrollLevel, rarity,
     const newTotal  = daysAlready + workDays;
     const remaining = Math.max(0, totalDays - newTotal);
     const prevStr   = remaining === 0
-        ? `Coût : ${cost} po · Durée : ${totalDays} j → ✅ Terminé !`
-        : `Coût : ${cost} po · Durée : ${totalDays} j · Ce TM : ${workDays} j → ${remaining} j restants`;
+        ? tl("Coût : {0} po · Durée : {1} j → ✅ Terminé !", cost, totalDays)
+        : tl("Coût : {0} po · Durée : {1} j · Ce TM : {2} j → {3} j restants", cost, totalDays, workDays, remaining);
 
     return `
 <div style="display:flex; gap:6px; align-items:center;">
-    <label style="min-width:90px; white-space:nowrap;">Type :</label>
+    <label style="min-width:90px; white-space:nowrap;">${tl("Type :")}</label>
     <select name="tm-craft-type-${id}" style="flex:1;">
-        <option value="nonmagique"${craftType === "nonmagique" ? " selected" : ""}>Non-magique</option>
-        <option value="parchemin" ${craftType === "parchemin"  ? " selected" : ""}>Parchemin de sort</option>
-        <option value="magique"   ${craftType === "magique"    ? " selected" : ""}>Objet magique</option>
+        <option value="nonmagique"${craftType === "nonmagique" ? " selected" : ""}>${tl("Non-magique")}</option>
+        <option value="parchemin" ${craftType === "parchemin"  ? " selected" : ""}>${tl("Parchemin de sort")}</option>
+        <option value="magique"   ${craftType === "magique"    ? " selected" : ""}>${tl("Objet magique")}</option>
     </select>
 </div>
 <div style="display:flex; gap:6px; align-items:center;">
-    <label style="min-width:90px; white-space:nowrap;">Nom :</label>
-    <input type="text" name="tm-craft-name-${id}" value="${craftName}" placeholder="Choisir un objet…" style="flex:1; cursor:pointer;" readonly title="Cliquez sur l'icône livre pour choisir un objet du compendium">
+    <label style="min-width:90px; white-space:nowrap;">${tl("Nom :")}</label>
+    <input type="text" name="tm-craft-name-${id}" value="${craftName}" placeholder="${tl("Choisir un objet…")}" style="flex:1; cursor:pointer;" readonly title="${tl("Cliquez sur l'icône livre pour choisir un objet du compendium")}">
     <input type="hidden" name="tm-craft-uuid-${id}" value="${craftUuid ?? ""}">
-    <button type="button" class="tm-craft-pick-${id}" title="Choisir dans le compendium des objets craftables" style="flex:0 0 auto; width:30px;"><i class="fa-solid fa-book"></i></button>
+    <button type="button" class="tm-craft-pick-${id}" title="${tl("Choisir dans le compendium des objets craftables")}" style="flex:0 0 auto; width:30px;"><i class="fa-solid fa-book"></i></button>
 </div>
 <div class="tm-craft-param-nonmagique-${id}" style="display:${craftType === "nonmagique" ? "flex" : "none"}; gap:6px; align-items:center;">
-    <label style="min-width:90px; white-space:nowrap;">Prix d'achat :</label>
-    <input type="number" name="tm-craft-price-${id}" value="${price}" min="1" style="width:80px;"> po
+    <label style="min-width:90px; white-space:nowrap;">${tl("Prix d'achat :")}</label>
+    <input type="number" name="tm-craft-price-${id}" value="${price}" min="1" style="width:80px;"> ${tl("po")}
 </div>
 <div class="tm-craft-param-parchemin-${id}" style="display:${craftType === "parchemin" ? "flex" : "none"}; gap:6px; align-items:center;">
-    <label style="min-width:90px; white-space:nowrap;">Niveau sort :</label>
+    <label style="min-width:90px; white-space:nowrap;">${tl("Niveau sort :")}</label>
     <select name="tm-craft-scroll-${id}">${scrollOptions}</select>
 </div>
 <div class="tm-craft-param-magique-${id}" style="display:${craftType === "magique" ? "flex" : "none"}; gap:6px; align-items:center; flex-wrap:wrap;">
-    <label style="min-width:90px; white-space:nowrap;">Rareté :</label>
+    <label style="min-width:90px; white-space:nowrap;">${tl("Rareté :")}</label>
     <select name="tm-craft-rarity-${id}" style="flex:1;">${rarityOptions}</select>
     <label style="display:flex; align-items:center; gap:5px; cursor:pointer;">
-        <input type="checkbox" name="tm-craft-single-${id}"${singleUse ? " checked" : ""}> Usage unique (÷2)
+        <input type="checkbox" name="tm-craft-single-${id}"${singleUse ? " checked" : ""}> ${tl("Usage unique (÷2)")}
     </label>
 </div>
 <div style="display:flex; gap:6px; align-items:center;">
-    <label style="min-width:90px; white-space:nowrap;">Déjà fait :</label>
+    <label style="min-width:90px; white-space:nowrap;">${tl("Déjà fait :")}</label>
     <input type="number" name="tm-craft-done-${id}" value="${daysAlready}" min="0" style="width:60px;"> j
-    <span style="color:#888; font-size:0.85em;">sur ${totalDays} j total</span>
+    <span style="color:#888; font-size:0.85em;">${tl("sur {0} j total", totalDays)}</span>
 </div>
 <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-top:4px;">
-    <label style="min-width:90px; white-space:nowrap;">Date début :</label>
+    <label style="min-width:90px; white-space:nowrap;">${tl("Date début :")}</label>
     <input type="number" name="tm-craft-sday-${id}" value="${sDay}" min="1" max="30" style="width:50px;">
     <select name="tm-craft-smonth-${id}">${buildMonthOptionsHtml(sMonth)}</select>
     <input type="number" name="tm-craft-syear-${id}" value="${sYear}" min="1" style="width:70px;">
 </div>
 <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-    <label style="min-width:90px; white-space:nowrap;">Date fin :</label>
+    <label style="min-width:90px; white-space:nowrap;">${tl("Date fin :")}</label>
     <input type="number" name="tm-craft-eday-${id}" value="${eDay}" min="1" max="30" style="width:50px;">
     <select name="tm-craft-emonth-${id}">${buildMonthOptionsHtml(eMonth)}</select>
     <input type="number" name="tm-craft-eyear-${id}" value="${eYear}" min="1" style="width:70px;">
 </div>
 <div class="tm-craft-daycount-${id}" style="font-size:0.85em; color:#888; margin-left:96px; margin-top:-2px;">
-    → ${workDays} jour${workDays > 1 ? "s" : ""}
+    ${tl("→ {0} jour{1}", workDays, workDays > 1 ? "s" : "")}
 </div>
 <div class="tm-craft-preview-${id}" style="color:#888; font-style:italic; font-size:0.9em;">${prevStr}</div>`;
 }
@@ -779,14 +780,14 @@ function wireCraftControls(html, idPrefix) {
         html.find(`.tm-craft-daycount-${idPrefix}`).text(`→ ${workDays} jour${workDays > 1 ? "s" : ""}`);
         html.find(`.tm-craft-param-nonmagique-${idPrefix}`).find(`[name="tm-craft-done-${idPrefix}"]`);
 
-        let preview = `Coût : ${cost} po · Durée : ${totalDays} j`;
-        if (daysAlready > 0) preview += ` · Déjà fait : ${daysAlready} j`;
-        preview += ` · Ce TM : ${workDays} j`;
-        preview += remaining === 0 ? ` → ✅ Terminé !` : ` → ${remaining} j restants`;
+        let preview = tl("Coût : {0} po · Durée : {1} j", cost, totalDays);
+        if (daysAlready > 0) preview += ` ${tl("· Déjà fait : {0} j", daysAlready)}`;
+        preview += ` ${tl("· Ce TM : {0} j", workDays)}`;
+        preview += remaining === 0 ? ` ${tl("→ ✅ Terminé !")}` : ` → ${remaining} j restants`;
         html.find(`.tm-craft-preview-${idPrefix}`).text(preview);
 
         // Mise à jour du "sur X j total" à côté du champ Déjà fait
-        html.find(`[name="tm-craft-done-${idPrefix}"]`).closest("div").find("span").text(`sur ${totalDays} j total`);
+        html.find(`[name="tm-craft-done-${idPrefix}"]`).closest("div").find("span").text(tl("sur {0} j total", totalDays));
     }
 
     // Bouton « choisir dans le compendium » : remplit nom, uuid et prix.
@@ -846,11 +847,11 @@ async function openDeclarationDialog(actor) {
 
     function cartHtml(items) {
         if (items.length === 0)
-            return `<em style="color:#888; font-size:0.9em;">TM vide — ajoutez au moins une activité.</em>`;
+            return `${tl("<em style=\"color:#888; font-size:0.9em;\">TM vide — ajoutez au moins une activité.</em>")}`;
         return items.map((item, i) => {
             const label = item.type === "craft"
-                ? `🔨 <strong>${item.craftName || "Craft"}</strong> — ${craftTypeLabel(item.craftType)} — ${item.dateRangeLabel ?? "?"} (${item.days ?? "?"} j) · <em>${item.craftCost ?? "?"} po</em>`
-                  + ((item.craftDaysAlready ?? 0) > 0 ? ` · ${item.craftDaysAlready}/${item.craftTotalDays} j déjà faits` : "")
+                ? `${tl("🔨 <strong>{0}</strong> — {1} — {2} ({3} j) · <em>{4} po</em>", item.craftName || "Craft", craftTypeLabel(item.craftType), item.dateRangeLabel ?? "?", item.days ?? "?", item.craftCost ?? "?")}`
+                  + ((item.craftDaysAlready ?? 0) > 0 ? ` ${tl("· {0}/{1} j déjà faits", item.craftDaysAlready, item.craftTotalDays)}` : "")
                 : `<strong>${item.choiceLabel ?? item.skillId}</strong> — ${item.dateRangeLabel ?? "?"} (${item.days ?? "?"} j)`;
             return `<div class="tm-cart-item" style="display:flex; justify-content:space-between; align-items:center; padding:3px 0; border-bottom:1px solid #eee; font-size:0.9em; gap:8px;">
                 <span style="flex:1;">${label}</span>
@@ -870,38 +871,38 @@ async function openDeclarationDialog(actor) {
     <div style="width:175px; flex-shrink:0; background:#1e2235; color:#d0d4e8; border-radius:4px 0 0 4px;
                 padding:14px 12px; display:flex; flex-direction:column; gap:10px; font-size:0.88em; line-height:1.45;">
         <div style="font-weight:bold; font-size:1em; color:#fff; letter-spacing:0.03em; margin-bottom:2px;">
-            📋 Déclarer un TM
+            ${tl("📋 Déclarer un TM")}
         </div>
         <div style="border-top:1px solid #3a4060; padding-top:8px; display:flex; flex-direction:column; gap:8px;">
 
             <div>
-                <div style="color:#7eb8f7; font-weight:bold; margin-bottom:2px;">① Type d'activité</div>
-                <div style="color:#b0b8d0;">Choisis <em>Gain de compétence</em> ou <em>🔨 Craft</em>.</div>
+                <div style="color:#7eb8f7; font-weight:bold; margin-bottom:2px;">${tl("① Type d'activité")}</div>
+                <div style="color:#b0b8d0;">${tl("Choisis <em>Gain de compétence</em> ou <em>🔨 Craft</em>.")}</div>
             </div>
 
             <div>
-                <div style="color:#7eb8f7; font-weight:bold; margin-bottom:2px;">② Remplis les détails</div>
-                <div style="color:#b0b8d0;">Compétence, maîtrise / expertise, dates de début et de fin.</div>
+                <div style="color:#7eb8f7; font-weight:bold; margin-bottom:2px;">${tl("② Remplis les détails")}</div>
+                <div style="color:#b0b8d0;">${tl("Compétence, maîtrise / expertise, dates de début et de fin.")}</div>
             </div>
 
             <div>
-                <div style="color:#7eb8f7; font-weight:bold; margin-bottom:2px;">③ Ajouter l'activité</div>
-                <div style="color:#b0b8d0;">Clique sur le bouton :</div>
+                <div style="color:#7eb8f7; font-weight:bold; margin-bottom:2px;">${tl("③ Ajouter l'activité")}</div>
+                <div style="color:#b0b8d0;">${tl("Clique sur le bouton :")}</div>
                 <div style="margin-top:4px; background:#2980b9; color:#fff; border-radius:3px;
                             padding:3px 7px; font-weight:bold; font-size:0.93em; display:inline-block;">
-                    + Ajouter au TM
+                    ${tl("+ Ajouter au TM")}
                 </div>
-                <div style="color:#9098b0; margin-top:4px; font-size:0.9em;">Répète les étapes ①②③ pour chaque activité.</div>
+                <div style="color:#9098b0; margin-top:4px; font-size:0.9em;">${tl("Répète les étapes ①②③ pour chaque activité.")}</div>
             </div>
 
             <div style="border-top:1px solid #3a4060; padding-top:8px;">
-                <div style="color:#7eb8f7; font-weight:bold; margin-bottom:2px;">④ Finaliser</div>
-                <div style="color:#b0b8d0;">Quand ton TM est complet, clique sur :</div>
+                <div style="color:#7eb8f7; font-weight:bold; margin-bottom:2px;">${tl("④ Finaliser")}</div>
+                <div style="color:#b0b8d0;">${tl("Quand ton TM est complet, clique sur :")}</div>
                 <div style="margin-top:4px; background:#27ae60; color:#fff; border-radius:3px;
                             padding:3px 7px; font-weight:bold; font-size:0.93em; display:inline-block;">
-                    ✔ Déclarer le TM
+                    ${tl("✔ Déclarer le TM")}
                 </div>
-                <div style="color:#9098b0; margin-top:4px; font-size:0.9em;">Le GM recevra ta déclaration.</div>
+                <div style="color:#9098b0; margin-top:4px; font-size:0.9em;">${tl("Le GM recevra ta déclaration.")}</div>
             </div>
 
         </div>
@@ -912,16 +913,16 @@ async function openDeclarationDialog(actor) {
         <!-- PANIER -->
         <div style="background:#f5f5f5; border:1px solid #ddd; border-radius:4px; padding:8px; color:#222;">
             <div style="font-weight:bold; margin-bottom:4px; font-size:0.95em;">
-                🛒 TM — <span id="tm-cart-count">${cartItems.length} activité${cartItems.length !== 1 ? "s" : ""}</span>
+                🛒 TM — <span id="tm-cart-count">${tl("{0} activité{1}", cartItems.length, cartItems.length !== 1 ? "s" : "")}</span>
             </div>
             <div id="tm-cart-display">${cartHtml(cartItems)}</div>
         </div>
         <hr style="margin:2px 0;">
         <!-- FORMULAIRE D'AJOUT -->
-        <div style="font-size:0.8em; font-weight:bold; color:#666; text-transform:uppercase; letter-spacing:0.04em;">Ajouter une activité</div>
+        <div style="font-size:0.8em; font-weight:bold; color:#666; text-transform:uppercase; letter-spacing:0.04em;">${tl("Ajouter une activité")}</div>
         <div style="display:flex; gap:20px; padding:4px 0 6px; border-bottom:1px solid #ddd;">
             <label style="cursor:pointer; display:flex; align-items:center; gap:6px; font-weight:bold;">
-                <input type="radio" name="tm-type-decl" value="gain" checked> Gain de compétence
+                <input type="radio" name="tm-type-decl" value="gain" checked> ${tl("Gain de compétence")}
             </label>
             <label style="cursor:pointer; display:flex; align-items:center; gap:6px; font-weight:bold;">
                 <input type="radio" name="tm-type-decl" value="craft"> 🔨 Craft
@@ -939,10 +940,10 @@ async function openDeclarationDialog(actor) {
         </div>
         <button type="button" id="tm-add-to-cart"
                 style="padding:6px 12px; background:#2980b9; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:bold; font-size:0.95em;">
-            + Ajouter au TM
+            ${tl("+ Ajouter au TM")}
         </button>
         <div style="margin-top:8px; font-size:0.8em; color:#888; font-style:italic; border-top:1px solid #e0e0e0; padding-top:6px;">
-            📖 Pour en savoir plus sur les règles de temps morts, rendez-vous dans l'onglet <strong>Journal → Temps Morts</strong>.
+            ${tl("📖 Pour en savoir plus sur les règles de temps morts, rendez-vous dans l'onglet <strong>Journal → Temps Morts</strong>.")}
         </div>
     </div>
 
@@ -966,7 +967,7 @@ async function openDeclarationDialog(actor) {
 
             function refreshCart() {
                 $html.find("#tm-cart-display").html(cartHtml(cartItems));
-                $html.find("#tm-cart-count").text(`${cartItems.length} activité${cartItems.length !== 1 ? "s" : ""}`);
+                $html.find("#tm-cart-count").text(tl("{0} activité{1}", cartItems.length, cartItems.length !== 1 ? "s" : ""));
                 $html.find(".tm-remove-item").on("click", async function () {
                     cartItems.splice(parseInt(this.dataset.index), 1);
                     if (cartItems.length === 0) await actor.unsetFlag(MOD, "tm");
@@ -1051,12 +1052,12 @@ async function openDeclarationDialog(actor) {
         buttons: [
             {
                 action: "declare",
-                label: "Déclarer le TM",
+                label: tl("Déclarer le TM"),
                 icon: '<i class="fa-solid fa-check"></i>',
                 default: true,
                 callback: async (event, button, dialog) => {
                     if (cartItems.length === 0) {
-                        ui.notifications.warn("Le TM est vide. Ajoutez au moins une activité.");
+                        ui.notifications.warn(tl("Le TM est vide. Ajoutez au moins une activité."));
                         return false; // empêche la fermeture du dialogue
                     }
                     await actor.setFlag(MOD, "tm", {
@@ -1064,12 +1065,12 @@ async function openDeclarationDialog(actor) {
                         items: cartItems.map(i => ({ ...i, declared: true }))
                     });
                     notifyTmDeclared();
-                    ui.notifications.info(`TM déclaré : ${cartItems.length} activité${cartItems.length !== 1 ? "s" : ""}.`);
+                    ui.notifications.info(tl("TM déclaré : {0} activité{1}.", cartItems.length, cartItems.length !== 1 ? "s" : ""));
                 }
             },
             {
                 action: "cancel",
-                label: "Annuler",
+                label: tl("Annuler"),
                 icon: '<i class="fa-solid fa-times"></i>'
             }
         ]
@@ -1089,10 +1090,10 @@ function buildActorRow(actor, startUnchecked = false) {
     const count      = items.length;
 
     const statusBadge = isDeclared && count > 0
-        ? `<span style="color:#2ecc71; font-size:0.85em; margin-left:6px;">✓ ${count} activité${count > 1 ? "s" : ""} déclarée${count > 1 ? "s" : ""}</span>`
+        ? `<span style="color:#2ecc71; font-size:0.85em; margin-left:6px;">${tl("✓ {0} activité{1} déclarée{2}", count, count > 1 ? "s" : "", count > 1 ? "s" : "")}</span>`
         : count > 0
-            ? `<span style="color:#e67e22; font-size:0.85em; margin-left:6px;">(non déclaré)</span>`
-            : `<span style="color:#888; font-size:0.85em; margin-left:6px;">(aucune déclaration)</span>`;
+            ? `<span style="color:#e67e22; font-size:0.85em; margin-left:6px;">${tl("(non déclaré)")}</span>`
+            : `<span style="color:#888; font-size:0.85em; margin-left:6px;">${tl("(aucune déclaration)")}</span>`;
 
     const itemsHtml = items.map(item => {
         if (item.type === "craft") {
@@ -1103,23 +1104,23 @@ function buildActorRow(actor, startUnchecked = false) {
             const complete    = newTotal >= totalDays;
             const remaining   = Math.max(0, totalDays - newTotal);
             const progressStr = complete
-                ? `<span style="color:#2ecc71; font-weight:bold;">✅ Terminé après ce TM</span>`
-                : `${newTotal}/${totalDays} j — <strong>${remaining} j restant${remaining > 1 ? "s" : ""}</strong>`;
+                ? `<span style="color:#2ecc71; font-weight:bold;">${tl("✅ Terminé après ce TM")}</span>`
+                : `${tl("{0}/{1} j — <strong>{2} j restant{3}</strong>", newTotal, totalDays, remaining, remaining > 1 ? "s" : "")}`;
             return `<div style="font-size:0.9em; padding:4px 0 4px 4px; border-top:1px solid #eee;">
                 <div>🔨 <strong>${item.craftName || "—"}</strong> <span style="color:#888;">— ${craftTypeLabel(item.craftType)}</span></div>
-                <div style="color:#888;">Coût : <strong>${item.craftCost ?? "?"} po</strong> · Durée : ${totalDays} j · ${item.dateRangeLabel ?? ""} (${workDays} j ce TM)</div>
+                <div style="color:#888;">${tl("Coût : <strong>{0} po</strong> · Durée : {1} j · {2} ({3} j ce TM)", item.craftCost ?? "?", totalDays, item.dateRangeLabel ?? "", workDays)}</div>
                 <div>${progressStr}</div>
             </div>`;
         } else {
-            const profStr = item.hasTools ? " [Tools]" : item.hasExpertise ? " [Expertise]" : item.hasMaitrise ? " [Maîtrise]" : "";
+            const profStr = item.hasTools ? " [Tools]" : item.hasExpertise ? " [Expertise]" : item.hasMaitrise ? tl(" [Maîtrise]") : "";
             const rate    = item.skillId ? calcDailyRate(actor, item.skillId, item.hasMaitrise, item.hasExpertise, item.hasTools) : 0;
             const est     = rate * (item.days ?? 0);
             return `<div style="font-size:0.9em; padding:4px 0 4px 4px; border-top:1px solid #eee;">
                 <div><strong>${item.choiceLabel ?? item.skillId}</strong>${profStr} — ${item.dateRangeLabel ?? ""} (${item.days ?? "?"} j)</div>
-                <div style="color:#888;">≈ ${rate} po/j → ~${est} po${item.doRoll ? " · test d20 demandé" : " · pas de jet"}</div>
+                <div style="color:#888;">${tl("≈ {0} po/j → ~{1} po{2}", rate, est, item.doRoll ? tl(" · test d20 demandé") : tl(" · pas de jet"))}</div>
             </div>`;
         }
-    }).join("") || `<div style="color:#888; font-size:0.9em; font-style:italic; padding-top:4px;">Aucune activité déclarée.</div>`;
+    }).join("") || `<div style="color:#888; font-size:0.9em; font-style:italic; padding-top:4px;">${tl("Aucune activité déclarée.")}</div>`;
 
     return `
 <div class="tm-actor-row" data-actor-id="${id}"
@@ -1131,11 +1132,11 @@ function buildActorRow(actor, startUnchecked = false) {
         <div style="margin-left:auto; display:flex; gap:4px;">
             <button type="button" class="tm-edit-btn" data-actor-id="${id}"
                     style="padding:2px 8px; font-size:0.8em; color:#3498db; background:none; border:1px solid #3498db; border-radius:3px; cursor:pointer;">
-                Modifier
+                ${tl("Modifier")}
             </button>
             <button type="button" class="tm-refuse-btn" data-actor-id="${id}"
                     style="padding:2px 8px; font-size:0.8em; color:#e74c3c; background:none; border:1px solid #e74c3c; border-radius:3px; cursor:pointer;">
-                Refuser
+                ${tl("Refuser")}
             </button>
         </div>
     </div>
@@ -1165,20 +1166,20 @@ export function downtimeHasActors() { return getPlayerActors().length > 0; }
 // liste est déjà déroulée (cas Casier, pas de case « Afficher la liste »).
 export function downtimeContentHtml(expanded = false) {
     const { allActors, declared, undeclared } = _downtimeData();
-    if (allActors.length === 0) return `<p style="opacity:.75; font-style:italic; padding:8px;">Aucun personnage joueur trouvé.</p>`;
+    if (allActors.length === 0) return `<p style="opacity:.75; font-style:italic; padding:8px;">${tl("Aucun personnage joueur trouvé.")}</p>`;
     const showAllByDefault = declared.length === 0;
 
     const headerHtml = `
 <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:6px;">
     ${declared.length === 0
-        ? `<span style="color:#e67e22;"><em>Aucune déclaration reçue.</em></span>`
-        : `<span><strong>${declared.length}</strong> déclaration${declared.length > 1 ? "s" : ""} reçue${declared.length > 1 ? "s" : ""}.</span>`}
+        ? `<span style="color:#e67e22;">${tl("<em>Aucune déclaration reçue.</em>")}</span>`
+        : `<span>${tl("<strong>{0}</strong> déclaration{1} reçue{2}.", declared.length, declared.length > 1 ? "s" : "", declared.length > 1 ? "s" : "")}</span>`}
     ${expanded ? "" : `<label style="cursor:pointer; display:flex; align-items:center; gap:5px;">
-        <input type="checkbox" id="tm-show-list" style="margin:0;"> Afficher la liste${declared.length > 0 ? ` (${declared.length})` : ""}
+        <input type="checkbox" id="tm-show-list" style="margin:0;"> ${tl("Afficher la liste{0}", declared.length > 0 ? ` (${declared.length})` : "")}
     </label>`}
     ${!showAllByDefault && undeclared.length > 0
         ? `<label style="cursor:pointer; color:#888; display:flex; align-items:center; gap:5px;">
-               <input type="checkbox" id="tm-show-undeclared" style="margin:0;">${undeclared.length} sans déclaration
+               <input type="checkbox" id="tm-show-undeclared" style="margin:0;">${tl("{0} sans déclaration", undeclared.length)}
            </label>`
         : ""}
 </div>`;
@@ -1240,7 +1241,7 @@ export function wireDowntime(rootEl) {
         const owners = getActorOwners(actor);
         if (owners.length > 0) {
             ChatMessage.create({
-                content: `❌ Votre demande de temps mort a été refusée par le MJ.`,
+                content: tl("❌ Votre demande de temps mort a été refusée par le MJ."),
                 whisper: owners.map(u => u.id),
                 speaker: { alias: "WestMarch — Temps morts" }
             });
@@ -1248,11 +1249,11 @@ export function wireDowntime(rootEl) {
         $html.find(`[data-actor-id="${actorId}"].tm-actor-row`).css("opacity", "0.4");
         $html.find(`[name="tm-active-${actorId}"]`).prop("checked", false);
         $html.find(`.tm-controls-${actorId}`).css("opacity", "0.4");
-        this.textContent = "Refusé";
+        this.textContent = tl("Refusé");
         this.disabled = true;
         this.style.color = "#888";
         this.style.borderColor = "#888";
-        ui.notifications.info(`Demande TM refusée pour ${actor.name}.`);
+        ui.notifications.info(tl("Demande TM refusée pour {0}.", actor.name));
     });
 }
 
@@ -1311,12 +1312,12 @@ async function applyDowntimeGains($html, actors) {
                 if (owners.length > 0) {
                     let msgContent;
                     if (complete) {
-                        msgContent = `🔨 Craft terminé pour <strong>${actor.name}</strong> : <strong>${craftName}</strong> <span style="color:#888;">(${infoStr})</span> — ${dateLabel} (${workDays} j) → ✅ Objet créé !`;
+                        msgContent = `${tl("🔨 Craft terminé pour <strong>{0}</strong> : <strong>{1}</strong>", actor.name, craftName)} <span style="color:#888;">(${infoStr})</span> ${tl("— {0} ({1} j) → ✅ Objet créé !", dateLabel, workDays)}`;
                     } else if (isFirstPeriod) {
-                        msgContent = `🔨 Craft démarré pour <strong>${actor.name}</strong> : <strong>${craftName}</strong> <span style="color:#888;">(${infoStr})</span> — ${dateLabel} (${workDays} j) → ${newTotal}/${totalDays} j — <strong>${remaining} j restant${remaining > 1 ? "s" : ""}</strong>`
-                            + `<br><span style="color:#e67e22;">⚠️ Le coût de <strong>${craftCost} po</strong> a été retiré de votre bourse.</span>`;
+                        msgContent = `${tl("🔨 Craft démarré pour <strong>{0}</strong> : <strong>{1}</strong>", actor.name, craftName)} <span style="color:#888;">(${infoStr})</span> ${tl("— {0} ({1} j) → {2}/{3} j — <strong>{4} j restant{5}</strong>", dateLabel, workDays, newTotal, totalDays, remaining, remaining > 1 ? "s" : "")}`
+                            + `<br><span style="color:#e67e22;">${tl("⚠️ Le coût de <strong>{0} po</strong> a été retiré de votre bourse.", craftCost)}</span>`;
                     } else {
-                        msgContent = `🔨 Craft en cours pour <strong>${actor.name}</strong> : <strong>${craftName}</strong> <span style="color:#888;">(${infoStr})</span> — ${dateLabel} (${workDays} j) → ${newTotal}/${totalDays} j — <strong>${remaining} j restant${remaining > 1 ? "s" : ""}</strong>`;
+                        msgContent = `${tl("🔨 Craft en cours pour <strong>{0}</strong> : <strong>{1}</strong>", actor.name, craftName)} <span style="color:#888;">(${infoStr})</span> ${tl("— {0} ({1} j) → {2}/{3} j — <strong>{4} j restant{5}</strong>", dateLabel, workDays, newTotal, totalDays, remaining, remaining > 1 ? "s" : "")}`;
                     }
                     ChatMessage.create({
                         content: msgContent,
@@ -1331,8 +1332,8 @@ async function applyDowntimeGains($html, actors) {
                     const granted = await grantCraftedItem(actor, craftName, item.craftUuid);
                     ChatMessage.create({
                         content: granted
-                            ? `✅ <strong>${actor.name}</strong> a terminé son craft : <strong>${craftName}</strong> (${infoStr}). L'objet <em>${granted}</em> a été <strong>ajouté à sa fiche</strong>. Coût de ${craftCost} po déjà retiré.`
-                            : `✅ <strong>${actor.name}</strong> a terminé son craft : <strong>${craftName}</strong> (${infoStr}). Coût de ${craftCost} po déjà retiré.`,
+                            ? `${tl("✅ <strong>{0}</strong> a terminé son craft : <strong>{1}</strong> ({2}). L'objet <em>{3}</em> a été <strong>ajouté à sa fiche</strong>. Coût de {4} po déjà retiré.", actor.name, craftName, infoStr, granted, craftCost)}`
+                            : `${tl("✅ <strong>{0}</strong> a terminé son craft : <strong>{1}</strong> ({2}). Coût de {3} po déjà retiré.", actor.name, craftName, infoStr, craftCost)}`,
                         whisper: ChatMessage.getWhisperRecipients("GM"),
                         speaker: { alias: "WestMarch — Temps morts" }
                     });
@@ -1343,11 +1344,11 @@ async function applyDowntimeGains($html, actors) {
                 }
 
                 const line = complete
-                    ? `<strong>${actor.name}</strong> — 🔨 <strong>${craftName}</strong> (${infoStr}) — ${dateLabel} (${workDays} j) → ✅ <strong>Terminé !</strong>`
-                    : `<strong>${actor.name}</strong> — 🔨 <strong>${craftName}</strong> (${infoStr}) — ${dateLabel} (${workDays} j) → ${newTotal}/${totalDays} j (${remaining} restants)`;
+                    ? `${tl("<strong>{0}</strong> — 🔨 <strong>{1}</strong> ({2}) — {3} ({4} j) → ✅ <strong>Terminé !</strong>", actor.name, craftName, infoStr, dateLabel, workDays)}`
+                    : `${tl("<strong>{0}</strong> — 🔨 <strong>{1}</strong> ({2}) — {3} ({4} j) → {5}/{6} j ({7} restants)", actor.name, craftName, infoStr, dateLabel, workDays, newTotal, totalDays, remaining)}`;
                 const discordLine = complete
-                    ? `**${actor.name}** (${playerName}) — 🔨 **${craftName}** (${infoStr}) — ${dateLabel} (${workDays} j) → Terminé ! (par ${gmName})`
-                    : `**${actor.name}** (${playerName}) — 🔨 **${craftName}** (${infoStr}) — ${dateLabel} (${workDays} j) → ${newTotal}/${totalDays} j, ${remaining} j restant${remaining > 1 ? "s" : ""} (par ${gmName})`;
+                    ? tl("**{0}** ({1}) — 🔨 **{2}** ({3}) — {4} ({5} j) → Terminé ! (par {6})", actor.name, playerName, craftName, infoStr, dateLabel, workDays, gmName)
+                    : tl("**{0}** ({1}) — 🔨 **{2}** ({3}) — {4} ({5} j) → {6}/{7} j, {8} j restant{9} (par {10})", actor.name, playerName, craftName, infoStr, dateLabel, workDays, newTotal, totalDays, remaining, remaining > 1 ? "s" : "", gmName);
                 lines.push(line);
                 discordLines.push(discordLine);
 
@@ -1376,7 +1377,7 @@ async function applyDowntimeGains($html, actors) {
                 const profStr      = (hasTools && toolName) ? " (outil)"
                                    : hasTools     ? " [Tools]"
                                    : hasExpertise ? " [Expertise]"
-                                   : hasMaitrise  ? " [Maîtrise]" : "";
+                                   : hasMaitrise  ? tl(" [Maîtrise]") : "";
                 const dailyRate    = calcDailyRate(actor, skillId, hasMaitrise, hasExpertise, hasTools);
                 const dateLabel    = item.dateRangeLabel ?? `${sDay} ${getMonthName(sMonth)} → ${eDay} ${getMonthName(eMonth)}`;
                 let total = dailyRate * days, rollResult = null;
@@ -1409,7 +1410,7 @@ async function applyDowntimeGains($html, actors) {
                             rollResult += bR.total ?? 0;
                             await bR.toMessage({
                                 speaker: { alias: `Temps mort — ${actor.name}` },
-                                flavor: `Bonus au test${bonusSrc ? ` (${bonusSrc})` : ""}`
+                                flavor: tl("Bonus au test{0}", bonusSrc ? ` (${bonusSrc})` : "")
                             });
                         } catch (e) {
                             const flat = parseInt(bonusRoll);
@@ -1424,7 +1425,7 @@ async function applyDowntimeGains($html, actors) {
                     ).toUpperCase();
                     await roll.toMessage({
                         speaker: { alias: `Temps mort — ${actor.name}` },
-                        flavor: `Test de compétence : ${activityName} (${abilityAbbr}) — ${days} j`
+                        flavor: tl("Test de compétence : {0} ({1}) — {2} j", activityName, abilityAbbr, days)
                     });
                 }
 
@@ -1441,14 +1442,14 @@ async function applyDowntimeGains($html, actors) {
                     const pctStr = rollResult === null ? ""
                         : ` (test : ${rollResult} → ${multPctLabel(getRollMultiplier(rollResult))})`;
                     ChatMessage.create({
-                        content: `<span style="color:#000;">🕰️ Temps mort appliqué pour <strong>${actor.name}</strong> : `
-                               + `${activityName}${profStr}, ${dateLabel} — ${days} j (${dailyRate} po/j)${pctStr} → <strong>${gainStr}</strong></span>`,
+                        content: `<span style="color:#000;">${tl("🕰️ Temps mort appliqué pour <strong>{0}</strong> :", actor.name)} `
+                               + `${tl("{0}{1}, {2} — {3} j ({4} po/j){5} → <strong>{6}</strong>", activityName, profStr, dateLabel, days, dailyRate, pctStr, gainStr)}</span>`,
                         whisper: owners.map(u => u.id),
                         speaker: { alias: "WestMarch — Temps morts" }
                     });
                 }
 
-                let line        = `<strong>${actor.name}</strong> — ${activityName}${profStr} — ${dateLabel} (${days} j, ${dailyRate} po/j)`;
+                let line        = `${tl("<strong>{0}</strong> — {1}{2} — {3} ({4} j, {5} po/j)", actor.name, activityName, profStr, dateLabel, days, dailyRate)}`;
                 let discordLine = `**${actor.name}** (${playerName}) — ${activityName}${profStr} — ${dateLabel} (${days} j, ${dailyRate} po/j)`;
                 if (rollResult !== null) {
                     const pct = multPctLabel(getRollMultiplier(rollResult));
@@ -1456,7 +1457,7 @@ async function applyDowntimeGains($html, actors) {
                     discordLine += ` → test : ${rollResult} (${pct})`;
                 }
                 line        += ` = <strong>${gainStr}</strong>`;
-                discordLine += ` = **${gainStr}** (par ${gmName})`;
+                discordLine += tl(" = **{0}** (par {1})", gainStr, gmName);
                 lines.push(line);
                 discordLines.push(discordLine);
             }
@@ -1470,10 +1471,10 @@ async function applyDowntimeGains($html, actors) {
         }
     }
 
-    if (lines.length === 0) { ui.notifications.info("Aucun personnage traité."); return; }
+    if (lines.length === 0) { ui.notifications.info(tl("Aucun personnage traité.")); return; }
 
     ChatMessage.create({
-        content: `<div style="color:#000;"><p style="margin:0 0 4px; font-weight:bold;">Résumé des temps morts</p><ul style="margin:0; padding-left:16px;">${lines.map(l => `<li>${l}</li>`).join("")}</ul></div>`,
+        content: `<div style="color:#000;"><p style="margin:0 0 4px; font-weight:bold;">${tl("Résumé des temps morts")}</p><ul style="margin:0; padding-left:16px;">${lines.map(l => `<li>${l}</li>`).join("")}</ul></div>`,
         whisper: ChatMessage.getWhisperRecipients("GM"),
         speaker: { alias: "WestMarch — Temps morts" }
     });
@@ -1484,12 +1485,12 @@ async function applyDowntimeGains($html, actors) {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                content: `🕰️ **Résumé des temps morts**\n${discordLines.map(l => `• ${l}`).join("\n")}`
+                content: tl("🕰️ **Résumé des temps morts**\n{0}", discordLines.map(l => `• ${l}`).join("\n"))
             })
         }).catch(err => journal.erreur("westmarch | Webhook TM Discord :", err));
     }
 
-    ui.notifications.info(`Temps morts appliqués : ${lines.length} activité${lines.length > 1 ? "s" : ""}.`);
+    ui.notifications.info(tl("Temps morts appliqués : {0} activité{1}.", lines.length, lines.length > 1 ? "s" : ""));
 }
 
 // ============================================================
@@ -1511,8 +1512,9 @@ function notifyTmDeclared() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-            content: `⏳ **${pending.length} temps mort${pending.length > 1 ? "s" : ""} en attente** de validation GM.\n`
+            content: `${tl("⏳ **{0} temps mort{1} en attente** de validation GM.", pending.length, pending.length > 1 ? "s" : "")}
+`
                    + pending.map(a => `• ${a.name}`).join("\n")
         })
-    }).catch(err => journal.erreur("westmarch | Webhook TM déclaration :", err));
+    }).catch(err => journal.erreur(tl("westmarch | Webhook TM déclaration :"), err));
 }

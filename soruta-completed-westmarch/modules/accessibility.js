@@ -27,6 +27,7 @@ import { MOD } from "./const.js";
 import { rafraichirFiches } from "./gere.js";
 
 import { journal } from "./log.js";
+import { tl } from "./i18n.js";
 // Clés de réglages (toutes "client").
 const K_DALTON   = "a11yDaltonism";      // "none" | "protan" | "deutan" | "tritan"
 const K_CONTRAST = "a11yContrast";        // Boolean
@@ -39,10 +40,10 @@ const K_GERE     = "a11yManagedBadge";    // Boolean (indicateur « géré par l
 const DEFAULT_BORDER = "#ffd54a";
 
 const DALTON_CHOICES = {
-    none:   "Aucun (couleurs normales)",
-    protan: "Protanopie (rouge)",
-    deutan: "Deutéranopie (vert)",
-    tritan: "Tritanopie (bleu)"
+    none:   tl("Aucun (couleurs normales)"),
+    protan: tl("Protanopie (rouge)"),
+    deutan: tl("Deutéranopie (vert)"),
+    tritan: tl("Tritanopie (bleu)")
 };
 
 const _get = (k) => { try { return game.settings.get(MOD, k); } catch { return undefined; } };
@@ -50,32 +51,32 @@ const _get = (k) => { try { return game.settings.get(MOD, k); } catch { return u
 // ── Réglages ────────────────────────────────────────────────
 function registerA11ySettings() {
     game.settings.register(MOD, K_DALTON, {
-        name: "Mode daltonisme", scope: "client", config: false,
+        name: tl("Mode daltonisme"), scope: "client", config: false,
         type: String, choices: DALTON_CHOICES, default: "none",
         onChange: applyAccessibility
     });
     game.settings.register(MOD, K_CONTRAST, {
-        name: "Fort contraste", scope: "client", config: false,
+        name: tl("Fort contraste"), scope: "client", config: false,
         type: Boolean, default: false, onChange: applyAccessibility
     });
     game.settings.register(MOD, K_CONTRASTCOL, {
-        name: "Couleur des contours (fort contraste)", scope: "client", config: false,
+        name: tl("Couleur des contours (fort contraste)"), scope: "client", config: false,
         type: String, default: DEFAULT_BORDER, onChange: applyAccessibility
     });
     game.settings.register(MOD, K_AVATARS, {
-        name: "Avatars dans la liste des joueurs", scope: "client", config: false,
+        name: tl("Avatars dans la liste des joueurs"), scope: "client", config: false,
         type: Boolean, default: true, onChange: () => { applyAccessibility(); try { ui.players?.render(); } catch {} }
     });
     game.settings.register(MOD, K_AUTOHIDE, {
-        name: "Auto-masquage de l'interface", scope: "client", config: false,
+        name: tl("Auto-masquage de l'interface"), scope: "client", config: false,
         type: Boolean, default: true, onChange: applyAccessibility
     });
     game.settings.register(MOD, K_GERE, {
-        name: "Indicateur « géré par le module »", scope: "client", config: false,
+        name: tl("Indicateur « géré par le module »"), scope: "client", config: false,
         type: Boolean, default: true, onChange: () => rafraichirFiches()
     });
     game.settings.register(MOD, K_COMPACT, {
-        name: "Contrôles de gauche compacts", scope: "client", config: false,
+        name: tl("Contrôles de gauche compacts"), scope: "client", config: false,
         type: Boolean, default: true, onChange: applyAccessibility
     });
 }
@@ -84,19 +85,19 @@ function registerA11ySettings() {
 function registerA11yMenu() {
     try {
         game.settings.registerMenu(MOD, "menu-accessibility", {
-            name:  "Accessibilité",
-            label: "Ouvrir",
-            hint:  "Options personnelles : daltonisme, contraste, avatars, auto-masquage, contrôles compacts. Chaque joueur règle les siennes.",
+            name:  tl("Accessibilité"),
+            label: tl("Ouvrir"),
+            hint:  tl("Options personnelles : daltonisme, contraste, avatars, auto-masquage, contrôles compacts. Chaque joueur règle les siennes."),
             icon:  "fas fa-universal-access",
             type:  class extends foundry.applications.api.ApplicationV2 {
-                static DEFAULT_OPTIONS = { id: "scwm-menu-accessibility", window: { title: "Accessibilité" } };
+                static DEFAULT_OPTIONS = { id: "scwm-menu-accessibility", window: { title: tl("Accessibilité") } };
                 async render() { openA11yDialog(); return this; }
                 async close()  { return this; }
             },
             restricted: false
         });
     } catch (e) {
-        journal.critique(`[${MOD}] registerMenu « Accessibilité » échec :`, e);
+        journal.critique(tl("[{0}] registerMenu « Accessibilité » échec :", MOD), e);
     }
 }
 
@@ -125,53 +126,51 @@ export async function openA11yDialog() {
                     background:linear-gradient(180deg,rgba(201,162,39,0.12),rgba(0,0,0,0.15));">
             <i class="fa-solid fa-universal-access" style="color:#c9a227;font-size:16px;"></i>
             <div style="font-size:.82em;line-height:1.4;color:#d8cfa8;">
-                <strong>Options d'accessibilité</strong><br>
-                Personnelles à ton compte : elles n'affectent que ton affichage.
+                ${tl("<strong>Options d'accessibilité</strong><br>\n                Personnelles à ton compte : elles n'affectent que ton affichage.")}
             </div>
         </div>
 
         <div data-a11y-row="dalton" style="padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.07);">
-            <label style="display:block;font-weight:600;margin:0 0 4px;">Mode daltonisme</label>
+            <label style="display:block;font-weight:600;margin:0 0 4px;">${tl("Mode daltonisme")}</label>
             <select name="${K_DALTON}" style="width:100%;">${opts}</select>
             <p style="margin:4px 0 0;font-size:.8em;color:#999;">
-                Applique un filtre de correction des couleurs sur l'interface et la carte,
-                pour mieux distinguer les teintes selon ton type de vision.
+                ${tl("Applique un filtre de correction des couleurs sur l'interface et la carte,\n                pour mieux distinguer les teintes selon ton type de vision.")}
             </p>
         </div>
 
-        ${row(K_CONTRAST, "Fort contraste", "Renforce le contraste du texte, des bordures et des fonds de l'interface.", "contrast")}
+        ${row(K_CONTRAST, tl("Fort contraste"), tl("Renforce le contraste du texte, des bordures et des fonds de l'interface."), "contrast")}
         <div class="scwm-a11y-row" data-a11y-row="contrastcol" style="padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.07);">
             <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0;font-weight:600;">
-                <span>Couleur des contours</span>
+                <span>${tl("Couleur des contours")}</span>
                 <span style="display:inline-flex;align-items:center;gap:6px;">
                     <input type="color" name="${K_CONTRASTCOL}" value="${_get(K_CONTRASTCOL) || DEFAULT_BORDER}"
                            style="width:42px;height:26px;padding:0;border:none;background:none;cursor:pointer;">
-                    <a class="scwm-a11y-col-reset" style="font-size:.8em;color:#c9a227;cursor:pointer;">réinit.</a>
+                    ${tl("<a class=\"scwm-a11y-col-reset\" style=\"font-size:.8em;color:#c9a227;cursor:pointer;\">réinit.</a>")}
                 </span>
             </label>
-            <p style="margin:3px 0 0;font-size:.8em;color:#999;">Couleur des bordures et du contour de focus en mode fort contraste (jaune par défaut).</p>
+            <p style="margin:3px 0 0;font-size:.8em;color:#999;">${tl("Couleur des bordures et du contour de focus en mode fort contraste (jaune par défaut).")}</p>
         </div>
-        ${row(K_AVATARS,  "Avatars dans la liste des joueurs", "Affiche la miniature du portrait de chaque joueur à côté de son nom.", "avatars")}
-        ${row(K_AUTOHIDE, "Auto-masquage de l'interface", "Estompe contrôles, navigation, macros et liste des joueurs tant que la souris ne les survole pas.", "autohide")}
-        ${row(K_COMPACT,  "Contrôles de gauche compacts", "Réduit la taille des icônes de la barre d'outils de gauche.", "compact")}
-        ${row(K_GERE,     "Indicateur « géré par le module »", "Petite icône d'engrenages dorée sur les aptitudes de ta fiche dont le module applique la règle tout seul (Healer, Alert, Large Form…). Au survol : ce que fait le module.", "gere")}
+        ${row(K_AVATARS,  tl("Avatars dans la liste des joueurs"), tl("Affiche la miniature du portrait de chaque joueur à côté de son nom."), "avatars")}
+        ${row(K_AUTOHIDE, tl("Auto-masquage de l'interface"), tl("Estompe contrôles, navigation, macros et liste des joueurs tant que la souris ne les survole pas."), "autohide")}
+        ${row(K_COMPACT,  tl("Contrôles de gauche compacts"), tl("Réduit la taille des icônes de la barre d'outils de gauche."), "compact")}
+        ${row(K_GERE,     tl("Indicateur « géré par le module »"), tl("Petite icône d'engrenages dorée sur les aptitudes de ta fiche dont le module applique la règle tout seul (Healer, Alert, Large Form…). Au survol : ce que fait le module."), "gere")}
 
-        <div style="margin:10px 0 4px;font-weight:700;color:#c9a227;font-size:.9em;">Cartes de chat</div>
+        <div style="margin:10px 0 4px;font-weight:700;color:#c9a227;font-size:.9em;">${tl("Cartes de chat")}</div>
         <div class="scwm-a11y-row" data-a11y-row="chatcol" style="padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.07);">
             <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0;font-weight:600;">
-                <span>Couleur des cartes de chat</span>
+                <span>${tl("Couleur des cartes de chat")}</span>
                 <span style="display:inline-flex;align-items:center;gap:6px;">
                     <input type="color" name="chatCardColor" value="${_get("chatCardColor") || "#f4ecd8"}"
                            style="width:42px;height:26px;padding:0;border:none;background:none;cursor:pointer;">
-                    <a class="scwm-chat-col-reset" style="font-size:.8em;color:#c9a227;cursor:pointer;">réinit.</a>
+                    ${tl("<a class=\"scwm-chat-col-reset\" style=\"font-size:.8em;color:#c9a227;cursor:pointer;\">réinit.</a>")}
                 </span>
             </label>
-            <p style="margin:3px 0 0;font-size:.8em;color:#999;">Couleur de fond de tes cartes de chat (blanc crème par défaut). Le texte s'adapte automatiquement pour rester lisible. Les autres options (repli, boutons…) sont dans les réglages « Cartes de chat » du MJ.</p>
+            <p style="margin:3px 0 0;font-size:.8em;color:#999;">${tl("Couleur de fond de tes cartes de chat (blanc crème par défaut). Le texte s'adapte automatiquement pour rester lisible. Les autres options (repli, boutons…) sont dans les réglages « Cartes de chat » du MJ.")}</p>
         </div>
     </div>`;
 
     await foundry.applications.api.DialogV2.wait({
-        window:      { title: "Accessibilité", icon: "fas fa-universal-access" },
+        window:      { title: tl("Accessibilité"), icon: "fas fa-universal-access" },
         position:    { width: 520 },
         rejectClose: false,
         content,
@@ -191,7 +190,7 @@ export async function openA11yDialog() {
         buttons: [
             {
                 action: "save", default: true,
-                label: "Enregistrer", icon: '<i class="fa-solid fa-save"></i>',
+                label: tl("Enregistrer"), icon: '<i class="fa-solid fa-save"></i>',
                 callback: async (ev, btn) => {
                     const root = btn.form ?? document.getElementById(uid);
                     if (!root) return;
@@ -211,7 +210,7 @@ export async function openA11yDialog() {
                     try { ui.players?.render(); } catch {}
                 }
             },
-            { action: "close", label: "Fermer", icon: '<i class="fa-solid fa-xmark"></i>', callback: () => {} }
+            { action: "close", label: tl("Fermer"), icon: '<i class="fa-solid fa-xmark"></i>', callback: () => {} }
         ]
     });
 }
@@ -262,7 +261,7 @@ function applyCanvasDaltonism() {
     }
 
     const CMF = globalThis.PIXI?.filters?.ColorMatrixFilter ?? globalThis.PIXI?.ColorMatrixFilter;
-    if (!CMF) { journal.avert(`[${MOD}] PIXI.ColorMatrixFilter indisponible : daltonisme non appliqué.`); return; }
+    if (!CMF) { journal.avert(tl("[{0}] PIXI.ColorMatrixFilter indisponible : daltonisme non appliqué.", MOD)); return; }
 
     try {
         const f = new CMF();
@@ -273,7 +272,7 @@ function applyCanvasDaltonism() {
         // qui se déplace/zoome et ne couvre pas le viewport).
         stage.filterArea = app.renderer.screen;
     } catch (e) {
-        journal.erreur(`[${MOD}] Application du filtre daltonisme :`, e);
+        journal.erreur(tl("[{0}] Application du filtre daltonisme :", MOD), e);
     }
 }
 

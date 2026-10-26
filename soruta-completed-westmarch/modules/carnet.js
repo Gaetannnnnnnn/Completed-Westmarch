@@ -37,6 +37,7 @@ export function nettoyerHtml(html) {
 }
 import { Dialog } from "./compat.js";
 import { expeditionSessionCount } from "./session.js";
+import { tl } from "./i18n.js";
 const MODULE = MOD;
 
 // ================================================================
@@ -47,11 +48,11 @@ export function getExpeditions(actor) {
     return actor.getFlag(MODULE, "expeditions") ?? [];
 }
 
-export async function addExpedition(actor, startDate = null, name = "Nouvelle expédition") {
+export async function addExpedition(actor, startDate = null, name = tl("Nouvelle expédition")) {
     const exps   = getExpeditions(actor);
     const newExp = {
         id:        foundry.utils.randomID(),
-        name:      name || "Nouvelle expédition",
+        name:      name || tl("Nouvelle expédition"),
         startDate: startDate ?? null,
         endDate:   null,
         startReal: new Date().toISOString(),   // date RÉELLE d'ouverture (compte des sessions)
@@ -76,13 +77,13 @@ export async function addCarnetSection(actor) {
     const newSection = {
         id:    foundry.utils.randomID(),
         type:  "section",
-        title: "Nouvelle section"
+        title: tl("Nouvelle section")
     };
     await actor.setFlag(MODULE, "carnetNotes", [...notes, newSection]);
     return newSection;
 }
 
-export async function addCarnetNote(actor, { title = "Nouvelle note", linkedExpId = null, prepend = true } = {}) {
+export async function addCarnetNote(actor, { title = tl("Nouvelle note"), linkedExpId = null, prepend = true } = {}) {
     const notes   = getCarnetNotes(actor);
     const newNote = {
         id:          foundry.utils.randomID(),
@@ -132,7 +133,7 @@ function _monthOptionsHtml(selectedMonth = 0) {
         }
     } catch {}
     return Array.from({ length: 12 }, (_, i) =>
-        `<option value="${i}"${i === selectedMonth ? " selected" : ""}>Mois ${i + 1}</option>`
+        `<option value="${i}"${i === selectedMonth ? " selected" : ""}>${tl("Mois {0}", i + 1)}</option>`
     ).join("");
 }
 
@@ -203,7 +204,7 @@ export function CarnetToolbarHooks() {
         }
         controls.westmarch.tools.carnetDate = {
             name:     "carnetDate",
-            title:    "Date Expédition — Ouvrir / Clôturer",
+            title:    tl("Date Expédition — Ouvrir / Clôturer"),
             icon:     "fa-solid fa-calendar-plus",
             button:   true,
             onChange: () => onClickDateTM(),
@@ -216,8 +217,8 @@ async function onClickDateTM() {
     const members = getPartyMembers();
     if (!members.length) {
         ui.notifications.warn(
-            "[Carnet] Aucun PJ dans la party active. " +
-            "Le GM doit d'abord créer une party (clic droit sur son nom dans la liste des joueurs)."
+            tl("[Carnet] Aucun PJ dans la party active. ") +
+            tl("Le GM doit d'abord créer une party (clic droit sur son nom dans la liste des joueurs).")
         );
         return;
     }
@@ -243,8 +244,7 @@ function _dateDialogContent(currentDate, extraHtml = "") {
 
     const noCalWarning = !currentDate
         ? `<p style="margin:0 0 8px;font-size:11px;color:#e67e22;">
-               <i class="fa-solid fa-exclamation-triangle"></i>
-               Calendrier non disponible — seule la date personnalisée est utilisable.
+               ${tl("<i class=\"fa-solid fa-exclamation-triangle\"></i>\n               Calendrier non disponible — seule la date personnalisée est utilisable.")}
            </p>`
         : "";
 
@@ -258,11 +258,11 @@ function _dateDialogContent(currentDate, extraHtml = "") {
         <input type="radio" name="carnet-tm-mode" id="carnet-tm-radio-current" value="current"
                ${currentDate ? "checked" : "disabled"} style="margin:0;flex-shrink:0;">
         <span>
-            <span style="font-weight:600;">Date actuelle</span><br>
+            <span style="font-weight:600;">${tl("Date actuelle")}</span><br>
             <span style="font-size:11px;color:#aaa;">
                 ${currentDate
                     ? `${preDay} ${_getMonthName(preMo)} ${preYear}`
-                    : '<em>Calendrier non disponible</em>'}
+                    : `${tl("<em>Calendrier non disponible</em>")}`}
             </span>
         </span>
     </label>
@@ -272,7 +272,7 @@ function _dateDialogContent(currentDate, extraHtml = "") {
         <input type="radio" name="carnet-tm-mode" id="carnet-tm-radio-custom" value="custom"
                ${!currentDate ? "checked" : ""} style="margin:3px 0 0;flex-shrink:0;">
         <span style="flex:1;">
-            <span style="font-weight:600;">Date personnalisée</span><br>
+            <span style="font-weight:600;">${tl("Date personnalisée")}</span><br>
             <div style="display:flex;gap:6px;align-items:center;margin-top:6px;">
                 <input type="number" id="carnet-tm-day"   min="1" max="31" value="${preDay}"  style="width:54px;">
                 <select id="carnet-tm-month" style="flex:1;">${_monthOptionsHtml(preMo)}</select>
@@ -332,12 +332,12 @@ async function _pickDateDialog(title) {
             buttons: [
                 {
                     action:   "confirm",
-                    label:    "Valider",
+                    label:    tl("Valider"),
                     icon:     '<i class="fa-solid fa-check"></i>',
                     default:  true,
                     callback: () => { resolvedDate = _readDateFromDom(currentDate); }
                 },
-                { action: "cancel", label: "Annuler", icon: '<i class="fa-solid fa-times"></i>' }
+                { action: "cancel", label: tl("Annuler"), icon: '<i class="fa-solid fa-times"></i>' }
             ]
         });
         if (action !== "confirm") return null;
@@ -349,13 +349,13 @@ async function _pickDateDialog(title) {
                 buttons: {
                     confirm: {
                         icon:  '<i class="fa-solid fa-check"></i>',
-                        label: "Valider",
+                        label: tl("Valider"),
                         callback: (html) => {
                             try   { resolve(_readDateFromJQuery(html, currentDate)); }
                             catch { resolve(null); }
                         }
                     },
-                    cancel: { icon: '<i class="fa-solid fa-times"></i>', label: "Annuler", callback: () => resolve(null) }
+                    cancel: { icon: '<i class="fa-solid fa-times"></i>', label: tl("Annuler"), callback: () => resolve(null) }
                 },
                 default: "confirm"
             }, { width: 320 }).render(true);
@@ -370,26 +370,25 @@ async function _createExpDialog(members) {
     const currentDate = getCurrentDate();
     const { html: content } = _dateDialogContent(currentDate,
         `<p style="margin:0 0 6px;font-size:11px;color:#aaa;padding:0 2px;">
-             <i class="fa-solid fa-info-circle"></i>
-             Crée une nouvelle expédition pour ${members.length} PJ de la party.
+             ${tl("<i class=\"fa-solid fa-info-circle\"></i>\n             Crée une nouvelle expédition pour {0} PJ de la party.", members.length)}
          </p>
          <div style="margin-bottom:2px;">
              <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">
-                 Nom de l'expédition
+                 ${tl("Nom de l'expédition")}
              </label>
-             <input id="carnet-exp-name" type="text" placeholder="Nouvelle expédition"
+             <input id="carnet-exp-name" type="text" placeholder="${tl("Nouvelle expédition")}"
                     style="width:100%;box-sizing:border-box;"
                     value="">
          </div>`
     );
 
     let resolvedDate = null;
-    let resolvedName = "Nouvelle expédition";
+    let resolvedName = tl("Nouvelle expédition");
     const DialogClass = foundry.applications.api?.DialogV2 ?? globalThis.DialogV2;
 
     if (DialogClass?.wait) {
         const action = await DialogClass.wait({
-            window:      { title: "Nouvelle expédition — Date de début" },
+            window:      { title: tl("Nouvelle expédition — Date de début") },
             position:    { width: 340 },
             content,
             rejectClose: false,
@@ -397,38 +396,38 @@ async function _createExpDialog(members) {
             buttons: [
                 {
                     action:   "confirm",
-                    label:    "Créer l'expédition",
+                    label:    tl("Créer l'expédition"),
                     icon:     '<i class="fa-solid fa-calendar-plus"></i>',
                     default:  true,
                     callback: () => {
                         resolvedDate = _readDateFromDom(currentDate);
                         resolvedName = document.getElementById("carnet-exp-name")?.value?.trim()
-                            || "Nouvelle expédition";
+                            || tl("Nouvelle expédition");
                     }
                 },
-                { action: "cancel", label: "Annuler", icon: '<i class="fa-solid fa-times"></i>' }
+                { action: "cancel", label: tl("Annuler"), icon: '<i class="fa-solid fa-times"></i>' }
             ]
         });
         if (action !== "confirm" || !resolvedDate) return;
     } else {
         ({ date: resolvedDate, name: resolvedName } = await new Promise(resolve => {
             new Dialog({
-                title:   "Nouvelle expédition — Date de début",
+                title:   tl("Nouvelle expédition — Date de début"),
                 content,
                 buttons: {
                     confirm: {
                         icon:  '<i class="fa-solid fa-calendar-plus"></i>',
-                        label: "Créer l'expédition",
+                        label: tl("Créer l'expédition"),
                         callback: (html) => {
                             try {
                                 resolve({
                                     date: _readDateFromJQuery(html, currentDate),
-                                    name: html.find("#carnet-exp-name").val()?.trim() || "Nouvelle expédition"
+                                    name: html.find("#carnet-exp-name").val()?.trim() || tl("Nouvelle expédition")
                                 });
-                            } catch { resolve({ date: null, name: "Nouvelle expédition" }); }
+                            } catch { resolve({ date: null, name: tl("Nouvelle expédition") }); }
                         }
                     },
-                    cancel: { icon: '<i class="fa-solid fa-times"></i>', label: "Annuler", callback: () => resolve({ date: null, name: "" }) }
+                    cancel: { icon: '<i class="fa-solid fa-times"></i>', label: tl("Annuler"), callback: () => resolve({ date: null, name: "" }) }
                 },
                 default: "confirm"
             }, { width: 340 }).render(true);
@@ -439,7 +438,7 @@ async function _createExpDialog(members) {
     for (const actor of members) {
         await addExpedition(actor, resolvedDate, resolvedName);
     }
-    ui.notifications.info(`[Carnet] Expédition "${resolvedName}" créée pour ${members.length} PJ.`);
+    ui.notifications.info(tl("[Carnet] Expédition \"{0}\" créée pour {1} PJ.", resolvedName, members.length));
 }
 
 // ── Dialog : clôturer les expéditions ouvertes ─────────────────
@@ -456,8 +455,7 @@ async function _closeExpDialog(members) {
                 ? `<li style="list-style:none;margin:2px 0;">
                        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
                            <input type="checkbox" class="scwm-exp-member" value="${actor.id}" checked>
-                           <span>${actor.name} — <em>${open.name || "Expédition sans nom"}</em>
-                                 (début : ${formatDate(open.startDate)})</span>
+                           <span>${tl("{0} — <em>{1}</em>\n                                 (début : {2})", actor.name, open.name || tl("Expédition sans nom"), formatDate(open.startDate))}</span>
                        </label>
                    </li>`
                 : null;
@@ -469,13 +467,12 @@ async function _closeExpDialog(members) {
         <div style="padding:8px 10px;border-radius:5px;
                     border:1px solid rgba(231,76,60,0.3);background:rgba(231,76,60,0.06);">
             <p style="margin:0 0 6px;font-size:11px;color:#aaa;font-weight:600;">
-                <i class="fa-solid fa-clock"></i> Cochez les PJ qui arrêtent l'expédition :
+                ${tl("<i class=\"fa-solid fa-clock\"></i> Cochez les PJ qui arrêtent l'expédition :")}
             </p>
             <ul style="margin:0;padding-left:2px;font-size:12px;">${openListHtml}</ul>
         </div>
         <p style="margin:0;font-size:11px;color:#aaa;padding:0 2px;">
-            <i class="fa-solid fa-flag-checkered"></i>
-            Les PJ non cochés continuent leur expédition.
+            ${tl("<i class=\"fa-solid fa-flag-checkered\"></i>\n            Les PJ non cochés continuent leur expédition.")}
         </p>`;
 
     const { html: content } = _dateDialogContent(currentDate, extraHtml);
@@ -488,7 +485,7 @@ async function _closeExpDialog(members) {
 
     if (DialogClass?.wait) {
         const action = await DialogClass.wait({
-            window:      { title: "Clôturer l'expédition en cours" },
+            window:      { title: tl("Clôturer l'expédition en cours") },
             position:    { width: 360 },
             content,
             rejectClose: false,
@@ -496,30 +493,30 @@ async function _closeExpDialog(members) {
             buttons: [
                 {
                     action:   "confirm",
-                    label:    "Clôturer",
+                    label:    tl("Clôturer"),
                     icon:     '<i class="fa-solid fa-flag-checkered"></i>',
                     default:  true,
                     callback: (ev, btn) => { resolvedDate = _readDateFromDom(currentDate); selectedIds = readSelected(btn?.form); }
                 },
-                { action: "cancel", label: "Annuler", icon: '<i class="fa-solid fa-times"></i>' }
+                { action: "cancel", label: tl("Annuler"), icon: '<i class="fa-solid fa-times"></i>' }
             ]
         });
         if (action !== "confirm" || !resolvedDate) return;
     } else {
         const res = await new Promise(resolve => {
             new Dialog({
-                title:   "Clôturer l'expédition en cours",
+                title:   tl("Clôturer l'expédition en cours"),
                 content,
                 buttons: {
                     confirm: {
                         icon:  '<i class="fa-solid fa-flag-checkered"></i>',
-                        label: "Clôturer",
+                        label: tl("Clôturer"),
                         callback: (html) => {
                             try   { resolve({ date: _readDateFromJQuery(html, currentDate), ids: readSelected(html?.[0] ?? html) }); }
                             catch { resolve(null); }
                         }
                     },
-                    cancel: { icon: '<i class="fa-solid fa-times"></i>', label: "Annuler", callback: () => resolve(null) }
+                    cancel: { icon: '<i class="fa-solid fa-times"></i>', label: tl("Annuler"), callback: () => resolve(null) }
                 },
                 default: "confirm"
             }, { width: 360 }).render(true);
@@ -541,7 +538,7 @@ async function _closeExpDialog(members) {
         await actor.setFlag(MODULE, "expeditions", updated);
         closedCount++;
     }
-    ui.notifications.info(`[Carnet] Expédition clôturée pour ${closedCount} PJ.`);
+    ui.notifications.info(tl("[Carnet] Expédition clôturée pour {0} PJ.", closedCount));
 }
 
 // ================================================================
@@ -592,8 +589,8 @@ export function buildJournalHtml(actor) {
 
     const addBar = canEdit ? `
         <div class="carnet-add-bar">
-            <button type="button" class="carnet-add-section" title="Ajouter une section">
-                <i class="fa-solid fa-folder-plus"></i> Section
+            <button type="button" class="carnet-add-section" title="${tl("Ajouter une section")}">
+                ${tl("<i class=\"fa-solid fa-folder-plus\"></i> Section")}
             </button>
             <button type="button" class="carnet-add-note">
                 <i class="fa-solid fa-plus"></i> Note
@@ -606,8 +603,7 @@ export function buildJournalHtml(actor) {
             ${addBar}
             <div class="carnet-empty-state">
                 <i class="fa-solid fa-book-open"></i>
-                <p>Aucune note dans le carnet.<br>
-                   Utilisez les boutons ci-dessus pour rédiger votre première note.</p>
+                <p>${tl("Aucune note dans le carnet.<br>\n                   Utilisez les boutons ci-dessus pour rédiger votre première note.")}</p>
             </div>
         </div>`;
     }
@@ -626,15 +622,15 @@ export function buildJournalHtml(actor) {
         <div class="carnet-section-header carnet-item" data-carnet-id="${item.id}" data-carnet-type="section">
             ${canEdit ? `<div class="carnet-drag-handle" draggable="true" title="Déplacer"><i class="fa-solid fa-grip-vertical"></i></div>` : ""}
             <button type="button" class="carnet-toggle-section" data-section-id="${item.id}"
-                    title="${currentSectionCollapsed ? "Déplier" : "Replier"}">
+                    title="${currentSectionCollapsed ? tl("Déplier") : tl("Replier")}">
                 <i class="fas ${chevron}"></i>
             </button>
             ${canEdit
                 ? `<input class="carnet-section-title-input" type="text"
                           data-section-id="${item.id}"
                           value="${titleEsc}"
-                          placeholder="Nom de la section">`
-                : `<span class="carnet-section-title-label">${escC(item.title || "Section")}</span>`}
+                          placeholder="${tl("Nom de la section")}">`
+                : `<span class="carnet-section-title-label">${escC(item.title || tl("Section"))}</span>`}
             ${canEdit ? `
             <a class="carnet-del-section" data-section-id="${item.id}" title="Supprimer la section">
                 <i class="fa-solid fa-trash"></i>
@@ -650,24 +646,21 @@ export function buildJournalHtml(actor) {
 
         const linkBadge = linkedExp
             ? `<a class="carnet-go-exp" data-exp-id="${linkedExp.id}"
-                  title="Voir l'expédition liée">
-                   <i class="fa-solid fa-calendar-alt"></i> ${linkedExp.name || "Expédition"}
+                  title="${tl("Voir l'expédition liée")}">
+                   <i class="fa-solid fa-calendar-alt"></i> ${linkedExp.name || tl("Expédition")}
                </a>
                ${canEdit ? `<a class="carnet-unlink-note" data-note-id="${note.id}"
-                  title="Délier de l'expédition"
+                  title="${tl("Délier de l'expédition")}"
                   style="font-size:11px;color:#666;cursor:pointer;margin-left:4px;">
                    <i class="fa-solid fa-unlink"></i>
                </a>` : ""}`
             : (canEdit
-                ? `<a class="carnet-link-exp" data-note-id="${note.id}"
-                      title="Lier cette note à une expédition">
-                       <i class="fa-solid fa-link"></i> Lier
-                   </a>`
+                ? `${tl("<a class=\"carnet-link-exp\" data-note-id=\"{0}\"\n                      title=\"Lier cette note à une expédition\">\n                       <i class=\"fa-solid fa-link\"></i> Lier\n                   </a>", note.id)}`
                 : "");
 
         const noteHtml = note.content
             ? `<div class="carnet-note-content">${nettoyerHtml(note.content)}</div>`
-            : `<p class="carnet-note-placeholder"><em>Note vide. Cliquez sur Modifier pour rédiger.</em></p>`;
+            : `<p class="carnet-note-placeholder">${tl("<em>Note vide. Cliquez sur Modifier pour rédiger.</em>")}</p>`;
 
         return `
         <div class="carnet-note-card carnet-item" data-carnet-id="${note.id}" data-carnet-type="note"
@@ -676,7 +669,7 @@ export function buildJournalHtml(actor) {
             <div class="carnet-note-inner">
                 <div class="carnet-note-header">
                     <button type="button" class="carnet-toggle-note" data-note-id="${note.id}"
-                            title="${isCollapsed ? "Déplier" : "Replier"}"
+                            title="${isCollapsed ? tl("Déplier") : tl("Replier")}"
                             style="background:none;border:none;color:#8a7a65;cursor:pointer;
                                    padding:2px 6px 2px 0;font-size:11px;flex-shrink:0;">
                         <i class="fa-solid fa-chevron-${isCollapsed ? "right" : "down"}"></i>
@@ -686,8 +679,8 @@ export function buildJournalHtml(actor) {
                             ? `<input class="carnet-note-title-input" type="text"
                                       data-note-id="${note.id}"
                                       value="${(note.title ?? "").replace(/"/g, "&quot;")}"
-                                      placeholder="Titre de la note">`
-                            : `<span class="carnet-note-title-label">${escC(note.title || "Note sans titre")}</span>`}
+                                      placeholder="${tl("Titre de la note")}">`
+                            : `<span class="carnet-note-title-label">${escC(note.title || tl("Note sans titre"))}</span>`}
                         <div class="carnet-note-actions-row">
                             ${linkBadge}
                             ${canEdit ? `
@@ -704,7 +697,7 @@ export function buildJournalHtml(actor) {
                     ${canEdit ? `
                     <div class="carnet-edit-actions" data-note-id="${note.id}">
                         <button type="button" class="carnet-edit-note" data-note-id="${note.id}">
-                            <i class="fa-solid fa-pen"></i> Modifier
+                            ${tl("<i class=\"fa-solid fa-pen\"></i> Modifier")}
                         </button>
                     </div>` : ""}
                 </div>
@@ -735,7 +728,7 @@ export function buildDowntimeHtml(actor) {
     const addBar = isGM ? `
         <div class="carnet-add-bar">
             <button type="button" class="carnet-add-exp">
-                <i class="fa-solid fa-plus"></i> Nouvelle expédition
+                ${tl("<i class=\"fa-solid fa-plus\"></i> Nouvelle expédition")}
             </button>
         </div>` : "";
 
@@ -745,9 +738,7 @@ export function buildDowntimeHtml(actor) {
             ${addBar}
             <div class="carnet-empty-state">
                 <i class="fa-solid fa-calendar-alt"></i>
-                <p>Aucune expédition enregistrée.<br>
-                   Le GM peut en créer une via le bouton <strong>Date Expédition</strong>
-                   dans la barre de gauche, ou via le bouton ci-dessus.</p>
+                <p>${tl("Aucune expédition enregistrée.<br>\n                   Le GM peut en créer une via le bouton <strong>Date Expédition</strong>\n                   dans la barre de gauche, ou via le bouton ci-dessus.")}</p>
             </div>
         </div>`;
     }
@@ -756,12 +747,12 @@ export function buildDowntimeHtml(actor) {
         <div class="carnet-date-actions">
             <button type="button" class="carnet-date-btn"
                     data-exp-id="${expId}" data-field="${field}" data-action="set"
-                    title="Définir à la date actuelle">
+                    title="${tl("Définir à la date actuelle")}">
                 <i class="fa-solid fa-calendar-day"></i>
             </button>
             <button type="button" class="carnet-date-btn"
                     data-exp-id="${expId}" data-field="${field}" data-action="clear"
-                    title="Effacer la date">
+                    title="${tl("Effacer la date")}">
                 <i class="fa-solid fa-times"></i>
             </button>
         </div>` : "";
@@ -773,32 +764,28 @@ export function buildDowntimeHtml(actor) {
         const endStr      = exp.endDate ? formatDate(exp.endDate) : null;
         const duration    = dateDiff(exp.startDate, exp.endDate);
         const statusClass = isOpen ? "open" : (hasDates ? "closed" : "pending");
-        const statusLabel = isOpen ? "En cours" : (hasDates ? "Terminée" : "Planifiée");
+        const statusLabel = isOpen ? tl("En cours") : (hasDates ? tl("Terminée") : tl("Planifiée"));
         const statusIcon  = isOpen ? "fa-clock" : (hasDates ? "fa-check-circle" : "fa-hourglass-start");
 
         // Notes liées à cette expédition
         const linkedNotes = notes.filter(n => n.linkedExpId === exp.id);
         const noteLink = linkedNotes.length
             ? `<a class="carnet-go-note" data-note-id="${linkedNotes[0].id}"
-                  title="Voir la note liée dans l'onglet Carnet"
+                  title="${tl("Voir la note liée dans l'onglet Carnet")}"
                   style="font-size:11px;color:#9b59b6;text-decoration:none;white-space:nowrap;cursor:pointer;">
                    <i class="fa-solid fa-book-open"></i>
-                   ${linkedNotes.length === 1 ? "Note liée" : `${linkedNotes.length} notes liées`}
+                   ${linkedNotes.length === 1 ? tl("Note liée") : tl("{0} notes liées", linkedNotes.length)}
                </a>`
             : (canEdit
-                ? `<a class="carnet-create-note" data-exp-id="${exp.id}" data-exp-name="${(exp.name ?? "").replace(/"/g, "&quot;")}"
-                      title="Créer une note liée dans le Carnet"
-                      style="font-size:11px;color:#666;text-decoration:none;white-space:nowrap;cursor:pointer;">
-                       <i class="fa-solid fa-plus"></i> Créer une note
-                   </a>`
+                ? `${tl("<a class=\"carnet-create-note\" data-exp-id=\"{0}\" data-exp-name=\"{1}\"\n                      title=\"Créer une note liée dans le Carnet\"\n                      style=\"font-size:11px;color:#666;text-decoration:none;white-space:nowrap;cursor:pointer;\">\n                       <i class=\"fa-solid fa-plus\"></i> Créer une note\n                   </a>", exp.id, (exp.name ?? "").replace(/"/g, "&quot;"))}`
                 : "");
 
         const nameField = canEdit
             ? `<input class="carnet-name-input" type="text"
                       data-exp-id="${exp.id}"
                       value="${(exp.name ?? "").replace(/"/g, "&quot;")}"
-                      placeholder="Nom de l'expédition">`
-            : `<span class="carnet-name-label">${exp.name || "Expédition sans nom"}</span>`;
+                      placeholder="${tl("Nom de l'expédition")}">`
+            : `<span class="carnet-name-label">${exp.name || tl("Expédition sans nom")}</span>`;
 
         return `
         <div class="carnet-tm-card ${statusClass}" data-exp-id="${exp.id}">
@@ -821,24 +808,24 @@ export function buildDowntimeHtml(actor) {
 
                 <div class="carnet-tm-dates">
                     <div class="carnet-date-block">
-                        <span class="carnet-date-label"><i class="fa-solid fa-play"></i> Début</span>
+                        <span class="carnet-date-label">${tl("<i class=\"fa-solid fa-play\"></i> Début")}</span>
                         <span class="carnet-date-value${!exp.startDate ? " empty" : ""}">${startStr}</span>
                         ${dateBtns(exp.id, "startDate")}
                     </div>
                     <span class="carnet-dates-sep"><i class="fa-solid fa-long-arrow-alt-right"></i></span>
                     <div class="carnet-date-block">
-                        <span class="carnet-date-label"><i class="fa-solid fa-flag-checkered"></i> Fin</span>
+                        <span class="carnet-date-label">${tl("<i class=\"fa-solid fa-flag-checkered\"></i> Fin")}</span>
                         <span class="carnet-date-value${!exp.endDate ? " empty" : ""}">${endStr ?? "—"}</span>
                         ${dateBtns(exp.id, "endDate")}
                     </div>
                     ${duration ? `
                     <div class="carnet-date-block duration">
-                        <span class="carnet-date-label"><i class="fa-solid fa-hourglass-half"></i> Durée</span>
+                        <span class="carnet-date-label">${tl("<i class=\"fa-solid fa-hourglass-half\"></i> Durée")}</span>
                         <span class="carnet-duration-value">${duration}</span>
                     </div>` : ""}
                     ${expeditionSessionCount(exp) != null ? `
                     <div class="carnet-date-block">
-                        <span class="carnet-date-label"><i class="fa-solid fa-dice-d20"></i> Sessions</span>
+                        <span class="carnet-date-label">${tl("<i class=\"fa-solid fa-dice-d20\"></i> Sessions")}</span>
                         <span class="carnet-duration-value">${expeditionSessionCount(exp)}</span>
                     </div>` : ""}
                 </div>
@@ -883,7 +870,7 @@ function _wireDragDrop(actor, element) {
     };
 
     const items = [...element.querySelectorAll('.carnet-item')];
-    journal.debug(`[Carnet] _wireDragDrop : ${items.length} carnet-item(s) trouvés`);
+    journal.debug(tl("[Carnet] _wireDragDrop : {0} carnet-item(s) trouvés", items.length));
 
     items.forEach(item => {
         const handle = item.querySelector('.carnet-drag-handle');
@@ -893,10 +880,10 @@ function _wireDragDrop(actor, element) {
         if (handle) {
             // On force draggable via JS au cas où le rendu HTML l'aurait retiré
             handle.setAttribute('draggable', 'true');
-            journal.debug(`[Carnet]   → draggable forcé en JS sur handle`);
+            journal.debug(tl("[Carnet]   → draggable forcé en JS sur handle"));
 
             handle.addEventListener('dragstart', e => {
-                journal.debug("[Carnet] dragstart sur handle, carnet-id=", item.dataset.carnetId);
+                journal.debug(tl("[Carnet] dragstart sur handle, carnet-id="), item.dataset.carnetId);
                 // stopPropagation + stopImmediatePropagation pour bloquer
                 // tout handler dnd5e enregistré en amont ou sur le même élément
                 e.stopPropagation();
@@ -909,12 +896,12 @@ function _wireDragDrop(actor, element) {
                 try { e.dataTransfer.setDragImage(item, 20, 10); } catch {}
             });
         } else {
-            journal.info("[Carnet]   ⚠ aucune poignée .carnet-drag-handle dans cet item");
+            journal.info(tl("[Carnet]   ⚠ aucune poignée .carnet-drag-handle dans cet item"));
         }
 
         // ── CIBLE : tous les items acceptent un dépôt ─────────────
         item.addEventListener('dragover', e => {
-            if (!_draggedItemId) { journal.debug("[Carnet] dragover ignoré : pas de _draggedItemId"); return; }
+            if (!_draggedItemId) { journal.debug(tl("[Carnet] dragover ignoré : pas de _draggedItemId")); return; }
             if (_draggedItemId === item.dataset.carnetId) return;
             e.preventDefault();
             e.stopPropagation(); // empêche le handler drop de la fiche dnd5e
@@ -968,10 +955,10 @@ function _wireDragDrop(actor, element) {
 
 export function wireJournalTab(actor, element, sheet) {
     if (!(element instanceof Element)) {
-        journal.avert("[Carnet] wireJournalTab : element n'est pas un Element", element);
+        journal.avert(tl("[Carnet] wireJournalTab : element n'est pas un Element"), element);
         return;
     }
-    journal.debug("[Carnet] wireJournalTab appelé", { element, actor: actor?.name });
+    journal.debug(tl("[Carnet] wireJournalTab appelé"), { element, actor: actor?.name });
 
     // ── Ajouter une note / une section ───────────────────────────
     element.querySelectorAll('.carnet-add-note').forEach(btn => {
@@ -986,7 +973,7 @@ export function wireJournalTab(actor, element, sheet) {
         input.addEventListener('change', async () => {
             const noteId  = input.dataset.noteId;
             const updated = getCarnetNotes(actor).map(n =>
-                n.id === noteId ? { ...n, title: input.value.trim() || "Note sans titre" } : n
+                n.id === noteId ? { ...n, title: input.value.trim() || tl("Note sans titre") } : n
             );
             await actor.setFlag(MODULE, "carnetNotes", updated);
         });
@@ -997,7 +984,7 @@ export function wireJournalTab(actor, element, sheet) {
         input.addEventListener('change', async () => {
             const sectionId = input.dataset.sectionId;
             const updated   = getCarnetNotes(actor).map(n =>
-                n.id === sectionId ? { ...n, title: input.value.trim() || "Section sans nom" } : n
+                n.id === sectionId ? { ...n, title: input.value.trim() || tl("Section sans nom") } : n
             );
             await actor.setFlag(MODULE, "carnetNotes", updated);
         });
@@ -1010,9 +997,8 @@ export function wireJournalTab(actor, element, sheet) {
             const sectionId = link.dataset.sectionId;
             const section   = getCarnetNotes(actor).find(n => n.id === sectionId);
             const ok = await Dialog.confirm({
-                title:   "Supprimer la section ?",
-                content: `<p>Supprimer <strong>${escC(section?.title ?? "cette section")}</strong> ?
-                           Les notes qu'elle contient ne seront pas supprimées.</p>`,
+                title:   tl("Supprimer la section ?"),
+                content: `<p>${tl("Supprimer <strong>{0}</strong> ?\n                           Les notes qu'elle contient ne seront pas supprimées.", escC(section?.title ?? tl("cette section")))}</p>`,
                 yes: () => true, no: () => false
             });
             if (!ok) return;
@@ -1040,7 +1026,7 @@ export function wireJournalTab(actor, element, sheet) {
                 wasCollapsed ? 'fa-chevron-right' : 'fa-chevron-down',
                 wasCollapsed ? 'fa-chevron-down'  : 'fa-chevron-right'
             );
-            btn.title = wasCollapsed ? 'Replier' : 'Déplier';
+            btn.title = wasCollapsed ? tl("Replier") : tl("Déplier");
         });
     });
 
@@ -1058,8 +1044,8 @@ export function wireJournalTab(actor, element, sheet) {
             const noteId = link.dataset.noteId;
             const note   = getCarnetNotes(actor).find(n => n.id === noteId);
             const ok = await Dialog.confirm({
-                title:   "Supprimer la note ?",
-                content: `<p>Supprimer <strong>${escC(note?.title ?? "cette note")}</strong> ? Cette action est irréversible.</p>`,
+                title:   tl("Supprimer la note ?"),
+                content: `<p>${tl("Supprimer <strong>{0}</strong> ? Cette action est irréversible.", escC(note?.title ?? tl("cette note")))}</p>`,
                 yes: () => true, no: () => false
             });
             if (!ok) return;
@@ -1080,12 +1066,12 @@ export function wireJournalTab(actor, element, sheet) {
             if (collapse.notes.has(noteId)) {
                 collapse.notes.delete(noteId);
                 if (body) body.style.display = '';
-                btn.title = 'Replier';
+                btn.title = tl("Replier");
                 icon?.classList.replace('fa-chevron-right', 'fa-chevron-down');
             } else {
                 collapse.notes.add(noteId);
                 if (body) body.style.display = 'none';
-                btn.title = 'Déplier';
+                btn.title = tl("Déplier");
                 icon?.classList.replace('fa-chevron-down', 'fa-chevron-right');
             }
             _saveCollapse(actor.id);
@@ -1116,12 +1102,12 @@ export function wireJournalTab(actor, element, sheet) {
             if (collapsed) {
                 col.notes.add(noteId);
                 if (body) body.style.display = 'none';
-                if (btn) btn.title = 'Déplier';
+                if (btn) btn.title = tl("Déplier");
                 icon?.classList.replace('fa-chevron-down', 'fa-chevron-right');
             } else {
                 col.notes.delete(noteId);
                 if (body) body.style.display = '';
-                if (btn) btn.title = 'Replier';
+                if (btn) btn.title = tl("Replier");
                 icon?.classList.replace('fa-chevron-right', 'fa-chevron-down');
             }
         });
@@ -1179,7 +1165,7 @@ export function wireDowntimeTab(actor, element, sheet) {
         input.addEventListener('change', async () => {
             const expId   = input.dataset.expId;
             const updated = getExpeditions(actor).map(ex =>
-                ex.id === expId ? { ...ex, name: input.value.trim() || "Expédition sans nom" } : ex
+                ex.id === expId ? { ...ex, name: input.value.trim() || tl("Expédition sans nom") } : ex
             );
             await actor.setFlag(MODULE, "expeditions", updated);
         });
@@ -1192,7 +1178,7 @@ export function wireDowntimeTab(actor, element, sheet) {
                 const { expId, field, action } = btn.dataset;
                 let newDate = null;
                 if (action === "set") {
-                    const label = field === "startDate" ? "Date de début" : "Date de fin";
+                    const label = field === "startDate" ? tl("Date de début") : tl("Date de fin");
                     newDate = await _pickDateDialog(label);
                     if (!newDate) return; // annulé
                 }
@@ -1213,8 +1199,8 @@ export function wireDowntimeTab(actor, element, sheet) {
             const expId = link.dataset.expId;
             const exp   = getExpeditions(actor).find(ex => ex.id === expId);
             const ok = await Dialog.confirm({
-                title:   "Supprimer l'expédition ?",
-                content: `<p>Supprimer <strong>${escC(exp?.name ?? "cette expédition")}</strong> ? Cette action est irréversible.</p>`,
+                title:   tl("Supprimer l'expédition ?"),
+                content: `<p>${tl("Supprimer <strong>{0}</strong> ? Cette action est irréversible.", escC(exp?.name ?? tl("cette expédition")))}</p>`,
                 yes: () => true, no: () => false
             });
             if (!ok) return;
@@ -1230,7 +1216,7 @@ export function wireDowntimeTab(actor, element, sheet) {
             e.preventDefault();
             const expId   = link.dataset.expId;
             const expName = link.dataset.expName;
-            await addCarnetNote(actor, { title: expName || "Nouvelle note", linkedExpId: expId, prepend: true });
+            await addCarnetNote(actor, { title: expName || tl("Nouvelle note"), linkedExpId: expId, prepend: true });
             // Naviguer vers l'onglet Carnet
             _navigateToTab(sheet, "carnet-journal", null);
         });
@@ -1274,21 +1260,21 @@ function _navigateToTab(sheet, tabName, scrollSelector) {
 async function _linkNoteToExpDialog(actor, noteId, sheet) {
     const exps = getExpeditions(actor);
     if (!exps.length) {
-        ui.notifications.warn("[Carnet] Aucune expédition à lier. Créez d'abord une expédition dans l'onglet Expéditions.");
+        ui.notifications.warn(tl("[Carnet] Aucune expédition à lier. Créez d'abord une expédition dans l'onglet Expéditions."));
         return;
     }
 
     const itemsHtml = exps.map(ex => {
         const isOpen      = !!(ex.startDate && !ex.endDate);
         const hasDates    = !!(ex.startDate);
-        const statusLabel = isOpen ? "En cours" : (hasDates ? "Terminée" : "Planifiée");
+        const statusLabel = isOpen ? tl("En cours") : (hasDates ? tl("Terminée") : tl("Planifiée"));
         const statusIcon  = isOpen ? "fa-clock" : (hasDates ? "fa-check-circle" : "fa-hourglass-start");
         const statusColor = isOpen
             ? "background:rgba(46,204,113,0.18);color:#2ecc71;"
             : hasDates
                 ? "background:rgba(52,152,219,0.18);color:#3498db;"
                 : "background:rgba(241,196,15,0.18);color:#f1c40f;";
-        const dateStr = ex.startDate ? formatDate(ex.startDate) : "Pas de date";
+        const dateStr = ex.startDate ? formatDate(ex.startDate) : tl("Pas de date");
 
         return `
         <div class="carnet-picker-item" tabindex="0"
@@ -1306,7 +1292,7 @@ async function _linkNoteToExpDialog(actor, noteId, sheet) {
             </div>
             <div style="flex:1;min-width:0;">
                 <div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                    ${ex.name || "Expédition sans nom"}
+                    ${ex.name || tl("Expédition sans nom")}
                 </div>
                 <div style="font-size:11px;color:#9b9b9b;margin-top:3px;display:flex;align-items:center;gap:6px;">
                     <span style="padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600;${statusColor}">
@@ -1327,7 +1313,7 @@ async function _linkNoteToExpDialog(actor, noteId, sheet) {
         <i class="fa-solid fa-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);
                                          color:#777;pointer-events:none;font-size:12px;"></i>
         <input type="text" id="carnet-exp-search"
-               placeholder="Rechercher une expédition…"
+               placeholder="${tl("Rechercher une expédition…")}"
                style="width:100%;box-sizing:border-box;padding:7px 10px 7px 32px;
                       background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.12);
                       border-radius:6px;color:inherit;font-size:13px;">
@@ -1339,7 +1325,7 @@ async function _linkNoteToExpDialog(actor, noteId, sheet) {
     </div>
     <p id="carnet-exp-empty" style="display:none;text-align:center;
                                      color:#777;font-style:italic;padding:16px 0;margin:0;">
-        Aucune expédition correspondante.
+        ${tl("Aucune expédition correspondante.")}
     </p>
 </div>`;
 
@@ -1349,7 +1335,7 @@ async function _linkNoteToExpDialog(actor, noteId, sheet) {
 
     if (DialogClass?.wait) {
         const action = await DialogClass.wait({
-            window:      { title: "Lier à une expédition" },
+            window:      { title: tl("Lier à une expédition") },
             position:    { width: 420 },
             content,
             rejectClose: false,
@@ -1399,12 +1385,12 @@ async function _linkNoteToExpDialog(actor, noteId, sheet) {
             buttons: [
                 {
                     action:   "confirm",
-                    label:    "Lier",
+                    label:    tl("Lier"),
                     icon:     '<i class="fa-solid fa-link"></i>',
                     default:  true,
                     callback: () => {} // selectedId mis à jour via click
                 },
-                { action: "cancel", label: "Annuler", icon: '<i class="fa-solid fa-times"></i>' }
+                { action: "cancel", label: tl("Annuler"), icon: '<i class="fa-solid fa-times"></i>' }
             ]
         });
         if (action !== "confirm" || !selectedId) return;
@@ -1412,15 +1398,15 @@ async function _linkNoteToExpDialog(actor, noteId, sheet) {
     } else {
         // Fallback Dialog v1 — simple select
         const opts = exps.map(ex =>
-            `<option value="${ex.id}">${ex.name || "Expédition sans nom"} — ${formatDate(ex.startDate)}</option>`
+            `<option value="${ex.id}">${ex.name || tl("Expédition sans nom")} — ${formatDate(ex.startDate)}</option>`
         ).join("");
         selectedId = await new Promise(resolve => {
             new Dialog({
-                title:   "Lier à une expédition",
+                title:   tl("Lier à une expédition"),
                 content: `<div><select id="carnet-fb-sel" style="width:100%;">${opts}</select></div>`,
                 buttons: {
-                    confirm: { label: "Lier", callback: (html) => resolve(html.find('#carnet-fb-sel').val()) },
-                    cancel:  { label: "Annuler", callback: () => resolve(null) }
+                    confirm: { label: tl("Lier"), callback: (html) => resolve(html.find('#carnet-fb-sel').val()) },
+                    cancel:  { label: tl("Annuler"), callback: () => resolve(null) }
                 },
                 default: "confirm"
             }, { width: 360 }).render(true);
@@ -1441,32 +1427,32 @@ async function _linkNoteToExpDialog(actor, noteId, sheet) {
 // Petite boîte de dialogue pour saisir une URL de lien.
 async function _promptUrl() {
     const DialogV2 = foundry.applications.api?.DialogV2;
-    if (!DialogV2?.wait) { try { return (window.prompt("URL du lien :") || "").trim(); } catch { return ""; } }
+    if (!DialogV2?.wait) { try { return (window.prompt(tl("URL du lien :")) || "").trim(); } catch { return ""; } }
     const result = await DialogV2.wait({
-        window: { title: "Insérer un lien", icon: "fa-solid fa-link" },
+        window: { title: tl("Insérer un lien"), icon: "fa-solid fa-link" },
         content: `<input type="text" name="u" placeholder="https://…" style="width:100%;" autofocus>`,
         rejectClose: false,
         buttons: [
-            { action: "ok", label: "Insérer", icon: "fa-solid fa-check", default: true,
+            { action: "ok", label: tl("Insérer"), icon: "fa-solid fa-check", default: true,
               callback: (ev, btn) => (btn.form?.elements?.u?.value || "").trim() },
-            { action: "cancel", label: "Annuler", icon: "fa-solid fa-times" }
+            { action: "cancel", label: tl("Annuler"), icon: "fa-solid fa-times" }
         ]
     }).catch(() => null);
     return (typeof result === "string" && result !== "cancel") ? result : "";
 }
 
 const _TOOLBAR_BTNS = [
-    { cmd: "bold",                label: "<strong>G</strong>", title: "Gras (Ctrl+B)" },
-    { cmd: "italic",              label: "<em>I</em>",         title: "Italique (Ctrl+I)" },
-    { cmd: "underline",           label: "<u>S</u>",           title: "Souligné (Ctrl+U)" },
-    { cmd: "strikeThrough",       label: "<s>R</s>",           title: "Barré" },
+    { cmd: "bold",                label: "<strong>G</strong>", title: tl("Gras (Ctrl+B)") },
+    { cmd: "italic",              label: "<em>I</em>",         title: tl("Italique (Ctrl+I)") },
+    { cmd: "underline",           label: "<u>S</u>",           title: tl("Souligné (Ctrl+U)") },
+    { cmd: "strikeThrough",       label: "<s>R</s>",           title: tl("Barré") },
     { sep: true },
-    { cmd: "formatBlock", val: "h2", label: "T1",             title: "Titre" },
-    { cmd: "formatBlock", val: "h3", label: "T2",             title: "Sous-titre" },
-    { cmd: "formatBlock", val: "p",  label: "¶",              title: "Paragraphe normal" },
+    { cmd: "formatBlock", val: "h2", label: "T1",             title: tl("Titre") },
+    { cmd: "formatBlock", val: "h3", label: "T2",             title: tl("Sous-titre") },
+    { cmd: "formatBlock", val: "p",  label: "¶",              title: tl("Paragraphe normal") },
     { sep: true },
-    { cmd: "insertUnorderedList", label: "•",                  title: "Liste à puces" },
-    { cmd: "insertOrderedList",   label: "1.",                 title: "Liste numérotée" },
+    { cmd: "insertUnorderedList", label: "•",                  title: tl("Liste à puces") },
+    { cmd: "insertOrderedList",   label: "1.",                 title: tl("Liste numérotée") },
 ];
 
 function _buildToolbar() {
@@ -1623,7 +1609,7 @@ function _wireToolbar(editor) {
             // Notifie l'éditeur (met à jour la capture de contenu pour la sauvegarde).
             editor.dispatchEvent(new Event("input", { bubbles: true }));
         } catch (e) {
-            journal.avert(`[carnet] application de la taille :`, e);
+            journal.avert(tl("[carnet] application de la taille :"), e);
         }
         setTimeout(updateState, 10);
     };
@@ -1649,7 +1635,7 @@ function _wireToolbar(editor) {
     colorInput?.addEventListener('change', () => {
         const range = currentEditorRange();
         _savedRange = null;
-        if (!range) { ui.notifications?.info("Sélectionnez d'abord le texte à colorer."); return; }
+        if (!range) { ui.notifications?.info(tl("Sélectionnez d'abord le texte à colorer.")); return; }
         try {
             const span = document.createElement('span');
             span.style.color = colorInput.value;
@@ -1668,7 +1654,7 @@ function _wireToolbar(editor) {
     linkBtn?.addEventListener('mousedown', e => e.preventDefault());
     linkBtn?.addEventListener('click', async () => {
         const range = currentEditorRange();
-        if (!range) { ui.notifications?.info("Sélectionnez d'abord le texte à lier."); return; }
+        if (!range) { ui.notifications?.info(tl("Sélectionnez d'abord le texte à lier.")); return; }
         const saved = range.cloneRange();
         const url = await _promptUrl();
         if (!url) return;
@@ -1724,7 +1710,7 @@ async function initNoteEditor(actor, _container, noteId) {
         let savedContent = stored;
 
         const action = await DialogClass.wait({
-            window:      { title: `✏ ${note.title ?? "Modifier la note"}` },
+            window:      { title: `✏ ${note.title ?? tl("Modifier la note")}` },
             position:    { width: 660, height: 560 },
             classes:     ["carnet-grimoire"],
             content:     editorContent,
@@ -1785,7 +1771,7 @@ async function initNoteEditor(actor, _container, noteId) {
             buttons: [
                 {
                     action:   "save",
-                    label:    "Sauvegarder",
+                    label:    tl("Sauvegarder"),
                     icon:     '<i class="fa-solid fa-save"></i>',
                     default:  true,
                     callback: () => {
@@ -1794,7 +1780,7 @@ async function initNoteEditor(actor, _container, noteId) {
                         if (editor) savedContent = editor.innerHTML;
                     }
                 },
-                { action: "cancel", label: "Annuler", icon: '<i class="fa-solid fa-times"></i>' }
+                { action: "cancel", label: tl("Annuler"), icon: '<i class="fa-solid fa-times"></i>' }
             ]
         });
 
@@ -1808,12 +1794,12 @@ async function initNoteEditor(actor, _container, noteId) {
     } else {
         // ── Fallback Dialog v1 ─────────────────────────────────
         new Dialog({
-            title:   `✏ ${note.title ?? "Modifier la note"}`,
+            title:   `✏ ${note.title ?? tl("Modifier la note")}`,
             content: `<div style="padding:4px 0;">${editorContent}</div>`,
             buttons: {
                 save: {
                     icon:  '<i class="fa-solid fa-save"></i>',
-                    label: "Sauvegarder",
+                    label: tl("Sauvegarder"),
                     callback: async (html) => {
                         const editor  = html[0]?.querySelector('#carnet-note-editor');
                         const content = editor ? editor.innerHTML : stored;
@@ -1823,7 +1809,7 @@ async function initNoteEditor(actor, _container, noteId) {
                         await actor.setFlag(MODULE, "carnetNotes", updated);
                     }
                 },
-                cancel: { icon: '<i class="fa-solid fa-times"></i>', label: "Annuler" }
+                cancel: { icon: '<i class="fa-solid fa-times"></i>', label: tl("Annuler") }
             },
             default: "save",
             render: (html) => {

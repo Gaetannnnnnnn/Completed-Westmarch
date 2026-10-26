@@ -16,6 +16,7 @@
 import { MOD } from "./const.js";
 
 import { journal } from "./log.js";
+import { tl, locale, memeNom } from "./i18n.js";
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const lire = (k, def = "") => { try { return game.settings.get(MOD, k); } catch { return def; } };
@@ -48,14 +49,14 @@ function dansDossier(actor, folder) {
 
 // Valeur affichée d'un réglage : nom en gras, ou alerte s'il est vide / introuvable.
 function valeur(val, nom, existe = true) {
-    if (!val) return `<span class="scwm-rg-ko"><i class="fa-solid fa-triangle-exclamation"></i> non réglé</span>`;
-    if (!existe) return `<span class="scwm-rg-ko"><i class="fa-solid fa-triangle-exclamation"></i> « ${esc(val)} » introuvable</span>`;
+    if (!val) return `<span class="scwm-rg-ko">${tl("<i class=\"fa-solid fa-triangle-exclamation\"></i> non réglé")}</span>`;
+    if (!existe) return `<span class="scwm-rg-ko">${tl("<i class=\"fa-solid fa-triangle-exclamation\"></i> « {0} » introuvable", esc(val))}</span>`;
     return `<strong>${esc(nom)}</strong>`;
 }
 
 const nomPackRegistre = (cle, defaut) => {
     const id = lire(cle);
-    return id ? valeur(id, nomPack(id), !!game.packs.get(id)) : `<strong>${esc(defaut)}</strong> (créé au premier besoin)`;
+    return id ? valeur(id, nomPack(id), !!game.packs.get(id)) : `${tl("<strong>{0}</strong> (créé au premier besoin)", esc(defaut))}`;
 };
 
 // ============================================================
@@ -70,40 +71,40 @@ export function guideHtml() {
         sections.push(`<h2><i class="fa-solid ${icone}"></i> ${titre}</h2>${corps}`);
     };
 
-    section("fa-user-shield", "Personnages des joueurs (PJ)", `
-        <p>Dossier d'acteurs des PJ : ${valeur(pj, nomDossier(pj), !!dossierActeurs(pj))} (sous-dossiers compris).</p>
+    section("fa-user-shield", tl("Personnages des joueurs (PJ)"), `
+        <p>${tl("Dossier d'acteurs des PJ : {0} (sous-dossiers compris).", valeur(pj, nomDossier(pj), !!dossierActeurs(pj)))}</p>
         <ul>
-            <li>Un PJ doit être un acteur de type <em>personnage</em> rangé dans ce dossier. <strong>C'est indispensable</strong> : les Relations et le Bestiaire ne détectent les rencontres que pour le jeton d'un PJ de ce dossier.</li>
-            ${actif("autoPlayerFolder") ? `<li>Un sous-dossier au nom de chaque joueur y est créé automatiquement à sa première connexion : range ses PJ dedans.</li>` : ""}
-            ${actif("enableCharValidation") ? `<li>Les personnages validés depuis le Casier sont créés dans : ${valeur(neufs, nomDossier(neufs) || neufs, true)} / <em>nom du joueur</em>.</li>` : ""}
-            <li>Anciens PJ (morts, retraités) : compendium du cimetière ${valeur(packCim, nomPack(packCim), !!game.packs.get(packCim))}. Ils restent proposés dans les relations.</li>
+            <li>${tl("Un PJ doit être un acteur de type <em>personnage</em> rangé dans ce dossier. <strong>C'est indispensable</strong> : les Relations et le Bestiaire ne détectent les rencontres que pour le jeton d'un PJ de ce dossier.")}</li>
+            ${actif("autoPlayerFolder") ? `<li>${tl("Un sous-dossier au nom de chaque joueur y est créé automatiquement à sa première connexion : range ses PJ dedans.")}</li>` : ""}
+            ${actif("enableCharValidation") ? `<li>${tl("Les personnages validés depuis le Casier sont créés dans : {0} / <em>nom du joueur</em>.", valeur(neufs, nomDossier(neufs) || neufs, true))}</li>` : ""}
+            <li>${tl("Anciens PJ (morts, retraités) : compendium du cimetière {0}. Ils restent proposés dans les relations.", valeur(packCim, nomPack(packCim), !!game.packs.get(packCim)))}</li>
         </ul>`);
 
-    section("fa-user-tie", "PNJ récurrents (alliés, marchands, figures importantes)", `
-        <p>Dossier d'acteurs des PNJ : ${valeur(pnj, nomDossier(pnj), !!dossierActeurs(pnj))} (sous-dossiers compris : classe-les par région, faction…).</p>
+    section("fa-user-tie", tl("PNJ récurrents (alliés, marchands, figures importantes)"), `
+        <p>${tl("Dossier d'acteurs des PNJ : {0} (sous-dossiers compris : classe-les par région, faction…).", valeur(pnj, nomDossier(pnj), !!dossierActeurs(pnj)))}</p>
         <ul>
-            <li><strong>Relations</strong> : un PNJ rangé dans ce dossier s'ajoute tout seul aux relations d'un PJ dès que son jeton est vu par ce PJ. Hors de ce dossier, il n'apparaît jamais.</li>
-            <li>PNJ en compendium : ${valeur(packPnj, nomPack(packPnj), !!game.packs.get(packPnj))}. Ils sont proposés dans l'ajout manuel d'une relation.</li>
-            <li>Un PNJ à ne jamais montrer dans les relations (déguisement, espion) : bouton « Exclure » de sa fiche.</li>
-            ${actif("mondeEnabled") ? `<li>Sa fiche du monde (Monk's) : bouton <i class="fa-solid fa-book-atlas"></i> de sa fiche d'acteur ; elle est rangée dans le compendium ${nomPackRegistre("mondePackPerson", "Registre — PNJ")}.</li>` : ""}
+            <li>${tl("<strong>Relations</strong> : un PNJ rangé dans ce dossier s'ajoute tout seul aux relations d'un PJ dès que son jeton est vu par ce PJ. Hors de ce dossier, il n'apparaît jamais.")}</li>
+            <li>${tl("PNJ en compendium : {0}. Ils sont proposés dans l'ajout manuel d'une relation.", valeur(packPnj, nomPack(packPnj), !!game.packs.get(packPnj)))}</li>
+            <li>${tl("Un PNJ à ne jamais montrer dans les relations (déguisement, espion) : bouton « Exclure » de sa fiche.")}</li>
+            ${actif("mondeEnabled") ? `<li>${tl("Sa fiche du monde (Monk's) : bouton <i class=\"fa-solid fa-book-atlas\"></i> de sa fiche d'acteur ; elle est rangée dans le compendium {0}.", nomPackRegistre("mondePackPerson", tl("Registre — PNJ")))}</li>` : ""}
         </ul>`);
 
-    section("fa-dragon", "Créatures et monstres", `
-        <p>Compendium des créatures : ${valeur(packCrea, nomPack(packCrea), !!game.packs.get(packCrea))}.</p>
+    section("fa-dragon", tl("Créatures et monstres"), `
+        <p>${tl("Compendium des créatures : {0}.", valeur(packCrea, nomPack(packCrea), !!game.packs.get(packCrea)))}</p>
         <ul>
-            <li><strong>Bestiaire</strong> : une créature s'ajoute au bestiaire d'un PJ quand il la voit, à condition d'être <strong>importée depuis ce compendium</strong> (glisser-déposer depuis le compendium vers la scène ou les acteurs).</li>
-            <li>Une créature fabriquée à la main n'est reconnue que si elle porte <strong>exactement</strong> le nom d'une entrée du compendium. Sinon, ajoute-la d'abord au compendium.</li>
-            <li>Ne range pas une créature dans le dossier des PNJ : elle apparaîtrait dans les relations au lieu du bestiaire.</li>
-            ${actif("enableHarvest") ? `<li>Récolte : crée tes RollTables, puis associe-les aux créatures (par type ou par nom) avec le bouton « Associations » de la barre WestMarch.</li>` : ""}
+            <li>${tl("<strong>Bestiaire</strong> : une créature s'ajoute au bestiaire d'un PJ quand il la voit, à condition d'être <strong>importée depuis ce compendium</strong> (glisser-déposer depuis le compendium vers la scène ou les acteurs).")}</li>
+            <li>${tl("Une créature fabriquée à la main n'est reconnue que si elle porte <strong>exactement</strong> le nom d'une entrée du compendium. Sinon, ajoute-la d'abord au compendium.")}</li>
+            <li>${tl("Ne range pas une créature dans le dossier des PNJ : elle apparaîtrait dans les relations au lieu du bestiaire.")}</li>
+            ${actif("enableHarvest") ? `<li>${tl("Récolte : crée tes RollTables, puis associe-les aux créatures (par type ou par nom) avec le bouton « Associations » de la barre WestMarch.")}</li>` : ""}
         </ul>`, actif("bestiaryEnabled") || !!packCrea);
 
     if (actif("mondeEnabled")) {
-        section("fa-book-atlas", "Lieux, PNJ et organisations (registre du monde)", `
+        section("fa-book-atlas", tl("Lieux, PNJ et organisations (registre du monde)"), `
             <ul>
-                <li>Fiches PNJ : compendium ${nomPackRegistre("mondePackPerson", "Registre — PNJ")}. Fiches d'organisations : compendium ${nomPackRegistre("mondePackOrg", "Registre — Organisations")}. Ils ne sont chargés qu'à la demande (onglet Monde, « Rédiger ») et n'alourdissent pas la connexion. Pour y écrire, ils doivent être déverrouillés.</li>
-                <li>Fiches de lieux : dossier de journaux <strong>${esc(lire("mondeFolderPlace", "Lieux"))}</strong> du monde (une épingle de carte ne peut pas pointer vers un compendium).</li>
-                <li>Un lieu = une fiche « Lieu » de Monk's + <strong>une épingle sur la carte du monde</strong> (bouton « Placer sur la carte » de « Rédiger la fiche », puis clic sur la carte à l'emplacement du lieu). Sans épingle, le lieu n'est jamais découvert par les joueurs.</li>
-                <li>Rédiger : onglet « Monde » du Casier, ou clic droit sur le journal → « Rédiger la fiche ».</li>
+                <li>${tl("Fiches PNJ : compendium {0}. Fiches d'organisations : compendium {1}. Ils ne sont chargés qu'à la demande (onglet Monde, « Rédiger ») et n'alourdissent pas la connexion. Pour y écrire, ils doivent être déverrouillés.", nomPackRegistre("mondePackPerson", tl("Registre — PNJ")), nomPackRegistre("mondePackOrg", tl("Registre — Organisations")))}</li>
+                <li>${tl("Fiches de lieux : dossier de journaux <strong>{0}</strong> du monde (une épingle de carte ne peut pas pointer vers un compendium).", esc(lire("mondeFolderPlace", tl("Lieux"))))}</li>
+                <li>${tl("Un lieu = une fiche « Lieu » de Monk's + <strong>une épingle sur la carte du monde</strong> (bouton « Placer sur la carte » de « Rédiger la fiche », puis clic sur la carte à l'emplacement du lieu). Sans épingle, le lieu n'est jamais découvert par les joueurs.")}</li>
+                <li>${tl("Rédiger : onglet « Monde » du Casier, ou clic droit sur le journal → « Rédiger la fiche ».")}</li>
             </ul>`);
     }
 
@@ -111,26 +112,26 @@ export function guideHtml() {
         const ids = [...new Set([lire("expeditionMapSceneId"), ...(lire("expeditionMapSceneIds", []) || [])].filter(Boolean))];
         const cartes = ids.map(id => game.scenes.get(id)?.name).filter(Boolean);
         const modele = lire("expeditionMapTemplateFolder");
-        section("fa-map", "Carte des expéditions", `
+        section("fa-map", tl("Carte des expéditions"), `
             <ul>
-                <li>Carte(s) du monde : ${cartes.length ? cartes.map(n => `<strong>${esc(n)}</strong>`).join(", ") : valeur("", "")}.</li>
-                <li>Jetons de groupe : copie le jeton modèle « Token à copier et rennomer »${modele ? ` (dossier ${valeur(modele, nomDossier(modele), !!dossierActeurs(modele))})` : ""}, renomme-le, puis mets-y les PJ du groupe.</li>
+                <li>${tl("Carte(s) du monde : {0}.", cartes.length ? cartes.map(n => `<strong>${esc(n)}</strong>`).join(", ") : valeur("", ""))}</li>
+                <li>${tl("Jetons de groupe : copie le jeton modèle « Token à copier et rennomer »{0}, renomme-le, puis mets-y les PJ du groupe.", modele ? ` (dossier ${valeur(modele, nomDossier(modele), !!dossierActeurs(modele))})` : "")}</li>
             </ul>`);
     }
 
     if (actif("tmEnabled")) {
-        section("fa-hammer", "Objets craftables (temps morts)", `
-            <p>Compendium d'objets : ${valeur(packCraft, nomPack(packCraft), !!game.packs.get(packCraft))}. Un objet fabriqué n'est ajouté automatiquement que s'il se trouve dans ce compendium.</p>`);
+        section("fa-hammer", tl("Objets craftables (temps morts)"), `
+            <p>${tl("Compendium d'objets : {0}. Un objet fabriqué n'est ajouté automatiquement que s'il se trouve dans ce compendium.", valeur(packCraft, nomPack(packCraft), !!game.packs.get(packCraft)))}</p>`);
     }
 
     const parent = lire("gmAutoFolderParent");
     if (parent) {
-        section("fa-folder-tree", "Dossiers personnels des MJ", `
-            <p>À la connexion de chaque MJ, un sous-dossier à son nom est créé dans <strong>${esc(parent)}</strong> (Acteurs, Journaux et Scènes) : c'est là qu'il range ses préparations. Ce qui doit être <em>reconnu</em> par le module (PNJ récurrents, créatures) va quand même dans les dossiers ci-dessus.</p>`);
+        section("fa-folder-tree", tl("Dossiers personnels des MJ"), `
+            <p>${tl("À la connexion de chaque MJ, un sous-dossier à son nom est créé dans <strong>{0}</strong> (Acteurs, Journaux et Scènes) : c'est là qu'il range ses préparations. Ce qui doit être <em>reconnu</em> par le module (PNJ récurrents, créatures) va quand même dans les dossiers ci-dessus.", esc(parent))}</p>`);
     }
 
     return `<div class="scwm-rg-guide">
-        <p><em>Page générée à partir des réglages du module (Paramètres → Dossiers &amp; Compendiums). Elle se met à jour toute seule.</em></p>
+        <p>${tl("<em>Page générée à partir des réglages du module (Paramètres → Dossiers &amp; Compendiums). Elle se met à jour toute seule.</em>")}</p>
         ${sections.join("\n")}
     </div>`;
 }
@@ -158,16 +159,16 @@ export async function verifierRangement() {
     const pj = dossierActeurs(lire("commonFolderPJ"));
     const pnj = dossierActeurs(lire("commonFolderPNJ"));
     const packCrea = lire("commonPackCreatures");
-    if (!lire("commonFolderPJ")) ajouter("ko", "Le dossier des PJ n'est pas réglé : ni les Relations ni le Bestiaire ne peuvent détecter de rencontre.");
-    else if (!pj) ajouter("ko", `Le dossier des PJ « ${lire("commonFolderPJ")} » n'existe plus.`);
-    if (actif("relationsEnabled") && !lire("commonFolderPNJ")) ajouter("ko", "Le dossier des PNJ n'est pas réglé : aucun PNJ n'apparaîtra dans les relations.");
-    else if (lire("commonFolderPNJ") && !pnj) ajouter("ko", `Le dossier des PNJ « ${lire("commonFolderPNJ")} » n'existe plus.`);
-    if (actif("bestiaryEnabled") && !game.packs.get(packCrea)) ajouter("ko", "Le compendium des créatures n'est pas réglé ou introuvable : le bestiaire ne reconnaîtra aucune créature.");
+    if (!lire("commonFolderPJ")) ajouter("ko", tl("Le dossier des PJ n'est pas réglé : ni les Relations ni le Bestiaire ne peuvent détecter de rencontre."));
+    else if (!pj) ajouter("ko", tl("Le dossier des PJ « {0} » n'existe plus.", lire("commonFolderPJ")));
+    if (actif("relationsEnabled") && !lire("commonFolderPNJ")) ajouter("ko", tl("Le dossier des PNJ n'est pas réglé : aucun PNJ n'apparaîtra dans les relations."));
+    else if (lire("commonFolderPNJ") && !pnj) ajouter("ko", tl("Le dossier des PNJ « {0} » n'existe plus.", lire("commonFolderPNJ")));
+    if (actif("bestiaryEnabled") && !game.packs.get(packCrea)) ajouter("ko", tl("Le compendium des créatures n'est pas réglé ou introuvable : le bestiaire ne reconnaîtra aucune créature."));
 
     // PJ de joueurs rangés hors du dossier des PJ.
     if (pj) {
         const hors = game.actors.filter(a => a.type === "character" && a.hasPlayerOwner && !dansDossier(a, pj));
-        if (hors.length) ajouter("ko", `${hors.length} personnage(s) de joueur hors du dossier des PJ : leurs rencontres ne sont pas détectées.`,
+        if (hors.length) ajouter("ko", tl("{0} personnage(s) de joueur hors du dossier des PJ : leurs rencontres ne sont pas détectées.", hors.length),
             hors.map(a => ({ uuid: a.uuid, nom: a.name, info: a.folder ? cheminDossier(a.folder) : "(racine)" })));
     }
 
@@ -189,21 +190,21 @@ export async function verifierRangement() {
     const inconnus = [...vus.values()].filter(x => x?.pb === "inconnu");
     const doubles = [...vus.values()].filter(x => x?.pb === "double");
     if (inconnus.length) ajouter("attention",
-        `${inconnus.length} acteur(s) posé(s) sur une scène ne sont ni dans le dossier des PNJ ni reconnus comme créatures : ils n'apparaîtront ni dans les relations ni dans le bestiaire. Si c'est un PNJ récurrent, range-le dans le dossier des PNJ ; si c'est une créature, importe-la depuis le compendium.`,
-        inconnus.map(x => ({ uuid: x.a.uuid, nom: x.a.name, info: `${x.a.folder ? cheminDossier(x.a.folder) : "(racine)"} — sur « ${x.scene.name} »` })));
+        tl("{0} acteur(s) posé(s) sur une scène ne sont ni dans le dossier des PNJ ni reconnus comme créatures : ils n'apparaîtront ni dans les relations ni dans le bestiaire. Si c'est un PNJ récurrent, range-le dans le dossier des PNJ ; si c'est une créature, importe-la depuis le compendium.", inconnus.length),
+        inconnus.map(x => ({ uuid: x.a.uuid, nom: x.a.name, info: tl("{0} — sur « {1} »", x.a.folder ? cheminDossier(x.a.folder) : "(racine)", x.scene.name) })));
     if (doubles.length) ajouter("attention",
-        `${doubles.length} créature(s) rangée(s) dans le dossier des PNJ : elles apparaîtront dans les relations ET le bestiaire.`,
+        tl("{0} créature(s) rangée(s) dans le dossier des PNJ : elles apparaîtront dans les relations ET le bestiaire.", doubles.length),
         doubles.map(x => ({ uuid: x.a.uuid, nom: x.a.name, info: x.a.folder ? cheminDossier(x.a.folder) : "" })));
 
     // Registre du monde : lieux sans épingle, PNJ / organisations encore dans le monde.
     if (actif("mondeEnabled")) {
         const typeMej = (e) => e.pages?.contents?.[0]?.getFlag?.("monks-enhanced-journal", "type");
         const dehors = game.journal.filter(e => ["person", "organization"].includes(typeMej(e)));
-        if (dehors.length) ajouter("attention", `${dehors.length} fiche(s) PNJ / organisation sont encore des journaux du monde (chargés à chaque connexion). Onglet Monde → « Ranger dans les compendiums ».`,
+        if (dehors.length) ajouter("attention", tl("{0} fiche(s) PNJ / organisation sont encore des journaux du monde (chargés à chaque connexion). Onglet Monde → « Ranger dans les compendiums ».", dehors.length),
             dehors.map(e => ({ uuid: e.uuid, nom: e.name, info: e.folder?.name ?? "" })));
         const lieux = game.journal.filter(e => e.pages?.contents?.[0]?.getFlag?.("monks-enhanced-journal", "type") === "place");
         const sansEpingle = lieux.filter(e => !game.scenes.some(s => s.notes.some(n => n.entryId === e.id)));
-        if (sansEpingle.length) ajouter("attention", `${sansEpingle.length} fiche(s) de lieu sans épingle sur une carte : elles ne seront jamais découvertes par les joueurs.`,
+        if (sansEpingle.length) ajouter("attention", tl("{0} fiche(s) de lieu sans épingle sur une carte : elles ne seront jamais découvertes par les joueurs.", sansEpingle.length),
             sansEpingle.map(e => ({ uuid: e.uuid, nom: e.name, info: e.folder?.name ?? "" })));
     }
     return pbs;
@@ -211,14 +212,14 @@ export async function verifierRangement() {
 
 // Vérification au format journal (liens @UUID, couleurs en ligne).
 function verificationJournalHtml(pbs) {
-    const date = new Date().toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" });
-    const entete = `<p><em>État du monde au ${esc(date)} (régénéré à chaque clic sur le bouton des paramètres et à chaque changement des dossiers).</em></p>`;
-    if (!pbs.length) return `${entete}<p style="color:#2e8b57;font-weight:600;"><i class="fa-solid fa-circle-check"></i> Tout est bien rangé.</p>`;
+    const date = new Date().toLocaleString(locale(), { dateStyle: "short", timeStyle: "short" });
+    const entete = `<p>${tl("<em>État du monde au {0} (régénéré à chaque clic sur le bouton des paramètres et à chaque changement des dossiers).</em>", esc(date))}</p>`;
+    if (!pbs.length) return `${entete}<p style="color:#2e8b57;font-weight:600;">${tl("<i class=\"fa-solid fa-circle-check\"></i> Tout est bien rangé.")}</p>`;
     return entete + pbs.map(p => `
         <h3 style="color:${p.niveau === "ko" ? "#c0392b" : "#d35400"};"><i class="fa-solid ${p.niveau === "ko" ? "fa-circle-xmark" : "fa-triangle-exclamation"}"></i> ${esc(p.titre)}</h3>
         ${p.details.length ? `<ul>
             ${p.details.slice(0, 100).map(d => `<li>@UUID[${d.uuid}]{${esc(d.nom)}} — ${esc(d.info)}</li>`).join("")}
-            ${p.details.length > 100 ? `<li>… et ${p.details.length - 100} autre(s)</li>` : ""}
+            ${p.details.length > 100 ? `<li>${tl("… et {0} autre(s)", p.details.length - 100)}</li>` : ""}
         </ul>` : ""}`).join("");
 }
 
@@ -230,8 +231,9 @@ export function trouverGuide() {
     return game.journal?.find(e => e.getFlag?.(MOD, FLAG_GUIDE) === true) ?? null;
 }
 
-const PAGE_GUIDE = "Où ranger quoi ?";
-const PAGE_VERIF = "Vérification du monde";
+const PAGE_GUIDE_FR = tl("Où ranger quoi ?"), PAGE_VERIF_FR = tl("Vérification du monde");
+const PAGE_GUIDE = tl("Où ranger quoi ?");
+const PAGE_VERIF = tl("Vérification du monde");
 
 export async function publierGuide() {
     if (!game.user?.isGM) return null;
@@ -243,7 +245,7 @@ export async function publierGuide() {
     if (existant) {
         const maj = [], neuves = [];
         for (const [i, pg] of pages.entries()) {
-            const p = existant.pages.contents.find(x => x.name === pg.name) ?? (i === 0 ? existant.pages.contents[0] : null);
+            const p = existant.pages.contents.find(x => x.name === pg.name || memeNom(x.name, [PAGE_GUIDE_FR, PAGE_VERIF_FR][i])) ?? (i === 0 ? existant.pages.contents[0] : null);
             if (p) maj.push({ _id: p.id, name: pg.name, "text.content": pg.text.content, sort: (i + 1) * 100000 });
             else neuves.push({ ...pg, sort: (i + 1) * 100000 });
         }
@@ -252,7 +254,7 @@ export async function publierGuide() {
         return existant;
     }
     return JournalEntry.create({
-        name: "📌 Où ranger quoi ? (MJ)",
+        name: tl("📌 Où ranger quoi ? (MJ)"),
         ownership: { default: CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE },
         sort: -100000,
         flags: { [MOD]: { [FLAG_GUIDE]: true } },
@@ -266,12 +268,12 @@ export async function genererEtOuvrirGuide() {
         const deja = !!trouverGuide();
         const e = await publierGuide();
         if (!e) return null;
-        ui.notifications?.info(deja ? "Journal « Où ranger quoi ? » mis à jour." : "Journal « Où ranger quoi ? » créé (réservé aux MJ).");
+        ui.notifications?.info(deja ? tl("Journal « Où ranger quoi ? » mis à jour.") : tl("Journal « Où ranger quoi ? » créé (réservé aux MJ)."));
         e.sheet?.render(true);
         return e;
     } catch (err) {
-        journal.avert(`[${MOD}] guide de rangement`, err);
-        ui.notifications?.error("Échec de la génération du journal « Où ranger quoi ? ».");
+        journal.avert(tl("[{0}] guide de rangement", MOD), err);
+        ui.notifications?.error(tl("Échec de la génération du journal « Où ranger quoi ? »."));
         return null;
     }
 }
@@ -281,9 +283,9 @@ export function blocGuideReglagesHtml() {
     const guide = trouverGuide();
     return `
     <div class="scwm-rg-bloc" style="margin:10px 4px 4px;padding:8px 10px;border:1px solid rgba(201,162,39,.45);border-radius:5px;background:rgba(201,162,39,.07);">
-        <div style="font-weight:600;"><i class="fa-solid fa-boxes-stacked"></i> Guide « Où ranger quoi ? » pour les MJ</div>
-        <p style="margin:3px 0 6px;font-size:.8em;color:#aaa;">Crée un journal réservé aux MJ qui explique où ranger PJ, PNJ, créatures, lieux… avec les dossiers et compendiums réglés ici, plus une vérification de ce qui est mal rangé dans le monde. Les réglages de cette fenêtre sont enregistrés avant. Le journal se met ensuite à jour tout seul quand ces réglages changent.</p>
-        <button type="button" class="scwm-rg-generer"><i class="fa-solid fa-book"></i> ${guide ? "Mettre à jour et ouvrir le journal" : "Générer le journal"}</button>
+        <div style="font-weight:600;">${tl("<i class=\"fa-solid fa-boxes-stacked\"></i> Guide « Où ranger quoi ? » pour les MJ")}</div>
+        <p style="margin:3px 0 6px;font-size:.8em;color:#aaa;">${tl("Crée un journal réservé aux MJ qui explique où ranger PJ, PNJ, créatures, lieux… avec les dossiers et compendiums réglés ici, plus une vérification de ce qui est mal rangé dans le monde. Les réglages de cette fenêtre sont enregistrés avant. Le journal se met ensuite à jour tout seul quand ces réglages changent.")}</p>
+        <button type="button" class="scwm-rg-generer"><i class="fa-solid fa-book"></i> ${guide ? tl("Mettre à jour et ouvrir le journal") : tl("Générer le journal")}</button>
     </div>`;
 }
 
@@ -297,6 +299,6 @@ export function RangementHooks() {
         const cle = String(setting?.key ?? "");
         if (!CLES_SUIVIES.some(k => cle === `${MOD}.${k}`)) return;
         clearTimeout(t);
-        t = setTimeout(() => publierGuide().catch(e => journal.avert(`[${MOD}] guide de rangement`, e)), 1000);
+        t = setTimeout(() => publierGuide().catch(e => journal.avert(tl("[{0}] guide de rangement", MOD), e)), 1000);
     });
 }

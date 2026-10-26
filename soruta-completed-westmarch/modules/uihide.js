@@ -10,6 +10,7 @@
 // ============================================================
 
 import { MOD } from "./const.js";
+import { tl } from "./i18n.js";
 
 const STYLE_ID = "scwm-ui-hide-style";
 
@@ -24,13 +25,13 @@ function getHidden() {
 
 // Grandes zones fixes, toujours proposées.
 const FIXED_TARGETS = [
-    { key: "region:hotbar",     label: "Barre de macros (hotbar)",           sel: "#hotbar" },
-    { key: "region:macrolist",  label: "Macros seulement (garder la barre)", sel: "#hotbar #macro-list, #hotbar #action-bar" },
-    { key: "region:players",    label: "Liste des joueurs",                  sel: "#players" },
-    { key: "region:navigation", label: "Navigation des scènes",              sel: "#navigation, #scene-navigation" },
-    { key: "region:controls",   label: "Barre d'outils de gauche (entière)", sel: "#scene-controls, #controls" },
-    { key: "region:sidebar",    label: "Barre latérale (sidebar)",           sel: "#sidebar" },
-    { key: "region:logo",       label: "Logo Foundry",                       sel: "#logo" },
+    { key: "region:hotbar",     label: tl("Barre de macros (hotbar)"),           sel: "#hotbar" },
+    { key: "region:macrolist",  label: tl("Macros seulement (garder la barre)"), sel: "#hotbar #macro-list, #hotbar #action-bar" },
+    { key: "region:players",    label: tl("Liste des joueurs"),                  sel: "#players" },
+    { key: "region:navigation", label: tl("Navigation des scènes"),              sel: "#navigation, #scene-navigation" },
+    { key: "region:controls",   label: tl("Barre d'outils de gauche (entière)"), sel: "#scene-controls, #controls" },
+    { key: "region:sidebar",    label: tl("Barre latérale (sidebar)"),           sel: "#sidebar" },
+    { key: "region:logo",       label: tl("Logo Foundry"),                       sel: "#logo" },
 ];
 
 const cssEsc = (s) => String(s).replace(/["\\]/g, "\\$&");
@@ -119,9 +120,9 @@ function rowHtml(entry, hPlayers, hGm) {
 
 function headerRow() {
     return `<div style="display:flex;align-items:flex-end;gap:6px;padding:2px 4px;border-bottom:1px solid rgba(255,255,255,.15);position:sticky;top:0;background:var(--color-bg,#1c1c22);z-index:1;">
-        <span style="flex:0 0 ${COLW};text-align:center;font-size:10px;font-weight:700;color:#8fd19e;">Joueurs</span>
+        <span style="flex:0 0 ${COLW};text-align:center;font-size:10px;font-weight:700;color:#8fd19e;">${tl("Joueurs")}</span>
         <span style="flex:0 0 ${COLW};text-align:center;font-size:10px;font-weight:700;color:#e8cc6a;">GM</span>
-        <span style="flex:1;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#9a8b70;">Élément</span>
+        <span style="flex:1;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#9a8b70;">${tl("Élément")}</span>
     </div>`;
 }
 
@@ -138,7 +139,7 @@ export async function openUiHideDialog() {
     const groupButtons = [];
     for (const e of detected) {
         if (e.key.startsWith("control:")) groupButtons.push(e);
-        else { const g = e.group || "Autres"; if (!groups.has(g)) groups.set(g, []); groups.get(g).push(e); }
+        else { const g = e.group || tl("Autres"); if (!groups.has(g)) groups.set(g, []); groups.get(g).push(e); }
     }
 
     const subHeader = (title) => `<div style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#9a8b70;margin:8px 0 2px;">${_esc(title)}</div>`;
@@ -150,38 +151,36 @@ export async function openUiHideDialog() {
     const content = `
         <div style="display:flex;flex-direction:column;max-height:60vh;overflow-y:auto;padding-right:4px;">
             <p style="margin:0 0 6px;font-size:.85em;color:#aaa;font-style:italic;">
-                Coche pour masquer l'élément, colonne <b style="color:#8fd19e;">Joueurs</b> et/ou
-                <b style="color:#e8cc6a;">GM</b>. Seuls les groupes/outils actuellement chargés sont
-                listés — ouvre un groupe d'outils si tu ne le vois pas.
+                ${tl("Coche pour masquer l'élément, colonne <b style=\"color:#8fd19e;\">Joueurs</b> et/ou\n                <b style=\"color:#e8cc6a;\">GM</b>. Seuls les groupes/outils actuellement chargés sont\n                listés — ouvre un groupe d'outils si tu ne le vois pas.")}
             </p>
             ${headerRow()}
-            ${subHeader("Grandes zones")}
+            ${subHeader(tl("Grandes zones"))}
             ${rows(FIXED_TARGETS)}
-            ${sidebarTabs.length ? subHeader("Barre latérale — onglets") + rows(sidebarTabs) : ""}
-            ${groupButtons.length ? subHeader("Barre d'outils — groupes") + rows(groupButtons) : ""}
+            ${sidebarTabs.length ? subHeader(tl("Barre latérale — onglets")) + rows(sidebarTabs) : ""}
+            ${groupButtons.length ? subHeader(tl("Barre d'outils — groupes")) + rows(groupButtons) : ""}
             ${toolSections}
         </div>`;
 
     await DialogV2.wait({
-        window: { title: "Masquer des éléments d'interface", icon: "fa-solid fa-eye-slash" },
+        window: { title: tl("Masquer des éléments d'interface"), icon: "fa-solid fa-eye-slash" },
         position: { width: 520 },
         rejectClose: false,
         content,
         buttons: [
             {
-                action: "save", default: true, label: "Appliquer", icon: '<i class="fa-solid fa-check"></i>',
+                action: "save", default: true, label: tl("Appliquer"), icon: '<i class="fa-solid fa-check"></i>',
                 callback: async (ev, btn) => {
                     const root = btn.form ?? btn.closest?.(".application") ?? document;
                     const players = [...root.querySelectorAll('.scwm-uihide-cb[data-role="players"]')].filter(cb => cb.checked).map(cb => cb.value);
                     const gm      = [...root.querySelectorAll('.scwm-uihide-cb[data-role="gm"]')].filter(cb => cb.checked).map(cb => cb.value);
                     await game.settings.set(MOD, "hiddenUi", { players, gm });
                     applyUiHiding();
-                    ui.notifications?.info("Masquage d'interface mis à jour.");
+                    ui.notifications?.info(tl("Masquage d'interface mis à jour."));
                 }
             },
-            { action: "reset", label: "Tout réafficher", icon: '<i class="fa-solid fa-eye"></i>',
-              callback: async () => { await game.settings.set(MOD, "hiddenUi", { players: [], gm: [] }); applyUiHiding(); ui.notifications?.info("Interface réaffichée."); } },
-            { action: "close", label: "Fermer", icon: '<i class="fa-solid fa-xmark"></i>', callback: () => {} }
+            { action: "reset", label: tl("Tout réafficher"), icon: '<i class="fa-solid fa-eye"></i>',
+              callback: async () => { await game.settings.set(MOD, "hiddenUi", { players: [], gm: [] }); applyUiHiding(); ui.notifications?.info(tl("Interface réaffichée.")); } },
+            { action: "close", label: tl("Fermer"), icon: '<i class="fa-solid fa-xmark"></i>', callback: () => {} }
         ]
     }).catch(() => {});
 }

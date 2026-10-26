@@ -1,4 +1,5 @@
 import { MOD } from "./const.js";
+import { tl } from "./i18n.js";
 // ============================================================
 // tgcm.js — "Protégé TGCM" : token immunisé à la mort
 //
@@ -112,7 +113,7 @@ function _injectTgcmButton(hud, html) {
 
     const btn = document.createElement("div");
     btn.className = `control-icon tgcm-btn${isActive ? " active" : ""}`;
-    btn.title = `Protégé TGCM${isActive ? " (actif)" : ""}`;
+    btn.title = tl("Protégé TGCM{0}", isActive ? " (actif)" : "");
     btn.innerHTML = `<i class="fa-solid fa-shield-alt"></i>`;
 
     btn.addEventListener("click", async (e) => {

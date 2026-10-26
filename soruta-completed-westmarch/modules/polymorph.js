@@ -1,5 +1,6 @@
 import { MOD } from "./const.js";
 import { journal } from "./log.js";
+import { tl } from "./i18n.js";
 // ============================================================
 // polymorph.js — DEUX systèmes de transformation distincts :
 //   • Wild Shape (aptitude de druide)   — préréglage dnd5e "wildshape"
@@ -87,7 +88,7 @@ async function doTransform(tokenDoc, beast, kind) {
     const actor = tokenDoc.actor;
     if (!actor) return;
     if (!transformAvailable()) {
-        ui.notifications.error("Le moteur de transformation dnd5e est indisponible sur cette version.");
+        ui.notifications.error(tl("Le moteur de transformation dnd5e est indisponible sur cette version."));
         return;
     }
 
@@ -97,18 +98,18 @@ async function doTransform(tokenDoc, beast, kind) {
     if (enforce) {
         const beastCr = _beastCr(beast);
         const max = kind === "wildshape" ? maxCrWildShape(actor) : maxCrPolymorph(actor);
-        const label = kind === "wildshape" ? "Wild Shape" : "Polymorphie";
+        const label = kind === "wildshape" ? tl("Wild Shape") : tl("Polymorphie");
         if (max != null && beastCr > max) {
-            const msg = `${beast.name} a une FP de ${fmtCr(beastCr)}, au-dessus de la limite ${label} (${fmtCr(max)}).`;
+            const msg = tl("{0} a une FP de {1}, au-dessus de la limite {2} ({3}).", beast.name, fmtCr(beastCr), label, fmtCr(max));
             if (!strict) {
                 ui.notifications.warn(msg);   // avertissement seul, on continue
             } else if (!game.user.isGM) {
-                ui.notifications.warn(msg + " Transformation refusée.");
+                ui.notifications.warn(msg + tl(" Transformation refusée."));
                 return;
             } else {
                 const ok = await foundry.applications.api.DialogV2.confirm({
-                    window:  { title: "FP dépassée" },
-                    content: `<p>${msg}</p><p>Autoriser quand même (MJ) ?</p>`
+                    window:  { title: tl("FP dépassée") },
+                    content: `<p>${msg}</p><p>${tl("Autoriser quand même (MJ) ?")}</p>`
                 });
                 if (!ok) return;
             }
@@ -119,11 +120,11 @@ async function doTransform(tokenDoc, beast, kind) {
         const settings = buildSettings(kind === "wildshape" ? "wildshape" : "polymorph");
         const result = await actor.transformInto(beast, settings, { renderSheet: false });
         if (!result && !game.user.isGM) {
-            ui.notifications.warn("Transformation impossible : le MJ doit activer « Autoriser la métamorphose » dans les réglages du système dnd5e.");
+            ui.notifications.warn(tl("Transformation impossible : le MJ doit activer « Autoriser la métamorphose » dans les réglages du système dnd5e."));
         }
     } catch (e) {
-        journal.erreur(`[${MOD}] transformInto échec :`, e);
-        ui.notifications.error("Échec de la transformation (voir la console F12).");
+        journal.erreur(tl("[{0}] transformInto échec :", MOD), e);
+        ui.notifications.error(tl("Échec de la transformation (voir la console F12)."));
     }
 }
 
@@ -132,10 +133,10 @@ async function doRevert(tokenDoc) {
     if (!actor) return;
     try {
         if (typeof actor.revertOriginalForm === "function") await actor.revertOriginalForm();
-        else ui.notifications.warn("Retour à la forme normale indisponible sur cette version dnd5e.");
+        else ui.notifications.warn(tl("Retour à la forme normale indisponible sur cette version dnd5e."));
     } catch (e) {
-        journal.erreur(`[${MOD}] revertOriginalForm échec :`, e);
-        ui.notifications.error("Échec du retour à la forme normale (voir la console F12).");
+        journal.erreur(tl("[{0}] revertOriginalForm échec :", MOD), e);
+        ui.notifications.error(tl("Échec du retour à la forme normale (voir la console F12)."));
     }
 }
 
@@ -144,10 +145,10 @@ async function openTransformDialog(tokenDoc, forms, kind) {
     const actor = tokenDoc.actor;
     const valid = forms.map(f => ({ ...f, actor: game.actors.get(f.actorId) })).filter(f => f.actor);
     if (!valid.length) {
-        ui.notifications.warn("Aucune forme disponible (acteurs configurés introuvables).");
+        ui.notifications.warn(tl("Aucune forme disponible (acteurs configurés introuvables)."));
         return;
     }
-    const title = kind === "wildshape" ? "Wild Shape — choisir une forme" : "Polymorphie — choisir une forme";
+    const title = kind === "wildshape" ? tl("Wild Shape — choisir une forme") : tl("Polymorphie — choisir une forme");
     const max   = kind === "wildshape" ? maxCrWildShape(actor) : maxCrPolymorph(actor);
 
     const rows = valid.map((f, i) => {
@@ -165,7 +166,7 @@ async function openTransformDialog(tokenDoc, forms, kind) {
     }).join("");
 
     const hint = max != null
-        ? `<div style="font-size:11px;opacity:.7;margin:0 2px 6px;">Limite ${kind === "wildshape" ? "Wild Shape" : "Polymorphie"} : FP ${fmtCr(max)}. ⚠ = au-dessus.</div>`
+        ? `<div style="font-size:11px;opacity:.7;margin:0 2px 6px;">${tl("Limite {0} : FP {1}. ⚠ = au-dessus.", kind === "wildshape" ? tl("Wild Shape") : tl("Polymorphie"), fmtCr(max))}</div>`
         : "";
 
     let sel = 0;
@@ -182,11 +183,11 @@ async function openTransformDialog(tokenDoc, forms, kind) {
         buttons: [
             {
                 action: "transform", default: true,
-                label: kind === "wildshape" ? "Se transformer" : "Métamorphoser",
+                label: kind === "wildshape" ? tl("Se transformer") : tl("Métamorphoser"),
                 icon: `<i class="fa-solid ${kind === "wildshape" ? "fa-paw" : "fa-hat-wizard"}"></i>`,
                 callback: async () => { const c = valid[sel]; if (c) await doTransform(tokenDoc, c.actor, kind); }
             },
-            { action: "cancel", label: "Annuler", icon: '<i class="fa-solid fa-times"></i>' }
+            { action: "cancel", label: tl("Annuler"), icon: '<i class="fa-solid fa-times"></i>' }
         ]
     });
 }
@@ -235,8 +236,8 @@ export function PolymorphHooks() {
 
         const tab = $(html).find(".tab[data-tab='appearance']");
         const host = tab.length ? tab : $(html);
-        host.append(makeFormSection(actor, WS_FLAG,   "Formes Wild Shape (WestMarch)"));
-        host.append(makeFormSection(actor, POLY_FLAG, "Formes Polymorphie (WestMarch)"));
+        host.append(makeFormSection(actor, WS_FLAG,   tl("Formes Wild Shape (WestMarch)")));
+        host.append(makeFormSection(actor, POLY_FLAG, tl("Formes Polymorphie (WestMarch)")));
     });
 }
 
@@ -258,7 +259,7 @@ function makeFormSection(actor, flagKey, legend) {
 
     const renderForms = (list) => {
         const el = section.find(".wm-poly-form-list").empty();
-        if (!list.length) { el.append(`<div style="opacity:0.6; font-size:12px; font-style:italic;">Aucune forme configurée.</div>`); return; }
+        if (!list.length) { el.append(`<div style="opacity:0.6; font-size:12px; font-style:italic;">${tl("Aucune forme configurée.")}</div>`); return; }
         list.forEach((f, i) => {
             const a = game.actors.get(f.actorId);
             const name = a?.name ?? `(introuvable : ${f.actorId})`;
@@ -300,7 +301,7 @@ function makeFormSection(actor, flagKey, legend) {
     });
 
     section.find(".wm-poly-add-btn").on("click", async () => {
-        if (!pendingActorId) { ui.notifications.warn("Sélectionnez un acteur dans la liste de suggestions."); return; }
+        if (!pendingActorId) { ui.notifications.warn(tl("Sélectionnez un acteur dans la liste de suggestions.")); return; }
         const label = section.find(".wm-poly-label-input").val().trim();
         const current = actor.getFlag(MOD, flagKey) ?? [];
         const updated = [...current, { actorId: pendingActorId, label }];

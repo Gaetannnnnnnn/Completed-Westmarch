@@ -14,6 +14,7 @@
 import { MOD } from "./const.js";
 import { journal } from "./log.js";
 import { Dialog } from "./compat.js";
+import { tl } from "./i18n.js";
 
 const on = (k) => { try { return game.settings.get(MOD, k); } catch { return false; } };
 // Opt-out par joueur (réglage client) : ce client a-t-il coupé les rappels ?
@@ -87,19 +88,19 @@ async function showReactionPrompt({ promptId, actorId, attacker, reactionIds }) 
 
     try {
         await DialogV2.wait({
-            window: { title: `Réaction possible${attacker ? ` — attaqué par ${attacker}` : ""}`, icon: "fa-solid fa-bolt" },
+            window: { title: tl("Réaction possible{0}", attacker ? ` ${tl("— attaqué par {0}", attacker)}` : ""), icon: "fa-solid fa-bolt" },
             position: { width: 400 },
             content: `<div style="display:flex;flex-direction:column;">
-                <p style="margin:0 0 6px;">Une <strong>réaction</strong> est peut-être utile. Choisis :</p>
+                <p style="margin:0 0 6px;">${tl("Une <strong>réaction</strong> est peut-être utile. Choisis :")}</p>
                 ${rows}
             </div>`,
-            buttons: [{ action: "pass", label: "Passer", icon: '<i class="fa-solid fa-forward"></i>', default: true }],
+            buttons: [{ action: "pass", label: tl("Passer"), icon: '<i class="fa-solid fa-forward"></i>', default: true }],
             rejectClose: false,
             render: (ev, dlg) => {
                 const root = dlg?.element ?? ev?.target?.closest?.(".application") ?? document;
                 root.querySelectorAll?.(".scwm-react-opt").forEach(b => b.addEventListener("click", async () => {
                     const it = actor.items.get(b.dataset.id);
-                    try { await (it?.use?.() ?? it?.roll?.()); } catch (e) { journal.avert(`[${MOD}] usage réaction :`, e); }
+                    try { await (it?.use?.() ?? it?.roll?.()); } catch (e) { journal.avert(tl("[{0}] usage réaction :", MOD), e); }
                     try { dlg?.close?.(); } catch (e) {}
                 }));
             }
@@ -114,16 +115,16 @@ const _gmDialogs = new Map();
 function showGmNotify({ promptId, player, target, attacker }) {
     try {
         const dlg = new Dialog({
-            title: "Réaction en cours",
-            content: `<p><strong>${player ?? "?"}</strong> (${target ?? "?"}) réfléchit à une <strong>réaction</strong>`
-                   + `${attacker ? ` — attaqué par ${attacker}` : ""}…</p>`,
-            buttons: { ok: { icon: '<i class="fa-solid fa-xmark"></i>', label: "Fermer" } },
+            title: tl("Réaction en cours"),
+            content: `<p>${tl("<strong>{0}</strong> ({1}) réfléchit à une <strong>réaction</strong>", player ?? "?", target ?? "?")}`
+                   + `${attacker ? ` ${tl("— attaqué par {0}", attacker)}` : ""}…</p>`,
+            buttons: { ok: { icon: '<i class="fa-solid fa-xmark"></i>', label: tl("Fermer") } },
             default: "ok",
             close: () => _gmDialogs.delete(promptId)
         }, { width: 360 });
         dlg.render(true);
         _gmDialogs.set(promptId, dlg);
-    } catch (e) { journal.avert(`[${MOD}] notif MJ réaction :`, e); }
+    } catch (e) { journal.avert(tl("[{0}] notif MJ réaction :", MOD), e); }
 }
 function clearGmNotify(promptId) {
     const dlg = _gmDialogs.get(promptId);
@@ -133,7 +134,7 @@ function clearGmNotify(promptId) {
 
 // ── Déclencheur : ciblage réel via Midi-QOL (côté client de l'attaquant) ──────
 function onPreAttack(workflow) {
-    _log("preAttackRoll reçu — réglage réactions:", on("enableReactReminder"),
+    _log(tl("preAttackRoll reçu — réglage réactions:"), on("enableReactReminder"),
          "| cibles:", workflow?.targets ? [...workflow.targets].length : 0);
     if (!on("enableReactReminder")) return;
     const targets = workflow?.targets ? [...workflow.targets] : [];
@@ -162,22 +163,22 @@ function onPreAttack(workflow) {
 // action/un jet → message PUBLIC avec un bouton que seul le MJ peut cliquer.
 // ============================================================
 const MASTERY = {
-    topple: { label: "Topple / Renversement", trigger: "hit",  gm: true,  act: "save",
-              desc: "La cible doit réussir un jet de <strong>Sauvegarde de Constitution</strong> ou tomber à terre." },
-    graze:  { label: "Graze / Éraflure",       trigger: "miss", gm: true,  act: "graze",
-              desc: "Inflige les <strong>dégâts du modificateur</strong> de caractéristique malgré l'échec." },
-    cleave: { label: "Cleave / Fendoir",        trigger: "hit",  gm: true,  act: "cleave",
-              desc: "<strong>Attaque supplémentaire</strong> contre une autre créature à 1,50 m." },
-    push:   { label: "Push / Bousculade",       trigger: "hit",  gm: true,  act: "note",
-              desc: "<strong>Pousse</strong> la cible de 3 m en ligne droite (déplacement par le MJ)." },
-    slow:   { label: "Slow / Ralentissement",   trigger: "hit",  gm: true,  act: "slow",
-              desc: "Réduit la <strong>vitesse</strong> de la cible de 3 m jusqu'au début de ton prochain tour." },
-    sap:    { label: "Sap / Sape",              trigger: "hit",  gm: true,  act: "sap",
-              desc: "La cible a un <strong>désavantage</strong> à sa prochaine attaque avant ton prochain tour." },
-    vex:    { label: "Vex / Harcèlement",       trigger: "hit",  gm: false, act: null,
-              desc: "Tu as l'<strong>avantage</strong> à ta prochaine attaque contre cette cible." },
-    nick:   { label: "Nick / Estafilade",       trigger: "hit",  gm: false, act: null,
-              desc: "Tu peux faire une <strong>attaque d'arme légère supplémentaire</strong> dans l'action d'Attaque." },
+    topple: { label: tl("Topple / Renversement"), trigger: "hit",  gm: true,  act: "save",
+              desc: `${tl("La cible doit réussir un jet de <strong>Sauvegarde de Constitution</strong> ou tomber à terre.")}` },
+    graze:  { label: tl("Graze / Éraflure"),       trigger: "miss", gm: true,  act: "graze",
+              desc: `${tl("Inflige les <strong>dégâts du modificateur</strong> de caractéristique malgré l'échec.")}` },
+    cleave: { label: tl("Cleave / Fendoir"),        trigger: "hit",  gm: true,  act: "cleave",
+              desc: `${tl("<strong>Attaque supplémentaire</strong> contre une autre créature à 1,50 m.")}` },
+    push:   { label: tl("Push / Bousculade"),       trigger: "hit",  gm: true,  act: "note",
+              desc: `${tl("<strong>Pousse</strong> la cible de 3 m en ligne droite (déplacement par le MJ).")}` },
+    slow:   { label: tl("Slow / Ralentissement"),   trigger: "hit",  gm: true,  act: "slow",
+              desc: `${tl("Réduit la <strong>vitesse</strong> de la cible de 3 m jusqu'au début de ton prochain tour.")}` },
+    sap:    { label: tl("Sap / Sape"),              trigger: "hit",  gm: true,  act: "sap",
+              desc: `${tl("La cible a un <strong>désavantage</strong> à sa prochaine attaque avant ton prochain tour.")}` },
+    vex:    { label: tl("Vex / Harcèlement"),       trigger: "hit",  gm: false, act: null,
+              desc: `${tl("Tu as l'<strong>avantage</strong> à ta prochaine attaque contre cette cible.")}` },
+    nick:   { label: tl("Nick / Estafilade"),       trigger: "hit",  gm: false, act: null,
+              desc: `${tl("Tu peux faire une <strong>attaque d'arme légère supplémentaire</strong> dans l'action d'Attaque.")}` },
 };
 
 // Détermine hits/miss de façon fiable : crit/fumble d'abord, sinon total
@@ -234,17 +235,17 @@ async function offerCleave(attacker, item) {
     let use = false;
     try {
         use = await DialogV2.confirm({
-            window: { title: "Cleave / Fendoir", icon: "fa-solid fa-hand-fist" },
-            content: `<p>Utiliser <strong>Cleave</strong> ? Une <strong>attaque supplémentaire</strong> contre une autre créature à 1,50 m (une seule fois par tour).<br><em>Ciblez d'abord la nouvelle créature.</em></p>`,
+            window: { title: tl("Cleave / Fendoir"), icon: "fa-solid fa-hand-fist" },
+            content: `<p>${tl("Utiliser <strong>Cleave</strong> ? Une <strong>attaque supplémentaire</strong> contre une autre créature à 1,50 m (une seule fois par tour).<br><em>Ciblez d'abord la nouvelle créature.</em>")}</p>`,
             rejectClose: false
         });
     } catch { use = false; }
-    if (use) { try { await (item.use?.() ?? item.roll?.()); } catch (e) { journal.avert(`[${MOD}] attaque de Cleave :`, e); } }
+    if (use) { try { await (item.use?.() ?? item.roll?.()); } catch (e) { journal.avert(tl("[{0}] attaque de Cleave :", MOD), e); } }
 }
 
 // Construit et poste le(s) message(s) de maîtrise à la fin d'une attaque.
 function onAttackComplete(workflow) {
-    _log("maîtrise: fin d'attaque reçue — réglage maîtrises:", on("enableMasteryReminder"),
+    _log(tl("maîtrise: fin d'attaque reçue — réglage maîtrises:"), on("enableMasteryReminder"),
          "| arme:", workflow?.item?.name, "| mastery:", workflow?.item?.system?.mastery);
     if (!on("enableMasteryReminder")) return;
     const item = workflow?.item;
@@ -257,8 +258,8 @@ function onAttackComplete(workflow) {
     const { hits: hit, missed, atk, crit, fumble } = resolveHits(workflow);
     const all = workflow?.targets ? [...workflow.targets] : [];
     const concern = m.trigger === "miss" ? missed : hit;
-    _log("maîtrise", mid, "— total attaque:", atk, "crit:", crit, "fumble:", fumble,
-         "| hits:", hit.length, "| all:", all.length, "| missed:", missed.length, "| concernés:", concern.length);
+    _log(tl("maîtrise"), mid, "— total attaque:", atk, "crit:", crit, "fumble:", fumble,
+         "| hits:", hit.length, "| all:", all.length, "| missed:", missed.length, tl("| concernés:"), concern.length);
     if (!concern.length) return;
 
     // Cleave : PROPOSÉ AU JOUEUR (avant), une seule fois par tour.
@@ -270,7 +271,7 @@ function onAttackComplete(workflow) {
         const owner = ownerUserOf(attacker);
         ChatMessage.create({
             whisper: owner ? [owner.id] : ChatMessage.getWhisperRecipients("GM").map(u => u.id),
-            speaker: { alias: "Maîtrise d'arme" },
+            speaker: { alias: tl("Maîtrise d'arme") },
             content: `<div><strong>${m.label}</strong> — ${attacker.name}<br>${m.desc}</div>`
         });
         return;
@@ -287,17 +288,17 @@ function onAttackComplete(workflow) {
                     data-attacker="${attacker.uuid}" data-item="${item.id}" data-dc="${dc}"
                     style="margin-top:5px;padding:3px 10px;border-radius:4px;cursor:pointer;">
                 <i class="fa-solid fa-dice-d20"></i> ${m.act === "save" ? `Jet CON (DD ${dc})`
-                    : m.act === "graze" ? "Appliquer dégâts"
-                    : m.act === "cleave" ? "Attaque de Cleave"
+                    : m.act === "graze" ? tl("Appliquer dégâts")
+                    : m.act === "cleave" ? tl("Attaque de Cleave")
                     : m.act === "slow" ? "Appliquer −3 m"
-                    : m.act === "sap" ? "Appliquer désavantage" : "Faire"} — MJ
+                    : m.act === "sap" ? tl("Appliquer désavantage") : tl("Faire")} — MJ
             </button>`;
         ChatMessage.create({
-            speaker: { alias: "Maîtrise d'arme" },
+            speaker: { alias: tl("Maîtrise d'arme") },
             content: `<div class="scwm-mastery-msg">
                 <strong>${m.label}</strong> — ${attacker.name} → <strong>${tActor.name}</strong><br>
                 ${m.desc}${btn}
-                <div style="font-size:11px;opacity:.7;margin-top:3px;">${m.act === "note" ? "À appliquer par le MJ." : "Réservé au MJ."}</div>
+                <div style="font-size:11px;opacity:.7;margin-top:3px;">${m.act === "note" ? tl("À appliquer par le MJ.") : tl("Réservé au MJ.")}</div>
             </div>`
         });
     }
@@ -305,7 +306,7 @@ function onAttackComplete(workflow) {
 
 // Exécution du bouton (MJ uniquement).
 async function _runMasteryAction(btn) {
-    if (!game.user.isGM) { ui.notifications?.warn("Réservé au MJ."); return; }
+    if (!game.user.isGM) { ui.notifications?.warn(tl("Réservé au MJ.")); return; }
     const act      = btn.dataset.act;
     const tDoc     = btn.dataset.target ? fromUuidSync(btn.dataset.target) : null;
     const tActor   = tDoc?.actor ?? tDoc;
@@ -319,33 +320,33 @@ async function _runMasteryAction(btn) {
             const total = roll?.total ?? roll?.[0]?.total;
             const fail = Number.isFinite(total) ? total < dc : null;
             if (fail === true) { try { await tActor.toggleStatusEffect?.("prone", { active: true }); } catch {} }
-            ChatMessage.create({ speaker: { alias: "Maîtrise d'arme" },
-                content: `Topple — ${tActor.name} : jet CON = <strong>${total ?? "?"}</strong> vs DD ${dc} → ${fail === true ? "<strong>échec, à terre</strong>" : fail === false ? "réussi" : "résultat manuel"}.` });
+            ChatMessage.create({ speaker: { alias: tl("Maîtrise d'arme") },
+                content: `${tl("Topple — {0} : jet CON = <strong>{1}</strong> vs DD {2} → {3}.", tActor.name, total ?? "?", dc, fail === true ? `${tl("<strong>échec, à terre</strong>")}` : fail === false ? tl("réussi") : tl("résultat manuel"))}` });
         } else if (act === "graze") {
             const dmg = abilityDamageMod(attacker, attacker?.items?.get(btn.dataset.item));
             try { await tActor.applyDamage?.(dmg); } catch {}
-            ChatMessage.create({ speaker: { alias: "Maîtrise d'arme" }, content: `Graze — ${dmg} dégâts appliqués à ${tActor.name}.` });
+            ChatMessage.create({ speaker: { alias: tl("Maîtrise d'arme") }, content: tl("Graze — {0} dégâts appliqués à {1}.", dmg, tActor.name) });
         } else if (act === "cleave") {
             const it = attacker?.items?.get(btn.dataset.item);
             try { await (it?.use?.() ?? it?.roll?.()); } catch {}
         } else if (act === "slow") {
             try { await tActor.createEmbeddedDocuments("ActiveEffect", [{
-                name: "Slow (maîtrise)", icon: "icons/svg/downgrade.svg",
+                name: tl("Slow (maîtrise)"), icon: "icons/svg/downgrade.svg",
                 duration: { rounds: 1 },
                 changes: [{ key: "system.attributes.movement.walk", mode: 2, value: "-10" }]
             }]); } catch {}
-            ChatMessage.create({ speaker: { alias: "Maîtrise d'arme" }, content: `Slow — vitesse de ${tActor.name} réduite de 3 m.` });
+            ChatMessage.create({ speaker: { alias: tl("Maîtrise d'arme") }, content: tl("Slow — vitesse de {0} réduite de 3 m.", tActor.name) });
         } else if (act === "sap") {
             try { await tActor.createEmbeddedDocuments("ActiveEffect", [{
-                name: "Sap (maîtrise)", icon: "icons/svg/degen.svg",
+                name: tl("Sap (maîtrise)"), icon: "icons/svg/degen.svg",
                 duration: { rounds: 1 },
                 changes: [{ key: "flags.midi-qol.disadvantage.attack.all", mode: 0, value: "1" }]
             }]); } catch {}
-            ChatMessage.create({ speaker: { alias: "Maîtrise d'arme" }, content: `Sap — ${tActor.name} : désavantage à sa prochaine attaque.` });
+            ChatMessage.create({ speaker: { alias: tl("Maîtrise d'arme") }, content: tl("Sap — {0} : désavantage à sa prochaine attaque.", tActor.name) });
         }
         btn.disabled = true;
         btn.style.opacity = "0.5";
-    } catch (e) { journal.avert(`[${MOD}] action de maîtrise :`, e); }
+    } catch (e) { journal.avert(tl("[{0}] action de maîtrise :", MOD), e); }
 }
 
 // ============================================================
@@ -398,7 +399,7 @@ function _spellUsable(it) {
 function smiteOptions(actor) {
     const hasSlot = _hasSpellSlot(actor);
     const named = (actor?.items ?? []).filter(it => /smite|ch[aâ]timent/i.test(it.name ?? ""));
-    _log("bonus/smite — items « smite » trouvés:",
+    _log(tl("bonus/smite — items « smite » trouvés:"),
          named.map(i => `${i.name}[${i.type}/${i.system?.preparation?.mode ?? "-"}/prep=${i.system?.preparation?.prepared}]`),
          "| emplacement dispo:", hasSlot);
     return named.filter(it => {
@@ -412,12 +413,12 @@ async function onBonusReminder(workflow) {
     const item     = workflow?.item;
     if (!attacker || !item) return;
     const { hits: hit, atk } = resolveHits(workflow);
-    _log("bonus/smite — total attaque:", atk, "| hits:", hit.length, "| arme:", item?.name, "| propriétaire:", attacker?.isOwner, "| GM:", game.user.isGM);
+    _log("bonus/smite — total attaque:", atk, "| hits:", hit.length, "| arme:", item?.name, tl("| propriétaire:"), attacker?.isOwner, "| GM:", game.user.isGM);
     if (!hit.length) return;                                 // Divine Smite = après un coup qui touche
     if (item.type !== "weapon") return;                      // attaque d'arme
     if (!attacker.isOwner) return;                           // pop-up chez le propriétaire du token (joueur OU MJ)
     const opts = smiteOptions(attacker);
-    if (!opts.length) { _log("bonus/smite — aucun smite disponible (préparé + slot/charge)"); return; }
+    if (!opts.length) { _log(tl("bonus/smite — aucun smite disponible (préparé + slot/charge)")); return; }
 
     const DialogV2 = foundry.applications.api.DialogV2;
     const esc = (s) => String(s ?? "").replace(/"/g, "&quot;");
@@ -433,13 +434,13 @@ async function onBonusReminder(workflow) {
         </button>`).join("");
     try {
         await DialogV2.wait({
-            window: { title: "Action bonus — Châtiment ?", icon: "fa-solid fa-fire" },
+            window: { title: tl("Action bonus — Châtiment ?"), icon: "fa-solid fa-fire" },
             position: { width: 400 },
             content: `<div style="display:flex;flex-direction:column;">
-                <p style="margin:0 0 6px;">Tu as <strong>touché</strong> ! Utiliser un <strong>Châtiment / Smite</strong> (action bonus) ?</p>
+                <p style="margin:0 0 6px;">${tl("Tu as <strong>touché</strong> ! Utiliser un <strong>Châtiment / Smite</strong> (action bonus) ?")}</p>
                 ${rows}
             </div>`,
-            buttons: [{ action: "no", label: "Non merci", icon: '<i class="fa-solid fa-xmark"></i>', default: true }],
+            buttons: [{ action: "no", label: tl("Non merci"), icon: '<i class="fa-solid fa-xmark"></i>', default: true }],
             rejectClose: false,
             render: (ev, dlg) => {
                 const root = dlg?.element ?? ev?.target?.closest?.(".application") ?? document;
@@ -459,12 +460,12 @@ async function onBonusReminder(workflow) {
 // terre » etc.). Basé sur les conditions (statuses) de l'attaquant et de la cible.
 // ============================================================
 const ADV_TARGET = {   // condition SUR LA CIBLE → avantage pour l'attaquant
-    blinded: "aveuglée", paralyzed: "paralysée", petrified: "pétrifiée",
-    restrained: "entravée", stunned: "étourdie", unconscious: "inconsciente"
+    blinded: tl("aveuglée"), paralyzed: tl("paralysée"), petrified: tl("pétrifiée"),
+    restrained: tl("entravée"), stunned: tl("étourdie"), unconscious: "inconsciente"
 };
 const DIS_ATTACKER = { // condition SUR L'ATTAQUANT → désavantage
-    blinded: "aveuglé", frightened: "effrayé", poisoned: "empoisonné",
-    restrained: "entravé", prone: "à terre"
+    blinded: tl("aveuglé"), frightened: tl("effrayé"), poisoned: tl("empoisonné"),
+    restrained: tl("entravé"), prone: tl("à terre")
 };
 
 function onAdvantageReminder(workflow) {
@@ -479,29 +480,29 @@ function onAdvantageReminder(workflow) {
 
     const adv = [], dis = [];
     const aStat = attacker.statuses ?? new Set();
-    if (aStat.has("invisible")) adv.push("tu es invisible");
-    for (const [id, lbl] of Object.entries(DIS_ATTACKER)) if (aStat.has(id)) dis.push(`tu es ${lbl}`);
+    if (aStat.has("invisible")) adv.push(tl("tu es invisible"));
+    for (const [id, lbl] of Object.entries(DIS_ATTACKER)) if (aStat.has(id)) dis.push(tl("tu es {0}", lbl));
 
     for (const t of [...(workflow?.targets ?? [])]) {
         const ta = t?.actor; if (!ta) continue;
         const tStat = ta.statuses ?? new Set();
-        for (const [id, lbl] of Object.entries(ADV_TARGET)) if (tStat.has(id)) adv.push(`${ta.name} est ${lbl}`);
-        if (tStat.has("invisible")) dis.push(`${ta.name} est invisible`);
+        for (const [id, lbl] of Object.entries(ADV_TARGET)) if (tStat.has(id)) adv.push(tl("{0} est {1}", ta.name, lbl));
+        if (tStat.has("invisible")) dis.push(tl("{0} est invisible", ta.name));
         if (tStat.has("prone")) {
-            if (melee === true)      adv.push(`${ta.name} est à terre (corps-à-corps)`);
-            else if (melee === false) dis.push(`${ta.name} est à terre (à distance)`);
-            else adv.push(`${ta.name} est à terre (avantage au CaC, désavantage à distance)`);
+            if (melee === true)      adv.push(tl("{0} est à terre (corps-à-corps)", ta.name));
+            else if (melee === false) dis.push(tl("{0} est à terre (à distance)", ta.name));
+            else adv.push(tl("{0} est à terre (avantage au CaC, désavantage à distance)", ta.name));
         }
     }
 
-    _log("avantage — adv:", adv.length, "| dés:", dis.length);
+    _log("avantage — adv:", adv.length, tl("| dés:"), dis.length);
     if (!adv.length && !dis.length) return;
     const block = (title, color, arr) => arr.length
         ? `<div><strong style="color:${color};">${title} :</strong> ${arr.join(" · ")}</div>` : "";
     ChatMessage.create({
         whisper: [game.user.id],
-        speaker: { alias: "Avantage / Désavantage" },
-        content: `<div style="font-size:12px;">${block("Avantage", "#8fd19e", adv)}${block("Désavantage", "#e58f8f", dis)}</div>`
+        speaker: { alias: tl("Avantage / Désavantage") },
+        content: `<div style="font-size:12px;">${block(tl("Avantage"), "#8fd19e", adv)}${block(tl("Désavantage"), "#e58f8f", dis)}</div>`
     });
 }
 
@@ -540,17 +541,17 @@ export function CombatRemindersHooks() {
     // ---- DIAGNOSTIC : indique au démarrage l'état + trace les hooks Midi-QOL ----
     Hooks.once("ready", () => {
         const midi = game.modules.get("midi-qol");
-        _log("init — Midi-QOL présent:", !!midi, "actif:", !!midi?.active,
-             "| réglages → réactions:", on("enableReactReminder"),
+        _log(tl("init — Midi-QOL présent:"), !!midi, "actif:", !!midi?.active,
+             tl("| réglages → réactions:"), on("enableReactReminder"),
              "bonus:", on("enableBonusReminder"),
-             "maîtrises:", on("enableMasteryReminder"),
+             tl("maîtrises:"), on("enableMasteryReminder"),
              "avantage:", on("enableAdvantageReminder"));
-        if (!midi?.active) _log("⚠️ Midi-QOL n'est PAS actif → aucun rappel ne peut se déclencher.");
+        if (!midi?.active) _log(tl("⚠️ Midi-QOL n'est PAS actif → aucun rappel ne peut se déclencher."));
         // Trace quels hooks Midi-QOL se déclenchent réellement chez toi.
         for (const h of ["midi-qol.preAttackRoll", "midi-qol.AttackRollComplete",
                          "midi-qol.postAttackRoll", "midi-qol.RollComplete",
                          "midi-qol.preItemRoll", "midi-qol.preambleComplete"]) {
-            Hooks.on(h, () => _log("hook Midi-QOL déclenché:", h));
+            Hooks.on(h, () => _log(tl("hook Midi-QOL déclenché:"), h));
         }
     });
 

@@ -9,6 +9,7 @@
 // ============================================================
 
 import { MOD } from "./const.js";
+import { tl } from "./i18n.js";
 
 // ── Repli du panneau des joueurs vers la gauche (état mémorisé par navigateur) ──
 const _isCollapsed = () => { try { return localStorage.getItem("scwm-players-collapsed") === "1"; } catch { return false; } };
@@ -21,7 +22,7 @@ function _refreshToggle() {
     _toggleBtn.innerHTML = c
         ? `<i class="fa-solid fa-users"></i><i class="fa-solid fa-angle-right"></i>`
         : `<i class="fa-solid fa-angle-left"></i>`;
-    _toggleBtn.title = c ? "Afficher la liste des joueurs" : "Réduire la liste des joueurs";
+    _toggleBtn.title = c ? tl("Afficher la liste des joueurs") : tl("Réduire la liste des joueurs");
     _toggleBtn.classList.toggle("is-collapsed", c);
 }
 

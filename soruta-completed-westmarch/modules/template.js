@@ -1,5 +1,6 @@
 import { MOD } from "./const.js";
 import { journal } from "./log.js";
+import { tl } from "./i18n.js";
 // ============================================================
 // template.js — Snap des templates AoE à 0,1 ft
 //
@@ -221,13 +222,13 @@ export function TemplateHooks() {
             );
             journal.debug("[toolkit] Snap template 0,1 ft — patch live actif (via _refreshShape).");
         } catch (e) {
-            journal.critique("[toolkit] Impossible de patcher MeasuredTemplate._refreshShape :", e);
-            journal.avert("[toolkit] Le snap au dixième restera actif à la création/modification uniquement.");
+            journal.critique(tl("[toolkit] Impossible de patcher MeasuredTemplate._refreshShape :"), e);
+            journal.avert(tl("[toolkit] Le snap au dixième restera actif à la création/modification uniquement."));
         }
     } else {
         journal.avert(
-            "[toolkit] lib-wrapper inactif : snap template live désactivé. " +
-            "Le snap à la création et à la modification reste actif."
+            tl("[toolkit] lib-wrapper inactif : snap template live désactivé. ") +
+            tl("Le snap à la création et à la modification reste actif.")
         );
     }
 }

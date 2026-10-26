@@ -22,6 +22,7 @@
 import { MOD } from "./const.js";
 import { journal } from "./log.js";
 import { getExpeditions } from "./carnet.js";
+import { tl } from "./i18n.js";
 
 const CURRENCIES = ["pp", "gp", "ep", "sp", "cp"];
 const CUR_LABEL  = { pp: "PP", gp: "PO", ep: "PE", sp: "PA", cp: "PC" };
@@ -63,12 +64,12 @@ export function canTradeWith(a, b) {
     return _allows(a, b) && _allows(b, a);
 }
 function tradeBlockReason(a, b) {
-    if (!a?.character || !b?.character) return "Chaque joueur doit avoir un personnage assigné.";
+    if (!a?.character || !b?.character) return tl("Chaque joueur doit avoir un personnage assigné.");
     const sa = _state(a);
-    if (sa.inParty && !sa.onExp) return "Impossible d'échanger tant que tu es dans une party (hors expédition).";
-    if (sa.inParty && sa.onExp && !_allows(a, b)) return "En expédition, tu ne peux échanger qu'avec les membres de ton expédition.";
-    if (!_allows(b, a)) return "Ce joueur ne peut pas échanger avec toi actuellement.";
-    return "Échange impossible actuellement.";
+    if (sa.inParty && !sa.onExp) return tl("Impossible d'échanger tant que tu es dans une party (hors expédition).");
+    if (sa.inParty && sa.onExp && !_allows(a, b)) return tl("En expédition, tu ne peux échanger qu'avec les membres de ton expédition.");
+    if (!_allows(b, a)) return tl("Ce joueur ne peut pas échanger avec toi actuellement.");
+    return tl("Échange impossible actuellement.");
 }
 
 // ============================================================
@@ -120,10 +121,10 @@ async function _closeSession(s, reason) {
 // invite B (sans bloquer) et renvoie l'id à A pour sa fenêtre d'attente.
 async function gmTradeRequest({ fromUserId, toUserId }) {
     const A = game.users.get(fromUserId), B = game.users.get(toUserId);
-    if (!A || !B) return { ok: false, reason: "Joueur introuvable." };
+    if (!A || !B) return { ok: false, reason: tl("Joueur introuvable.") };
     if (!canTradeWith(A, B)) return { ok: false, reason: tradeBlockReason(A, B) };
     for (const s of _sessions.values()) if ([s.a, s.b].includes(fromUserId) || [s.a, s.b].includes(toUserId))
-        return { ok: false, reason: "Un échange est déjà en cours." };
+        return { ok: false, reason: tl("Un échange est déjà en cours.") };
 
     const s = _newSession(fromUserId, toUserId);
     s.phase = "invite";
@@ -138,7 +139,7 @@ async function gmInviteResponse({ sessionId, accepted }) {
     if (accepted) { s.phase = "open"; _pushOpen(s); }
     else {
         const A = game.users.get(s.a), B = game.users.get(s.b);
-        A?.query("westmarch.tradeNotice", { message: `${B?.name ?? "Le joueur"} a refusé l'échange.` }).catch(() => {});
+        A?.query("westmarch.tradeNotice", { message: tl("{0} a refusé l'échange.", B?.name ?? tl("Le joueur")) }).catch(() => {});
         A?.query("westmarch.tradeClosed", { reason: "" }).catch(() => {});   // ferme la fenêtre d'attente
         _sessions.delete(s.id);
     }
@@ -166,7 +167,7 @@ async function gmLock({ sessionId, userId, locked }) {
 }
 async function gmConfirm({ sessionId, userId }) {
     const s = _sessions.get(sessionId); if (!s) return { ok: false };
-    if (!(s.locked[s.a] && s.locked[s.b])) return { ok: false, reason: "Les deux offres doivent être verrouillées." };
+    if (!(s.locked[s.a] && s.locked[s.b])) return { ok: false, reason: tl("Les deux offres doivent être verrouillées.") };
     s.confirmed[userId] = true;
     if (s.confirmed[s.a] && s.confirmed[s.b]) {
         const res = await executeTrade(s);
@@ -176,7 +177,7 @@ async function gmConfirm({ sessionId, userId }) {
         } else {
             s.confirmed[s.a] = s.confirmed[s.b] = false;
             s.locked[s.a] = s.locked[s.b] = false;
-            for (const uId of [s.a, s.b]) game.users.get(uId)?.query("westmarch.tradeNotice", { message: `Échange annulé : ${res.reason}` }).catch(() => {});
+            for (const uId of [s.a, s.b]) game.users.get(uId)?.query("westmarch.tradeNotice", { message: tl("Échange annulé : {0}", res.reason) }).catch(() => {});
             await _pushState(s);
         }
         return { ok: true };
@@ -187,7 +188,7 @@ async function gmCancel({ sessionId }) {
     const s = _sessions.get(sessionId); if (!s) return { ok: false };
     // En phase invitation, fermer la fenêtre d'invitation chez B.
     if (s.phase === "invite") game.users.get(s.b)?.query("westmarch.tradeInviteClose", { sessionId }).catch(() => {});
-    await _closeSession(s, "Échange annulé.");
+    await _closeSession(s, tl("Échange annulé."));
     return { ok: true };
 }
 
@@ -202,15 +203,15 @@ function sanitizeOffer(offer) {
 // Transfert atomique (côté MJ, qui a les permissions sur les deux fiches).
 async function executeTrade(s) {
     const A = game.users.get(s.a)?.character, B = game.users.get(s.b)?.character;
-    if (!A || !B) return { ok: false, reason: "Personnage introuvable." };
+    if (!A || !B) return { ok: false, reason: tl("Personnage introuvable.") };
 
     // Validation : chaque offrant possède encore les objets/quantités et l'argent.
     const check = (actor, offer) => {
         for (const it of offer.items) {
             const item = actor.items.get(it.id);
-            if (!item) return `objet manquant (${it.name})`;
-            if (!isTradeable(item)) return `objet non échangeable (${it.name})`;
-            if ((item.system?.quantity ?? 1) < it.qty) return `quantité insuffisante (${it.name})`;
+            if (!item) return tl("objet manquant ({0})", it.name);
+            if (!isTradeable(item)) return tl("objet non échangeable ({0})", it.name);
+            if ((item.system?.quantity ?? 1) < it.qty) return tl("quantité insuffisante ({0})", it.name);
         }
         for (const c of CURRENCIES) if ((actor.system?.currency?.[c] ?? 0) < offer.currency[c]) return `${CUR_LABEL[c]} insuffisant`;
         return null;
@@ -225,7 +226,7 @@ async function executeTrade(s) {
         await moveCurrency(B, A, s.offer[s.b].currency);
     } catch (e) {
         journal.erreur(`[${MOD}] executeTrade :`, e);
-        return { ok: false, reason: "erreur pendant le transfert (voir console MJ)." };
+        return { ok: false, reason: tl("erreur pendant le transfert (voir console MJ).") };
     }
     return { ok: true };
 }
@@ -267,7 +268,7 @@ async function moveCurrency(from, to, cur) {
 // ============================================================
 function _gmSend(name, data) {
     const gm = activeGM();
-    if (!gm) { ui.notifications?.warn("Aucun MJ connecté : les échanges nécessitent un MJ en ligne."); return Promise.resolve({ ok: false }); }
+    if (!gm) { ui.notifications?.warn(tl("Aucun MJ connecté : les échanges nécessitent un MJ en ligne.")); return Promise.resolve({ ok: false }); }
     return gm.query(name, data).catch((e) => { journal.avert(`[${MOD}] trade ${name}`, e); return { ok: false }; });
 }
 
@@ -299,15 +300,15 @@ function closeWaiting(silent = false) {
 class WaitWindow extends foundry.applications.api.ApplicationV2 {
     static DEFAULT_OPTIONS = {
         id: "scwm-trade-wait", classes: ["scwm-trade-wait"],
-        window: { title: "Demande d'échange", icon: "fas fa-hourglass-half" },
+        window: { title: tl("Demande d'échange"), icon: "fas fa-hourglass-half" },
         position: { width: 340 }
     };
     sessionId = null; targetName = ""; done = false;
     async _renderHTML() {
         return `<div class="scwm-wait-body">
             <i class="fa-solid fa-hourglass-half fa-spin"></i>
-            <p>En attente d'acceptation de <strong>${this.targetName}</strong>…</p>
-            <button type="button" class="scwm-wait-cancel"><i class="fa-solid fa-xmark"></i> Annuler la demande</button>
+            <p>${tl("En attente d'acceptation de <strong>{0}</strong>…", this.targetName)}</p>
+            <button type="button" class="scwm-wait-cancel">${tl("<i class=\"fa-solid fa-xmark\"></i> Annuler la demande")}</button>
         </div>`;
     }
     _replaceHTML(result, content) {
@@ -331,12 +332,12 @@ let _inviteApp = null;
 function showInvite(sessionId, fromName) {
     closeInvite();
     _inviteApp = new foundry.applications.api.DialogV2({
-        window: { title: "Demande d'échange", icon: "fas fa-right-left" },
-        content: `<p style="padding:6px;"><strong>${fromName}</strong> souhaite échanger avec toi.</p>`,
+        window: { title: tl("Demande d'échange"), icon: "fas fa-right-left" },
+        content: `<p style="padding:6px;">${tl("<strong>{0}</strong> souhaite échanger avec toi.", fromName)}</p>`,
         buttons: [
-            { action: "yes", default: true, label: "Accepter", icon: '<i class="fa-solid fa-check"></i>',
+            { action: "yes", default: true, label: tl("Accepter"), icon: '<i class="fa-solid fa-check"></i>',
               callback: () => { _inviteApp = null; _gmSend("westmarch.tradeInviteResponse", { sessionId, accepted: true }); } },
-            { action: "no", label: "Refuser", icon: '<i class="fa-solid fa-xmark"></i>',
+            { action: "no", label: tl("Refuser"), icon: '<i class="fa-solid fa-xmark"></i>',
               callback: () => { _inviteApp = null; _gmSend("westmarch.tradeInviteResponse", { sessionId, accepted: false }); } }
         ],
         submit: () => {}
@@ -362,7 +363,7 @@ class TradeWindow extends foundry.applications.api.ApplicationV2 {
     static DEFAULT_OPTIONS = {
         id: "scwm-trade",
         classes: ["scwm-trade"],
-        window: { title: "Échange", icon: "fas fa-right-left" },
+        window: { title: tl("Échange"), icon: "fas fa-right-left" },
         position: { width: 660, height: 580 }
     };
     session = null;
@@ -383,17 +384,17 @@ class TradeWindow extends foundry.applications.api.ApplicationV2 {
                     <span class="n">${it.name}</span>
                     <span class="q">×${it.qty}</span>
                     ${editable ? `<a class="scwm-trade-rem" data-id="${it.id}" title="Retirer">✕</a>` : ""}
-                </div>`).join("") : `<div class="scwm-trade-empty">— rien —</div>`;
+                </div>`).join("") : `<div class="scwm-trade-empty">${tl("— rien —")}</div>`;
             const cur = CURRENCIES.map(c => editable
                 ? `<label class="scwm-cur"><span>${CUR_LABEL[c]}</span><input type="number" min="0" data-cur="${c}" value="${o.currency[c] || 0}"></label>`
                 : `<span class="scwm-cur-ro">${CUR_LABEL[c]} ${o.currency[c] || 0}</span>`).join("");
-            const lockTxt = side.locked ? `<span class="scwm-lock on"><i class="fa-solid fa-lock"></i> Verrouillé</span>` : `<span class="scwm-lock"><i class="fa-solid fa-lock-open"></i> Non verrouillé</span>`;
-            const conf = side.confirmed ? `<span class="scwm-conf on"><i class="fa-solid fa-check"></i> Confirmé</span>` : "";
+            const lockTxt = side.locked ? `<span class="scwm-lock on">${tl("<i class=\"fa-solid fa-lock\"></i> Verrouillé")}</span>` : `<span class="scwm-lock">${tl("<i class=\"fa-solid fa-lock-open\"></i> Non verrouillé")}</span>`;
+            const conf = side.confirmed ? `<span class="scwm-conf on">${tl("<i class=\"fa-solid fa-check\"></i> Confirmé")}</span>` : "";
             return `
                 <div class="scwm-trade-col">
-                    <h3>${editable ? "Ton offre" : s.otherName}</h3>
+                    <h3>${editable ? tl("Ton offre") : s.otherName}</h3>
                     <div class="scwm-trade-items">${items}</div>
-                    ${editable ? `<button type="button" class="scwm-trade-add"><i class="fa-solid fa-plus"></i> Ajouter un objet</button>` : ""}
+                    ${editable ? `<button type="button" class="scwm-trade-add">${tl("<i class=\"fa-solid fa-plus\"></i> Ajouter un objet")}</button>` : ""}
                     <div class="scwm-trade-cur">${cur}</div>
                     <div class="scwm-trade-status">${lockTxt} ${conf}</div>
                 </div>`;
@@ -407,12 +408,12 @@ class TradeWindow extends foundry.applications.api.ApplicationV2 {
                 </div>
                 <div class="scwm-trade-actions">
                     <button type="button" class="scwm-trade-lock ${s.me.locked ? "on" : ""}">
-                        <i class="fa-solid fa-${s.me.locked ? "lock-open" : "lock"}"></i> ${s.me.locked ? "Déverrouiller" : "Verrouiller mon offre"}
+                        <i class="fa-solid fa-${s.me.locked ? "lock-open" : "lock"}"></i> ${s.me.locked ? tl("Déverrouiller") : tl("Verrouiller mon offre")}
                     </button>
                     <button type="button" class="scwm-trade-confirm" ${canConfirm ? "" : "disabled"}>
-                        <i class="fa-solid fa-handshake"></i> Confirmer l'échange
+                        ${tl("<i class=\"fa-solid fa-handshake\"></i> Confirmer l'échange")}
                     </button>
-                    <button type="button" class="scwm-trade-cancel"><i class="fa-solid fa-xmark"></i> Annuler</button>
+                    <button type="button" class="scwm-trade-cancel">${tl("<i class=\"fa-solid fa-xmark\"></i> Annuler")}</button>
                 </div>
             </div>`;
     }
@@ -455,17 +456,17 @@ class TradeWindow extends foundry.applications.api.ApplicationV2 {
         const actor = this.#myActor(); if (!actor) return;
         const already = new Set((this.session.me.offer.items ?? []).map(i => i.id));
         const items = actor.items.filter(i => isTradeable(i) && !already.has(i.id));
-        if (!items.length) return ui.notifications?.info("Aucun objet à ajouter.");
+        if (!items.length) return ui.notifications?.info(tl("Aucun objet à ajouter."));
         const opts = items.map(i => `<option value="${i.id}">${i.name} (×${i.system?.quantity ?? 1})</option>`).join("");
         const content = `<div style="display:flex;flex-direction:column;gap:8px;">
-            <label>Objet<br><select name="it" style="width:100%;">${opts}</select></label>
-            <label>Quantité<br><input type="number" name="q" value="1" min="1" style="width:100%;"></label>
+            <label>${tl("Objet<br>")}<select name="it" style="width:100%;">${opts}</select></label>
+            <label>${tl("Quantité<br>")}<input type="number" name="q" value="1" min="1" style="width:100%;"></label>
         </div>`;
         await foundry.applications.api.DialogV2.wait({
-            window: { title: "Ajouter un objet à l'échange" }, position: { width: 360 }, rejectClose: false,
+            window: { title: tl("Ajouter un objet à l'échange") }, position: { width: 360 }, rejectClose: false,
             content,
             buttons: [
-                { action: "add", default: true, label: "Ajouter", icon: '<i class="fa-solid fa-plus"></i>',
+                { action: "add", default: true, label: tl("Ajouter"), icon: '<i class="fa-solid fa-plus"></i>',
                   callback: (ev, btn) => {
                       const f = btn.form ?? document.querySelector(".dialog");
                       const id = f.querySelector('[name="it"]')?.value;
@@ -476,7 +477,7 @@ class TradeWindow extends foundry.applications.api.ApplicationV2 {
                       offer.items.push({ id, name: item.name, img: item.img, qty: q });
                       _gmSend("westmarch.tradeSetOffer", { sessionId: this.session.id, userId: game.user.id, offer });
                   } },
-                { action: "cancel", label: "Annuler", icon: '<i class="fa-solid fa-xmark"></i>' }
+                { action: "cancel", label: tl("Annuler"), icon: '<i class="fa-solid fa-xmark"></i>' }
             ]
         });
     }
@@ -541,7 +542,7 @@ export function TradeHooks() {
     CONFIG.queries["westmarch.tradeInviteClose"] = async () => { closeInvite(); return true; };
     CONFIG.queries["westmarch.tradeOpen"]   = async ({ session }) => { closeWaiting(true); closeInvite(); openTradeWindow(session); return true; };
     CONFIG.queries["westmarch.tradeState"]  = async ({ session }) => { updateTradeWindow(session); return true; };
-    CONFIG.queries["westmarch.tradeDone"]   = async () => { ui.notifications?.info("Échange effectué."); closeWaiting(true); closeTradeWindow(); return true; };
+    CONFIG.queries["westmarch.tradeDone"]   = async () => { ui.notifications?.info(tl("Échange effectué.")); closeWaiting(true); closeTradeWindow(); return true; };
     CONFIG.queries["westmarch.tradeClosed"] = async ({ reason }) => { if (reason) ui.notifications?.info(reason); closeWaiting(true); closeTradeWindow(); return true; };
     CONFIG.queries["westmarch.tradeNotice"] = async ({ message }) => { ui.notifications?.warn(message); return true; };
 
@@ -567,7 +568,7 @@ export function TradeHooks() {
             if (!canTradeWith(game.user, u)) return;
             const btn = document.createElement("a");
             btn.className = "scwm-trade-btn";
-            btn.title = `Échanger avec ${u.name}`;
+            btn.title = tl("Échanger avec {0}", u.name);
             btn.innerHTML = `<i class="fa-solid fa-right-left"></i>`;
             btn.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); startTradeWith(u); });
             row.appendChild(btn);

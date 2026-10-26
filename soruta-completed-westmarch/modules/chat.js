@@ -2,6 +2,7 @@ import { MOD } from "./const.js";
 import { journal } from "./log.js";
 import { partyFeatureEnabled } from './settings.js';
 import { registerSoundFilter } from './audio.js';
+import { tl } from "./i18n.js";
 
 var tabSelected = "IC";
 
@@ -482,8 +483,8 @@ function _injectPartyChatButtons() {
     }
     const $controlButtons = $(controlButtons);
 
-    const $btnClear  = _makePartyBtn("clearParty",  "fa-users-slash", "Effacer les messages de ma party uniquement");
-    const $btnImport = _makePartyBtn("importParty", "fa-file-import",  "Importer des messages (JSON / .txt)");
+    const $btnClear  = _makePartyBtn("clearParty",  "fa-users-slash", tl("Effacer les messages de ma party uniquement"));
+    const $btnImport = _makePartyBtn("importParty", "fa-file-import",  tl("Importer des messages (JSON / .txt)"));
 
     // Ajout de nos deux boutons à la fin de la rangée native (une seule ligne,
     // sans forcer de wrap ni de débordement — évite les boutons flottant sur la carte).
@@ -505,12 +506,12 @@ function _injectPartyChatButtons() {
         e.preventDefault();
 
         const choice = await foundry.applications.api.DialogV2.wait({
-            window: { title: "Exporter le chat" },
-            content: `<p>Choisir le format d'export :</p>`,
+            window: { title: tl("Exporter le chat") },
+            content: `<p>${tl("Choisir le format d'export :")}</p>`,
             buttons: [
                 { label: "Texte (.txt)",              action: "txt",  default: true },
-                { label: "JSON (mise en forme complète)", action: "json" },
-                { label: "Annuler",                   action: "cancel" },
+                { label: tl("JSON (mise en forme complète)"), action: "json" },
+                { label: tl("Annuler"),                   action: "cancel" },
             ],
             rejectClose: false,
         });
@@ -535,7 +536,7 @@ function _makePartyBtn(action, iconClass, title) {
 async function _clearPartyMessages() {
     const myPartyId = game.user.getFlag(MOD, "partyId");
     if (!myPartyId) {
-        ui.notifications.warn("Tu n'as pas de party configurée. Utilise le bouton de suppression standard.");
+        ui.notifications.warn(tl("Tu n'as pas de party configurée. Utilise le bouton de suppression standard."));
         return;
     }
 
@@ -544,14 +545,14 @@ async function _clearPartyMessages() {
         .map(m => m.id);
 
     if (!toDelete.length) {
-        ui.notifications.info("Aucun message de ta party à effacer.");
+        ui.notifications.info(tl("Aucun message de ta party à effacer."));
         return;
     }
 
     const confirmed = await foundry.applications.api.DialogV2.confirm({
-        window: { title: "Effacer les messages de ma party" },
-        content: `<p>Supprimer <strong>${toDelete.length} message(s)</strong> de ta party uniquement ?</p>
-                  <p><em>Les messages des autres parties resteront intacts.</em></p>`,
+        window: { title: tl("Effacer les messages de ma party") },
+        content: `<p>${tl("Supprimer <strong>{0} message(s)</strong> de ta party uniquement ?", toDelete.length)}</p>
+                  <p>${tl("<em>Les messages des autres parties resteront intacts.</em>")}</p>`,
     });
     if (!confirmed) return;
 
@@ -573,30 +574,30 @@ async function _importPartyChatJSON() {
                 if (file.name.endsWith(".json")) {
                     // JSON exporté par notre outil → style et mise en forme préservés
                     const raw = JSON.parse(text);
-                    if (!Array.isArray(raw)) throw new Error("Le fichier JSON ne contient pas un tableau de messages.");
+                    if (!Array.isArray(raw)) throw new Error(tl("Le fichier JSON ne contient pas un tableau de messages."));
                     data = raw.map(({ _id, ...rest }) => rest);
 
-                    if (!data.length) { ui.notifications.warn("Aucun message trouvé."); return resolve(); }
+                    if (!data.length) { ui.notifications.warn(tl("Aucun message trouvé.")); return resolve(); }
                     await ChatMessage.createDocuments(data);
-                    ui.notifications.info(`${data.length} message(s) importé(s).`);
+                    ui.notifications.info(tl("{0} message(s) importé(s).", data.length));
                     return resolve();
                 }
 
                 // Format export natif Foundry (.txt) — texte brut, style à choisir
                 data = _parseFoundryExport(text);
                 if (!data.length) {
-                    ui.notifications.warn("Aucun message trouvé dans le fichier.");
+                    ui.notifications.warn(tl("Aucun message trouvé dans le fichier."));
                     return resolve();
                 }
 
                 const tab = await foundry.applications.api.DialogV2.wait({
                     window: { title: `Importer ${data.length} message(s)` },
-                    content: `<p>Dans quel onglet importer les messages ?</p>`,
+                    content: `<p>${tl("Dans quel onglet importer les messages ?")}</p>`,
                     buttons: [
-                        { label: "Personnages", action: "ic"    },
-                        { label: "Rolls",       action: "other", default: true },
-                        { label: "Joueurs",     action: "ooc"   },
-                        { label: "Annuler",     action: "cancel" },
+                        { label: tl("Personnages"), action: "ic"    },
+                        { label: tl("Rolls"),       action: "other", default: true },
+                        { label: tl("Joueurs"),     action: "ooc"   },
+                        { label: tl("Annuler"),     action: "cancel" },
                     ],
                     rejectClose: false,
                 });
@@ -609,7 +610,7 @@ async function _importPartyChatJSON() {
                 };
                 const toCreate = data.map(m => ({ ...m, style: styleMap[tab] ?? CONST.CHAT_MESSAGE_STYLES.OTHER }));
                 await ChatMessage.createDocuments(toCreate);
-                ui.notifications.info(`${toCreate.length} message(s) importé(s).`);
+                ui.notifications.info(tl("{0} message(s) importé(s).", toCreate.length));
             } catch (err) {
                 ui.notifications.error(`Erreur d'import : ${err.message}`);
                 journal.erreur("[westmarch] Import chat :", err);
@@ -628,7 +629,7 @@ async function _exportPartyChatJSON() {
         : [...game.messages];
 
     if (!messages.length) {
-        ui.notifications.warn("Aucun message à exporter.");
+        ui.notifications.warn(tl("Aucun message à exporter."));
         return;
     }
 
@@ -641,7 +642,7 @@ async function _exportPartyChatJSON() {
     a.download = `chat-${game.world?.id ?? "world"}-${date}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    ui.notifications.info(`${messages.length} message(s) exporté(s) en JSON.`);
+    ui.notifications.info(tl("{0} message(s) exporté(s) en JSON.", messages.length));
 }
 
 // Parse le fichier .txt produit par l'export natif Foundry.

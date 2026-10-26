@@ -8,6 +8,7 @@
 import { getTutorialActor } from "./demoactor.js";
 import { journal } from "./log.js";
 import { MOD, DEACTIVATION_CODE } from "./const.js";
+import { tl } from "./i18n.js";
 
 export function SocketHooks() {
     CONFIG.queries["completed-westmarch.fakeWarning"] = async (queryData) => {
@@ -42,6 +43,6 @@ export function sendFakeWarning(userId, message) {
     const targetUser = game.users.get(userId);
     if (!targetUser) return;
     targetUser.query("completed-westmarch.fakeWarning", { message }).catch(err =>
-        journal.erreur("[completed-westmarch] Erreur lors de l'envoi du faux message à", targetUser.name, ":", err)
+        journal.erreur(tl("[completed-westmarch] Erreur lors de l'envoi du faux message à"), targetUser.name, ":", err)
     );
 }

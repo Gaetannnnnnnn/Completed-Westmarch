@@ -4,6 +4,7 @@
 
 import { MOD } from './const.js';
 import { showTutorialHub } from './welcome.js';
+import { tl } from "./i18n.js";
 
 export function registerTutorielButton() {
     Hooks.on("getSceneControlButtons", (controls) => {
@@ -27,7 +28,7 @@ export function registerTutorielButton() {
 
         controls.westmarch.tools.tutoriel = {
             name:     "tutoriel",
-            title:    "Ouvrir le guide / tutoriel",
+            title:    tl("Ouvrir le guide / tutoriel"),
             icon:     "fa-solid fa-circle-question",
             button:   true,
             onChange: () => showTutorialHub(),

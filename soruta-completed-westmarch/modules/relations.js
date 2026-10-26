@@ -14,6 +14,7 @@
 import { MOD } from "./const.js";
 import { commonFolderPJ, commonFolderPNJ, commonPackPNJ, commonPackCemetery } from "./settings.js";
 import { jetonDuPersonnage, voit, surCarteExpedition, ouvrirImage, dateDeRencontre, memeRencontre, texteRencontre } from "./perception.js";
+import { tl } from "./i18n.js";
 export const MODULE = MOD;
 
 // ---- État de session ---------------------------------------
@@ -27,13 +28,13 @@ let   _sightTimer = null;       // Debounce sightRefresh
 // ---- Icônes de niveau (-3 → +3) ----------------------------
 
 const LEVEL_CFG = {
-    "-3": { icon: "fa-skull",       color: "#8b0000", label: "Haine totale" },
-    "-2": { icon: "fa-fire",        color: "#e74c3c", label: "Hostilité"    },
-    "-1": { icon: "fa-thumbs-down", color: "#e67e22", label: "Méfiance"     },
-     "0": { icon: "fa-minus",       color: "#888888", label: "Neutre"       },
-     "1": { icon: "fa-thumbs-up",   color: "#a8d5a2", label: "Sympathie"    },
-     "2": { icon: "fa-star",        color: "#27ae60", label: "Amitié"       },
-     "3": { icon: "fa-heart",       color: "#e91e8c", label: "Loyauté"      },
+    "-3": { icon: "fa-skull",       color: "#8b0000", label: tl("Haine totale") },
+    "-2": { icon: "fa-fire",        color: "#e74c3c", label: tl("Hostilité")    },
+    "-1": { icon: "fa-thumbs-down", color: "#e67e22", label: tl("Méfiance")     },
+     "0": { icon: "fa-minus",       color: "#888888", label: tl("Neutre")       },
+     "1": { icon: "fa-thumbs-up",   color: "#a8d5a2", label: tl("Sympathie")    },
+     "2": { icon: "fa-star",        color: "#27ae60", label: tl("Amitié")       },
+     "3": { icon: "fa-heart",       color: "#e91e8c", label: tl("Loyauté")      },
 };
 
 function levelIcon(level) {
@@ -129,7 +130,7 @@ export function buildRowHtml(r, actor, canEdit) {
     const target   = game.actors.get(r.targetId);
     const revealed = r.revealed ?? true;
     const img      = target?.img  ?? r.targetImg  ?? "icons/svg/mystery-man.svg";
-    const name     = revealed ? (target?.name ?? r.targetName ?? "Inconnu") : "Inconnu";
+    const name     = revealed ? (target?.name ?? r.targetName ?? tl("Inconnu")) : tl("Inconnu");
     const open   = _expanded.has(r.id);
     return `
     <div class="rel-row" data-rel-id="${r.id}">
@@ -147,22 +148,22 @@ export function buildRowHtml(r, actor, canEdit) {
             ${dateRencontreActive() ? (() => { const { texte, titre } = texteRencontre(r.lastSeen); return `
             <div class="rel-lastpos-row rel-readonly" title="${escA(titre)}">
                 <i class="fa-solid fa-calendar-day"></i>
-                <span>Dernière rencontre : <span class="rel-seen-value" data-rel-id="${r.id}">${texte ? escA(texte) : "<em>inconnue</em>"}</span></span>
+                <span>${tl("Dernière rencontre :")} <span class="rel-seen-value" data-rel-id="${r.id}">${texte ? escA(texte) : `${tl("<em>inconnue</em>")}`}</span></span>
             </div>`; })() : ""}
             ${canEdit ? `
             <div class="rel-lastpos-row">
-                <label class="rel-field-label"><i class="fa-solid fa-map-marker-alt"></i> Dernière position</label>
+                <label class="rel-field-label">${tl("<i class=\"fa-solid fa-map-marker-alt\"></i> Dernière position")}</label>
                 <input class="rel-lastpos-input" type="text" data-rel-id="${r.id}"
-                    value="${escA(r.lastPosition)}" placeholder="Scène, lieu…">
+                    value="${escA(r.lastPosition)}" placeholder="${tl("Scène, lieu…")}">
             </div>
             <textarea class="rel-note-input" data-rel-id="${r.id}"
-                placeholder="Notes sur cette relation…">${escA(r.note)}</textarea>
+                placeholder="${tl("Notes sur cette relation…")}">${escA(r.note)}</textarea>
             ` : `
             <div class="rel-lastpos-row rel-readonly">
                 <i class="fa-solid fa-map-marker-alt"></i>
-                <span>${r.lastPosition ? escA(r.lastPosition) : "<em>Position inconnue</em>"}</span>
+                <span>${r.lastPosition ? escA(r.lastPosition) : `${tl("<em>Position inconnue</em>")}`}</span>
             </div>
-            <p class="rel-note-ro" style="white-space:pre-wrap;">${r.note ? escA(r.note) : "<em>Aucune note.</em>"}</p>
+            <p class="rel-note-ro" style="white-space:pre-wrap;">${r.note ? escA(r.note) : `${tl("<em>Aucune note.</em>")}`}</p>
             `}
         </div>
     </div>`;
@@ -171,7 +172,7 @@ export function buildRowHtml(r, actor, canEdit) {
 export function emptyStateHtml() {
     return `<div class="rel-empty">
         <i class="fa-solid fa-heart-broken"></i>
-        <span>Aucune relation enregistrée.</span>
+        <span>${tl("Aucune relation enregistrée.")}</span>
     </div>`;
 }
 
@@ -219,9 +220,9 @@ export function buildTabHtml(actor) {
         listContent = emptyStateHtml(isGM);
     } else {
         listContent =
-            (pjRels.length    ? sectionHdr("Joueurs", pjRels.length)  + pjRels.map( r => buildRowHtml(r, actor, canEdit)).join("") : "") +
-            (pnjRels.length   ? sectionHdr("PNJ",     pnjRels.length) + pnjRels.map(r => buildRowHtml(r, actor, canEdit)).join("") : "") +
-            (otherRels.length ? sectionHdr("Autres",  otherRels.length) + otherRels.map(r => buildRowHtml(r, actor, canEdit)).join("") : "");
+            (pjRels.length    ? sectionHdr(tl("Joueurs"), pjRels.length)  + pjRels.map( r => buildRowHtml(r, actor, canEdit)).join("") : "") +
+            (pnjRels.length   ? sectionHdr(tl("PNJ"),     pnjRels.length) + pnjRels.map(r => buildRowHtml(r, actor, canEdit)).join("") : "") +
+            (otherRels.length ? sectionHdr(tl("Autres"),  otherRels.length) + otherRels.map(r => buildRowHtml(r, actor, canEdit)).join("") : "");
     }
 
     return `
@@ -229,20 +230,17 @@ export function buildTabHtml(actor) {
 
         <div style="${S.titleBar}">
             <span style="${S.title}">
-                <i class="fa-solid fa-heart" style="color:#e0a13a;font-size:15px;filter:drop-shadow(0 1px 1px rgba(0,0,0,0.5));"></i>
-                Relations
+                ${tl("<i class=\"fa-solid fa-heart\" style=\"color:#e0a13a;font-size:15px;filter:drop-shadow(0 1px 1px rgba(0,0,0,0.5));\"></i>\n                Relations")}
             </span>
-            ${isGM ? `<a class="rel-add-btn">
-                <i class="fa-solid fa-plus" style="font-size:10px;"></i> Ajouter
-            </a>` : ""}
+            ${isGM ? `${tl("<a class=\"rel-add-btn\">\n                <i class=\"fa-solid fa-plus\" style=\"font-size:10px;\"></i> Ajouter\n            </a>")}` : ""}
         </div>
 
         <div style="${S.searchBar}">
             <div class="rel-search-wrap" style="${S.wrap}">
                 <i class="fa-solid fa-search" style="${S.srchIcon}"></i>
                 <input class="rel-search-input" type="text"
-                    placeholder="Rechercher une relation…" style="${S.srchInput}">
-                <a class="rel-search-clear" style="${S.clear}" title="Effacer">
+                    placeholder="${tl("Rechercher une relation…")}" style="${S.srchInput}">
+                <a class="rel-search-clear" style="${S.clear}" title="${tl("Effacer")}">
                     <i class="fa-solid fa-times"></i>
                 </a>
             </div>
@@ -316,22 +314,22 @@ function buildPickerHtml(pj, uid) {
 
     return `
     <div id="${uid}" style="display:flex;flex-direction:column;gap:10px;padding:4px 0;">
-        <input class="rel-picker-search" type="text" placeholder="🔍 Rechercher un personnage…"
+        <input class="rel-picker-search" type="text" placeholder="${tl("🔍 Rechercher un personnage…")}"
             style="width:100%;box-sizing:border-box;padding:5px 8px;
                    border:1px solid #555;border-radius:4px;background:#111;color:#ddd;font-size:12px;">
         <div class="rel-picker-list">
-            ${section("Joueurs", joueurs, "pj")}
-            ${section("PNJ",     pnjs,    "pnj")}
+            ${section(tl("Joueurs"), joueurs, "pj")}
+            ${section(tl("PNJ"),     pnjs,    "pnj")}
             ${!joueurs.length && !pnjs.length
-                ? '<p style="color:#666;font-style:italic;font-size:12px;text-align:center;padding:12px 0;">Aucun personnage disponible.</p>'
+                ? `<p style="color:#666;font-style:italic;font-size:12px;text-align:center;padding:12px 0;">${tl("Aucun personnage disponible.")}</p>`
                 : ""}
         </div>
         <hr style="border-color:#333;margin:0;">
-        <label style="font-size:12px;color:#aaa;">Niveau d'affinité
+        <label style="font-size:12px;color:#aaa;">${tl("Niveau d'affinité")}
             <div style="display:flex;align-items:center;gap:10px;margin-top:6px;">
                 <span style="font-size:11px;color:#e74c3c;flex-shrink:0;">Hostile</span>
                 <input id="${uid}-level" type="range" min="-3" max="3" step="1" value="0" style="flex:1;">
-                <span style="font-size:11px;color:#4caf50;flex-shrink:0;">Allié</span>
+                <span style="font-size:11px;color:#4caf50;flex-shrink:0;">${tl("Allié")}</span>
                 <span id="${uid}-lvlval" style="min-width:28px;text-align:center;
                     font-size:14px;font-weight:bold;color:#ddd;">0</span>
             </div>
@@ -351,7 +349,7 @@ async function openAddDialog(actor) {
     }
 
     await foundry.applications.api.DialogV2.wait({
-        window: { title: "Nouvelle relation" },
+        window: { title: tl("Nouvelle relation") },
         position: { width: 400 },
         rejectClose: false,
         content: buildPickerHtml(actor, uid),
@@ -409,7 +407,7 @@ async function openAddDialog(actor) {
         buttons: [
             {
                 action: "confirm", default: true,
-                label: "Ajouter", icon: '<i class="fa-solid fa-check"></i>',
+                label: tl("Ajouter"), icon: '<i class="fa-solid fa-check"></i>',
                 callback: () => {
                     const d  = document.getElementById(uid);
                     const el = d?.querySelector(".rel-picker-actor.selected");
@@ -418,7 +416,7 @@ async function openAddDialog(actor) {
                     const worldActor = isPack ? null : game.actors.get(el.dataset.actorId);
                     result = {
                         targetId:   el.dataset.actorId,
-                        targetName: worldActor?.name ?? el.dataset.actorName ?? "Inconnu",
+                        targetName: worldActor?.name ?? el.dataset.actorName ?? tl("Inconnu"),
                         targetImg:  worldActor?.img  ?? el.dataset.img ?? "",
                         source:     el.dataset.source || undefined,
                         level:  parseInt(d.querySelector(`#${uid}-level`).value) || 0,
@@ -426,7 +424,7 @@ async function openAddDialog(actor) {
                     };
                 }
             },
-            { action: "cancel", label: "Annuler", icon: '<i class="fa-solid fa-times"></i>', callback: () => {} }
+            { action: "cancel", label: tl("Annuler"), icon: '<i class="fa-solid fa-times"></i>', callback: () => {} }
         ]
     });
 
@@ -451,19 +449,19 @@ async function openEditDialog(actor, rel) {
                     style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:1px solid #444;">
                 <strong style="font-size:13px;">${escA(rel.targetName)}</strong>
             </div>
-            <label style="font-size:12px;color:#aaa;">Type de relation
+            <label style="font-size:12px;color:#aaa;">${tl("Type de relation")}
                 <input id="${uid}-type" type="text" value="${rel.type ?? ""}"
-                    placeholder="Allié, Ennemi, Famille…"
+                    placeholder="${tl("Allié, Ennemi, Famille…")}"
                     style="margin-top:4px;display:block;width:100%;box-sizing:border-box;
                         background:#1a1a1a;color:#ddd;border:1px solid #555;
                         border-radius:4px;padding:5px 8px;font-size:12px;">
             </label>
-            <label style="font-size:12px;color:#aaa;">Niveau d'affinité
+            <label style="font-size:12px;color:#aaa;">${tl("Niveau d'affinité")}
                 <div style="display:flex;align-items:center;gap:10px;margin-top:6px;">
                     <span style="font-size:11px;color:#e74c3c;flex-shrink:0;">Hostile</span>
                     <input id="${uid}-level" type="range" min="-3" max="3" step="1"
                         value="${rel.level ?? 0}" style="flex:1;">
-                    <span style="font-size:11px;color:#4caf50;flex-shrink:0;">Allié</span>
+                    <span style="font-size:11px;color:#4caf50;flex-shrink:0;">${tl("Allié")}</span>
                     <span id="${uid}-lvlval" style="min-width:28px;text-align:center;
                         font-size:14px;font-weight:bold;color:#ddd;">
                         ${(rel.level ?? 0) > 0 ? "+" : ""}${rel.level ?? 0}
@@ -471,7 +469,7 @@ async function openEditDialog(actor, rel) {
                 </div>
             </label>
             <label style="font-size:12px;color:#aaa;display:flex;align-items:center;gap:8px;cursor:pointer;">
-                <input id="${uid}-secret" type="checkbox"${rel.secret ? " checked" : ""}> Secret (GM uniquement)
+                <input id="${uid}-secret" type="checkbox"${rel.secret ? " checked" : ""}> ${tl("Secret (GM uniquement)")}
             </label>
         </div>`,
         render: () => {
@@ -485,7 +483,7 @@ async function openEditDialog(actor, rel) {
         buttons: [
             {
                 action: "confirm", default: true,
-                label: "Modifier", icon: '<i class="fa-solid fa-check"></i>',
+                label: tl("Modifier"), icon: '<i class="fa-solid fa-check"></i>',
                 callback: () => {
                     const d = document.getElementById(uid);
                     if (!d) return;
@@ -496,7 +494,7 @@ async function openEditDialog(actor, rel) {
                     };
                 }
             },
-            { action: "cancel", label: "Annuler", icon: '<i class="fa-solid fa-times"></i>', callback: () => {} }
+            { action: "cancel", label: tl("Annuler"), icon: '<i class="fa-solid fa-times"></i>', callback: () => {} }
         ]
     });
 
@@ -529,7 +527,7 @@ export function wireTab(actor, $html) {
         if (!rel) return;
         const target = game.actors.get(rel.targetId);
         const img    = target?.img  ?? rel.targetImg  ?? "icons/svg/mystery-man.svg";
-        const name   = target?.name ?? rel.targetName ?? "Inconnu";
+        const name   = target?.name ?? rel.targetName ?? tl("Inconnu");
         ouvrirImage(img, name);
     });
 
@@ -590,9 +588,8 @@ export function wireTab(actor, $html) {
         const rel   = relList(actor).find(r => r.id === relId);
         if (!rel) return;
         const ok = await foundry.applications.api.DialogV2.confirm({
-            window: { title: "Supprimer la relation" },
-            content: `<p>Supprimer la relation avec <strong>${escA(rel.targetName)}</strong> ?<br>
-                      <small style="color:#999;">Cette action est irréversible.</small></p>`,
+            window: { title: tl("Supprimer la relation") },
+            content: `<p>${tl("Supprimer la relation avec <strong>{0}</strong> ?<br>\n                      <small style=\"color:#999;\">Cette action est irréversible.</small>", escA(rel.targetName))}</p>`,
         });
         if (!ok) return;
         _expanded.delete(relId);
@@ -641,7 +638,7 @@ export function wireTab(actor, $html) {
             $tab.find(".rel-list").append(
                 `<div class="rel-no-results rel-empty">
                     <i class="fa-solid fa-search"></i>
-                    <span>Aucune relation trouvée.</span>
+                    <span>${tl("Aucune relation trouvée.")}</span>
                 </div>`
             );
         }
@@ -809,7 +806,7 @@ export function RelationsHooks() {
         btnAnon.classList.add("header-control", "icon", "fa-solid", "fa-eye-slash", "scwm-anon-btn");
         const refreshAnon = () => {
             btnAnon.style.color     = isAnon() ? "#e74c3c" : "";
-            btnAnon.dataset.tooltip = isAnon() ? "Anonyme — cliquer pour désactiver" : "Rendre anonyme";
+            btnAnon.dataset.tooltip = isAnon() ? tl("Anonyme — cliquer pour désactiver") : tl("Rendre anonyme");
         };
         refreshAnon();
         btnAnon.addEventListener("click", async () => {
@@ -821,7 +818,7 @@ export function RelationsHooks() {
         const btnReveal = document.createElement("button");
         btnReveal.type = "button";
         btnReveal.classList.add("header-control", "icon", "fa-solid", "fa-eye", "scwm-reveal-btn");
-        btnReveal.dataset.tooltip = "Révéler à la party";
+        btnReveal.dataset.tooltip = tl("Révéler à la party");
         btnReveal.addEventListener("click", () => Hooks.callAll("scwm:revealToParty", id));
 
         // ── Toggle "Bloquer l'ajout automatique" (Relations + Bestiaire) ──
@@ -837,7 +834,7 @@ export function RelationsHooks() {
         const refreshBlock = () => {
             btnBlock.style.color     = isExcluded() ? "#e74c3c" : "";
             btnBlock.dataset.tooltip = isExcluded()
-                ? "Ajout automatique bloqué — cliquer pour réactiver"
+                ? tl("Ajout automatique bloqué — cliquer pour réactiver")
                 : "Bloquer l'ajout automatique (Relations & Bestiaire)";
         };
         refreshBlock();
@@ -854,17 +851,17 @@ export function RelationsHooks() {
         const btnRemove = document.createElement("button");
         btnRemove.type = "button";
         btnRemove.classList.add("header-control", "icon", "fa-solid", "fa-users-slash", "scwm-removeall-btn");
-        btnRemove.dataset.tooltip = "Retirer de chez tous les joueurs (Relations & Bestiaire)";
+        btnRemove.dataset.tooltip = tl("Retirer de chez tous les joueurs (Relations & Bestiaire)");
         btnRemove.addEventListener("click", async () => {
             const ok = await foundry.applications.api.DialogV2.confirm({
-                window:  { title: "Retirer de chez tous les joueurs" },
-                content: `<p>Retirer <strong>${escA(actor.name)}</strong> des Relations et du Bestiaire de <strong>tous les joueurs</strong> ?</p>
-                          <p style="opacity:0.7;font-size:0.9em;">Les listes existantes sont nettoyées. Sans blocage, ce personnage pourra être ré-ajouté automatiquement s'il est recroisé.</p>`
+                window:  { title: tl("Retirer de chez tous les joueurs") },
+                content: `<p>${tl("Retirer <strong>{0}</strong> des Relations et du Bestiaire de <strong>tous les joueurs</strong> ?", escA(actor.name))}</p>
+                          <p style="opacity:0.7;font-size:0.9em;">${tl("Les listes existantes sont nettoyées. Sans blocage, ce personnage pourra être ré-ajouté automatiquement s'il est recroisé.")}</p>`
             });
             if (!ok) return;
             Hooks.callAll("scwm:removeFromRelations", id);
             Hooks.callAll("scwm:removeFromBestiary",  id);
-            ui.notifications.info(`${actor.name} retiré des listes de tous les joueurs.`);
+            ui.notifications.info(tl("{0} retiré des listes de tous les joueurs.", actor.name));
         });
 
         // Position : ordre visuel Bloquer | Retirer | Révéler | Anonyme

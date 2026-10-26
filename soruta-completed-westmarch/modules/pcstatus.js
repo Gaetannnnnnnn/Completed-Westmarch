@@ -13,6 +13,7 @@
 
 import { MOD } from "./const.js";
 import { getExpeditions } from "./carnet.js";
+import { tl } from "./i18n.js";
 
 // Un PJ est « en expédition » s'il a au moins une expédition ouverte.
 function isOnExpedition(actor) {
@@ -23,8 +24,8 @@ function isOnExpedition(actor) {
 
 function statusFor(actor) {
     return isOnExpedition(actor)
-        ? { key: "expedition", label: "En expédition", icon: "fa-person-hiking" }
-        : { key: "available",  label: "Disponible",    icon: "fa-circle-check" };
+        ? { key: "expedition", label: tl("En expédition"), icon: "fa-person-hiking" }
+        : { key: "available",  label: tl("Disponible"),    icon: "fa-circle-check" };
 }
 
 // Construit le badge DOM.

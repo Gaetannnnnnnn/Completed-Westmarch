@@ -9,8 +9,9 @@ import { Dialog } from "./compat.js";
 // ============================================================
 
 import { sendFakeWarning } from './serveur-socket.js';
+import { tl } from "./i18n.js";
 
-const DEFAULT_MESSAGE = "Mise à jour effectuée — le problème devrait être résolu.";
+const DEFAULT_MESSAGE = tl("Mise à jour effectuée — le problème devrait être résolu.");
 
 export function FakeWarningHooks() {
 
@@ -40,7 +41,7 @@ export function FakeWarningHooks() {
         }
         controls.westmarch.tools.fakeWarning = {
             name:     "fakeWarning",
-            title:    "Faux message de maintenance",
+            title:    tl("Faux message de maintenance"),
             icon:     "fa-solid fa-triangle-exclamation",
             button:   true,
             onChange: () => openFakeWarningDialog(),
@@ -53,7 +54,7 @@ function openFakeWarningDialog() {
     // Tous les utilisateurs connectés, sauf soi-même
     const targets = game.users.filter(u => u.active && u.id !== game.user.id);
     if (targets.length === 0) {
-        ui.notifications.warn("Aucun autre utilisateur connecté.");
+        ui.notifications.warn(tl("Aucun autre utilisateur connecté."));
         return;
     }
 
@@ -76,21 +77,20 @@ function openFakeWarningDialog() {
         </div>`;
     };
 
-    const checkboxes = renderGroup(gms, "GM") + renderGroup(players, "Joueurs");
+    const checkboxes = renderGroup(gms, "GM") + renderGroup(players, tl("Joueurs"));
 
     const selectAllBtn = `<button type="button" id="fw-select-all"
         style="font-size:11px;padding:2px 8px;border-radius:3px;
                border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);
-               color:#ccc;cursor:pointer;">Tout sélectionner</button>`;
+               color:#ccc;cursor:pointer;">${tl("Tout sélectionner")}</button>`;
 
     new Dialog({
-        title: "Faux message de maintenance",
+        title: tl("Faux message de maintenance"),
         content: `
             <div style="display:flex;flex-direction:column;gap:10px;padding:4px 0;">
                 <div>
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-                        <strong>Destinataires :</strong>
-                        ${selectAllBtn}
+                        ${tl("<strong>Destinataires :</strong>\n                        {0}", selectAllBtn)}
                     </div>
                     <div style="padding:6px 8px;border-radius:4px;
                                 border:1px solid rgba(255,255,255,0.1);
@@ -100,7 +100,7 @@ function openFakeWarningDialog() {
                 </div>
                 <div>
                     <label style="display:block;margin-bottom:4px;">
-                        <strong>Message</strong> <span style="font-size:11px;color:#8a7a65;">(affiché en jaune)</span>
+                        ${tl("<strong>Message</strong>")} <span style="font-size:11px;color:#8a7a65;">${tl("(affiché en jaune)")}</span>
                     </label>
                     <textarea name="westmarch-fake-message" rows="3"
                               style="width:100%;resize:vertical;">${DEFAULT_MESSAGE}</textarea>
@@ -113,13 +113,13 @@ function openFakeWarningDialog() {
                 const cbs = $html.find('.fw-target-cb');
                 const allChecked = cbs.toArray().every(cb => cb.checked);
                 cbs.prop('checked', !allChecked);
-                this.textContent = allChecked ? 'Tout sélectionner' : 'Tout décocher';
+                this.textContent = allChecked ? tl("Tout sélectionner") : tl("Tout décocher");
             });
         },
         buttons: {
             send: {
                 icon:  '<i class="fa-solid fa-paper-plane"></i>',
-                label: "Envoyer",
+                label: tl("Envoyer"),
                 callback: (html) => {
                     const $html   = $(html);
                     const message = $html.find('[name="westmarch-fake-message"]').val()?.trim();
@@ -128,7 +128,7 @@ function openFakeWarningDialog() {
                     const userIds = $html.find('.fw-target-cb:checked')
                         .toArray().map(cb => cb.value);
                     if (!userIds.length) {
-                        ui.notifications.warn("Sélectionne au moins un destinataire.");
+                        ui.notifications.warn(tl("Sélectionne au moins un destinataire."));
                         return;
                     }
 
@@ -137,12 +137,12 @@ function openFakeWarningDialog() {
                         sendFakeWarning(userId, message);
                         names.push(game.users.get(userId)?.name ?? "?");
                     }
-                    ui.notifications.info(`Faux message envoyé à : ${names.join(", ")}.`);
+                    ui.notifications.info(tl("Faux message envoyé à : {0}.", names.join(", ")));
                 }
             },
             cancel: {
                 icon:  '<i class="fa-solid fa-times"></i>',
-                label: "Annuler"
+                label: tl("Annuler")
             }
         },
         default: "send"

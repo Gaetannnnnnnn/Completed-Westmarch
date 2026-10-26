@@ -1,4 +1,5 @@
 import { MOD } from "./const.js";
+import { tl } from "./i18n.js";
 // ============================================================
 // gere.js — Indicateur « géré par le module » sur les fiches
 //
@@ -18,15 +19,15 @@ const ident = (i) => String(i?.system?.identifier ?? "").toLowerCase();
 // Aptitudes gérées : test sur l'objet, réglage qui l'active, explication.
 const GERES = [
     { test: (i) => i.type === "feat" && (ident(i) === "healer" || /^(healer|gu[ée]risseur)$/i.test(nom(i))), cle: "enableHealerReroll",
-      texte: "Géré par le module : les dés de soins de vos sorts (et du Battle Medic) relancent automatiquement les 1." },
+      texte: tl("Géré par le module : les dés de soins de vos sorts (et du Battle Medic) relancent automatiquement les 1.") },
     { test: (i) => i.type === "feat" && (ident(i) === "alert" || /^(alert|vigilant)$/i.test(nom(i))), cle: "enableAlertSwap",
-      texte: "Géré par le module : après l'initiative, le MJ peut échanger la vôtre avec celle d'un autre joueur (bouton dans le suivi de combat)." },
+      texte: tl("Géré par le module : après l'initiative, le MJ peut échanger la vôtre avec celle d'un autre joueur (bouton dans le suivi de combat).") },
     { test: (i) => /large form/i.test(nom(i)), cle: "enableLargeForm",
-      texte: "Géré par le module : utiliser cette aptitude fait passer votre jeton en taille Large, et inversement." },
+      texte: tl("Géré par le module : utiliser cette aptitude fait passer votre jeton en taille Large, et inversement.") },
     { test: (i) => /giant.?s havoc/i.test(nom(i)), cle: "enableRageSize",
-      texte: "Géré par le module : pendant la Rage, votre jeton passe en taille Large." },
+      texte: tl("Géré par le module : pendant la Rage, votre jeton passe en taille Large.") },
     { test: (i) => i.type === "feat" && ident(i) === "form-of-the-beast", cle: "enableFormOfTheBeast",
-      texte: "Géré par le module : les armes naturelles (Morsure, Griffes, Queue) sont créées automatiquement." }
+      texte: tl("Géré par le module : les armes naturelles (Morsure, Griffes, Queue) sont créées automatiquement.") }
 ];
 
 export const badgeActif = () => lire("a11yManagedBadge", true) !== false;

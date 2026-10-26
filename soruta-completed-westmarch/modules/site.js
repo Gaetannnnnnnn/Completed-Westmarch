@@ -11,6 +11,7 @@
 import { MOD } from "./const.js";
 
 import { journal } from "./log.js";
+import { tl } from "./i18n.js";
 export const URL_PAGE_MODULE = "https://altheia.eu/foundry-modules.html";
 
 export function registerSiteSettings() {
@@ -21,7 +22,7 @@ export function registerSiteSettings() {
 }
 
 export function SiteHooks() {
-    Hooks.once("ready", () => { annoncerSite().catch((e) => journal.avert(`[${MOD}] Message du site :`, e)); });
+    Hooks.once("ready", () => { annoncerSite().catch((e) => journal.avert(tl("[{0}] Message du site :", MOD), e)); });
 }
 
 async function annoncerSite() {
@@ -32,14 +33,14 @@ async function annoncerSite() {
 
     const mj = game.users.filter((u) => u.isGM).map((u) => u.id);
     await ChatMessage.create({
-        speaker: { alias: "Soruta — Completed Westmarch" },
+        speaker: { alias: tl("Soruta — Completed Westmarch") },
         whisper: mj,
         content: `
             <div style="line-height:1.5;">
-                <p style="margin:0 0 6px;"><strong>Merci d’utiliser Soruta — Completed Westmarch</strong> (version ${version.replace(/[^\w.\-]/g, "")}).</p>
-                <p style="margin:0 0 6px;">Les nouveautés, les mises à jour et le détail des fonctionnalités sont présentés sur le site d’Althéia&nbsp;:</p>
-                <p style="margin:0;"><a href="${URL_PAGE_MODULE}" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i> altheia.eu — Nos modules</a></p>
-                <p style="margin:6px 0 0;font-size:11px;opacity:.7;">Ce message n’est visible que par les MJ et ne s’affiche qu’une fois par version.</p>
+                <p style="margin:0 0 6px;">${tl("<strong>Merci d’utiliser Soruta — Completed Westmarch</strong> (version {0}).", version.replace(/[^\w.\-]/g, ""))}</p>
+                <p style="margin:0 0 6px;">${tl("Les nouveautés, les mises à jour et le détail des fonctionnalités sont présentés sur le site d’Althéia&nbsp;:")}</p>
+                <p style="margin:0;">${tl("<a href=\"{0}\" target=\"_blank\" rel=\"noopener\"><i class=\"fa-solid fa-arrow-up-right-from-square\"></i> altheia.eu — Nos modules</a>", URL_PAGE_MODULE)}</p>
+                <p style="margin:6px 0 0;font-size:11px;opacity:.7;">${tl("Ce message n’est visible que par les MJ et ne s’affiche qu’une fois par version.")}</p>
             </div>`
     });
     await game.settings.set(MOD, "siteMessageVersion", version);

@@ -1,3 +1,4 @@
+import { tl } from "./i18n.js";
 // ============================================================
 // const.js — Constantes partagées du module fusionné
 // Soruta — Completed Westmarch
@@ -11,25 +12,25 @@ export const MOD = "soruta-completed-westmarch";
 // Toggles de sections du tutoriel (clé de setting = "tuto" + Capitalized).
 // Partagé entre settings.js (enregistrement) et tutorial.js (filtrage).
 export const TUTO_TOGGLES = [
-    { key: "tutoBarreWestmarch",  legacy: "barreWestmarch",  label: "Barre WestMarch (navigation & groupe)" },
-    { key: "tutoTourFiche",       legacy: "tourFiche",       label: "Tour de la fiche personnage" },
-    { key: "tutoNoteGm",          legacy: "noteGm",          label: "Note GM (onglet privé de fiche)" },
-    { key: "tutoMonPerso",        legacy: "monPerso",        label: "Mes personnages (création & validation, joueur)" },
-    { key: "tutoBestiary",        legacy: "bestiary",        label: "Bestiaire (onglet fiche)" },
-    { key: "tutoRelations",       legacy: "relations",       label: "Relations (onglet fiche)" },
-    { key: "tutoCarnet",          legacy: "carnet",          label: "Carnet & Expéditions (onglet fiche)" },
-    { key: "tutoCasier",          legacy: "casier",          label: "Casier du MJ (tableau de bord)" },
-    { key: "tutoCarteExpedition", legacy: "carteExpedition", label: "Carte des expéditions (brouillard maison, GM)" },
-    { key: "tutoCues",            legacy: "cues",            label: "Mise en scène — Cues audio (GM)" },
-    { key: "tutoBoutiques",       legacy: "boutiques",       label: "Boutiques Monk's Enhanced Journal" },
-    { key: "tutoTempsMorts",      legacy: "tempsMorts",      label: "Temps morts (déclaration & validation)" },
-    { key: "tutoApparenceTokens", legacy: "apparenceTokens", label: "Apparence des tokens (portrait, polymorph, cycle)" },
-    { key: "tutoOutilsGm",        legacy: "outilsGm",        label: "Outils GM (TGCM, XP, Discord, Fake Warning)" },
-    { key: "tutoAccessibilite",   legacy: "accessibilite",   label: "Accessibilité (daltonisme, contraste…)" },
-    { key: "tutoEchange",         legacy: "echange",         label: "Échange entre joueurs" },
-    { key: "tutoTransformation",  legacy: "transformation",  label: "Transformations (Wild Shape / Polymorphie)" },
-    { key: "tutoCompagnons",      legacy: "compagnons",      label: "Compagnons évolutifs (GM)" },
-    { key: "tutoPantheon",        legacy: "pantheon",        label: "Panthéons (Dieux de Faerûn)" }
+    { key: "tutoBarreWestmarch",  legacy: "barreWestmarch",  label: tl("Barre WestMarch (navigation & groupe)") },
+    { key: "tutoTourFiche",       legacy: "tourFiche",       label: tl("Tour de la fiche personnage") },
+    { key: "tutoNoteGm",          legacy: "noteGm",          label: tl("Note GM (onglet privé de fiche)") },
+    { key: "tutoMonPerso",        legacy: "monPerso",        label: tl("Mes personnages (création & validation, joueur)") },
+    { key: "tutoBestiary",        legacy: "bestiary",        label: tl("Bestiaire (onglet fiche)") },
+    { key: "tutoRelations",       legacy: "relations",       label: tl("Relations (onglet fiche)") },
+    { key: "tutoCarnet",          legacy: "carnet",          label: tl("Carnet & Expéditions (onglet fiche)") },
+    { key: "tutoCasier",          legacy: "casier",          label: tl("Casier du MJ (tableau de bord)") },
+    { key: "tutoCarteExpedition", legacy: "carteExpedition", label: tl("Carte des expéditions (brouillard maison, GM)") },
+    { key: "tutoCues",            legacy: "cues",            label: tl("Mise en scène — Cues audio (GM)") },
+    { key: "tutoBoutiques",       legacy: "boutiques",       label: tl("Boutiques Monk's Enhanced Journal") },
+    { key: "tutoTempsMorts",      legacy: "tempsMorts",      label: tl("Temps morts (déclaration & validation)") },
+    { key: "tutoApparenceTokens", legacy: "apparenceTokens", label: tl("Apparence des tokens (portrait, polymorph, cycle)") },
+    { key: "tutoOutilsGm",        legacy: "outilsGm",        label: tl("Outils GM (TGCM, XP, Discord, Fake Warning)") },
+    { key: "tutoAccessibilite",   legacy: "accessibilite",   label: tl("Accessibilité (daltonisme, contraste…)") },
+    { key: "tutoEchange",         legacy: "echange",         label: tl("Échange entre joueurs") },
+    { key: "tutoTransformation",  legacy: "transformation",  label: tl("Transformations (Wild Shape / Polymorphie)") },
+    { key: "tutoCompagnons",      legacy: "compagnons",      label: tl("Compagnons évolutifs (GM)") },
+    { key: "tutoPantheon",        legacy: "pantheon",        label: tl("Panthéons (Dieux de Faerûn)") }
 ];
 
 // ============================================================
@@ -59,9 +60,9 @@ export const TM_DEFAULT_MAGIC = [
 // Multiplicateur appliqué au gain selon le résultat du test de compétence.
 // Pour un résultat donné, la 1ère entrée dont max ≥ résultat est utilisée.
 export const TM_DEFAULT_ROLL = [
-    { max: 1,  mult: 0.8, label: "Échec critique (≤1) → −20 %" },
+    { max: 1,  mult: 0.8, label: tl("Échec critique (≤1) → −20 %") },
     { max: 9,  mult: 1.0, label: "Neutre (2–9) → ±0 %"          },
-    { max: 19, mult: 1.1, label: "Succès (10–19) → +10 %"       },
+    { max: 19, mult: 1.1, label: tl("Succès (10–19) → +10 %")       },
     { max: 99, mult: 1.2, label: "Critique (≥20) → +20 %"       }
 ];
 

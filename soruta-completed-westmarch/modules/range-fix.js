@@ -1,5 +1,6 @@
 import { MOD } from "./const.js";
 import { journal } from "./log.js";
+import { tl } from "./i18n.js";
 /**
  * @file        modules/range-fix.js
  * @module      midi-range-fix
@@ -63,7 +64,7 @@ import { journal } from "./log.js";
 const _MODULE     = MOD;
 const _PATCH_MARK = Symbol("midiRangeFix"); // identifie _ourPatch sans comparer le code
 
-journal.debug("[midi-range-fix] v1.5.9 chargé.");
+journal.debug(tl("[midi-range-fix] v1.5.9 chargé."));
 
 // Référence stable à la version "originale" (midi-qol) à appeler en fallback.
 let _trueOriginal = null;
@@ -178,7 +179,7 @@ function _ourPatch(waypoints, options) {
 
     } catch(err) {
         _reentering = false;
-        journal.avert("[midi-range-fix] Erreur dans measurePath, fallback proto :", err);
+        journal.avert(tl("[midi-range-fix] Erreur dans measurePath, fallback proto :"), err);
         return _protoCall(waypoints, options);
     }
 }
@@ -204,7 +205,7 @@ function _patchRulerLabel() {
     if (!ruler) return;
     const RulerClass = ruler.constructor;
     if (!RulerClass?.prototype?._getWaypointLabelContext) {
-        journal.critique("[midi-range-fix] _getWaypointLabelContext introuvable sur Ruler — patch ruler annulé.");
+        journal.critique(tl("[midi-range-fix] _getWaypointLabelContext introuvable sur Ruler — patch ruler annulé."));
         return;
     }
 
@@ -219,7 +220,7 @@ function _patchRulerLabel() {
         _rulerOrigFn = currentFn?.__origFn ?? currentFn;
     }
     if (!_rulerOrigFn) {
-        journal.critique("[midi-range-fix] Impossible de récupérer _getWaypointLabelContext original.");
+        journal.critique(tl("[midi-range-fix] Impossible de récupérer _getWaypointLabelContext original."));
         return;
     }
 
@@ -330,7 +331,7 @@ function _patchRulerLabel() {
     _rulerPatch.__origFn     = _rulerOrigFn; // pour récupérer l'original si re-chargement
 
     RulerClass.prototype._getWaypointLabelContext = _rulerPatch;
-    journal.debug("[midi-range-fix] Patch ruler label (ré)appliqué — ellipse actif.");
+    journal.debug(tl("[midi-range-fix] Patch ruler label (ré)appliqué — ellipse actif."));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -387,7 +388,7 @@ function _installPatch() {
     }
 
     if (!_trueOriginal || _trueOriginal[_PATCH_MARK]) {
-        journal.critique("[midi-range-fix] Impossible de trouver un fallback valide — patch annulé.");
+        journal.critique(tl("[midi-range-fix] Impossible de trouver un fallback valide — patch annulé."));
         return;
     }
 
@@ -405,7 +406,7 @@ function _installPatch() {
         });
         journal.debug("[midi-range-fix] Patch bord→bord actif.");
     } catch(e) {
-        journal.avert("[midi-range-fix] Object.defineProperty échoué, assignment direct :", e);
+        journal.avert(tl("[midi-range-fix] Object.defineProperty échoué, assignment direct :"), e);
         try { canvas.grid.measurePath = _ourPatch; } catch {}
     }
 }
@@ -423,7 +424,7 @@ function _ensurePatch() {
         _trueOriginal = typeof current.bind === "function" ? current.bind(canvas.grid) : current;
     }
     _installPatch();
-    journal.debug("[midi-range-fix] Patch réinstallé (écrasement détecté).");
+    journal.debug(tl("[midi-range-fix] Patch réinstallé (écrasement détecté)."));
 }
 
 /**

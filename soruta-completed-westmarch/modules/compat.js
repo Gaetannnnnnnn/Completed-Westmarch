@@ -1,4 +1,5 @@
 import { journal } from "./log.js";
+import { tl } from "./i18n.js";
 // ============================================================
 // compat.js — Shim de compatibilité Dialog (V1) → DialogV2
 // ------------------------------------------------------------
@@ -81,7 +82,7 @@ export class Dialog {
 
         // DialogV2 exige au moins un bouton ; fallback "Fermer" sinon.
         if (!cfg.buttons.length) {
-            cfg.buttons = [{ action: "close", label: "Fermer", default: true }];
+            cfg.buttons = [{ action: "close", label: tl("Fermer"), default: true }];
         }
 
         this._dv2 = new Cls(cfg);
@@ -117,7 +118,7 @@ export class Dialog {
     static async confirm(cfg = {}) {
         const Cls = DV2();
         const opt = {
-            window: { title: cfg.title ?? cfg.window?.title ?? "Confirmation" },
+            window: { title: cfg.title ?? cfg.window?.title ?? tl("Confirmation") },
             content: cfg.content ?? "",
             rejectClose: false,
             modal: cfg.modal !== false

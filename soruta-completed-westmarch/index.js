@@ -88,6 +88,7 @@ import { RangeFixHooks }         from "./modules/range-fix.js";
 import { registerTutorielButton } from "./modules/toolbar.js";
 import { showWelcomeIfNeeded }    from "./modules/welcome.js";
 import { ensureTutorialActor }    from "./modules/demoactor.js";
+import { tl, registerLangueSetting } from "./modules/i18n.js";
 
 Hooks.on("init", () => {
     // Police personnalisée "Enchanted Land" — enregistrée par code (la clé
@@ -106,7 +107,7 @@ Hooks.on("init", () => {
                 { urls: ["modules/soruta-completed-westmarch/fonts/PerryGothic.ttf"], weight: "400", style: "normal" }
             ]
         };
-    } catch (e) { journal.critique("westmarch | Enregistrement des polices :", e); }
+    } catch (e) { journal.critique(tl("westmarch | Enregistrement des polices :"), e); }
 
     // Helpers Handlebars hérités de westmarch (utilisés par les templates de chat).
     Handlebars.registerHelper("for", function (from, to, incr, block) {
@@ -116,8 +117,23 @@ Hooks.on("init", () => {
     });
     Handlebars.registerHelper("lte", (a, b) => a <= b);
 
+    registerLangueSetting();   // langue du module (par utilisateur), avant tout le reste
     registerSettings();
     registerLogSettings();   // mode verbeux (par joueur)
+
+    // --- Langue : anglais par défaut, français pour les clients en français ---
+    Handlebars.registerHelper("scwmT", (s) => tl(String(s ?? "")));
+    // Noms de dossiers par défaut : fixés une fois dans la langue du MJ, pour
+    // que tous les clients (quelle que soit leur langue) lisent le même nom.
+    Hooks.once("ready", async () => {
+        if (!game.users?.activeGM?.isSelf) return;
+        for (const [cle, fr] of [["charValidationFolder", tl("Personnages")], ["mondeFolderPlace", tl("Lieux")]]) {
+            try {
+                const stocke = game.settings.storage.get("world")?.getSetting?.(`${MOD}.${cle}`);
+                if (!stocke) await game.settings.set(MOD, cle, tl(fr));
+            } catch { /* réglage absent : rien à faire */ }
+        }
+    });
     surveillerErreurs();     // erreurs non rattrapées du module → journal + contact
 
     // --- Licence (validée par le serveur licence.altheia.eu, voir licence.js) ---
@@ -127,15 +143,15 @@ Hooks.on("init", () => {
     const _licenceOk   = noterEtatInitial();
     const _deactivated = game.settings.get(MOD, "moduleDeactivated") === true;
     if (!_licenceOk || _deactivated) {
-        journal.info(`[soruta-completed-westmarch] Module inactif (${_deactivated ? "désactivé via code" : "licence absente, expirée ou invalide"}). Fonctionnalités désactivées. La fenêtre « À propos » reste accessible dans les réglages du module.`);
+        journal.info(tl("[soruta-completed-westmarch] Module inactif ({0}). Fonctionnalités désactivées. La fenêtre « À propos » reste accessible dans les réglages du module.", _deactivated ? tl("désactivé via code") : tl("licence absente, expirée ou invalide")));
         if (_deactivated) return;   // désactivé : les réglages « À propos » suffisent (réactivation par code)
         Hooks.once("ready", async () => {
             if (!game.user?.isGM) return;
             // Jeton simplement expiré (monde fermé > 7 jours) : renouvellement automatique.
             if (await renouvelerJetonExpire()) return;   // licence rétablie : les clients rechargent
             ui.notifications?.error(
-                "Soruta — Completed Westmarch : ce module nécessite une licence et n'est pas activé sur ce monde. "
-                + "© Soruta — Tous droits réservés."
+                tl("Soruta — Completed Westmarch : ce module nécessite une licence et n'est pas activé sur ce monde. ")
+                + tl("© Soruta — Tous droits réservés.")
             );
             await proposerActivation();
         });

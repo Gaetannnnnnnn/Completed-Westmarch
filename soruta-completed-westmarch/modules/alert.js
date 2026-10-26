@@ -1,4 +1,5 @@
 import { MOD } from "./const.js";
+import { tl } from "./i18n.js";
 // ============================================================
 // alert.js — Don « Alert » (Vigilant) : échange d'initiative
 //
@@ -57,8 +58,8 @@ export async function echangerInitiative(combat, a, b) {
     ]);
     try {
         await ChatMessage.create({
-            speaker: { alias: "Suivi de combat" },
-            content: `<i class="fa-solid fa-right-left"></i> <strong>${esc(a.name)}</strong> (Vigilant) échange son initiative avec <strong>${esc(b.name)}</strong> : ${ia} ↔ ${ib}.`
+            speaker: { alias: tl("Suivi de combat") },
+            content: `${tl("<i class=\"fa-solid fa-right-left\"></i> <strong>{0}</strong> (Vigilant) échange son initiative avec <strong>{1}</strong> : {2} ↔ {3}.", esc(a.name), esc(b.name), ia, ib)}`
         });
     } catch {}
 }
@@ -68,27 +69,27 @@ async function ouvrirEchange(combatantId) {
     const source = combat?.combatants.get(combatantId);
     if (!combat || !source) return;
     if (source.initiative === null || source.initiative === undefined) {
-        ui.notifications?.warn(`${source.name} n'a pas encore lancé son initiative.`); return;
+        ui.notifications?.warn(tl("{0} n'a pas encore lancé son initiative.", source.name)); return;
     }
     if (estNeutralise(source.actor)) {
-        ui.notifications?.warn(`${source.name} est neutralisé : l'échange d'initiative est impossible.`); return;
+        ui.notifications?.warn(tl("{0} est neutralisé : l'échange d'initiative est impossible.", source.name)); return;
     }
     if (source.getFlag?.(MOD, FLAG)) {
         const ok = await foundry.applications.api.DialogV2.confirm({
-            window: { title: "Échange d'initiative" },
-            content: `<p>${esc(source.name)} a déjà échangé son initiative dans ce combat. Échanger à nouveau ?</p>`
+            window: { title: tl("Échange d'initiative") },
+            content: `<p>${tl("{0} a déjà échangé son initiative dans ce combat. Échanger à nouveau ?", esc(source.name))}</p>`
         });
         if (!ok) return;
     }
     const allies = alliesPossibles(combat, source);
-    if (!allies.length) { ui.notifications?.info("Aucun autre joueur avec une initiative dans ce combat."); return; }
+    if (!allies.length) { ui.notifications?.info(tl("Aucun autre joueur avec une initiative dans ce combat.")); return; }
     const uid = `scwm-alert-${source.id}`;
     const lignes = allies.map(c => {
         const neutr = estNeutralise(c.actor);
         return `<label style="display:flex;align-items:center;gap:8px;padding:3px 0;${neutr ? "opacity:.45;" : "cursor:pointer;"}">
             <input type="radio" name="allie" value="${c.id}" ${neutr ? "disabled" : ""}>
             <img src="${esc(c.img ?? c.token?.texture?.src ?? "icons/svg/mystery-man.svg")}" style="width:28px;height:28px;border:none;object-fit:cover;">
-            <span style="flex:1;">${esc(c.name)}${neutr ? " <em>(neutralisé)</em>" : ""}</span>
+            <span style="flex:1;">${esc(c.name)}${neutr ? ` ${tl("<em>(neutralisé)</em>")}` : ""}</span>
             <strong>${c.initiative}</strong></label>`;
     }).join("");
     let choisi = null;
@@ -96,11 +97,11 @@ async function ouvrirEchange(combatantId) {
         window: { title: `Vigilant — ${source.name} (initiative ${source.initiative})`, icon: "fa-solid fa-right-left" },
         position: { width: 380 },
         rejectClose: false,
-        content: `<div id="${uid}"><p style="margin:0 0 6px;">Échanger l'initiative de <strong>${esc(source.name)}</strong> avec :</p>${lignes}</div>`,
+        content: `<div id="${uid}"><p style="margin:0 0 6px;">${tl("Échanger l'initiative de <strong>{0}</strong> avec :", esc(source.name))}</p>${lignes}</div>`,
         buttons: [
-            { action: "ok", label: "Échanger", icon: "fa-solid fa-right-left", default: true,
+            { action: "ok", label: tl("Échanger"), icon: "fa-solid fa-right-left", default: true,
               callback: () => { choisi = document.querySelector(`#${uid} input[name="allie"]:checked`)?.value ?? null; } },
-            { action: "cancel", label: "Annuler", icon: "fa-solid fa-xmark" }
+            { action: "cancel", label: tl("Annuler"), icon: "fa-solid fa-xmark" }
         ]
     });
     const cible = choisi ? combat.combatants.get(choisi) : null;
@@ -120,8 +121,8 @@ export function AlertHooks() {
             const utilise = !!c.getFlag?.(MOD, FLAG);
             const btn = document.createElement("a");
             btn.className = "combatant-control scwm-alert-swap";
-            btn.dataset.tooltip = utilise ? "Vigilant : initiative déjà échangée (cliquer pour échanger à nouveau)" : "Vigilant : échanger l'initiative avec un autre joueur";
-            btn.setAttribute("aria-label", "Échanger l'initiative");
+            btn.dataset.tooltip = utilise ? tl("Vigilant : initiative déjà échangée (cliquer pour échanger à nouveau)") : tl("Vigilant : échanger l'initiative avec un autre joueur");
+            btn.setAttribute("aria-label", tl("Échanger l'initiative"));
             btn.innerHTML = `<i class="fa-solid fa-right-left"></i>`;
             btn.style.cssText = `color:${utilise ? "#888" : "#e0b84a"};${utilise ? "opacity:.6;" : ""}margin-right:2px;cursor:pointer;`;
             btn.addEventListener("click", (ev) => { ev.preventDefault(); ev.stopPropagation(); ouvrirEchange(id); });

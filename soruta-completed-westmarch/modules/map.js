@@ -17,8 +17,9 @@
 import { MOD } from "./const.js";
 
 import { journal } from "./log.js";
+import { tl, memeNom } from "./i18n.js";
 const FLAG_EXPLORED = "exploredHexes";           // sur l'acteur personnage
-const TEMPLATE_GROUP_NAME = "Token à copier et rennomer";
+const TEMPLATE_GROUP_NAME = tl("Token à copier et rennomer");
 
 const enabled  = () => game.settings.get(MOD, "enableExpeditionMap");
 
@@ -148,7 +149,7 @@ export function MapHooks() {
         }
         controls.westmarch.tools.scwmFogReset = {
             name: "scwmFogReset",
-            title: "Carte d'expédition — Réinitialiser le brouillard",
+            title: tl("Carte d'expédition — Réinitialiser le brouillard"),
             icon: "fa-solid fa-eraser",
             button: true,
             visible: true,
@@ -156,7 +157,7 @@ export function MapHooks() {
         };
         controls.westmarch.tools.scwmLightZone = {
             name: "scwmLightZone",
-            title: "Carte d'expédition — Éclairer une zone (villes) : clic gauche = éclairer, clic droit = masquer",
+            title: tl("Carte d'expédition — Éclairer une zone (villes) : clic gauche = éclairer, clic droit = masquer"),
             icon: "fa-solid fa-city",
             toggle: true,
             active: _paintMode,
@@ -182,8 +183,8 @@ let _paintMode = false;
 function setPaintMode(on) {
     _paintMode = !!on;
     ui.notifications?.info(_paintMode
-        ? "Éclairage permanent : clic GAUCHE = éclairer une case, clic DROIT = masquer."
-        : "Éclairage permanent désactivé.");
+        ? tl("Éclairage permanent : clic GAUCHE = éclairer une case, clic DROIT = masquer.")
+        : tl("Éclairage permanent désactivé."));
     drawFog();   // (ré)affiche le repère des zones éclairées côté MJ
 }
 
@@ -302,7 +303,7 @@ async function revealForGroupMove(tokenDoc, changes = {}) {
         for (const k of keys) if (!prev.has(k)) { prev.add(k); changed = true; }
         if (changed) await setExplored(actor, sid, [...prev]);
     }
-    journal.debug(`[CE] révélation : ${keys.size} cases (arrivée ${hexKey(toOff)}) pour ${memberIds.length} membre(s)`);
+    journal.debug(tl("[CE] révélation : {0} cases (arrivée {1}) pour {2} membre(s)", keys.size, hexKey(toOff), memberIds.length));
 }
 
 // ============================================================
@@ -384,7 +385,7 @@ function drawFog() {
 // ============================================================
 // Dossier d'acteurs du token modèle : celui choisi dans les réglages, sinon
 // « Tokens de groupe » (couleur or orangé), créé automatiquement à la racine.
-export const DOSSIER_GROUPES = "Tokens de groupe";
+export const DOSSIER_GROUPES = tl("Tokens de groupe");
 export const COULEUR_GROUPES = "#d9a13b";
 async function resolveTemplateFolderId() {
     const val = game.settings.get(MOD, "expeditionMapTemplateFolder");
@@ -400,7 +401,7 @@ async function resolveTemplateFolderId() {
         }
         // id d'un dossier supprimé : on retombe sur le dossier par défaut.
     }
-    let dossier = game.folders?.find(f => f.type === "Actor" && f.name === DOSSIER_GROUPES && !f.folder);
+    let dossier = game.folders?.find(f => f.type === "Actor" && memeNom(f.name, tl("Tokens de groupe")) && !f.folder);
     if (!dossier) dossier = await Folder.create({ name: DOSSIER_GROUPES, type: "Actor", color: COULEUR_GROUPES });
     else if (!dossier.color) await dossier.update({ color: COULEUR_GROUPES });
     return dossier?.id ?? null;
@@ -409,7 +410,7 @@ async function resolveTemplateFolderId() {
 async function ensureTemplateGroupActor() {
     let actor = game.actors.find(a => a.type === "group" && a.getFlag(MOD, "templateGroupToken") === true);
     if (!actor) {
-        if (game.actors.find(a => a.type === "group" && a.name === TEMPLATE_GROUP_NAME)) return null;
+        if (game.actors.find(a => a.type === "group" && memeNom(a.name, tl("Token à copier et rennomer")))) return null;
         try {
             const folderId = await resolveTemplateFolderId();
             actor = await Actor.create({
@@ -425,9 +426,9 @@ async function ensureTemplateGroupActor() {
                     displayName: CONST.TOKEN_DISPLAY_MODES.HOVER
                 }
             });
-            journal.debug(`[${MOD}] Acteur Groupe modèle « ${TEMPLATE_GROUP_NAME} » créé.`);
+            journal.debug(tl("[{0}] Acteur Groupe modèle « {1} » créé.", MOD, TEMPLATE_GROUP_NAME));
         } catch (e) {
-            journal.avert(`[${MOD}] Création de l'acteur Groupe modèle échouée :`, e);
+            journal.avert(tl("[{0}] Création de l'acteur Groupe modèle échouée :", MOD), e);
             return null;
         }
     }
@@ -436,7 +437,7 @@ async function ensureTemplateGroupActor() {
     try {
         const fid = await resolveTemplateFolderId();
         if (fid && actor.folder?.id !== fid) await actor.update({ folder: fid });
-    } catch (e) { journal.avert(`[${MOD}] Rangement du token modèle échoué :`, e); }
+    } catch (e) { journal.avert(tl("[{0}] Rangement du token modèle échoué :", MOD), e); }
 
     // NOTE : on ne dépose PLUS automatiquement le token modèle sur les scènes de
     // carte. L'acteur « modèle » reste disponible dans la barre latérale ; le MJ
@@ -450,8 +451,8 @@ async function ensureTemplateGroupActor() {
 async function removeLegacyAnchor() {
     const anchors = game.actors.filter(a => a.getFlag(MOD, "visionAnchor") === true);
     for (const a of anchors) {
-        try { await a.delete(); journal.debug(`[${MOD}] Ancre de vision obsolète supprimée.`); }
-        catch (e) { journal.avert(`[${MOD}] Suppression ancre échouée :`, e); }
+        try { await a.delete(); journal.debug(tl("[{0}] Ancre de vision obsolète supprimée.", MOD)); }
+        catch (e) { journal.avert(tl("[{0}] Suppression ancre échouée :", MOD), e); }
     }
 }
 
@@ -464,8 +465,8 @@ async function disableNativeSceneFog() {
         if (scene.tokenVision) upd.tokenVision = false;
         if (scene.fog?.exploration) upd["fog.exploration"] = false;
         if (Object.keys(upd).length) {
-            try { await scene.update(upd); journal.debug(`[${MOD}] Vision/brouillard natifs désactivés (scène ${scene.name}).`); }
-            catch (e) { journal.avert(`[${MOD}] Désactivation vision native échouée (scène ${sid}) :`, e); }
+            try { await scene.update(upd); journal.debug(tl("[{0}] Vision/brouillard natifs désactivés (scène {1}).", MOD, scene.name)); }
+            catch (e) { journal.avert(tl("[{0}] Désactivation vision native échouée (scène {1}) :", MOD, sid), e); }
         }
     }
 }
@@ -537,7 +538,7 @@ async function syncGroupOwnership(groupActor) {
         }
 
         if (Object.keys(updates).length) await groupActor.update(updates);
-    } catch (e) { journal.avert(`[${MOD}] Sync permissions du groupe échoué :`, e); }
+    } catch (e) { journal.avert(tl("[{0}] Sync permissions du groupe échoué :", MOD), e); }
 }
 
 // Renomme un groupe fraîchement dupliqué : applique le nom à la fiche (acteur)
@@ -547,22 +548,22 @@ async function promptRenameGroup(actor) {
     const suggested = actor.name?.replace(/\s*\(Copy\)\s*$/i, "").replace(/\s*\(copie\)\s*$/i, "") ?? "";
 
     const name = await DialogV2.wait({
-        window: { title: "Nommer le groupe d'expédition", icon: "fa-solid fa-flag" },
+        window: { title: tl("Nommer le groupe d'expédition"), icon: "fa-solid fa-flag" },
         position: { width: 420 },
-        content: `<p style="margin:0 0 6px;">Nom du nouveau groupe (appliqué à la fiche et au prototype token) :</p>
-                  <input type="text" name="scwm-gname" style="width:100%;" value="${_esc(suggested)}" placeholder="Nom du groupe" autofocus>`,
+        content: `<p style="margin:0 0 6px;">${tl("Nom du nouveau groupe (appliqué à la fiche et au prototype token) :")}</p>
+                  <input type="text" name="scwm-gname" style="width:100%;" value="${_esc(suggested)}" placeholder="${tl("Nom du groupe")}" autofocus>`,
         rejectClose: false,
         buttons: [
-            { action: "ok", label: "Renommer", icon: "fa-solid fa-check", default: true,
+            { action: "ok", label: tl("Renommer"), icon: "fa-solid fa-check", default: true,
               callback: (ev, btn) => (btn.form.elements["scwm-gname"]?.value ?? "").trim() },
-            { action: "skip", label: "Garder tel quel", icon: "fa-solid fa-xmark", callback: () => null }
+            { action: "skip", label: tl("Garder tel quel"), icon: "fa-solid fa-xmark", callback: () => null }
         ]
     }).catch(() => null);
 
     const update = { [`flags.${MOD}.-=templateGroupToken`]: null };   // la copie n'est plus un « modèle »
     if (name) { update.name = name; update["prototypeToken.name"] = name; }
     try { await actor.update(update); }
-    catch (e) { journal.avert(`[${MOD}] Renommage du groupe échoué :`, e); }
+    catch (e) { journal.avert(tl("[{0}] Renommage du groupe échoué :", MOD), e); }
 }
 
 async function openFogResetDialog() {
@@ -573,31 +574,31 @@ async function openFogResetDialog() {
         .sort((a, b) => a.name.localeCompare(b.name));
     const options = chars.length
         ? chars.map(a => `<option value="${a.id}">${_esc(a.name)}</option>`).join("")
-        : `<option value="">(aucun personnage joueur)</option>`;
+        : `<option value="">${tl("(aucun personnage joueur)")}</option>`;
 
     const content = `
     <div style="display:flex;flex-direction:column;gap:10px;">
-        <p style="margin:0;">Réinitialise le brouillard d'exploration de la carte des expéditions.</p>
+        <p style="margin:0;">${tl("Réinitialise le brouillard d'exploration de la carte des expéditions.")}</p>
         <div>
-            <label style="font-weight:600;">Personnage :</label>
+            <label style="font-weight:600;">${tl("Personnage :")}</label>
             <select name="scwm-fog-char" style="width:100%;">${options}</select>
         </div>
         <p style="margin:0;font-size:.85em;color:#c0392b;">
-            <i class="fa-solid fa-triangle-exclamation"></i> Action <strong>irréversible</strong> : les zones explorées effacées ne peuvent pas être récupérées.
+            ${tl("<i class=\"fa-solid fa-triangle-exclamation\"></i> Action <strong>irréversible</strong> : les zones explorées effacées ne peuvent pas être récupérées.")}
         </p>
     </div>`;
 
     const action = await DialogV2.wait({
-        window: { title: "Réinitialiser le brouillard d'expédition", icon: "fa-solid fa-eraser" },
+        window: { title: tl("Réinitialiser le brouillard d'expédition"), icon: "fa-solid fa-eraser" },
         position: { width: 460 },
         content,
         rejectClose: false,
         buttons: [
-            { action: "one", label: "Réinitialiser CE personnage", icon: "fa-solid fa-user",
+            { action: "one", label: tl("Réinitialiser CE personnage"), icon: "fa-solid fa-user",
               callback: (ev, btn) => ({ type: "one", id: btn.form.elements["scwm-fog-char"]?.value }) },
-            { action: "all", label: "Réinitialiser TOUT LE MONDE", icon: "fa-solid fa-triangle-exclamation",
+            { action: "all", label: tl("Réinitialiser TOUT LE MONDE"), icon: "fa-solid fa-triangle-exclamation",
               callback: () => ({ type: "all" }) },
-            { action: "cancel", label: "Annuler", icon: "fa-solid fa-xmark", callback: () => null }
+            { action: "cancel", label: tl("Annuler"), icon: "fa-solid fa-xmark", callback: () => null }
         ]
     }).catch(() => null);
     if (!action) return;
@@ -605,49 +606,49 @@ async function openFogResetDialog() {
     // ---- Un seul personnage ----
     if (action.type === "one") {
         const actor = game.actors.get(action.id);
-        if (!actor) { ui.notifications?.warn("Aucun personnage sélectionné."); return; }
+        if (!actor) { ui.notifications?.warn(tl("Aucun personnage sélectionné.")); return; }
         const ok = await DialogV2.confirm({
-            window: { title: "Confirmer" },
-            content: `<p>Effacer toutes les zones explorées de <strong>${_esc(actor.name)}</strong> ?</p>
-                      <p style="color:#c0392b;">Ce joueur reverra sa carte entièrement noire jusqu'à ré-exploration. Irréversible.</p>`,
+            window: { title: tl("Confirmer") },
+            content: `<p>${tl("Effacer toutes les zones explorées de <strong>{0}</strong> ?", _esc(actor.name))}</p>
+                      <p style="color:#c0392b;">${tl("Ce joueur reverra sa carte entièrement noire jusqu'à ré-exploration. Irréversible.")}</p>`,
             rejectClose: false
         }).catch(() => false);
-        if (ok) { await resetOneCharFog(action.id); ui.notifications?.info(`Brouillard réinitialisé pour ${actor.name}.`); }
+        if (ok) { await resetOneCharFog(action.id); ui.notifications?.info(tl("Brouillard réinitialisé pour {0}.", actor.name)); }
         return;
     }
 
     // ---- Tout le monde : plusieurs avertissements + confirmation à taper ----
     const w1 = await DialogV2.confirm({
-        window: { title: "⚠️ Réinitialiser TOUT LE MONDE" },
-        content: `<p>Tu es sur le point d'effacer le brouillard exploré de <strong>TOUS les personnages</strong> du serveur.</p>
-                  <p style="color:#c0392b;">Chaque joueur reverra la carte <strong>entièrement noire</strong> jusqu'à ce qu'elle soit ré-explorée.</p>`,
+        window: { title: tl("⚠️ Réinitialiser TOUT LE MONDE") },
+        content: `<p>${tl("Tu es sur le point d'effacer le brouillard exploré de <strong>TOUS les personnages</strong> du serveur.")}</p>
+                  <p style="color:#c0392b;">${tl("Chaque joueur reverra la carte <strong>entièrement noire</strong> jusqu'à ce qu'elle soit ré-explorée.")}</p>`,
         rejectClose: false
     }).catch(() => false);
     if (!w1) return;
 
     const w2 = await DialogV2.confirm({
-        window: { title: "⚠️ Action DÉFINITIVE" },
-        content: `<p style="color:#c0392b;font-weight:700;">Cette action est irréversible et NON annulable.</p>
-                  <p>Toute la progression d'exploration de la campagne sera perdue pour l'ensemble des personnages.</p>
-                  <p>Veux-tu vraiment continuer ?</p>`,
+        window: { title: tl("⚠️ Action DÉFINITIVE") },
+        content: `<p style="color:#c0392b;font-weight:700;">${tl("Cette action est irréversible et NON annulable.")}</p>
+                  <p>${tl("Toute la progression d'exploration de la campagne sera perdue pour l'ensemble des personnages.")}</p>
+                  <p>${tl("Veux-tu vraiment continuer ?")}</p>`,
         rejectClose: false
     }).catch(() => false);
     if (!w2) return;
 
     const typed = await DialogV2.wait({
-        window: { title: "Confirmation finale" },
-        content: `<p>Pour confirmer la réinitialisation <strong>totale</strong>, tape <code>RESET</code> ci-dessous :</p>
+        window: { title: tl("Confirmation finale") },
+        content: `<p>${tl("Pour confirmer la réinitialisation <strong>totale</strong>, tape <code>RESET</code> ci-dessous :")}</p>
                   <input type="text" name="scwm-confirm" style="width:100%;" placeholder="RESET" autofocus>`,
         rejectClose: false,
         buttons: [
-            { action: "ok", label: "Réinitialiser TOUT", icon: "fa-solid fa-eraser", default: true,
+            { action: "ok", label: tl("Réinitialiser TOUT"), icon: "fa-solid fa-eraser", default: true,
               callback: (ev, btn) => (btn.form.elements["scwm-confirm"]?.value ?? "").trim() },
-            { action: "cancel", label: "Annuler", icon: "fa-solid fa-xmark", callback: () => null }
+            { action: "cancel", label: tl("Annuler"), icon: "fa-solid fa-xmark", callback: () => null }
         ]
     }).catch(() => null);
 
-    if (typed !== "RESET") { ui.notifications?.warn("Réinitialisation annulée (confirmation incorrecte)."); return; }
+    if (typed !== "RESET") { ui.notifications?.warn(tl("Réinitialisation annulée (confirmation incorrecte).")); return; }
 
     await resetExpeditionFog();
-    ui.notifications?.info("Brouillard d'expédition réinitialisé pour tout le monde.");
+    ui.notifications?.info(tl("Brouillard d'expédition réinitialisé pour tout le monde."));
 }

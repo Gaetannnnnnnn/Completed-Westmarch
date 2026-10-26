@@ -19,10 +19,11 @@
 // ============================================================
 
 import { MOD } from "./const.js";
+import { tl, locale } from "./i18n.js";
 
 const PREFIXE = "[Completed Westmarch]";
 export const INVITATION = "https://discord.com/invite/sbHSVXDeMJ";
-export const CONTACT = `→ contacter le propriétaire du module : ouvre un ticket sur le Discord Althéia (${INVITATION}) en copiant ce message, plutôt qu'un message privé.`;
+export const CONTACT = tl("→ contacter le propriétaire du module : ouvre un ticket sur le Discord Althéia ({0}) en copiant ce message, plutôt qu'un message privé.", INVITATION);
 const STYLE = "color:#c9a227;font-weight:bold;";
 
 export function verbeux() {
@@ -67,7 +68,7 @@ function texteDe(a) {
 
 function signaler(niveau, a) {
     const { texte, detail } = texteDe(sansPrefixe(a));
-    problemesRecents.unshift({ quand: new Date().toLocaleTimeString("fr-FR"), niveau, texte, detail });
+    problemesRecents.unshift({ quand: new Date().toLocaleTimeString(locale()), niveau, texte, detail });
     problemesRecents.length = Math.min(problemesRecents.length, 20);
     if (!_relais) return;
     const cle = texte.slice(0, 300), maintenant = Date.now();
@@ -92,8 +93,8 @@ export const journal = {
 
 export function registerLogSettings() {
     game.settings.register(MOD, "verboseMode", {
-        name: "Mode verbeux (journal détaillé)",
-        hint: "Affiche dans la console du navigateur (F12) le détail de ce que fait le module. Utile pour signaler un problème. Les erreurs s'affichent toujours, même sans ce mode.",
+        name: tl("Mode verbeux (journal détaillé)"),
+        hint: tl("Affiche dans la console du navigateur (F12) le détail de ce que fait le module. Utile pour signaler un problème. Les erreurs s'affichent toujours, même sans ce mode."),
         scope: "client", config: false, type: Boolean, default: false
     });
 }
@@ -108,10 +109,10 @@ export function surveillerErreurs() {
     const duModule = (pile) => typeof pile === "string" && pile.includes(`/modules/${MOD}/`);
     window.addEventListener("error", (ev) => {
         const pile = ev.error?.stack ?? ev.filename ?? "";
-        if (duModule(pile) || duModule(ev.filename)) journal.erreur("Erreur inattendue :", ev.error ?? ev.message);
+        if (duModule(pile) || duModule(ev.filename)) journal.erreur(tl("Erreur inattendue :"), ev.error ?? ev.message);
     });
     window.addEventListener("unhandledrejection", (ev) => {
         const r = ev.reason;
-        if (duModule(r?.stack)) journal.erreur("Erreur inattendue (promesse) :", r);
+        if (duModule(r?.stack)) journal.erreur(tl("Erreur inattendue (promesse) :"), r);
     });
 }

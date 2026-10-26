@@ -19,6 +19,7 @@
 import { MOD } from "./const.js";
 
 import { journal } from "./log.js";
+import { tl } from "./i18n.js";
 const enabled = () => game.settings.get(MOD, "enableCompanions");
 const LINK = "companionLink";
 
@@ -41,21 +42,21 @@ const PATHS = {
 // ------------------------------------------------------------
 const DEFAULT_PROFILES = {
     "beast-of-the-land": {
-        label: "Bête de la terre (Rôdeur)", classId: "ranger", minLevel: 3,
+        label: tl("Bête de la terre (Rôdeur)"), classId: "ranger", minLevel: 3,
         fields: {
             "system.attributes.ac.flat": "13 + @master.abilities.wis.mod",
             "system.attributes.hp.max":  "5 + 5 * @level",
         },
     },
     "beast-of-the-sea": {
-        label: "Bête de la mer (Rôdeur)", classId: "ranger", minLevel: 3,
+        label: tl("Bête de la mer (Rôdeur)"), classId: "ranger", minLevel: 3,
         fields: {
             "system.attributes.ac.flat": "13 + @master.abilities.wis.mod",
             "system.attributes.hp.max":  "5 + 5 * @level",
         },
     },
     "beast-of-the-sky": {
-        label: "Bête du ciel (Rôdeur)", classId: "ranger", minLevel: 3,
+        label: tl("Bête du ciel (Rôdeur)"), classId: "ranger", minLevel: 3,
         fields: {
             "system.attributes.ac.flat": "14 + @master.abilities.wis.mod",
             "system.attributes.hp.max":  "4 + 4 * @level",
@@ -98,7 +99,7 @@ function evalFormula(formula, data) {
     const replaced = Roll.replaceFormulaData(String(formula ?? ""), data, { missing: "0" });
     if (/\dd\d/i.test(replaced)) return { dice: true, str: replaced };
     try { return { value: Roll.safeEval(replaced) }; }
-    catch (e) { journal.avert(`[${MOD}] Formule invalide « ${formula} » →`, e); return { value: null }; }
+    catch (e) { journal.avert(tl("[{0}] Formule invalide « {1} » →", MOD, formula), e); return { value: null }; }
 }
 
 // ------------------------------------------------------------
@@ -135,14 +136,14 @@ function computeUpdate(companion, link) {
 // Retourne { ok, msg }.
 async function applyResync(companion, { force = false } = {}) {
     try {
-        if (!companion) return { ok: false, msg: "Créature introuvable." };
+        if (!companion) return { ok: false, msg: tl("Créature introuvable.") };
         const link = getLink(companion);
-        if (!link?.masterUuid) return { ok: false, msg: "Cette créature n'est pas liée à un maître." };
+        if (!link?.masterUuid) return { ok: false, msg: tl("Cette créature n'est pas liée à un maître.") };
         const master = await fromUuid(link.masterUuid).catch(() => null);
-        if (!master) return { ok: false, msg: "Maître introuvable (UUID)." };
+        if (!master) return { ok: false, msg: tl("Maître introuvable (UUID).") };
 
         const res = computeUpdate(companion, { ...link, _master: master });
-        if (!res) return { ok: false, msg: "Profil inconnu." };
+        if (!res) return { ok: false, msg: tl("Profil inconnu.") };
 
         const prevValues = link.applied?.values ?? {};
         const finalUpdate = {};
@@ -171,7 +172,7 @@ async function applyResync(companion, { force = false } = {}) {
         return { ok: true, level: res.level };
     } catch (e) {
         journal.avert(`[${MOD}] applyResync :`, e);
-        return { ok: false, msg: "Erreur pendant la resynchronisation." };
+        return { ok: false, msg: tl("Erreur pendant la resynchronisation.") };
     }
 }
 
@@ -186,7 +187,7 @@ async function resyncCompanion(companion, { force = false } = {}) {
     if (!gm) {
         // Aucun MJ : on marque la créature désynchronisée (rejeu au prochain ready MJ).
         try { await companion.setFlag(MOD, `${LINK}.desynced`, true); } catch (e) {}
-        ui.notifications?.warn("Aucun MJ connecté : la resynchronisation sera rejouée quand un MJ se connectera.");
+        ui.notifications?.warn(tl("Aucun MJ connecté : la resynchronisation sera rejouée quand un MJ se connectera."));
         return;
     }
     await gm.query("westmarch.companionResync", { actorUuid: companion.uuid, force }).catch(() => null);
@@ -195,7 +196,7 @@ async function resyncCompanion(companion, { force = false } = {}) {
 // MJ : traite la requête de resync (écrit sur l'acteur/token).
 async function gmCompanionResync({ actorUuid, force }) {
     const companion = await fromUuid(actorUuid).catch(() => null);
-    if (!companion) return { ok: false, msg: "Créature introuvable." };
+    if (!companion) return { ok: false, msg: tl("Créature introuvable.") };
     return await applyResync(companion, { force: !!force });
 }
 
@@ -224,7 +225,7 @@ async function resyncForMaster(master, { force = false } = {}) {
         if (!force && link?.auto === false) continue;   // seulement les liens automatiques
         await resyncCompanion(c, { force });
     }
-    if (list.length) journal.debug(`[${MOD}] compagnons : ${list.length} resync pour ${master.name}`);
+    if (list.length) journal.debug(tl("[{0}] compagnons : {1} resync pour {2}", MOD, list.length, master.name));
 }
 
 // ============================================================
@@ -283,7 +284,7 @@ export function CompanionHooks() {
             const btn = document.createElement("button");
             btn.type = "button";
             btn.classList.add("header-control", "icon", "fa-solid", "fa-dna", "scwm-companion-btn");
-            btn.dataset.tooltip = hasLink(actor) ? "Compagnon évolutif (lié) — configurer" : "Compagnon évolutif — lier à un maître";
+            btn.dataset.tooltip = hasLink(actor) ? tl("Compagnon évolutif (lié) — configurer") : tl("Compagnon évolutif — lier à un maître");
             btn.style.color = hasLink(actor) ? "#7fd1a0" : "";
             btn.addEventListener("click", () => openCompanionDialog(actor));
             const title = header.querySelector(".window-title");
@@ -305,7 +306,7 @@ async function openCompanionDialog(companion) {
     const masters = (game.actors ?? []).filter(a => a.type === "character")
         .sort((a, b) => a.name.localeCompare(b.name));
     const curMaster = link.masterUuid ? await fromUuid(link.masterUuid).catch(() => null) : null;
-    const masterOpts = `<option value="">— aucun —</option>` + masters.map(m =>
+    const masterOpts = `<option value="">${tl("— aucun —")}</option>` + masters.map(m =>
         `<option value="${m.uuid}" ${curMaster?.uuid === m.uuid ? "selected" : ""}>${m.name}</option>`).join("");
     const profileOpts = Object.entries(profiles)
         .sort((a, b) => (a[1].label ?? a[0]).localeCompare(b[1].label ?? b[0], "fr", { sensitivity: "base" }))
@@ -313,19 +314,19 @@ async function openCompanionDialog(companion) {
 
     const content = `
     <div style="display:flex;flex-direction:column;gap:8px;">
-        <label>Maître (PJ)
+        <label>${tl("Maître (PJ)")}
             <select name="master" style="width:100%;">${masterOpts}</select></label>
-        <label>Profil
+        <label>${tl("Profil")}
             <select name="profile" style="width:100%;">${profileOpts}</select></label>
-        <label>Classe de référence (override, optionnel)
-            <input type="text" name="classId" value="${link.classId ?? ""}" placeholder="ex. ranger — vide = celle du profil / niveau total" style="width:100%;"></label>
+        <label>${tl("Classe de référence (override, optionnel)")}
+            <input type="text" name="classId" value="${link.classId ?? ""}" placeholder="${tl("ex. ranger — vide = celle du profil / niveau total")}" style="width:100%;"></label>
         <label style="display:flex;align-items:center;gap:8px;">
-            <input type="checkbox" name="auto" ${link.auto === false ? "" : "checked"}> Resynchroniser automatiquement à la montée de niveau du maître</label>
-        <p style="font-size:.8em;color:#999;margin:2px 0 0;">Les stats sont recalculées via le profil (CA, PV…). Complète l'activité « Summon » du système : maîtrise, attaques et DD restent gérés par elle.</p>
+            <input type="checkbox" name="auto" ${link.auto === false ? "" : "checked"}> ${tl("Resynchroniser automatiquement à la montée de niveau du maître")}</label>
+        <p style="font-size:.8em;color:#999;margin:2px 0 0;">${tl("Les stats sont recalculées via le profil (CA, PV…). Complète l'activité « Summon » du système : maîtrise, attaques et DD restent gérés par elle.")}</p>
     </div>`;
 
     await DialogV2.wait({
-        window: { title: `Compagnon évolutif — ${companion.name}`, icon: "fa-solid fa-dna" },
+        window: { title: tl("Compagnon évolutif — {0}", companion.name), icon: "fa-solid fa-dna" },
         position: { width: 460 },
         content,
         rejectClose: false,
@@ -334,7 +335,7 @@ async function openCompanionDialog(companion) {
               callback: async (ev, btn) => {
                   const f = btn.form;
                   const masterUuid = f.elements.master.value || null;
-                  if (!masterUuid) { ui.notifications?.warn("Choisissez un maître."); return; }
+                  if (!masterUuid) { ui.notifications?.warn(tl("Choisissez un maître.")); return; }
                   const newLink = {
                       masterUuid,
                       profile: f.elements.profile.value,
@@ -345,13 +346,13 @@ async function openCompanionDialog(companion) {
                   };
                   await companion.setFlag(MOD, LINK, newLink);
                   const r = await applyResync(companion, { force: true });
-                  ui.notifications?.[r.ok ? "info" : "warn"](r.ok ? `Compagnon resynchronisé (niveau ${r.level}).` : (r.msg ?? "Échec."));
+                  ui.notifications?.[r.ok ? "info" : "warn"](r.ok ? tl("Compagnon resynchronisé (niveau {0}).", r.level) : (r.msg ?? tl("Échec.")));
               } },
-            { action: "unlink", label: "Délier", icon: "fa-solid fa-link-slash",
-              callback: async () => { await companion.unsetFlag(MOD, LINK); ui.notifications?.info("Compagnon délié."); } },
-            { action: "resync", label: "Resync (forcé)", icon: "fa-solid fa-rotate",
-              callback: async () => { const r = await applyResync(companion, { force: true }); ui.notifications?.[r.ok ? "info" : "warn"](r.msg ?? `Resynchronisé (niveau ${r.level}).`); } },
-            { action: "cancel", label: "Fermer", icon: "fa-solid fa-xmark", callback: () => {} },
+            { action: "unlink", label: tl("Délier"), icon: "fa-solid fa-link-slash",
+              callback: async () => { await companion.unsetFlag(MOD, LINK); ui.notifications?.info(tl("Compagnon délié.")); } },
+            { action: "resync", label: tl("Resync (forcé)"), icon: "fa-solid fa-rotate",
+              callback: async () => { const r = await applyResync(companion, { force: true }); ui.notifications?.[r.ok ? "info" : "warn"](r.msg ?? tl("Resynchronisé (niveau {0}).", r.level)); } },
+            { action: "cancel", label: tl("Fermer"), icon: "fa-solid fa-xmark", callback: () => {} },
         ],
     }).catch(() => {});
 }
@@ -363,27 +364,27 @@ export async function openProfilesEditor() {
     const defaultsJson = foundry.utils.escapeHTML(JSON.stringify(DEFAULT_PROFILES, null, 2));
     const content = `
         <details open style="margin-bottom:8px;">
-            <summary style="cursor:pointer;font-weight:600;">Profils par défaut (livrés avec le module — lecture seule)</summary>
-            <p style="font-size:.8em;color:#999;margin:4px 0;">Toujours actifs. Copie-en un dans la zone ci-dessous et modifie-le pour le surcharger, ou crée un nouvel identifiant.</p>
+            <summary style="cursor:pointer;font-weight:600;">${tl("Profils par défaut (livrés avec le module — lecture seule)")}</summary>
+            <p style="font-size:.8em;color:#999;margin:4px 0;">${tl("Toujours actifs. Copie-en un dans la zone ci-dessous et modifie-le pour le surcharger, ou crée un nouvel identifiant.")}</p>
             <pre style="max-height:180px;overflow:auto;background:rgba(0,0,0,.25);padding:6px;border-radius:5px;font-size:.8em;">${defaultsJson}</pre>
         </details>
-        <p style="font-size:.85em;color:#999;margin:0 0 4px;">Tes profils ajoutés/surchargés (JSON) — un identifiant identique à un profil par défaut le remplace :</p>
+        <p style="font-size:.85em;color:#999;margin:0 0 4px;">${tl("Tes profils ajoutés/surchargés (JSON) — un identifiant identique à un profil par défaut le remplace :")}</p>
         <textarea name="json" rows="12" style="width:100%;font-family:monospace;">${foundry.utils.escapeHTML(JSON.stringify(current, null, 2))}</textarea>`;
     await DialogV2.wait({
-        window: { title: "Profils de compagnons", icon: "fa-solid fa-sliders" },
+        window: { title: tl("Profils de compagnons"), icon: "fa-solid fa-sliders" },
         position: { width: 560 },
         content,
         rejectClose: false,
         buttons: [
-            { action: "save", label: "Enregistrer", icon: "fa-solid fa-save", default: true,
+            { action: "save", label: tl("Enregistrer"), icon: "fa-solid fa-save", default: true,
               callback: async (ev, btn) => {
                   try {
                       const obj = JSON.parse(btn.form.elements.json.value || "{}");
                       await game.settings.set(MOD, "companionProfiles", obj);
-                      ui.notifications?.info("Profils enregistrés.");
+                      ui.notifications?.info(tl("Profils enregistrés."));
                   } catch (e) { ui.notifications?.error("JSON invalide : " + e.message); }
               } },
-            { action: "cancel", label: "Annuler", icon: "fa-solid fa-xmark", callback: () => {} },
+            { action: "cancel", label: tl("Annuler"), icon: "fa-solid fa-xmark", callback: () => {} },
         ],
     }).catch(() => {});
 }

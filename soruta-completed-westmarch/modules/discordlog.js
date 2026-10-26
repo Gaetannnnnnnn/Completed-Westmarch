@@ -1,5 +1,6 @@
 import { MOD } from "./const.js";
 import { journal, definirRelais, INVITATION } from "./log.js";
+import { tl } from "./i18n.js";
 // ============================================================
 // discordlog.js — Log des modifications vers un salon Discord
 // Envoie un message via webhook Discord pour : ajout/suppression
@@ -13,7 +14,7 @@ const INVENTORY_TYPES = ["weapon", "equipment", "consumable", "tool", "backpack"
 // via l'interrupteur « Niveaux & autres éléments ».
 const ELEMENT_TYPES = ["feat", "spell", "race", "class", "subclass", "background"];
 const ELEMENT_LABELS = {
-    feat: "aptitude/don", spell: "sort", race: "espèce", class: "classe",
+    feat: "aptitude/don", spell: "sort", race: tl("espèce"), class: "classe",
     subclass: "sous-classe", background: "historique"
 };
 
@@ -95,9 +96,9 @@ function isElectedSender() {
 // entre-temps n'est pas connu, la ligne peut donc parfois manquer ou se
 // répéter.)
 const THEMES = {
-    inventaire: "📦 Inventaire", elements: "📜 Aptitudes, sorts & éléments", progression: "⬆️ Progression",
-    monnaie: "💰 Monnaie", modifs: "✏️ Modifications de fiche", fiches: "🧾 Personnages",
-    scenes: "🗺️ Scènes", journaux: "📔 Journaux", problemes: "🚨 Problèmes du module"
+    inventaire: "📦 Inventaire", elements: tl("📜 Aptitudes, sorts & éléments"), progression: "⬆️ Progression",
+    monnaie: "💰 Monnaie", modifs: tl("✏️ Modifications de fiche"), fiches: "🧾 Personnages",
+    scenes: tl("🗺️ Scènes"), journaux: "📔 Journaux", problemes: tl("🚨 Problèmes du module")
 };
 let _dernierTheme = null;
 function ligneTheme(theme) {
@@ -152,11 +153,11 @@ function sendToDiscordDirect(content, theme) {
 // modifications faites par les joueurs eux-mêmes.
 function authorTag(userId) {
     const user = game.users.get(userId);
-    const name = user?.name ?? "Inconnu";
+    const name = user?.name ?? tl("Inconnu");
     if (user && !user.isGM) {
-        return `⚠️ *(par ${name} — joueur)*`;
+        return tl("⚠️ *(par {0} — joueur)*", name);
     }
-    return `*(par ${name})*`;
+    return tl("*(par {0})*", name);
 }
 
 // ============================================================
@@ -175,23 +176,23 @@ const IGNORE_ACTOR = [/^_id$/, /^_stats/, /^flags(\.|$)/, /^sort$/, /^ownership/
     /^system\.resources\.[^.]+\.value$/, /^system\.spells\.[^.]+\.value$/, /^system\.favorites/];
 
 const LIBELLES_ITEM = [["name", "nom"], ["img", "image"], ["system.description", "description"],
-    ["system.activities", "actions"], ["system.damage", "dégâts"], ["system.range", "portée"], ["system.uses", "utilisations"],
-    ["system.properties", "propriétés"], ["system.price", "prix"], ["system.weight", "poids"], ["system.rarity", "rareté"],
-    ["system.armor", "armure"], ["system.level", "niveau du sort"], ["system.school", "école"], ["system.duration", "durée"],
+    ["system.activities", "actions"], ["system.damage", tl("dégâts")], ["system.range", tl("portée")], ["system.uses", "utilisations"],
+    ["system.properties", tl("propriétés")], ["system.price", "prix"], ["system.weight", "poids"], ["system.rarity", tl("rareté")],
+    ["system.armor", "armure"], ["system.level", tl("niveau du sort")], ["system.school", tl("école")], ["system.duration", tl("durée")],
     ["system.target", "cible / zone"], ["system.activation", "activation"], ["system.attunement", "harmonisation requise"],
-    ["system.identified", "identifié"], ["system.type", "type"], ["system.requirements", "prérequis"], ["system.source", "source"],
-    ["system.magicalBonus", "bonus magique"], ["system.ability", "caractéristique"], ["system.save", "jet de sauvegarde"],
+    ["system.identified", tl("identifié")], ["system.type", "type"], ["system.requirements", tl("prérequis")], ["system.source", "source"],
+    ["system.magicalBonus", "bonus magique"], ["system.ability", tl("caractéristique")], ["system.save", tl("jet de sauvegarde")],
     ["system.formula", "formule"], ["system.advancement", "avancements"], ["system.identifier", "identifiant"],
-    ["system.strength", "force requise"], ["system.capacity", "capacité"], ["system.materials", "composantes"],
-    ["system.properties", "propriétés"], ["system.recharge", "recharge"], ["system.hd", "dés de vie"]];
+    ["system.strength", "force requise"], ["system.capacity", tl("capacité")], ["system.materials", "composantes"],
+    ["system.properties", tl("propriétés")], ["system.recharge", "recharge"], ["system.hd", tl("dés de vie")]];
 const LIBELLES_ACTOR = [["name", "nom"], ["img", "portrait"], ["system.details.biography", "biographie"],
-    ["system.details", "détails"], ["system.traits.languages", "langues"], ["system.traits.dr", "résistances"],
-    ["system.traits.di", "immunités"], ["system.traits.dv", "vulnérabilités"], ["system.traits.ci", "immunités aux états"],
-    ["system.traits.weaponProf", "maîtrises d'armes"], ["system.traits.armorProf", "maîtrises d'armures"],
+    ["system.details", tl("détails")], ["system.traits.languages", "langues"], ["system.traits.dr", tl("résistances")],
+    ["system.traits.di", tl("immunités")], ["system.traits.dv", tl("vulnérabilités")], ["system.traits.ci", tl("immunités aux états")],
+    ["system.traits.weaponProf", tl("maîtrises d'armes")], ["system.traits.armorProf", tl("maîtrises d'armures")],
     ["system.traits", "traits"], ["system.attributes.movement", "vitesses"], ["system.attributes.senses", "sens"],
-    ["system.attributes.ac", "CA"], ["system.attributes.hp", "PV max / bonus"], ["system.attributes.init", "initiative"],
-    ["system.attributes.spellcasting", "caractéristique d'incantation"], ["system.attributes", "attributs"],
-    ["system.bonuses", "bonus"], ["system.tools", "outils"], ["system.resources", "ressources"], ["system.spells", "emplacements de sorts"]];
+    ["system.attributes.ac", tl("CA")], ["system.attributes.hp", tl("PV max / bonus")], ["system.attributes.init", "initiative"],
+    ["system.attributes.spellcasting", tl("caractéristique d'incantation")], ["system.attributes", "attributs"],
+    ["system.bonuses", "bonus"], ["system.tools", "outils"], ["system.resources", "ressources"], ["system.spells", tl("emplacements de sorts")]];
 
 const _json = (v) => JSON.stringify(v ?? null);
 // Clés réellement modifiées (les fiches envoient souvent tout le formulaire).
@@ -220,9 +221,9 @@ function decrire(mods, libelles) {
         const sk = m.cle.match(/^system\.skills\.([a-z]{3})\.value$/);
         if (ab) {
             const nom = game.i18n?.localize?.(CONFIG.DND5E?.abilities?.[ab[1]]?.label ?? ab[1]) ?? ab[1];
-            lib = ab[2] === "value" ? nom : `maîtrise des JS de ${nom}`;
+            lib = ab[2] === "value" ? nom : tl("maîtrise des JS de {0}", nom);
         } else if (sk) {
-            lib = `maîtrise ${game.i18n?.localize?.(CONFIG.DND5E?.skills?.[sk[1]]?.label ?? sk[1]) ?? sk[1]}`;
+            lib = tl("maîtrise {0}", game.i18n?.localize?.(CONFIG.DND5E?.skills?.[sk[1]]?.label ?? sk[1]) ?? sk[1]);
         } else {
             const trouve = libelles.find(([pre]) => m.cle === pre || m.cle.startsWith(pre + "."));
             lib = trouve ? trouve[1] : m.cle.replace(/^system\./, "").split(".")[0];
@@ -233,8 +234,8 @@ function decrire(mods, libelles) {
     }
     return [...vus.values()];
 }
-const ITEM_LABEL_TYPE = { weapon: "arme", equipment: "équipement", consumable: "consommable", tool: "outil", loot: "objet",
-    container: "contenant", backpack: "contenant", feat: "aptitude/don", spell: "sort", race: "espèce", class: "classe",
+const ITEM_LABEL_TYPE = { weapon: "arme", equipment: tl("équipement"), consumable: "consommable", tool: "outil", loot: "objet",
+    container: "contenant", backpack: "contenant", feat: "aptitude/don", spell: "sort", race: tl("espèce"), class: "classe",
     subclass: "sous-classe", background: "historique" };
 
 // Problèmes du module (erreurs, fonctions cassées, conflits) : envoyés dans
@@ -245,8 +246,8 @@ function envoyerProbleme({ niveau, texte, detail }) {
     const u = game.user;
     const qui = u ? `${u.name}${u.isGM ? " (MJ)" : " (joueur)"}` : "?";
     const versions = `Foundry ${game.version ?? "?"} · ${game.system?.id ?? "?"} ${game.system?.version ?? ""} · module ${game.modules?.get(MOD)?.version ?? "?"}`;
-    const titre = niveau === "conflit" ? "🧩 **Conflit ou fonction cassée dans le module**" : "🚨 **Erreur dans le module**";
-    const corps = `${titre} — chez ${qui}\n> ${texte.slice(0, 900)}${detail ? `\n\`${detail.slice(0, 300)}\`` : ""}\n-# ${versions}\n➡️ **Contacter le propriétaire du module** : ouvrez un ticket sur le Discord Althéia (pas de message privé, merci) — ${INVITATION}`;
+    const titre = niveau === "conflit" ? tl("🧩 **Conflit ou fonction cassée dans le module**") : tl("🚨 **Erreur dans le module**");
+    const corps = tl("{0} — chez {1}\n> {2}{3}\n-# {4}\n➡️ **Contacter le propriétaire du module** : ouvrez un ticket sur le Discord Althéia (pas de message privé, merci) — {5}", titre, qui, texte.slice(0, 900), detail ? `\n\`${detail.slice(0, 300)}\`` : "", versions, INVITATION);
     postToWebhook(corps, "problemes");
 }
 
@@ -267,7 +268,7 @@ export function DiscordLogHooks() {
             sendToDiscord(`📦 **${actor.name}** a obtenu **${item.name}**${qty > 1 ? ` x${qty}` : ""}. ${authorTag(userId)}`, "inventaire");
         } else if (ELEMENT_TYPES.includes(item.type)) {
             if (!_log("logLevelsElements")) return;
-            sendToDiscord(`➕ **${actor.name}** a ajouté **${item.name}** (${ELEMENT_LABELS[item.type] ?? item.type}). ${authorTag(userId)}`, "elements");
+            sendToDiscord(tl("➕ **{0}** a ajouté **{1}** ({2}). {3}", actor.name, item.name, ELEMENT_LABELS[item.type] ?? item.type, authorTag(userId)), "elements");
         }
     });
 
@@ -280,7 +281,7 @@ export function DiscordLogHooks() {
             sendToDiscord(`🗑️ **${actor.name}** a perdu **${item.name}**. ${authorTag(userId)}`, "inventaire");
         } else if (ELEMENT_TYPES.includes(item.type)) {
             if (!_log("logLevelsElements")) return;
-            sendToDiscord(`➖ **${actor.name}** a retiré **${item.name}** (${ELEMENT_LABELS[item.type] ?? item.type}). ${authorTag(userId)}`, "elements");
+            sendToDiscord(tl("➖ **{0}** a retiré **{1}** ({2}). {3}", actor.name, item.name, ELEMENT_LABELS[item.type] ?? item.type, authorTag(userId)), "elements");
         }
     });
 
@@ -306,7 +307,7 @@ export function DiscordLogHooks() {
                 : (item.system.quantity?.value ?? 0);
             const after = quantityChange;
             if (before !== after) {
-                sendToDiscordDirect(`🔄 **${actor.name}** : quantité de **${item.name}** ${before} → ${after}. ${authorTag(userId)}`, "inventaire");
+                sendToDiscordDirect(tl("🔄 **{0}** : quantité de **{1}** {2} → {3}. {4}", actor.name, item.name, before, after, authorTag(userId)), "inventaire");
             }
         }
 
@@ -316,7 +317,7 @@ export function DiscordLogHooks() {
             if (mods.length) {
                 const lib = decrire(mods, LIBELLES_ITEM);
                 const nom = mods.find(m => m.cle === "name") ? `**${item.name}** → **${changes.name}**` : `**${item.name}**`;
-                sendToDiscordDirect(`✏️ **${actor.name}** a modifié ${nom} (${ITEM_LABEL_TYPE[item.type] ?? item.type}) : ${lib.join(", ")}. ${authorTag(userId)}`, "modifs");
+                sendToDiscordDirect(tl("✏️ **{0}** a modifié {1} ({2}) : {3}. {4}", actor.name, nom, ITEM_LABEL_TYPE[item.type] ?? item.type, lib.join(", "), authorTag(userId)), "modifs");
             }
         }
 
@@ -325,7 +326,7 @@ export function DiscordLogHooks() {
             const before = item.system.levels ?? 0;
             const after = changes.system.levels;
             if (before !== after) {
-                sendToDiscordDirect(`⬆️ **${actor.name}** : niveau de **${item.name}** ${before} → ${after}. ${authorTag(userId)}`, "progression");
+                sendToDiscordDirect(tl("⬆️ **{0}** : niveau de **{1}** {2} → {3}. {4}", actor.name, item.name, before, after, authorTag(userId)), "progression");
             }
         }
     });
@@ -340,7 +341,7 @@ export function DiscordLogHooks() {
         // ---- Modification de la fiche elle-même ----
         if (_log("logSheetEdits")) {
             const mods = clesModifiees(actor, changes, IGNORE_ACTOR);
-            if (mods.length) sendToDiscordDirect(`✏️ **${actor.name}** : fiche modifiée — ${decrire(mods, LIBELLES_ACTOR).join(", ")}. ${authorTag(userId)}`, "modifs");
+            if (mods.length) sendToDiscordDirect(tl("✏️ **{0}** : fiche modifiée — {1}. {2}", actor.name, decrire(mods, LIBELLES_ACTOR).join(", "), authorTag(userId)), "modifs");
         }
 
         // ---- XP ----
@@ -376,14 +377,14 @@ export function DiscordLogHooks() {
     // ============================================================
     Hooks.on("createActor", (actor, options, userId) => {
         if (!_log("logActors") || !_actorLogged(actor)) return;
-        const kind = actor.type === "npc" ? "PNJ" : "Personnage";
-        sendToDiscord(`🆕 ${kind} créé : **${actor.name}**. ${authorTag(userId)}`, "fiches");
+        const kind = actor.type === "npc" ? tl("PNJ") : tl("Personnage");
+        sendToDiscord(tl("🆕 {0} créé : **{1}**. {2}", kind, actor.name, authorTag(userId)), "fiches");
     });
 
     Hooks.on("deleteActor", (actor, options, userId) => {
         if (!_log("logActors") || !_actorLogged(actor)) return;
-        const kind = actor.type === "npc" ? "PNJ" : "Personnage";
-        sendToDiscord(`❌ ${kind} supprimé : **${actor.name}**. ${authorTag(userId)}`, "fiches");
+        const kind = actor.type === "npc" ? tl("PNJ") : tl("Personnage");
+        sendToDiscord(tl("❌ {0} supprimé : **{1}**. {2}", kind, actor.name, authorTag(userId)), "fiches");
     });
 
     // ============================================================
@@ -391,12 +392,12 @@ export function DiscordLogHooks() {
     // ============================================================
     Hooks.on("createScene", (scene, options, userId) => {
         if (!_log("logScenes")) return;
-        sendToDiscord(`🗺️ Scène créée : **${scene.name}**. ${authorTag(userId)}`, "scenes");
+        sendToDiscord(tl("🗺️ Scène créée : **{0}**. {1}", scene.name, authorTag(userId)), "scenes");
     });
 
     Hooks.on("deleteScene", (scene, options, userId) => {
         if (!_log("logScenes")) return;
-        sendToDiscord(`🗺️❌ Scène supprimée : **${scene.name}**. ${authorTag(userId)}`, "scenes");
+        sendToDiscord(tl("🗺️❌ Scène supprimée : **{0}**. {1}", scene.name, authorTag(userId)), "scenes");
     });
 
     // ============================================================
@@ -404,11 +405,11 @@ export function DiscordLogHooks() {
     // ============================================================
     Hooks.on("createJournalEntry", (entry, options, userId) => {
         if (!_log("logJournals")) return;
-        sendToDiscord(`📔 Journal créé : **${entry.name}**. ${authorTag(userId)}`, "journaux");
+        sendToDiscord(tl("📔 Journal créé : **{0}**. {1}", entry.name, authorTag(userId)), "journaux");
     });
 
     Hooks.on("deleteJournalEntry", (entry, options, userId) => {
         if (!_log("logJournals")) return;
-        sendToDiscord(`📔❌ Journal supprimé : **${entry.name}**. ${authorTag(userId)}`, "journaux");
+        sendToDiscord(tl("📔❌ Journal supprimé : **{0}**. {1}", entry.name, authorTag(userId)), "journaux");
     });
 }

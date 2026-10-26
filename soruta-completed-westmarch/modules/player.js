@@ -2,6 +2,7 @@ import { MOD } from "./const.js";
 import { ReloadChat } from './chat.js';
 import { startSessionLog } from './session.js';
 import { partyFeatureEnabled } from './settings.js';
+import { tl } from "./i18n.js";
 
 var appPlayerList = undefined;
 
@@ -31,7 +32,7 @@ export function PlayerHooks() {
         $(html).find('.player.gm').each((index, gmElement) => {
             var user = game.users.get(gmElement.dataset.userId);
             if(user.getFlag(MOD, 'partyId') === user.id) { 
-                gmElement.insertAdjacentHTML('beforebegin', '<hr style="margin: 0px; border: 1px solid '+ getComputedStyle(gmElement).getPropertyValue("--player-color").trim()+'"/>');
+                gmElement.insertAdjacentHTML('beforebegin', `<hr style="margin: 0px; border: 1px solid `+ getComputedStyle(gmElement).getPropertyValue("--player-color").trim()+'"/>');
 
                 var firstElement = gmElement;
                 $(html).find('.player').each((index, playerElement) => {
@@ -45,7 +46,7 @@ export function PlayerHooks() {
                         playerElement.remove();
                     }
                 });
-                firstElement.insertAdjacentHTML('afterend', '<hr style="margin: 0px; border: 1px solid '+getComputedStyle(gmElement).getPropertyValue("--player-color").trim()+'"/>');
+                firstElement.insertAdjacentHTML('afterend', `<hr style="margin: 0px; border: 1px solid `+getComputedStyle(gmElement).getPropertyValue("--player-color").trim()+'"/>');
             }
         });
     });
@@ -57,7 +58,7 @@ export function PlayerHooks() {
 
         // ---- Créer une party (GM uniquement, sur soi-même) ----
         contextMenu.push({
-            name: "Create Party",
+            name: tl("Create Party"),
             icon: '<i class="fa-solid fa-users"></i>',
             callback: li => {
                 game.user.setFlag(MOD, "partyId", game.user.id).then(() => {
@@ -71,7 +72,7 @@ export function PlayerHooks() {
 
         // ---- Rejoindre la party d'un GM ----
         contextMenu.push({
-            name: "Join Party",
+            name: tl("Join Party"),
             icon: '<i class="fa-solid fa-user-plus"></i>',
             callback: li => {
                 game.user.setFlag(MOD, "partyId", li.dataset.userId).then(() => {
@@ -84,7 +85,7 @@ export function PlayerHooks() {
 
         // ---- Quitter sa party (dissout la party si c'est le GM chef) ----
         contextMenu.push({
-            name: "Leave Party",
+            name: tl("Leave Party"),
             icon: '<i class="fa-solid fa-user-minus"></i>',
             callback: li => {
                 if(game.user.isGM && game.user.id == game.user.getFlag(MOD, 'partyId')) {
@@ -104,7 +105,7 @@ export function PlayerHooks() {
 
         // ---- Expulser un joueur de la party (GM uniquement) ----
         contextMenu.push({
-            name: "Kick Party",
+            name: tl("Kick Party"),
             icon: '<i class="fa-solid fa-users-slash"></i>',
             callback: li => {
                 game.users.get(li.dataset.userId).unsetFlag(MOD, "partyId").then(() => {
@@ -117,7 +118,7 @@ export function PlayerHooks() {
 
         // ---- Inviter un joueur dans sa party (GM uniquement) ----
         contextMenu.push({
-            name: "Invite Party",
+            name: tl("Invite Party"),
             icon: '<i class="fa-solid fa-user-tag"></i>',
             callback: li => {
                 game.users.get(li.dataset.userId).setFlag(MOD, "partyId", game.user.getFlag(MOD, 'partyId')).then(() => {
@@ -130,13 +131,13 @@ export function PlayerHooks() {
 
         // ---- Rejoindre la scène d'un membre de sa party ----
         contextMenu.push({
-            name: "Join Scene",
+            name: tl("Join Scene"),
             icon: '<i class="fa-solid fa-door-open"></i>',
             callback: async li => {
                 const targetUser = game.users.get(li.dataset.userId);
                 const targetSceneId = targetUser.viewedScene;
                 if (!targetSceneId) {
-                    ui.notifications.warn("Ce joueur n'est sur aucune scène.");
+                    ui.notifications.warn(tl("Ce joueur n'est sur aucune scène."));
                     return;
                 }
 
@@ -146,7 +147,7 @@ export function PlayerHooks() {
                 // directement notre propre scène, sans passer par le socket.
                 const scene = game.scenes.get(targetSceneId);
                 if (!scene) {
-                    ui.notifications.warn("Scène introuvable.");
+                    ui.notifications.warn(tl("Scène introuvable."));
                     return;
                 }
                 scene.view();

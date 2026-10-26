@@ -38,6 +38,7 @@
 import { MOD } from "./const.js";
 import { journal } from "./log.js";
 import { expeditionSceneIds, getExplored, zonesMap } from "./map.js";
+import { tl, locale, memeNom } from "./i18n.js";
 
 const MEJ = "monks-enhanced-journal";
 const NONE = () => CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE;
@@ -45,37 +46,37 @@ const OBSERVER = () => CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER;
 const HISTORIQUE_AFFICHE = 30;  // lignes écrites dans le texte de la page
 
 export const TYPES = {
-    person:       { label: "PNJ",          pluriel: "PNJ",           icon: "fa-user",         packKey: "mondePackPerson", packFolderKey: "mondePackPersonFolder", packLabel: "Registre — PNJ" },
-    place:        { label: "Lieu",         pluriel: "Lieux",         icon: "fa-location-dot", dossierKey: "mondeFolderPlace", dossier: "Lieux" },
-    organization: { label: "Organisation", pluriel: "Organisations", icon: "fa-people-group", packKey: "mondePackOrg", packFolderKey: "mondePackOrgFolder", packLabel: "Registre — Organisations" }
+    person:       { label: tl("PNJ"),      pluriel: tl("PNJ"),           icon: "fa-user",         packKey: "mondePackPerson", packFolderKey: "mondePackPersonFolder", packLabel: tl("Registre — PNJ"), packLabelFr: tl("Registre — PNJ") },
+    place:        { label: tl("Lieu"),         pluriel: tl("Lieux"),         icon: "fa-location-dot", dossierKey: "mondeFolderPlace", dossier: tl("Lieux") },
+    organization: { label: tl("Organisation"), pluriel: tl("Organisations"), icon: "fa-people-group", packKey: "mondePackOrg", packFolderKey: "mondePackOrgFolder", packLabel: tl("Registre — Organisations"), packLabelFr: tl("Registre — Organisations") }
 };
 
 export const RUBRIQUES_DEFAUT = {
     person: [
-        { id: "phrase",    label: "En une phrase",   secret: false },
-        { id: "role",      label: "Rôle",            secret: false },
-        { id: "ou",        label: "Où le trouver",   secret: false },
-        { id: "veut",      label: "Ce qu'il veut",   secret: true  },
-        { id: "sait",      label: "Ce qu'il sait",   secret: true  },
-        { id: "accroches", label: "Accroches",       secret: true  },
-        { id: "etat",      label: "État actuel",     secret: true  }
+        { id: "phrase",    label: tl("En une phrase"),   secret: false },
+        { id: "role",      label: tl("Rôle"),            secret: false },
+        { id: "ou",        label: tl("Où le trouver"),   secret: false },
+        { id: "veut",      label: tl("Ce qu'il veut"),   secret: true  },
+        { id: "sait",      label: tl("Ce qu'il sait"),   secret: true  },
+        { id: "accroches", label: tl("Accroches"),       secret: true  },
+        { id: "etat",      label: tl("État actuel"),     secret: true  }
     ],
     place: [
-        { id: "phrase",    label: "En une phrase",   secret: false },
-        { id: "ambiance",  label: "Ambiance",        secret: false },
-        { id: "qui",       label: "Qui s'y trouve",  secret: false },
-        { id: "quoi",      label: "Ce qu'on y fait", secret: false },
-        { id: "dangers",   label: "Dangers",         secret: true  },
-        { id: "secrets",   label: "Secrets",         secret: true  },
-        { id: "etat",      label: "État actuel",     secret: true  }
+        { id: "phrase",    label: tl("En une phrase"),   secret: false },
+        { id: "ambiance",  label: tl("Ambiance"),        secret: false },
+        { id: "qui",       label: tl("Qui s'y trouve"),  secret: false },
+        { id: "quoi",      label: tl("Ce qu'on y fait"), secret: false },
+        { id: "dangers",   label: tl("Dangers"),         secret: true  },
+        { id: "secrets",   label: tl("Secrets"),         secret: true  },
+        { id: "etat",      label: tl("État actuel"),     secret: true  }
     ],
     organization: [
-        { id: "phrase",    label: "En une phrase",   secret: false },
-        { id: "objectifs", label: "Objectifs",       secret: false },
-        { id: "membres",   label: "Membres clés",    secret: false },
-        { id: "ou",        label: "Où les trouver",  secret: false },
-        { id: "secrets",   label: "Secrets",         secret: true  },
-        { id: "etat",      label: "État actuel",     secret: true  }
+        { id: "phrase",    label: tl("En une phrase"),   secret: false },
+        { id: "objectifs", label: tl("Objectifs"),       secret: false },
+        { id: "membres",   label: tl("Membres clés"),    secret: false },
+        { id: "ou",        label: tl("Où les trouver"),  secret: false },
+        { id: "secrets",   label: tl("Secrets"),         secret: true  },
+        { id: "etat",      label: tl("État actuel"),     secret: true  }
     ]
 };
 
@@ -88,56 +89,56 @@ export const MONDE_KEYS = new Set(["mondeRubriques"]);
 export function registerMondeSettings() {
     const w = (type, def, extra = {}) => ({ scope: "world", config: false, type, default: def, requiresReload: false, ...extra });
     game.settings.register(MOD, "mondeEnabled", w(Boolean, false, {
-        name: "Registre du monde",
-        hint: "Fiches de PNJ, lieux et organisations rédigées sur un modèle commun dans Monk's Enhanced Journal, reliées aux acteurs, aux scènes et à la carte du monde. Nécessite Monk's Enhanced Journal."
+        name: tl("Registre du monde"),
+        hint: tl("Fiches de PNJ, lieux et organisations rédigées sur un modèle commun dans Monk's Enhanced Journal, reliées aux acteurs, aux scènes et à la carte du monde. Nécessite Monk's Enhanced Journal.")
     }));
     game.settings.register(MOD, "mondeDecouverte", w(Boolean, true, {
-        name: "Découverte des lieux par le brouillard",
-        hint: "Un lieu dont l'épingle est posée sur la carte du monde devient lisible par un joueur dès que l'un de ses personnages a exploré cette case (ou si la case est une zone toujours éclairée). L'épingle apparaît alors sur sa carte ; les secrets MJ restent cachés. Réglable lieu par lieu (auto / toujours caché / visible par tous)."
+        name: tl("Découverte des lieux par le brouillard"),
+        hint: tl("Un lieu dont l'épingle est posée sur la carte du monde devient lisible par un joueur dès que l'un de ses personnages a exploré cette case (ou si la case est une zone toujours éclairée). L'épingle apparaît alors sur sa carte ; les secrets MJ restent cachés. Réglable lieu par lieu (auto / toujours caché / visible par tous).")
     }));
     game.settings.register(MOD, "mondeDecouverteMessage", w(Boolean, true, {
-        name: "Prévenir le joueur d'un lieu découvert",
-        hint: "Message privé au joueur dans le chat (« Nouveau lieu découvert : … ») quand un lieu devient visible pour lui."
+        name: tl("Prévenir le joueur d'un lieu découvert"),
+        hint: tl("Message privé au joueur dans le chat (« Nouveau lieu découvert : … ») quand un lieu devient visible pour lui.")
     }));
     game.settings.register(MOD, "mondeBanniere", w(Boolean, true, {
-        name: "Bannière « Nouveau lieu découvert »",
-        hint: "Quand un lieu devient visible pour un joueur, son nom s'affiche en grand, en lettres dorées sans fond, au centre de son écran, puis disparaît en fondu (façon jeu en monde ouvert). Seuls les joueurs concernés et connectés la voient."
+        name: tl("Bannière « Nouveau lieu découvert »"),
+        hint: tl("Quand un lieu devient visible pour un joueur, son nom s'affiche en grand, en lettres dorées sans fond, au centre de son écran, puis disparaît en fondu (façon jeu en monde ouvert). Seuls les joueurs concernés et connectés la voient.")
     }));
     game.settings.register(MOD, "mondeBanniereSon", w(String, "", {
-        name: "Son de la bannière",
-        hint: "Fichier audio joué à l'apparition de la bannière (facultatif). Laisser vide pour aucun son."
+        name: tl("Son de la bannière"),
+        hint: tl("Fichier audio joué à l'apparition de la bannière (facultatif). Laisser vide pour aucun son.")
     }));
     game.settings.register(MOD, "mondeEpinglesPartout", w(Boolean, true, {
-        name: "Épingles visibles dans tous les modes",
-        hint: "Sur la carte du monde, les épingles des lieux restent affichées quel que soit l'outil choisi (jetons, mesures…), pas seulement dans « Notes de journal ». Le nom du lieu s'affiche au survol de l'épingle. Les joueurs ne voient que les lieux qu'ils ont découverts."
+        name: tl("Épingles visibles dans tous les modes"),
+        hint: tl("Sur la carte du monde, les épingles des lieux restent affichées quel que soit l'outil choisi (jetons, mesures…), pas seulement dans « Notes de journal ». Le nom du lieu s'affiche au survol de l'épingle. Les joueurs ne voient que les lieux qu'ils ont découverts.")
     }));
     game.settings.register(MOD, "mondeTailleEpingle", w(Number, 32, {
-        name: "Taille des épingles de lieux",
-        hint: "Taille affichée des épingles sur la carte, en pixels de carte (8 à 512 ; 32 par défaut). Chaque client l'applique aussitôt, sans recharger.",
+        name: tl("Taille des épingles de lieux"),
+        hint: tl("Taille affichée des épingles sur la carte, en pixels de carte (8 à 512 ; 32 par défaut). Chaque client l'applique aussitôt, sans recharger."),
         onChange: () => rafraichirEpingles()
     }));
-    game.settings.register(MOD, "mondeEpinglesMigrees", w(Boolean, false, { name: "Épingles de lieux converties (interne)" }));
+    game.settings.register(MOD, "mondeEpinglesMigrees", w(Boolean, false, { name: tl("Épingles de lieux converties (interne)") }));
     game.settings.register(MOD, "mondePackPerson", w(String, "", {
-        name: "Compendium des fiches PNJ",
-        hint: "Compendium de journaux (monde) où ranger les fiches PNJ. Chargé seulement à la demande, il n'alourdit pas la connexion. Vide : le module crée « Registre — PNJ » au premier besoin."
+        name: tl("Compendium des fiches PNJ"),
+        hint: tl("Compendium de journaux (monde) où ranger les fiches PNJ. Chargé seulement à la demande, il n'alourdit pas la connexion. Vide : le module crée « Registre — PNJ » au premier besoin.")
     }));
     game.settings.register(MOD, "mondePackOrg", w(String, "", {
-        name: "Compendium des fiches d'organisations",
-        hint: "Compendium de journaux (monde) où ranger les fiches d'organisations. Vide : le module crée « Registre — Organisations » au premier besoin."
+        name: tl("Compendium des fiches d'organisations"),
+        hint: tl("Compendium de journaux (monde) où ranger les fiches d'organisations. Vide : le module crée « Registre — Organisations » au premier besoin.")
     }));
     game.settings.register(MOD, "mondePackPersonFolder", w(String, "", {
-        name: "Dossier des fiches PNJ dans le compendium",
-        hint: "Nom d'un dossier DANS le compendium des PNJ où ranger les nouvelles fiches (créé s'il n'existe pas). Vide : racine du compendium."
+        name: tl("Dossier des fiches PNJ dans le compendium"),
+        hint: tl("Nom d'un dossier DANS le compendium des PNJ où ranger les nouvelles fiches (créé s'il n'existe pas). Vide : racine du compendium.")
     }));
     game.settings.register(MOD, "mondePackOrgFolder", w(String, "", {
-        name: "Dossier des fiches d'organisations dans le compendium",
-        hint: "Nom d'un dossier DANS le compendium des organisations (créé s'il n'existe pas). Vide : racine du compendium."
+        name: tl("Dossier des fiches d'organisations dans le compendium"),
+        hint: tl("Nom d'un dossier DANS le compendium des organisations (créé s'il n'existe pas). Vide : racine du compendium.")
     }));
-    game.settings.register(MOD, "mondeFolderPlace", w(String, "Lieux", {
-        name: "Dossier des fiches de lieux",
-        hint: "Nom du dossier de journaux (dans le monde) où ranger les nouvelles fiches de lieux, créé s'il n'existe pas. Les lieux restent dans le monde : une épingle de carte ne peut pas pointer vers un compendium."
+    game.settings.register(MOD, "mondeFolderPlace", w(String, tl("Lieux"), {
+        name: tl("Dossier des fiches de lieux"),
+        hint: tl("Nom du dossier de journaux (dans le monde) où ranger les nouvelles fiches de lieux, créé s'il n'existe pas. Les lieux restent dans le monde : une épingle de carte ne peut pas pointer vers un compendium.")
     }));
-    game.settings.register(MOD, "mondeRubriques", w(Object, RUBRIQUES_DEFAUT, { name: "Rubriques des fiches" }));
+    game.settings.register(MOD, "mondeRubriques", w(Object, RUBRIQUES_DEFAUT, { name: tl("Rubriques des fiches") }));
 }
 
 const lire = (k, def) => { try { return game.settings.get(MOD, k); } catch { return def; } };
@@ -189,7 +190,7 @@ export function empreinte(s) {
     return h.toString(36);
 }
 
-const NIVEAUX_RELATION = { "-3": "Haine totale", "-2": "Hostilité", "-1": "Méfiance", "0": "Neutre", "1": "Sympathie", "2": "Amitié", "3": "Loyauté" };
+const NIVEAUX_RELATION = { "-3": tl("Haine totale"), "-2": tl("Hostilité"), "-1": tl("Méfiance"), "0": tl("Neutre"), "1": tl("Sympathie"), "2": tl("Amitié"), "3": tl("Loyauté") };
 
 const secretHtml = (id, revele, inner) =>
     `<section class="secret${revele ? " revealed" : ""}" id="secret-scwm-${id}">${inner}</section>`;
@@ -207,23 +208,23 @@ export function genererContenu(type, fiche, rubriques, ctx = {}) {
     }
     if (type === "person" && ctx.relationsPJ?.length) {
         const li = ctx.relationsPJ.map(x => {
-            const niv = NIVEAUX_RELATION[String(x.niveau ?? 0)] ?? "Neutre";
+            const niv = NIVEAUX_RELATION[String(x.niveau ?? 0)] ?? tl("Neutre");
             const signe = Number(x.niveau) > 0 ? `+${x.niveau}` : `${x.niveau ?? 0}`;
             return `<li><strong>${esc(x.pj)}</strong> — ${niv} (${signe})${x.type ? ` · ${esc(x.type)}` : ""}${x.note ? ` · ${esc(x.note)}` : ""}</li>`;
         }).join("");
-        parts.push(secretHtml("relations", rev.has("relations"), `<h3>Relations avec les PJ</h3><ul>${li}</ul>`));
+        parts.push(secretHtml("relations", rev.has("relations"), `<h3>${tl("Relations avec les PJ")}</h3><ul>${li}</ul>`));
     }
     if (type === "place" && ctx.scenes?.length) {
         const li = ctx.scenes.map(s => `<li>@UUID[Scene.${s.id}]{${esc(s.name)}}</li>`).join("");
-        parts.push(secretHtml("cartes", rev.has("cartes"), `<h3>Cartes locales</h3><ul>${li}</ul>`));
+        parts.push(secretHtml("cartes", rev.has("cartes"), `<h3>${tl("Cartes locales")}</h3><ul>${li}</ul>`));
     }
     if (String(fiche?.texteLibre ?? "").trim()) {
-        parts.push(`<h3>Notes</h3>${fiche.texteLibre}`);
+        parts.push(`<h3>${tl("Notes")}</h3>${fiche.texteLibre}`);
     }
     const hist = (fiche?.historique ?? []).slice(-HISTORIQUE_AFFICHE).reverse();
     if (hist.length) {
         const li = hist.map(h => `<li><strong>${esc(h.date)}</strong> — ${esc(h.mj)}${h.pj?.length ? ` — ${esc(h.pj.join(", "))}` : ""}${h.texte ? ` : ${esc(h.texte)}` : ""}</li>`).join("");
-        parts.push(secretHtml("historique", rev.has("historique"), `<h3>Historique des sessions</h3><ul>${li}</ul>`));
+        parts.push(secretHtml("historique", rev.has("historique"), `<h3>${tl("Historique des sessions")}</h3><ul>${li}</ul>`));
     }
     return parts.join("\n");
 }
@@ -258,7 +259,7 @@ async function packPour(type) {
     let p = packDe(type);
     if (p) return p;
     const label = TYPES[type].packLabel;
-    p = game.packs.find(x => x.documentName === "JournalEntry" && x.metadata?.packageType === "world" && (x.metadata?.label === label || x.title === label)) ?? null;
+    p = game.packs.find(x => x.documentName === "JournalEntry" && x.metadata?.packageType === "world" && (memeNom(x.metadata?.label, TYPES[type].packLabelFr) || memeNom(x.title, TYPES[type].packLabelFr))) ?? null;
     if (!p) {
         const Cls = foundry.documents?.collections?.CompendiumCollection ?? globalThis.CompendiumCollection;
         p = await Cls.createCompendium({ label, type: "JournalEntry" });
@@ -267,7 +268,7 @@ async function packPour(type) {
     return p;
 }
 function verifierDeverrouille(pack) {
-    if (pack?.locked) throw new Error(`Le compendium « ${pack.title ?? pack.collection} » est verrouillé : déverrouille-le (clic droit sur le compendium) pour y écrire.`);
+    if (pack?.locked) throw new Error(tl("Le compendium « {0} » est verrouillé : déverrouille-le (clic droit sur le compendium) pour y écrire.", pack.title ?? pack.collection));
 }
 
 // Toutes les fiches : monde + compendiums PNJ / organisations (chargés ici,
@@ -281,7 +282,7 @@ export async function chargerFiches() {
         vus.add(p.collection);
         try {
             for (const d of await p.getDocuments()) if (typeDe(d)) out.push({ entry: d, page: pageDe(d), type: typeDe(d) });
-        } catch (e) { journal.avert(`[${MOD}] lecture du compendium ${p.collection}`, e); }
+        } catch (e) { journal.avert(tl("[{0}] lecture du compendium {1}", MOD, p.collection), e); }
     }
     return out;
 }
@@ -374,7 +375,7 @@ function caseDe(scene, x, y) {
 
 export async function voirSurLaCarte(entry) {
     const p = epinglesMonde(entry)[0] ?? epinglesDe(entry)[0];
-    if (!p) { ui.notifications?.warn(`« ${entry?.name} » n'a pas d'épingle sur une carte.`); return; }
+    if (!p) { ui.notifications?.warn(tl("« {0} » n'a pas d'épingle sur une carte.", entry?.name)); return; }
     if (canvas?.scene?.id !== p.scene.id) await p.scene.view();
     try { await canvas.animatePan({ x: p.note.x, y: p.note.y, scale: Math.max(canvas.stage.scale.x, 1) }); } catch {}
     try { canvas.ping?.({ x: p.note.x, y: p.note.y }); } catch {}
@@ -465,7 +466,7 @@ export function afficherEpinglesPartout() {
         if (toggle) return;   // déjà affichées (et cliquables) par Foundry
         if (calque.objects) calque.objects.visible = true;
         calque.interactiveChildren = true;
-    } catch (e) { journal.avert(`[${MOD}] épingles`, e); }
+    } catch (e) { journal.avert(tl("[{0}] épingles", MOD), e); }
 }
 
 // Foundry dessine chaque note sur un carré sombre (fond de la ControlIcon) :
@@ -501,7 +502,7 @@ export async function viderEtiquettes(entry, ancien) {
     for (const { scene, note } of epinglesDe(entry)) {
         const t = String(note.text ?? "");
         if (!t) continue;
-        const fige = ancien !== undefined ? t === ancien : (t !== entry.name && /^Nouveau (lieu|pnj|organisation)$/i.test(t));
+        const fige = ancien !== undefined ? t === ancien : (t !== entry.name && /^(Nouveaux? (lieu|pnj|organisation)|Nouvelle (organisation|fiche)|New (place|npc|organisation|sheet))$/i.test(t));
         if (fige) await scene.updateEmbeddedDocuments("Note", [{ _id: note.id, text: "" }]);
     }
 }
@@ -511,16 +512,16 @@ export async function viderEtiquettes(entry, ancien) {
 // l'épingle n'est pas figée : elle suit le nom du journal.
 export async function placerSurLaCarte(entry, sceneId) {
     const scene = game.scenes.get(sceneId ?? cartesDuMonde()[0]);
-    if (!scene) { ui.notifications?.warn("Aucune carte du monde : déclare-la dans Paramètres → Carte des expéditions."); return false; }
+    if (!scene) { ui.notifications?.warn(tl("Aucune carte du monde : déclare-la dans Paramètres → Carte des expéditions.")); return false; }
     if (canvas?.scene?.id !== scene.id) await scene.view();
-    ui.notifications?.info(`Clique sur la carte à l'emplacement de « ${entry.name} » (Échap ou clic droit pour annuler).`);
+    ui.notifications?.info(tl("Clique sur la carte à l'emplacement de « {0} » (Échap ou clic droit pour annuler).", entry.name));
     const pt = await attendreClicCarte();
-    if (!pt) { ui.notifications?.info("Pose de l'épingle annulée."); return false; }
+    if (!pt) { ui.notifications?.info(tl("Pose de l'épingle annulée.")); return false; }
     const { x, y } = centreCase(scene, pt.x, pt.y);
     _silencieux.add(entry.id);   // poser une épingle n'est pas une découverte par le groupe
     await scene.createEmbeddedDocuments("Note", [{ entryId: entry.id, x: Math.round(x), y: Math.round(y), texture: { src: ICONE_EPINGLE }, iconSize: TAILLE_EPINGLE }]);
     try { canvas.ping?.({ x, y }); } catch {}
-    ui.notifications?.info(`Épingle de « ${entry.name} » posée.`);
+    ui.notifications?.info(tl("Épingle de « {0} » posée.", entry.name));
     return true;
 }
 
@@ -613,8 +614,8 @@ export async function appliquerDecouverte({ notifier = true } = {}) {
         if (notifier && !silence && aPrevenir.length && lire("mondeDecouverteMessage", true)) {
             try {
                 await ChatMessage.create({
-                    whisper: aPrevenir, speaker: { alias: "Carte du monde" },
-                    content: `<i class="fa-solid fa-location-dot"></i> Nouveau lieu découvert : @UUID[${entry.uuid}]{${esc(entry.name)}}`
+                    whisper: aPrevenir, speaker: { alias: tl("Carte du monde") },
+                    content: `${tl("<i class=\"fa-solid fa-location-dot\"></i> Nouveau lieu découvert : @UUID[{0}]{{1}}", entry.uuid, esc(entry.name))}`
                 });
             } catch {}
         }
@@ -626,7 +627,7 @@ let _minuterieDecouverte = null;
 export function planifierDecouverte() {
     if (!game.user?.isGM) return;
     clearTimeout(_minuterieDecouverte);
-    _minuterieDecouverte = setTimeout(() => appliquerDecouverte().catch(e => journal.avert(`[${MOD}] découverte`, e)), 1500);
+    _minuterieDecouverte = setTimeout(() => appliquerDecouverte().catch(e => journal.avert(tl("[{0}] découverte", MOD), e)), 1500);
 }
 
 // ============================================================
@@ -665,7 +666,7 @@ function _suivante() {
     const el = document.createElement("div");
     el.className = "scwm-decouverte";
     el.setAttribute("aria-live", "polite");
-    el.innerHTML = `<div class="scwm-decouverte-sur">Nouveau lieu découvert</div><div class="scwm-decouverte-nom">${esc(b.nom)}</div>`;
+    el.innerHTML = `<div class="scwm-decouverte-sur">${tl("Nouveau lieu découvert")}</div><div class="scwm-decouverte-nom">${esc(b.nom)}</div>`;
     document.body.appendChild(el);
     if (b.son) {
         try {
@@ -673,7 +674,7 @@ function _suivante() {
             let vol = 0.8;
             try { vol = game.settings.get("core", "globalInterfaceVolume") ?? 0.8; } catch {}
             AH?.play?.({ src: b.son, volume: vol, autoplay: true, loop: false }, false);
-        } catch (e) { journal.avert(`[${MOD}] son de la bannière`, e); }
+        } catch (e) { journal.avert(tl("[{0}] son de la bannière", MOD), e); }
     }
     requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add("visible")));
     setTimeout(() => el.classList.remove("visible"), 1200 + 2800);          // apparition + affichage
@@ -683,7 +684,7 @@ function _suivante() {
 // À enregistrer sur tous les clients : le MJ actif cible chaque joueur concerné.
 export function enregistrerQueryBanniere() {
     try { CONFIG.queries["westmarch.lieuDecouvert"] = async ({ nom, son }) => { afficherBanniere(nom, son); return true; }; }
-    catch (e) { journal.avert(`[${MOD}] query bannière`, e); }
+    catch (e) { journal.avert(tl("[{0}] query bannière", MOD), e); }
 }
 
 // ============================================================
@@ -716,7 +717,7 @@ export async function preparerDossierLieux() {
     if (!f) return null;
     const aRanger = toutesLesFiches().filter(x => x.type === "place" && !x.entry.folder && !x.entry.pack);
     for (const { entry } of aRanger) await entry.update({ folder: f.id });
-    if (aRanger.length) ui.notifications?.info(`${aRanger.length} fiche(s) de lieu rangée(s) dans le dossier « ${f.name} ».`);
+    if (aRanger.length) ui.notifications?.info(tl("{0} fiche(s) de lieu rangée(s) dans le dossier « {1} ».", aRanger.length, f.name));
     return f;
 }
 
@@ -730,7 +731,7 @@ export async function creerFiche(type, { name, img, actor, scene } = {}) {
     const flagsMej = { type, relationships: {} };
     if (type === "person") flagsMej.attributes = {};
     if (actor) flagsMej.actor = { id: actor.id, uuid: actor.uuid, img: actor.img, name: actor.name };
-    const nom = name || actor?.name || scene?.name || `Nouveau ${TYPES[type].label.toLowerCase()}`;
+    const nom = name || actor?.name || scene?.name || ({ person: tl("Nouveau PNJ"), place: tl("Nouveau lieu"), organization: tl("Nouvelle organisation") }[type] ?? tl("Nouvelle fiche"));
     const fiche = { rubriques: {}, historique: [], scenes: scene ? [scene.id] : [] };
     const entry = await JournalEntry.create({
         name: nom,
@@ -824,7 +825,7 @@ export async function ouvrirFiche(entry) {
 
 export async function basculerVisibilite(entry) {
     if (entry?.pack) {
-        ui.notifications?.info(`« ${entry.name} » est rangée en compendium : réservée aux MJ (les joueurs ne voient pas ce compendium).`);
+        ui.notifications?.info(tl("« {0} » est rangée en compendium : réservée aux MJ (les joueurs ne voient pas ce compendium).", entry.name));
         return false;
     }
     if (typeDe(entry) === "place" && decouverteActive()) {
@@ -835,14 +836,14 @@ export async function basculerVisibilite(entry) {
     }
     const visible = (entry.ownership?.default ?? 0) >= OBSERVER();
     await entry.update({ "ownership.default": visible ? NONE() : OBSERVER() });
-    ui.notifications?.info(visible ? `« ${entry.name} » : réservée aux MJ.` : `« ${entry.name} » : visible par les joueurs (les secrets restent cachés).`);
+    ui.notifications?.info(visible ? tl("« {0} » : réservée aux MJ.", entry.name) : tl("« {0} » : visible par les joueurs (les secrets restent cachés).", entry.name));
     return !visible;
 }
 
 const LIBELLE_MODE = {
-    auto: "découvert par le brouillard (auto)",
-    cache: "toujours caché aux joueurs",
-    tous: "visible par tous les joueurs"
+    auto: tl("découvert par le brouillard (auto)"),
+    cache: tl("toujours caché aux joueurs"),
+    tous: tl("visible par tous les joueurs")
 };
 async function definirModeLieu(entry, mode) {
     const page = pageDe(entry);
@@ -859,7 +860,7 @@ async function definirModeLieu(entry, mode) {
 function optionsFiches(type, selId, sauf) {
     const liste = toutesLesFiches().filter(f => f.type === type && f.entry.id !== sauf)
         .sort((a, b) => a.entry.name.localeCompare(b.entry.name, "fr"));
-    return [`<option value="">— aucun —</option>`,
+    return [`<option value="">${tl("— aucun —")}</option>`,
         ...liste.map(f => `<option value="${f.entry.id}" ${f.entry.id === selId ? "selected" : ""}>${esc(f.entry.name)}</option>`)].join("");
 }
 
@@ -867,7 +868,7 @@ export async function redigerFiche(entry) {
     if (!game.user.isGM) return;
     const type = typeDe(entry);
     const page = pageDe(entry);
-    if (!type || !page) { ui.notifications?.warn("Ce journal n'est pas une fiche PNJ, lieu ou organisation de Monk's Enhanced Journal."); return; }
+    if (!type || !page) { ui.notifications?.warn(tl("Ce journal n'est pas une fiche PNJ, lieu ou organisation de Monk's Enhanced Journal.")); return; }
 
     const fiche = ficheDe(page);
     fiche.rubriques ??= {};
@@ -888,7 +889,7 @@ export async function redigerFiche(entry) {
 
     const champs = rubs.map(r => `
         <label style="display:block;margin:6px 0 2px;font-weight:600;">${esc(r.label)}
-            ${r.secret ? `<span style="font-weight:400;font-size:.8em;color:#e0a96d;"><i class="fa-solid fa-lock"></i> secret MJ</span>` : ""}</label>
+            ${r.secret ? `<span style="font-weight:400;font-size:.8em;color:#e0a96d;">${tl("<i class=\"fa-solid fa-lock\"></i> secret MJ")}</span>` : ""}</label>
         <textarea class="scwm-monde-rub" data-id="${esc(r.id)}" rows="2"
             style="width:100%;box-sizing:border-box;resize:vertical;">${esc(fiche.rubriques[r.id] ?? "")}</textarea>`).join("");
 
@@ -896,13 +897,13 @@ export async function redigerFiche(entry) {
     if (type === "person") {
         liens = `
         <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
-            <span style="flex:0 0 120px;font-weight:600;">Acteur lié</span>
+            <span style="flex:0 0 120px;font-weight:600;">${tl("Acteur lié")}</span>
             <div class="scwm-monde-acteur" style="flex:1;padding:4px 8px;border:1px dashed rgba(201,162,39,.5);border-radius:4px;min-height:22px;">
-                ${actor ? `<i class="fa-solid fa-user"></i> ${esc(actor.name)}` : `<span style="opacity:.6;">Glisse un acteur ici</span>`}</div>
+                ${actor ? `<i class="fa-solid fa-user"></i> ${esc(actor.name)}` : `<span style="opacity:.6;">${tl("Glisse un acteur ici")}</span>`}</div>
             <input type="hidden" class="scwm-monde-acteur-id" value="${actor?.id ?? ""}">
         </div>
         <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
-            <span style="flex:0 0 120px;font-weight:600;">Lieu principal</span>
+            <span style="flex:0 0 120px;font-weight:600;">${tl("Lieu principal")}</span>
             <select class="scwm-monde-lieu" style="flex:1;">${optionsFiches("place", lieuActuel)}</select>
         </div>`;
     } else if (type === "place") {
@@ -913,32 +914,30 @@ export async function redigerFiche(entry) {
         const mondes = cartesDuMonde().map(id => game.scenes.get(id));
         const etatEpingle = pins.length
             ? `<i class="fa-solid fa-location-dot" style="color:#7fd1a0;"></i> ${pins.map(p => esc(p.scene.name)).join(", ")}
-               <button type="button" class="scwm-monde-voir" style="margin-left:6px;padding:1px 8px;">Voir</button>`
+               <button type="button" class="scwm-monde-voir" style="margin-left:6px;padding:1px 8px;">${tl("Voir")}</button>`
             : mondes.length
-                ? `<span style="opacity:.7;">Pas d'épingle sur la carte du monde.</span>
+                ? `<span style="opacity:.7;">${tl("Pas d'épingle sur la carte du monde.")}</span>
                    ${mondes.length > 1 ? `<select class="scwm-monde-carte" style="width:auto;">${mondes.map(sc => `<option value="${sc.id}">${esc(sc.name)}</option>`).join("")}</select>` : ""}
-                   <button type="button" class="scwm-monde-placer" style="margin-left:6px;padding:1px 8px;">Placer sur la carte</button>`
-                : `<span style="opacity:.7;">Aucune carte du monde déclarée (Paramètres → Carte des expéditions).</span>`;
+                   <button type="button" class="scwm-monde-placer" style="margin-left:6px;padding:1px 8px;">${tl("Placer sur la carte")}</button>`
+                : `<span style="opacity:.7;">${tl("Aucune carte du monde déclarée (Paramètres → Carte des expéditions).")}</span>`;
         liens = `
         <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
-            <span style="flex:0 0 120px;font-weight:600;">Épingle</span>
+            <span style="flex:0 0 120px;font-weight:600;">${tl("Épingle")}</span>
             <div style="flex:1;">${etatEpingle}</div>
         </div>
         <div style="margin-top:6px;">
-            <span style="font-weight:600;">Cartes locales de ce lieu</span>
-            <span style="font-size:.8em;opacity:.7;"> (intérieurs, donjons… Ctrl + clic pour plusieurs) — les PNJ posés dessus sont reliés au lieu</span>
+            <span style="font-weight:600;">${tl("Cartes locales de ce lieu")}</span>
+            <span style="font-size:.8em;opacity:.7;"> ${tl("(intérieurs, donjons… Ctrl + clic pour plusieurs) — les PNJ posés dessus sont reliés au lieu")}</span>
             <select class="scwm-monde-scenes" multiple size="5" style="width:100%;margin-top:3px;">${opts}</select>
         </div>`;
     }
 
     const alerte = modifie ? `
         <div style="margin:0 0 8px;padding:6px 8px;border:1px solid rgba(230,126,34,.6);border-radius:4px;background:rgba(230,126,34,.1);font-size:.88em;">
-            <i class="fa-solid fa-triangle-exclamation"></i>
-            ${jamaisRedigee ? "Cette page contient déjà un texte écrit dans Monk's." : "Le texte de cette page a été modifié directement dans Monk's depuis la dernière rédaction."}
-            Enregistrer ici réécrit le texte à partir des rubriques.
+            ${tl("<i class=\"fa-solid fa-triangle-exclamation\"></i>\n            {0}\n            Enregistrer ici réécrit le texte à partir des rubriques.", jamaisRedigee ? tl("Cette page contient déjà un texte écrit dans Monk's.") : tl("Le texte de cette page a été modifié directement dans Monk's depuis la dernière rédaction."))}
             <label style="display:flex;gap:6px;align-items:center;margin-top:4px;cursor:pointer;">
                 <input type="checkbox" class="scwm-monde-garder" ${jamaisRedigee ? "checked" : ""}>
-                Conserver le texte actuel dans la rubrique « Notes »</label>
+                ${tl("Conserver le texte actuel dans la rubrique « Notes »")}</label>
         </div>` : "";
 
     const content = `
@@ -951,17 +950,17 @@ export async function redigerFiche(entry) {
         ${liens}
         ${type === "place" && decouverteActive() ? `
         <div style="display:flex;gap:8px;align-items:center;margin-top:10px;">
-            <span style="flex:0 0 120px;font-weight:600;">Joueurs</span>
+            <span style="flex:0 0 120px;font-weight:600;">${tl("Joueurs")}</span>
             <select class="scwm-monde-mode" style="flex:1;">
                 ${["auto", "cache", "tous"].map(k => `<option value="${k}" ${modeVisibilite(entry) === k ? "selected" : ""}>${LIBELLE_MODE[k].replace(/^./, c => c.toUpperCase())}</option>`).join("")}
             </select>
         </div>
-        <p style="margin:2px 0 0 128px;font-size:.8em;opacity:.7;">Auto : visible pour un joueur dès qu'un de ses personnages a exploré la case de l'épingle (${joueursAyantDecouvert(entry).size} joueur(s) actuellement). Les rubriques « secret MJ » restent toujours cachées.</p>` : `
-        ${entry.pack ? `<p style="margin:10px 0 0;font-size:.85em;opacity:.8;"><i class="fa-solid fa-box-archive"></i> Fiche rangée dans le compendium « ${esc(game.packs.get(entry.pack)?.title ?? entry.pack)} » : réservée aux MJ.</p>` : `
+        <p style="margin:2px 0 0 128px;font-size:.8em;opacity:.7;">${tl("Auto : visible pour un joueur dès qu'un de ses personnages a exploré la case de l'épingle ({0} joueur(s) actuellement). Les rubriques « secret MJ » restent toujours cachées.", joueursAyantDecouvert(entry).size)}</p>` : `
+        ${entry.pack ? `<p style="margin:10px 0 0;font-size:.85em;opacity:.8;">${tl("<i class=\"fa-solid fa-box-archive\"></i> Fiche rangée dans le compendium « {0} » : réservée aux MJ.", esc(game.packs.get(entry.pack)?.title ?? entry.pack))}</p>` : `
         <label style="display:flex;gap:6px;align-items:center;margin-top:10px;cursor:pointer;">
             <input type="checkbox" class="scwm-monde-visible" ${visible ? "checked" : ""}>
-            Visible par les joueurs <span style="font-size:.8em;opacity:.7;">(les rubriques « secret MJ » restent toujours cachées)</span></label>`}`}
-        <p style="margin:8px 0 0;font-size:.8em;opacity:.7;">Phrases courtes. Ligne vide = nouveau paragraphe ; « - » en début de ligne = liste. Glisse un acteur, un journal ou une scène dans une rubrique pour y insérer un lien.</p>
+            ${tl("Visible par les joueurs")} <span style="font-size:.8em;opacity:.7;">${tl("(les rubriques « secret MJ » restent toujours cachées)")}</span></label>`}`}
+        <p style="margin:8px 0 0;font-size:.8em;opacity:.7;">${tl("Phrases courtes. Ligne vide = nouveau paragraphe ; « - » en début de ligne = liste. Glisse un acteur, un journal ou une scène dans une rubrique pour y insérer un lien.")}</p>
         ${champs}
     </div>`;
 
@@ -1003,7 +1002,7 @@ export async function redigerFiche(entry) {
             const vis = !!root.querySelector(".scwm-monde-visible")?.checked;
             if (vis !== visible) await entry.update({ "ownership.default": vis ? OBSERVER() : NONE() });
         }
-        ui.notifications?.info(`Fiche « ${entry.name} » enregistrée.`);
+        ui.notifications?.info(tl("Fiche « {0} » enregistrée.", entry.name));
         if (ouvrir) ouvrirFiche(entry);
     };
 
@@ -1043,7 +1042,7 @@ export async function redigerFiche(entry) {
             let pose = false;
             try { pose = await placerSurLaCarte(entry, root.querySelector(".scwm-monde-carte")?.value); }
             finally { try { await dialogue?.maximize?.(); dialogue?.bringToFront?.(); } catch {} }
-            if (pose && bouton?.isConnected) bouton.outerHTML = `<span style="color:#7fd1a0;">Épingle posée.</span>`;
+            if (pose && bouton?.isConnected) bouton.outerHTML = `<span style="color:#7fd1a0;">${tl("Épingle posée.")}</span>`;
         });
         // Glisser un acteur sur la zone « Acteur lié ».
         const zone = root.querySelector(".scwm-monde-acteur");
@@ -1053,22 +1052,22 @@ export async function redigerFiche(entry) {
             if (d?.type !== "Actor" || !d.uuid) return;
             ev.preventDefault();
             const a = await fromUuid(d.uuid);
-            if (!a || a.pack) { ui.notifications?.warn("Glisse un acteur du monde (pas d'un compendium)."); return; }
+            if (!a || a.pack) { ui.notifications?.warn(tl("Glisse un acteur du monde (pas d'un compendium).")); return; }
             root.querySelector(".scwm-monde-acteur-id").value = a.id;
             zone.innerHTML = `<i class="fa-solid fa-user"></i> ${esc(a.name)}`;
         });
     };
 
     await foundry.applications.api.DialogV2.wait({
-        window: { title: `Rédiger la fiche — ${entry.name}`, icon: `fa-solid ${TYPES[type].icon}` },
+        window: { title: tl("Rédiger la fiche — {0}", entry.name), icon: `fa-solid ${TYPES[type].icon}` },
         position: { width: 560 },
         rejectClose: false,
         content,
         render: (ev, dlg) => cabler(ev, dlg),
         buttons: [
-            { action: "save", label: "Enregistrer", icon: "fa-solid fa-save", default: true, callback: () => enregistrer(false) },
-            { action: "open", label: "Enregistrer et ouvrir", icon: "fa-solid fa-book-open", callback: () => enregistrer(true) },
-            { action: "cancel", label: "Annuler", icon: "fa-solid fa-xmark" }
+            { action: "save", label: tl("Enregistrer"), icon: "fa-solid fa-save", default: true, callback: () => enregistrer(false) },
+            { action: "open", label: tl("Enregistrer et ouvrir"), icon: "fa-solid fa-book-open", callback: () => enregistrer(true) },
+            { action: "cancel", label: tl("Annuler"), icon: "fa-solid fa-xmark" }
         ]
     });
 }
@@ -1102,28 +1101,28 @@ const modifieLe = (f) => Math.max(f.page?._stats?.modifiedTime ?? 0, f.entry?._s
 const nomUtilisateur = (id) => game.users.get(id)?.name ?? "";
 
 function iconeVisibilite(f, visible) {
-    if (f.entry.pack) return `<i class="fa-solid fa-box-archive" style="opacity:.6;" title="Rangée dans le compendium « ${esc(game.packs.get(f.entry.pack)?.title ?? f.entry.pack)} » : réservée aux MJ"></i>`;
+    if (f.entry.pack) return `<i class="fa-solid fa-box-archive" style="opacity:.6;" title="${tl("Rangée dans le compendium « {0} » : réservée aux MJ", esc(game.packs.get(f.entry.pack)?.title ?? f.entry.pack))}"></i>`;
     if (f.type === "place" && decouverteActive()) {
         const mode = modeVisibilite(f.entry);
         const nb = mode === "auto" ? (ficheDe(f.page).decouvertPar ?? []).length : 0;
         const ic = { auto: ["fa-binoculars", "color:#c9a227;"], tous: ["fa-eye", "color:#7fd1a0;"], cache: ["fa-eye-slash", "opacity:.6;"] }[mode];
-        return `<a class="scwm-monde-visible" data-uuid="${f.entry.uuid}" title="Joueurs : ${LIBELLE_MODE[mode]}${mode === "auto" ? ` — découvert par ${nb} joueur(s)` : ""}. Cliquer pour changer.">
+        return `<a class="scwm-monde-visible" data-uuid="${f.entry.uuid}" title="${tl("Joueurs : {0}{1}. Cliquer pour changer.", LIBELLE_MODE[mode], mode === "auto" ? ` ${tl("— découvert par {0} joueur(s)", nb)}` : "")}">
             <i class="fa-solid ${ic[0]}" style="${ic[1]}"></i>${mode === "auto" && nb ? `<sup>${nb}</sup>` : ""}</a>`;
     }
-    return `<a class="scwm-monde-visible" data-uuid="${f.entry.uuid}" title="${visible ? "Visible par les joueurs — cliquer pour réserver aux MJ" : "Réservée aux MJ — cliquer pour révéler aux joueurs"}">
+    return `<a class="scwm-monde-visible" data-uuid="${f.entry.uuid}" title="${visible ? tl("Visible par les joueurs — cliquer pour réserver aux MJ") : tl("Réservée aux MJ — cliquer pour révéler aux joueurs")}">
         <i class="fa-solid ${visible ? "fa-eye" : "fa-eye-slash"}" style="${visible ? "color:#7fd1a0;" : "opacity:.6;"}"></i></a>`;
 }
 
 // Coquille affichée tout de suite ; le contenu (qui charge les compendiums)
 // est rempli par cablerOngletMonde.
 export function ongletMondeHtml() {
-    return `<div class="scwm-monde-hote"><div class="scwm-casier-detail"><h2><i class="fa-solid fa-book-atlas"></i> Monde — PNJ, lieux, organisations</h2>
-        <p style="opacity:.7;"><i class="fa-solid fa-spinner fa-spin"></i> Chargement des fiches…</p></div></div>`;
+    return `<div class="scwm-monde-hote"><div class="scwm-casier-detail"><h2>${tl("<i class=\"fa-solid fa-book-atlas\"></i> Monde — PNJ, lieux, organisations")}</h2>
+        <p style="opacity:.7;">${tl("<i class=\"fa-solid fa-spinner fa-spin\"></i> Chargement des fiches…")}</p></div></div>`;
 }
 
 async function contenuMondeHtml(etat = {}) {
-    if (!mejActif()) return `<div class="scwm-casier-detail"><h2><i class="fa-solid fa-book-atlas"></i> Monde</h2>
-        <p>Monk's Enhanced Journal n'est pas actif : le registre du monde s'appuie sur ses fiches.</p></div>`;
+    if (!mejActif()) return `<div class="scwm-casier-detail"><h2>${tl("<i class=\"fa-solid fa-book-atlas\"></i> Monde")}</h2>
+        <p>${tl("Monk's Enhanced Journal n'est pas actif : le registre du monde s'appuie sur ses fiches.")}</p></div>`;
     const derniere = derniereSessionDe(game.user.id);
     const depuis = derniere ? Date.parse(derniere) : 0;
     const fiches = (await chargerFiches()).sort((a, b) => a.entry.name.localeCompare(b.entry.name, "fr"));
@@ -1140,11 +1139,11 @@ async function contenuMondeHtml(etat = {}) {
         const visible = (f.entry.ownership?.default ?? 0) >= OBSERVER();
         const avert = texteModifie(f.page) ? ` <i class="fa-solid fa-pen-to-square" title="Texte modifié directement dans Monk's : ouvre « Rédiger » pour le reprendre"></i>` : "";
         let lien = "";
-        if (f.type === "person") { const a = acteurDe(f.page); if (a) lien = `<a class="scwm-monde-acteur-ouvrir" data-actor="${a.id}" title="Ouvrir l'acteur"><i class="fa-solid fa-user"></i></a>`; }
+        if (f.type === "person") { const a = acteurDe(f.page); if (a) lien = `<a class="scwm-monde-acteur-ouvrir" data-actor="${a.id}" title="${tl("Ouvrir l'acteur")}"><i class="fa-solid fa-user"></i></a>`; }
         if (f.type === "place") {
             const pins = epinglesMonde(f.entry).length || epinglesDe(f.entry).length;
-            if (pins) lien = `<a class="scwm-monde-epingle" data-uuid="${f.entry.uuid}" title="Voir sur la carte"><i class="fa-solid fa-location-dot"></i></a>`;
-            if ((fiche.scenes ?? []).length) lien += ` <a class="scwm-monde-scene-ouvrir" data-scene="${fiche.scenes[0]}" title="Ouvrir la carte locale"><i class="fa-solid fa-map"></i></a>`;
+            if (pins) lien = `<a class="scwm-monde-epingle" data-uuid="${f.entry.uuid}" title="${tl("Voir sur la carte")}"><i class="fa-solid fa-location-dot"></i></a>`;
+            if ((fiche.scenes ?? []).length) lien += ` <a class="scwm-monde-scene-ouvrir" data-scene="${fiche.scenes[0]}" title="${tl("Ouvrir la carte locale")}"><i class="fa-solid fa-map"></i></a>`;
             if (!pins) lien = `<i class="fa-solid fa-location-dot" style="opacity:.25;" title="Pas d'épingle sur une carte"></i> ` + lien;
         }
         return `<tr class="scwm-monde-ligne" data-type="${f.type}" data-recent="${recent ? 1 : 0}"
@@ -1152,10 +1151,10 @@ async function contenuMondeHtml(etat = {}) {
             <td title="${t.label}"><i class="fa-solid ${t.icon}"></i></td>
             <td><a class="scwm-monde-ouvrir" data-uuid="${f.entry.uuid}"><strong>${esc(f.entry.name)}</strong></a>${avert}
                 ${resume ? `<div style="font-size:.85em;opacity:.75;">${esc(resume)}</div>` : ""}</td>
-            <td style="white-space:nowrap;font-size:.85em;">${mod ? new Date(mod).toLocaleDateString("fr-FR") : ""}${par ? `<br><span style="opacity:.7;">${esc(par)}</span>` : ""}${recent ? ` <i class="fa-solid fa-circle" style="color:#e67e22;font-size:.6em;" title="Modifiée depuis ta dernière session"></i>` : ""}</td>
+            <td style="white-space:nowrap;font-size:.85em;">${mod ? new Date(mod).toLocaleDateString(locale()) : ""}${par ? `<br><span style="opacity:.7;">${esc(par)}</span>` : ""}${recent ? ` <i class="fa-solid fa-circle" style="color:#e67e22;font-size:.6em;" title="Modifiée depuis ta dernière session"></i>` : ""}</td>
             <td style="white-space:nowrap;text-align:right;">
                 ${lien}
-                <a class="scwm-monde-rediger" data-uuid="${f.entry.uuid}" title="Rédiger la fiche"><i class="fa-solid fa-pen"></i></a>
+                <a class="scwm-monde-rediger" data-uuid="${f.entry.uuid}" title="${tl("Rédiger la fiche")}"><i class="fa-solid fa-pen"></i></a>
                 ${iconeVisibilite(f, visible)}
             </td>
         </tr>`;
@@ -1166,27 +1165,27 @@ async function contenuMondeHtml(etat = {}) {
     const compte = (k) => fiches.filter(f => f.type === k).length;
     return `
     <div class="scwm-casier-detail scwm-monde">
-        <h2><i class="fa-solid fa-book-atlas"></i> Monde — PNJ, lieux, organisations</h2>
+        <h2>${tl("<i class=\"fa-solid fa-book-atlas\"></i> Monde — PNJ, lieux, organisations")}</h2>
         <div class="scwm-reg-toolbar" style="flex-wrap:wrap;gap:6px;">
-            <button type="button" class="scwm-monde-nouveau" data-type="person"><i class="fa-solid fa-plus"></i> PNJ</button>
-            <button type="button" class="scwm-monde-nouveau" data-type="place"><i class="fa-solid fa-plus"></i> Lieu</button>
-            <button type="button" class="scwm-monde-nouveau" data-type="organization"><i class="fa-solid fa-plus"></i> Organisation</button>
+            <button type="button" class="scwm-monde-nouveau" data-type="person"><i class="fa-solid fa-plus"></i> ${tl("PNJ")}</button>
+            <button type="button" class="scwm-monde-nouveau" data-type="place">${tl("<i class=\"fa-solid fa-plus\"></i> Lieu")}</button>
+            <button type="button" class="scwm-monde-nouveau" data-type="organization">${tl("<i class=\"fa-solid fa-plus\"></i> Organisation")}</button>
             <span style="flex:1 1 auto;"></span>
-            <button type="button" class="scwm-monde-actualiser" title="Recalcule les relations PJ et les cartes de toutes les fiches"><i class="fa-solid fa-rotate"></i> Actualiser</button>
+            <button type="button" class="scwm-monde-actualiser" title="${tl("Recalcule les relations PJ et les cartes de toutes les fiches")}">${tl("<i class=\"fa-solid fa-rotate\"></i> Actualiser")}</button>
         </div>
         ${aRanger ? `<div style="margin:4px 0 8px;padding:6px 8px;border:1px solid rgba(201,162,39,.45);border-radius:4px;background:rgba(201,162,39,.08);font-size:.9em;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <span style="flex:1 1 250px;"><i class="fa-solid fa-box-archive"></i> ${aRanger} fiche(s) PNJ / organisation encore dans le monde. Les ranger dans les compendiums allège la connexion.</span>
-            <button type="button" class="scwm-monde-ranger"><i class="fa-solid fa-box-archive"></i> Ranger dans les compendiums</button>
+            <span style="flex:1 1 250px;">${tl("<i class=\"fa-solid fa-box-archive\"></i> {0} fiche(s) PNJ / organisation encore dans le monde. Les ranger dans les compendiums allège la connexion.", aRanger)}</span>
+            <button type="button" class="scwm-monde-ranger">${tl("<i class=\"fa-solid fa-box-archive\"></i> Ranger dans les compendiums")}</button>
         </div>` : ""}
         <div class="scwm-reg-toolbar" style="flex-wrap:wrap;gap:6px;">
-            <input type="text" class="scwm-monde-recherche" placeholder="Rechercher (nom ou contenu)…" style="flex:1 1 200px;">
+            <input type="text" class="scwm-monde-recherche" placeholder="${tl("Rechercher (nom ou contenu)…")}" style="flex:1 1 200px;">
             ${btnType("", `Tous (${fiches.length})`)}${btnType("person", `PNJ (${compte("person")})`)}${btnType("place", `Lieux (${compte("place")})`)}${btnType("organization", `Organisations (${compte("organization")})`)}
-            <label style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;" title="${derniere ? `Ta dernière session : ${new Date(derniere).toLocaleDateString("fr-FR")}` : "Aucune session enregistrée pour toi"}">
-                <input type="checkbox" class="scwm-monde-recent" ${derniere ? "" : "disabled"}> Modifiées depuis ma dernière session</label>
+            <label style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;" title="${derniere ? tl("Ta dernière session : {0}", new Date(derniere).toLocaleDateString(locale())) : tl("Aucune session enregistrée pour toi")}">
+                <input type="checkbox" class="scwm-monde-recent" ${derniere ? "" : "disabled"}> ${tl("Modifiées depuis ma dernière session")}</label>
         </div>
         <table class="scwm-reg-table">
-            <thead><tr><th></th><th>Fiche</th><th>Modifiée</th><th></th></tr></thead>
-            <tbody>${lignes || `<tr><td colspan="4" style="opacity:.6;">Aucune fiche PNJ, lieu ou organisation dans Monk's pour l'instant.</td></tr>`}</tbody>
+            <thead><tr><th></th><th>${tl("Fiche")}</th><th>${tl("Modifiée")}</th><th></th></tr></thead>
+            <tbody>${lignes || `<tr><td colspan="4" style="opacity:.6;">${tl("Aucune fiche PNJ, lieu ou organisation dans Monk's pour l'instant.")}</td></tr>`}</tbody>
         </table>
     </div>`;
 }
@@ -1195,7 +1194,7 @@ export async function cablerOngletMonde(root, rerendre, etat = {}) {
     const hote = root?.querySelector(".scwm-monde-hote");
     if (hote) {
         try { hote.innerHTML = await contenuMondeHtml(etat); }
-        catch (e) { journal.avert(`[${MOD}] onglet Monde`, e); hote.innerHTML = `<p style="color:#e58f8f;">Impossible de charger les fiches : ${esc(e.message)}</p>`; return; }
+        catch (e) { journal.avert(`[${MOD}] onglet Monde`, e); hote.innerHTML = `<p style="color:#e58f8f;">${tl("Impossible de charger les fiches : {0}", esc(e.message))}</p>`; return; }
     }
     const box = root?.querySelector(".scwm-monde");
     if (!box) return;
@@ -1225,7 +1224,7 @@ export async function cablerOngletMonde(root, rerendre, etat = {}) {
             (await actualiserFiche(f.entry)) ? n++ : sautees++;
         }
         await appliquerDecouverte();
-        ui.notifications?.info(`${n} fiche(s) actualisée(s)${sautees ? `, ${sautees} laissée(s) telle(s) quelle(s) car modifiée(s) à la main` : ""}.`);
+        ui.notifications?.info(tl("{0} fiche(s) actualisée(s){1}.", n, sautees ? tl(", {0} laissée(s) telle(s) quelle(s) car modifiée(s) à la main", sautees) : ""));
         rerendre();
     });
     box.addEventListener("click", async (ev) => {
@@ -1251,10 +1250,10 @@ export async function rangerDansCompendiums() {
     if (!aDeplacer.length) return false;
     const epinglees = aDeplacer.filter(f => epinglesDe(f.entry).length);
     const ok = await foundry.applications.api.DialogV2.confirm({
-        window: { title: "Ranger dans les compendiums" },
-        content: `<p>${aDeplacer.length} fiche(s) PNJ / organisation vont être déplacées dans leurs compendiums (chargés seulement à la demande).</p>
-            <p>Les liens sont conservés : acteurs, relations Monk's, liens @UUID dans les fiches. Les fiches du monde sont ensuite supprimées.</p>
-            ${epinglees.length ? `<p style="color:#e0a96d;"><i class="fa-solid fa-triangle-exclamation"></i> ${epinglees.length} d'entre elles ont une épingle sur une carte (${epinglees.map(f => esc(f.entry.name)).join(", ")}) : une épingle ne peut pas pointer vers un compendium, elle ne fonctionnera plus.</p>` : ""}`
+        window: { title: tl("Ranger dans les compendiums") },
+        content: `<p>${tl("{0} fiche(s) PNJ / organisation vont être déplacées dans leurs compendiums (chargés seulement à la demande).", aDeplacer.length)}</p>
+            <p>${tl("Les liens sont conservés : acteurs, relations Monk's, liens @UUID dans les fiches. Les fiches du monde sont ensuite supprimées.")}</p>
+            ${epinglees.length ? `<p style="color:#e0a96d;">${tl("<i class=\"fa-solid fa-triangle-exclamation\"></i> {0} d'entre elles ont une épingle sur une carte ({1}) : une épingle ne peut pas pointer vers un compendium, elle ne fonctionnera plus.", epinglees.length, epinglees.map(f => esc(f.entry.name)).join(", "))}</p>` : ""}`
     });
     if (!ok) return false;
     const correspondances = new Map();   // ancien uuid → nouveau document
@@ -1300,7 +1299,7 @@ export async function rangerDansCompendiums() {
             if (update["text.content"] && fiche.hash === empreinte(contenu)) update[`flags.${MOD}.fiche.hash`] = empreinte(nouveau);
         }
         if (Object.keys(update).length) {
-            try { await page.update(update); } catch (e) { journal.avert(`[${MOD}] mise à jour des liens de ${f.entry.name}`, e); }
+            try { await page.update(update); } catch (e) { journal.avert(tl("[{0}] mise à jour des liens de {1}", MOD, f.entry.name), e); }
         }
     }
     for (const a of game.actors) {
@@ -1308,7 +1307,7 @@ export async function rangerDansCompendiums() {
         if (n) await a.setFlag(MOD, "fichePage", n.uuid);
     }
     for (const f of aDeplacer) await f.entry.delete();
-    ui.notifications?.info(`${aDeplacer.length} fiche(s) rangée(s) dans les compendiums.`);
+    ui.notifications?.info(tl("{0} fiche(s) rangée(s) dans les compendiums.", aDeplacer.length));
     return true;
 }
 
@@ -1318,11 +1317,11 @@ export async function rangerDansCompendiums() {
 const BTN = "border-radius:4px;cursor:pointer;";
 function ligneRubriqueHtml(r = {}) {
     return `<div class="scwm-mr-ligne" data-id="${esc(r.id ?? "")}" style="display:flex;gap:4px;align-items:center;margin:3px 0;">
-        <input type="text" class="scwm-mr-label" value="${esc(r.label ?? "")}" placeholder="Nom de la rubrique" style="flex:1 1 auto;min-width:0;">
-        <label style="display:inline-flex;align-items:center;gap:3px;font-size:.85em;white-space:nowrap;cursor:pointer;" title="Bloc secret : jamais montré aux joueurs">
+        <input type="text" class="scwm-mr-label" value="${esc(r.label ?? "")}" placeholder="${tl("Nom de la rubrique")}" style="flex:1 1 auto;min-width:0;">
+        <label style="display:inline-flex;align-items:center;gap:3px;font-size:.85em;white-space:nowrap;cursor:pointer;" title="${tl("Bloc secret : jamais montré aux joueurs")}">
             <input type="checkbox" class="scwm-mr-secret" ${r.secret ? "checked" : ""}> <i class="fa-solid fa-lock"></i></label>
-        <button type="button" class="scwm-mr-monter" title="Monter" style="${BTN}width:26px;"><i class="fa-solid fa-arrow-up"></i></button>
-        <button type="button" class="scwm-mr-suppr" title="Retirer" style="${BTN}width:26px;border:1px solid rgba(192,57,43,0.4);background:rgba(192,57,43,0.12);color:#e58f8f;"><i class="fa-solid fa-xmark"></i></button>
+        <button type="button" class="scwm-mr-monter" title="${tl("Monter")}" style="${BTN}width:26px;"><i class="fa-solid fa-arrow-up"></i></button>
+        <button type="button" class="scwm-mr-suppr" title="${tl("Retirer")}" style="${BTN}width:26px;border:1px solid rgba(192,57,43,0.4);background:rgba(192,57,43,0.12);color:#e58f8f;"><i class="fa-solid fa-xmark"></i></button>
     </div>`;
 }
 
@@ -1334,13 +1333,12 @@ export function mondeControlHtml(key) {
             <summary style="cursor:pointer;font-weight:600;"><i class="fa-solid ${t.icon}"></i> ${t.pluriel}</summary>
             <div class="scwm-mr-liste">${rubs[type].map(ligneRubriqueHtml).join("")}</div>
             <button type="button" class="scwm-mr-ajout" style="${BTN}margin-top:2px;padding:2px 8px;font-size:.85em;border:1px solid rgba(201,162,39,0.4);background:rgba(201,162,39,0.12);color:#c9a227;">
-                <i class="fa-solid fa-plus"></i> Ajouter une rubrique</button>
+                ${tl("<i class=\"fa-solid fa-plus\"></i> Ajouter une rubrique")}</button>
         </details>`).join("");
     return `<div class="scwm-set scwm-mr" data-key="mondeRubriques" style="padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.06);">
-        <label style="display:block;font-weight:600;margin:0 0 2px;">Rubriques des fiches</label>
-        <p style="margin:0 0 4px;font-size:.8em;color:#999;">Les rubriques de la fenêtre « Rédiger la fiche », dans l'ordre. <i class="fa-solid fa-lock"></i> = secret MJ (bloc secret de Foundry, jamais visible des joueurs). Renommer une rubrique garde son contenu ; la retirer le masque de la fiche (il reste enregistré).</p>
-        ${blocs}
-        <a class="scwm-mr-defaut" style="font-size:.8em;cursor:pointer;color:#e58f8f;">Revenir aux rubriques par défaut</a>
+        <label style="display:block;font-weight:600;margin:0 0 2px;">${tl("Rubriques des fiches")}</label>
+        <p style="margin:0 0 4px;font-size:.8em;color:#999;">${tl("Les rubriques de la fenêtre « Rédiger la fiche », dans l'ordre. <i class=\"fa-solid fa-lock\"></i> = secret MJ (bloc secret de Foundry, jamais visible des joueurs). Renommer une rubrique garde son contenu ; la retirer le masque de la fiche (il reste enregistré).")}</p>
+        ${tl("{0}\n        <a class=\"scwm-mr-defaut\" style=\"font-size:.8em;cursor:pointer;color:#e58f8f;\">Revenir aux rubriques par défaut</a>", blocs)}
     </div>`;
 }
 
@@ -1403,13 +1401,13 @@ export function MondeHooks() {
             const btn = document.createElement("button");
             btn.type = "button";
             btn.classList.add("header-control", "icon", "fa-solid", "fa-book-atlas", "scwm-monde-btn");
-            btn.dataset.tooltip = lie ? "Fiche du monde (Monk's) — rédiger" : "Créer la fiche du monde de ce PNJ";
+            btn.dataset.tooltip = lie ? tl("Fiche du monde (Monk's) — rédiger") : tl("Créer la fiche du monde de ce PNJ");
             if (lie) btn.style.color = "#c9a227";
             btn.addEventListener("click", () => ficheActeur(actor));
             const title = header.querySelector(".window-title");
             if (title) title.insertAdjacentElement("afterend", btn);
             else header.insertBefore(btn, header.querySelector(".close"));
-        } catch (e) { journal.avert(`[${MOD}] bouton fiche du monde :`, e); }
+        } catch (e) { journal.avert(tl("[{0}] bouton fiche du monde :", MOD), e); }
     });
 
     const idDe = (li) => li?.dataset?.entryId ?? li?.dataset?.documentId ?? li?.dataset?.sceneId ?? li?.dataset?.actorId;
@@ -1418,7 +1416,7 @@ export function MondeHooks() {
     const ajouter = (options, opt) => { if (!options.some(o => o.name === opt.name)) options.push(opt); };
     Hooks.on("getJournalEntryContextOptions", (app, options) => {
         ajouter(options, {
-            name: "Rédiger la fiche (Westmarch)",
+            name: tl("Rédiger la fiche (Westmarch)"),
             icon: '<i class="fa-solid fa-pen"></i>',
             condition: li => game.user.isGM && mondeActif() && !!typeDe(game.journal.get(idDe(li))),
             callback: li => redigerFiche(game.journal.get(idDe(li)))
@@ -1427,7 +1425,7 @@ export function MondeHooks() {
     // Acteurs : « Fiche du monde ».
     Hooks.on("getActorContextOptions", (app, options) => {
         ajouter(options, {
-            name: "Fiche du monde (Westmarch)",
+            name: tl("Fiche du monde (Westmarch)"),
             icon: '<i class="fa-solid fa-book-atlas"></i>',
             condition: li => game.user.isGM && mondeActif() && estPnj(game.actors.get(idDe(li))),
             callback: li => ficheActeur(game.actors.get(idDe(li)))
@@ -1436,7 +1434,7 @@ export function MondeHooks() {
     // Scènes : « Fiche du lieu » (navigation et répertoire).
     const optionScene = (app, options) => {
         ajouter(options, {
-            name: "Fiche du lieu (Westmarch)",
+            name: tl("Fiche du lieu (Westmarch)"),
             icon: '<i class="fa-solid fa-location-dot"></i>',
             condition: li => game.user.isGM && mondeActif() && !!game.scenes.get(idDe(li)) && !estCarteDuMonde(idDe(li)),
             callback: li => ficheScene(game.scenes.get(idDe(li)))
@@ -1468,8 +1466,8 @@ export function MondeHooks() {
     Hooks.once("ready", () => {
         if (!game.user?.isGM || !mondeActif() || (game.users.activeGM && game.users.activeGM.id !== game.user.id)) return;
         for (const { entry, type } of toutesLesFiches()) if (type === "place") viderEtiquettes(entry).catch(() => {});
-        migrerEpingles().catch(e => journal.avert(`[${MOD}] épingles`, e));
-        preparerDossierLieux().catch(e => journal.avert(`[${MOD}] dossier des lieux`, e));
+        migrerEpingles().catch(e => journal.avert(tl("[{0}] épingles", MOD), e));
+        preparerDossierLieux().catch(e => journal.avert(tl("[{0}] dossier des lieux", MOD), e));
     });
     // Note d'un lieu posée sur la carte du monde (glisser-déposer du journal,
     // outil Notes…) → épingle fine, par le client qui l'a créée.

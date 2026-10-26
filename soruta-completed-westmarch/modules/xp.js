@@ -1,4 +1,5 @@
 import { MOD } from "./const.js";
+import { tl } from "./i18n.js";
 export function XpHooks() {
 
     // ============================================================
@@ -27,14 +28,14 @@ export function XpHooks() {
 
         // Si la mise à jour touche à l'XP
         if (changes?.system?.details?.xp !== undefined) {
-            ui.notifications.warn("Vous n'êtes pas autorisé à modifier votre XP.");
+            ui.notifications.warn(tl("Vous n'êtes pas autorisé à modifier votre XP."));
             return false;
         }
 
         // Certains systèmes/extensions modifient directement le niveau
         // sur l'acteur plutôt que via l'item de classe : on bloque aussi.
         if (changes?.system?.details?.level !== undefined) {
-            ui.notifications.warn("Vous n'êtes pas autorisé à monter de niveau.");
+            ui.notifications.warn(tl("Vous n'êtes pas autorisé à monter de niveau."));
             return false;
         }
     });
@@ -54,7 +55,7 @@ export function XpHooks() {
         if (levelUpGranted(item.parent)) return true;   // montée de niveau autorisée
 
         if (changes?.system?.levels !== undefined) {
-            ui.notifications.warn("Vous n'êtes pas autorisé à monter de niveau.");
+            ui.notifications.warn(tl("Vous n'êtes pas autorisé à monter de niveau."));
             return false;
         }
     });
@@ -66,7 +67,7 @@ export function XpHooks() {
 
         // Empêche l'ajout d'une nouvelle classe (multiclasse) par un joueur
         if ((item.type ?? itemData?.type) === "class") {
-            ui.notifications.warn("Vous n'êtes pas autorisé à monter de niveau.");
+            ui.notifications.warn(tl("Vous n'êtes pas autorisé à monter de niveau."));
             return false;
         }
     });

@@ -18,6 +18,7 @@
 import { MOD } from "./const.js";
 
 import { journal } from "./log.js";
+import { tl } from "./i18n.js";
 const HISTORY_MAX = 20;   // nombre de sessions gardées pour la moyenne
 
 // État de session (module-level) pour un recalcul à la demande.
@@ -97,19 +98,19 @@ export function openConnStats() {
 function registerConnStatsMenu() {
     try {
         game.settings.registerMenu(MOD, "menu-connstats", {
-            name:  "Infos de connexion",
-            label: "Afficher",
-            hint:  "Affiche le temps de chargement, les modules actifs, la moyenne et le temps total passé sur le serveur.",
+            name:  tl("Infos de connexion"),
+            label: tl("Afficher"),
+            hint:  tl("Affiche le temps de chargement, les modules actifs, la moyenne et le temps total passé sur le serveur."),
             icon:  "fas fa-plug",
             type:  class extends foundry.applications.api.ApplicationV2 {
-                static DEFAULT_OPTIONS = { id: "scwm-menu-connstats", window: { title: "Infos de connexion" } };
+                static DEFAULT_OPTIONS = { id: "scwm-menu-connstats", window: { title: tl("Infos de connexion") } };
                 async render() { openConnStats(); return this; }
                 async close()  { return this; }
             },
             restricted: false   // visible par tout le monde (joueurs inclus)
         });
     } catch (e) {
-        journal.critique(`[${MOD}] registerMenu « Infos de connexion » échec :`, e);
+        journal.critique(tl("[{0}] registerMenu « Infos de connexion » échec :", MOD), e);
     }
 }
 
@@ -136,14 +137,14 @@ function renderConnStats({ loadMs, avgMs, activeModules, assetCount, docCount, s
     const box = document.createElement("div");
     box.id = "scwm-connstats";
     box.innerHTML = `
-        <a class="scwm-connstats-close" title="Fermer"><i class="fa-solid fa-times"></i></a>
-        <div class="scwm-connstats-title"><i class="fa-solid fa-plug"></i> Connexion</div>
-        <div class="scwm-connstats-row"><span>Temps de chargement</span><b>${fmtDuration(loadMs)}</b></div>
-        <div class="scwm-connstats-row"><span>Modules actifs</span><b>${activeModules}</b></div>
-        <div class="scwm-connstats-row"><span>Assets chargés</span><b>${assetCount}</b></div>
-        <div class="scwm-connstats-row"><span>Documents chargés</span><b>${docCount}</b></div>
-        <div class="scwm-connstats-row"><span>Moyenne (${samples} sess.)</span><b>${fmtDuration(avgMs)}</b></div>
-        <div class="scwm-connstats-row"><span>Temps total sur le serveur</span><b>${fmtPlaytime(totalMs)}</b></div>
+        <a class="scwm-connstats-close" title="${tl("Fermer")}"><i class="fa-solid fa-times"></i></a>
+        <div class="scwm-connstats-title">${tl("<i class=\"fa-solid fa-plug\"></i> Connexion")}</div>
+        <div class="scwm-connstats-row"><span>${tl("Temps de chargement")}</span><b>${fmtDuration(loadMs)}</b></div>
+        <div class="scwm-connstats-row"><span>${tl("Modules actifs")}</span><b>${activeModules}</b></div>
+        <div class="scwm-connstats-row"><span>${tl("Assets chargés")}</span><b>${assetCount}</b></div>
+        <div class="scwm-connstats-row"><span>${tl("Documents chargés")}</span><b>${docCount}</b></div>
+        <div class="scwm-connstats-row"><span>${tl("Moyenne ({0} sess.)", samples)}</span><b>${fmtDuration(avgMs)}</b></div>
+        <div class="scwm-connstats-row"><span>${tl("Temps total sur le serveur")}</span><b>${fmtPlaytime(totalMs)}</b></div>
     `;
     document.body.appendChild(box);
 

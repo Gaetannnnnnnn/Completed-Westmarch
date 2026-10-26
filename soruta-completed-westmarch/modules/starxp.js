@@ -20,6 +20,7 @@
 import { MOD } from "./const.js";
 import { journal } from "./log.js";
 import { niveauMaxServeur } from "./xpprogress.js";
+import { tl } from "./i18n.js";
 
 const MAX_LEVEL   = 20;
 const DEFAULT_STARS = 3;   // coût par défaut d'un niveau (éditable)
@@ -146,12 +147,12 @@ async function applyState(actor, { notify = false } = {}) {
         const owner = game.users.find(u => u.character?.id === actor.id && !u.isGM);
         try {
             ChatMessage.create({
-                whisper: gmIds, speaker: { alias: "Système d'étoiles" },
-                content: `⭐ <strong>${actor.name}</strong> a atteint le seuil d'étoiles : <strong>prêt à monter de niveau ${cur + 1}</strong>.`
+                whisper: gmIds, speaker: { alias: tl("Système d'étoiles") },
+                content: `${tl("⭐ <strong>{0}</strong> a atteint le seuil d'étoiles : <strong>prêt à monter de niveau {1}</strong>.", actor.name, cur + 1)}`
             });
             if (owner) ChatMessage.create({
-                whisper: [owner.id], speaker: { alias: "Système d'étoiles" },
-                content: `⭐ Tu as assez d'étoiles pour passer <strong>niveau ${cur + 1}</strong> ! Le MJ va valider ta montée de niveau.`
+                whisper: [owner.id], speaker: { alias: tl("Système d'étoiles") },
+                content: `${tl("⭐ Tu as assez d'étoiles pour passer <strong>niveau {0}</strong> ! Le MJ va valider ta montée de niveau.", cur + 1)}`
             });
         } catch {}
     }
@@ -206,12 +207,12 @@ function starWidgetHtml(actor) {
 
     if (max) {
         return `<div class="scwm-starxp"><span class="scwm-starxp-stars">★</span>
-            <span class="scwm-starxp-text">Niveau maximum</span></div>`;
+            <span class="scwm-starxp-text">${tl("Niveau maximum")}</span></div>`;
     }
 
     if (isGM) {
         // Champ éditable seul : « [n] / seuil ★ » (pas de −/+, pas de texte final).
-        return `<div class="scwm-starxp ${ready ? "is-ready" : ""}" title="Étoiles (modifiable par le MJ)">
+        return `<div class="scwm-starxp ${ready ? "is-ready" : ""}" title="${tl("Étoiles (modifiable par le MJ)")}">
             <span class="scwm-star-edit">
                 <input type="number" class="scwm-star-num" min="0" step="1" value="${stars}">
                 <span class="scwm-star-slash">/ ${threshold} ★</span>
@@ -220,10 +221,10 @@ function starWidgetHtml(actor) {
     }
 
     // Joueur : pastille soignée avec étoile dorée.
-    return `<div class="scwm-starxp scwm-starxp-player ${ready ? "is-ready" : ""}" title="Étoiles vers le niveau suivant">
+    return `<div class="scwm-starxp scwm-starxp-player ${ready ? "is-ready" : ""}" title="${tl("Étoiles vers le niveau suivant")}">
         <i class="fa-solid fa-star scwm-starxp-ico"></i>
         ${ready
-            ? `<span class="scwm-starxp-ready">Prêt à monter !</span>`
+            ? `<span class="scwm-starxp-ready">${tl("Prêt à monter !")}</span>`
             : `<span class="scwm-starxp-count"><strong>${stars}</strong><span class="scwm-starxp-sep">/</span>${threshold}</span>`}
     </div>`;
 }
@@ -360,7 +361,7 @@ export function StarXpHooks() {
         try {
             const root = html instanceof HTMLElement ? html : (html?.[0] ?? app?.element?.[0] ?? app?.element);
             injectWidget(app, root);
-        } catch (e) { journal.avert(`[${MOD}] widget étoiles`, e); }
+        } catch (e) { journal.avert(tl("[{0}] widget étoiles", MOD), e); }
     };
     Hooks.on("renderActorSheetV2", onRender);
     Hooks.on("renderActorSheet",   onRender);
@@ -388,11 +389,11 @@ export function starAwardBlockHtml(pcs) {
     ).join("");
     return `
     <div class="scwm-star-award" style="margin-bottom:10px;">
-        <p style="margin:0 0 4px;font-weight:bold;">Étoiles de la session (difficulté)</p>
-        <p style="margin:0 0 6px;font-size:.82em;color:#aaa;">Attribuées à toute la party${names ? ` : ${names}` : ""}.</p>
+        <p style="margin:0 0 4px;font-weight:bold;">${tl("Étoiles de la session (difficulté)")}</p>
+        <p style="margin:0 0 6px;font-size:.82em;color:#aaa;">${tl("Attribuées à toute la party{0}.", names ? ` : ${names}` : "")}</p>
         <div class="scwm-star-row" style="display:flex;align-items:center;gap:6px;">
             ${stars}
-            <span class="scwm-star-count" style="margin-left:8px;font-weight:600;">1 étoile</span>
+            <span class="scwm-star-count" style="margin-left:8px;font-weight:600;">${tl("1 étoile")}</span>
         </div>
         <input type="hidden" class="scwm-star-value" value="1">
     </div>`;
@@ -407,7 +408,7 @@ export function wireStarAwardBlock(root) {
     const picks = [...box.querySelectorAll(".scwm-star-pick")];
     const paint = (n) => {
         picks.forEach(b => { b.style.color = Number(b.dataset.n) <= n ? "#e6be3c" : "#bbb"; });
-        if (count) count.textContent = `${n} étoile${n > 1 ? "s" : ""}`;
+        if (count) count.textContent = tl("{0} étoile{1}", n, n > 1 ? "s" : "");
         if (value) value.value = String(n);
     };
     picks.forEach(b => b.addEventListener("click", (e) => { e.preventDefault(); paint(Number(b.dataset.n)); }));

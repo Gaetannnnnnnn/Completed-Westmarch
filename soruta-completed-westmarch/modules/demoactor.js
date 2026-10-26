@@ -19,6 +19,7 @@
 import { MOD } from "./const.js";
 
 import { journal } from "./log.js";
+import { tl, memeNom } from "./i18n.js";
 const DEMO_VERSION = 10;
 const rid = () => foundry.utils.randomID();
 
@@ -81,10 +82,10 @@ export async function ensureTutorialActor() {
             await createDemoActor();
             await game.settings.set(MOD, "tutorialActorVersion", DEMO_VERSION);
             await game.settings.set(MOD, "tutorialActorCreated", true);
-            try { await existing.delete(); } catch (e) { journal.avert(`[${MOD}] Suppression ancienne fiche démo :`, e); }
-            journal.debug(`[${MOD}] Fiche démo du tutoriel mise à jour (v${DEMO_VERSION}).`);
+            try { await existing.delete(); } catch (e) { journal.avert(tl("[{0}] Suppression ancienne fiche démo :", MOD), e); }
+            journal.debug(tl("[{0}] Fiche démo du tutoriel mise à jour (v{1}).", MOD, DEMO_VERSION));
         } catch (err) {
-            journal.erreur(`[${MOD}] Échec de la mise à jour de la fiche démo (ancienne conservée) :`, err);
+            journal.erreur(tl("[{0}] Échec de la mise à jour de la fiche démo (ancienne conservée) :", MOD), err);
         }
         return;
     }
@@ -98,17 +99,17 @@ export async function ensureTutorialActor() {
         await createDemoActor();
         await game.settings.set(MOD, "tutorialActorVersion", DEMO_VERSION);
         await game.settings.set(MOD, "tutorialActorCreated", true);
-        journal.debug(`[${MOD}] Fiche démo du tutoriel créée (v${DEMO_VERSION}).`);
+        journal.debug(tl("[{0}] Fiche démo du tutoriel créée (v{1}).", MOD, DEMO_VERSION));
     } catch (err) {
-        journal.erreur(`[${MOD}] Échec de la création de la fiche démo du tutoriel :`, err);
-        ui.notifications?.warn("Completed Westmarch : échec de la création de la fiche démo du tutoriel (voir la console F12). Nouvelle tentative au prochain rechargement.");
+        journal.erreur(tl("[{0}] Échec de la création de la fiche démo du tutoriel :", MOD), err);
+        ui.notifications?.warn(tl("Completed Westmarch : échec de la création de la fiche démo du tutoriel (voir la console F12). Nouvelle tentative au prochain rechargement."));
     }
 }
 
 async function createDemoActor() {
     // Dossier "Tutoriel"
-    let folder = game.folders?.find(f => f.type === "Actor" && f.name === "Tutoriel");
-    if (!folder) folder = await Folder.create({ name: "Tutoriel", type: "Actor" });
+    let folder = game.folders?.find(f => f.type === "Actor" && memeNom(f.name, tl("Tutoriel")));
+    if (!folder) folder = await Folder.create({ name: tl("Tutoriel"), type: "Actor" });
 
     // "Aucun" par défaut : personne ne conserve d'accès à la fiche démo. Le
     // tutoriel accorde temporairement l'accès Propriétaire au participant
@@ -117,45 +118,45 @@ async function createDemoActor() {
 
     // ---- Relations (auto-suffisantes : cibles fictives, aucun acteur réel) ----
     const relationsList = [
-        { id: rid(), targetId: "demo-rel-sylwen", targetName: "Dame Sylwen d'Argentcombe", targetImg: "icons/svg/mystery-man.svg",
-          type: "PNJ", level: 3, note: "Mentore et protectrice. Confie les missions aux Marches.", lastPosition: "Tour d'Argent", secret: false, revealed: true },
-        { id: rid(), targetId: "demo-rel-rictus", targetName: "Rictus le Balafré", targetImg: "icons/svg/terror.svg",
-          type: "PNJ", level: -2, note: "Chef de bande hostile croisé au Col des Corbeaux.", lastPosition: "Col des Corbeaux", secret: false, revealed: true },
-        { id: rid(), targetId: "demo-rel-kaelen", targetName: "Kaelen, marchand ambulant", targetImg: "icons/svg/coins.svg",
-          type: "PNJ", level: 1, note: "Fournit informations et matériel contre menus services.", lastPosition: "Bourg-la-Rivière", secret: false, revealed: true }
+        { id: rid(), targetId: "demo-rel-sylwen", targetName: tl("Dame Sylwen d'Argentcombe"), targetImg: "icons/svg/mystery-man.svg",
+          type: tl("PNJ"), level: 3, note: tl("Mentore et protectrice. Confie les missions aux Marches."), lastPosition: tl("Tour d'Argent"), secret: false, revealed: true },
+        { id: rid(), targetId: "demo-rel-rictus", targetName: tl("Rictus le Balafré"), targetImg: "icons/svg/terror.svg",
+          type: tl("PNJ"), level: -2, note: tl("Chef de bande hostile croisé au Col des Corbeaux."), lastPosition: tl("Col des Corbeaux"), secret: false, revealed: true },
+        { id: rid(), targetId: "demo-rel-kaelen", targetName: tl("Kaelen, marchand ambulant"), targetImg: "icons/svg/coins.svg",
+          type: tl("PNJ"), level: 1, note: tl("Fournit informations et matériel contre menus services."), lastPosition: tl("Bourg-la-Rivière"), secret: false, revealed: true }
     ];
 
     // ---- Bestiaire (auto-suffisant) ----
     const bestiaryList = [
-        { id: rid(), targetId: "demo-bst-gobelin", targetName: "Gobelin des cavernes", targetImg: "icons/svg/terror.svg",
-          hostility: -1, note: "Rapides, embuscades nocturnes en meute.", firstScene: "Grotte de Karndal", revealed: true },
-        { id: rid(), targetId: "demo-bst-loup", targetName: "Loup des ombres", targetImg: "icons/svg/wolf.svg",
-          hostility: -2, note: "Prédateur de meute, très agressif la nuit.", firstScene: "Forêt de Vlourn", revealed: true },
-        { id: rid(), targetId: "demo-bst-esprit", targetName: "Esprit sylvestre", targetImg: "icons/svg/oak.svg",
-          hostility: 2, note: "Gardien bienveillant d'une clairière ancienne.", firstScene: "Clairière du Vieux Chêne", revealed: true }
+        { id: rid(), targetId: "demo-bst-gobelin", targetName: tl("Gobelin des cavernes"), targetImg: "icons/svg/terror.svg",
+          hostility: -1, note: tl("Rapides, embuscades nocturnes en meute."), firstScene: tl("Grotte de Karndal"), revealed: true },
+        { id: rid(), targetId: "demo-bst-loup", targetName: tl("Loup des ombres"), targetImg: "icons/svg/wolf.svg",
+          hostility: -2, note: tl("Prédateur de meute, très agressif la nuit."), firstScene: tl("Forêt de Vlourn"), revealed: true },
+        { id: rid(), targetId: "demo-bst-esprit", targetName: tl("Esprit sylvestre"), targetImg: "icons/svg/oak.svg",
+          hostility: 2, note: tl("Gardien bienveillant d'une clairière ancienne."), firstScene: tl("Clairière du Vieux Chêne"), revealed: true }
     ];
 
     // ---- Carnet (sections + notes) ----
     const carnetNotes = [
-        { id: rid(), type: "section", title: "Journal de campagne" },
-        { id: rid(), title: "Arrivée aux Marches", linkedExpId: null,
-          content: "<p>Aeryn rejoint les Marches de l'Ouest. Premiers contacts avec Dame Sylwen, qui l'envoie éclaircir les raids gobelins.</p>" },
-        { id: rid(), title: "La menace gobeline", linkedExpId: null,
-          content: "<p>Les raids se multiplient près de la grotte de Karndal. Rictus le Balafré semble tirer les ficelles.</p>" }
+        { id: rid(), type: "section", title: tl("Journal de campagne") },
+        { id: rid(), title: tl("Arrivée aux Marches"), linkedExpId: null,
+          content: `<p>${tl("Aeryn rejoint les Marches de l'Ouest. Premiers contacts avec Dame Sylwen, qui l'envoie éclaircir les raids gobelins.")}</p>` },
+        { id: rid(), title: tl("La menace gobeline"), linkedExpId: null,
+          content: `<p>${tl("Les raids se multiplient près de la grotte de Karndal. Rictus le Balafré semble tirer les ficelles.")}</p>` }
     ];
 
     // ---- Expéditions (auto-suffisantes ; PAS de gmId → n'apparaissent pas
     //      dans le Casier / le Suivi des GM du serveur) ----
     const expeditions = [
-        { id: rid(), name: "Reconnaissance du Col des Corbeaux", startDate: { day: 12, month: 2, year: 1487 }, endDate: { day: 15, month: 2, year: 1487 } },
-        { id: rid(), name: "La clairière du Vieux Chêne",        startDate: { day: 3,  month: 4, year: 1487 }, endDate: null }
+        { id: rid(), name: tl("Reconnaissance du Col des Corbeaux"), startDate: { day: 12, month: 2, year: 1487 }, endDate: { day: 15, month: 2, year: 1487 } },
+        { id: rid(), name: tl("La clairière du Vieux Chêne"),        startDate: { day: 3,  month: 4, year: 1487 }, endDate: null }
     ];
 
     // ---- Fiche de base : chargée depuis le JSON livré dans le module ----
     // (personnage complet exporté depuis Foundry : classe, sorts, aptitudes,
     // équipement, caractéristiques…). On applique nos overrides par-dessus.
     const resp = await fetch(`modules/${MOD}/data/tutorial-actor.json`);
-    if (!resp.ok) throw new Error(`Chargement de data/tutorial-actor.json échoué : HTTP ${resp.status}`);
+    if (!resp.ok) throw new Error(tl("Chargement de data/tutorial-actor.json échoué : HTTP {0}", resp.status));
     const data = await resp.json();
 
     // Nettoyage des champs propres au monde source (acteur + objets embarqués).
@@ -173,7 +174,7 @@ async function createDemoActor() {
 
     // Image de la fiche tutoriel (patate qui dab, livrée avec le module).
     const IMG = `modules/${MOD}/assets/tutoriel.png`;
-    data.name = data.name || "Tutoriel";
+    data.name = data.name || tl("Tutoriel");
     data.type = "character";
     data.img  = IMG;
     data.folder = folder?.id ?? null;
@@ -187,7 +188,7 @@ async function createDemoActor() {
     data.system = data.system ?? {};
     data.system.details = data.system.details ?? {};
     const _bio = data.system.details.biography ?? {};
-    _bio.value = `<p><em>Illustration du portrait par <strong>__xiu_5</strong>.</em></p>` + (_bio.value ?? "");
+    _bio.value = `<p>${tl("<em>Illustration du portrait par <strong>__xiu_5</strong>.</em>")}</p>` + (_bio.value ?? "");
     data.system.details.biography = _bio;
 
     // Flags : marqueur de fiche démo + contenus de démonstration des onglets.
@@ -199,6 +200,6 @@ async function createDemoActor() {
     };
 
     const created = await Actor.create(data);
-    if (!created) throw new Error("Actor.create n'a renvoyé aucun acteur.");
+    if (!created) throw new Error(tl("Actor.create n'a renvoyé aucun acteur."));
     return created;
 }

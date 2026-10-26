@@ -22,6 +22,7 @@
 // ============================================================
 
 import { MOD } from "./const.js";
+import { journal } from "./log.js";
 import { Dialog } from "./compat.js";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c =>
@@ -51,7 +52,7 @@ async function _getSound(path) {
         const ctx = game.audio?.music ?? game.audio?.environment ?? undefined;
         sound = new Sound(path, ctx ? { context: ctx } : {});
         try { await sound.load(); }
-        catch (e) { console.error(`[${MOD}] Chargement audio échoué : ${path}`, e); }
+        catch (e) { journal.erreur(`[${MOD}] Chargement audio échoué : ${path}`, e); }
     }
     _cache.set(path, sound);
     return sound;
@@ -78,7 +79,7 @@ export async function playCueLocal({ path, offset = 0, volume = 0.8, fade = 0, l
             if (s) _active.add(s);
         }
     } catch (e) {
-        console.error(`[${MOD}] Lecture du cue audio échouée :`, e);
+        journal.erreur(`[${MOD}] Lecture du cue audio échouée :`, e);
     }
 }
 
@@ -115,7 +116,7 @@ function _broadcast(action, data = {}) {
         if (u.id === game.user.id || !u.active) continue;
         if (recips && !recips.has(u.id)) continue;
         u.query(`westmarch.sceneCue.${action}`, data).catch(e =>
-            console.warn(`[${MOD}] cue → ${u.name} :`, e));
+            journal.avert(`[${MOD}] cue → ${u.name} :`, e));
     }
 }
 
@@ -453,7 +454,7 @@ async function _collectPlaylistSounds() {
     }
     for (const pack of game.packs.filter(p => p.documentName === "Playlist")) {
         let docs = [];
-        try { docs = await pack.getDocuments(); } catch (e) { console.warn(`[${MOD}] compendium ${pack.collection} :`, e); }
+        try { docs = await pack.getDocuments(); } catch (e) { journal.avert(`[${MOD}] compendium ${pack.collection} :`, e); }
         for (const pl of docs) {
             const sounds = grab(pl);
             if (sounds.length) groups.push({ label: pl.name, source: pack.metadata?.label ?? "Compendium", sounds });

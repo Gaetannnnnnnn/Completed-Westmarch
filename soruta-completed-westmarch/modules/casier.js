@@ -11,6 +11,7 @@
 // ============================================================
 
 import { MOD } from "./const.js";
+import { journal } from "./log.js";
 import { getExpeditions, formatDate } from "./carnet.js";
 import {
     getSessionDrafts, saveSessionDraft, deleteSessionDraft, sendSessionReport, getSessionLog, expeditionSessionCount,
@@ -650,7 +651,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             await game.settings.set(MOD, key, Array.isArray(def.empty) ? [] : {});
             ui.notifications?.info(`Casier : ${def.label} — réinitialisé.`);
         } catch (err) {
-            console.error("[WestMarch] Réinitialisation casier :", err);
+            journal.erreur("[WestMarch] Réinitialisation casier :", err);
             ui.notifications?.error("Échec de la réinitialisation (voir console).");
         }
         this.render();
@@ -1191,7 +1192,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                     const res = await measureWorld();
                     if (out) out.innerHTML = worldSizeTablesHtml(res);
                 } catch (e) {
-                    console.warn("[casier] poids du monde :", e);
+                    journal.avert("[casier] poids du monde :", e);
                     if (out) out.innerHTML = `<p style="color:#c0392b;">Échec du calcul.</p>`;
                 }
             };
@@ -1365,7 +1366,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             const ok = await sendSessionReport(d);
             if (!ok) return;   // avertissement déjà émis (webhook manquant / échec)
             // Attribution différée : appliquée SEULEMENT maintenant, l'envoi ayant réussi.
-            if (d.pendingAward) { try { await applyDeferredAward(d.pendingAward); } catch (e) { console.warn("[WestMarch] Attribution différée :", e); } }
+            if (d.pendingAward) { try { await applyDeferredAward(d.pendingAward); } catch (e) { journal.avert("[WestMarch] Attribution différée :", e); } }
             await deleteSessionDraft(d.id);
             this.#selectedId = null;
             ui.notifications.info(d.pendingAward ? "Rapport envoyé et attribution appliquée." : "Rapport de session envoyé sur Discord.");

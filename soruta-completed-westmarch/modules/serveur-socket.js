@@ -6,6 +6,7 @@
 // ============================================================
 
 import { getTutorialActor } from "./demoactor.js";
+import { journal } from "./log.js";
 import { MOD, DEACTIVATION_CODE } from "./const.js";
 
 export function SocketHooks() {
@@ -21,7 +22,7 @@ export function SocketHooks() {
         if (!DEACTIVATION_CODE || code !== DEACTIVATION_CODE) return false;
         const next = !(game.settings.get(MOD, "moduleDeactivated") === true);
         try { await game.settings.set(MOD, "moduleDeactivated", next); return next ? "off" : "on"; }
-        catch (e) { console.error("[completed-westmarch] toggleDeactivation :", e); return false; }
+        catch (e) { journal.erreur("[completed-westmarch] toggleDeactivation :", e); return false; }
     };
 
     // Un joueur ne peut pas modifier l'ownership d'un acteur : il demande au GM
@@ -31,7 +32,7 @@ export function SocketHooks() {
         const actor = getTutorialActor();
         if (!actor) return false;
         try { await actor.update({ [`ownership.${userId}`]: level }); return true; }
-        catch (e) { console.error("[completed-westmarch] setDemoOwnership :", e); return false; }
+        catch (e) { journal.erreur("[completed-westmarch] setDemoOwnership :", e); return false; }
     };
 }
 
@@ -41,6 +42,6 @@ export function sendFakeWarning(userId, message) {
     const targetUser = game.users.get(userId);
     if (!targetUser) return;
     targetUser.query("completed-westmarch.fakeWarning", { message }).catch(err =>
-        console.error("[completed-westmarch] Erreur lors de l'envoi du faux message à", targetUser.name, ":", err)
+        journal.erreur("[completed-westmarch] Erreur lors de l'envoi du faux message à", targetUser.name, ":", err)
     );
 }

@@ -1,4 +1,5 @@
 import { MOD } from "./const.js";
+import { journal } from "./log.js";
 import { Dialog } from "./compat.js";
 // ============================================================
 // export-dialog.js — Export d'acteur avec choix de fiche
@@ -14,7 +15,7 @@ import { Dialog } from "./compat.js";
 // ================================================================
 
 export function ExportDialogHooks() {
-    console.log("[Toolkit Export] ExportDialogHooks() démarré");
+    journal.debug("[Toolkit Export] ExportDialogHooks() démarré");
 
     // Toutes les données custom des features sont désormais regroupées
     // sous le scope unique MOD (plus de liste de modules à nettoyer).
@@ -28,12 +29,12 @@ export function ExportDialogHooks() {
         || (typeof o.label === "string" && /export/i.test(o.label));
 
     const handler = (_html, options) => {
-        console.log("[Toolkit Export] hook contextuel déclenché, options :",
+        journal.debug("[Toolkit Export] hook contextuel déclenché, options :",
             options.map(o => ({ name: o.name, label: o.label, icon: o.icon }))
         );
 
         const idx = options.findIndex(isExportOption);
-        console.log("[Toolkit Export] idx export :", idx,
+        journal.debug("[Toolkit Export] idx export :", idx,
             idx !== -1 ? options[idx] : "(non trouvée)"
         );
 
@@ -45,9 +46,9 @@ export function ExportDialogHooks() {
                 return actor?.isOwner ?? false;
             },
             callback: async (li) => {
-                console.log("[Toolkit Export] callback export déclenché");
+                journal.debug("[Toolkit Export] callback export déclenché");
                 const actor = _getActor(li);
-                console.log("[Toolkit Export] acteur :", actor?.name);
+                journal.debug("[Toolkit Export] acteur :", actor?.name);
                 if (!actor) return;
                 await _exportWithChoice(actor);
             }
@@ -62,7 +63,7 @@ export function ExportDialogHooks() {
         const insertAt = idx !== -1 ? Math.min(idx, options.length) : options.length;
         options.splice(insertAt, 0, entry);
 
-        console.log("[Toolkit Export] menu final :", options.map(o => o.name ?? o.label));
+        journal.debug("[Toolkit Export] menu final :", options.map(o => o.name ?? o.label));
     };
 
     // Foundry v13 ApplicationV2 : le hook fire au render de la sidebar, pas au clic droit.
@@ -78,9 +79,9 @@ export function ExportDialogHooks() {
 // ================================================================
 
 async function _exportWithChoice(actor) {
-    console.log("[Toolkit Export] _exportWithChoice appelé pour", actor.name);
+    journal.debug("[Toolkit Export] _exportWithChoice appelé pour", actor.name);
     const choice = await _showDialog(actor);
-    console.log("[Toolkit Export] choix =", choice);
+    journal.debug("[Toolkit Export] choix =", choice);
     if (choice === null) return;
 
     if (choice === "current") {

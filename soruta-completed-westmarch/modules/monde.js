@@ -36,6 +36,7 @@
 // ============================================================
 
 import { MOD } from "./const.js";
+import { journal } from "./log.js";
 import { expeditionSceneIds, getExplored, zonesMap } from "./map.js";
 
 const MEJ = "monks-enhanced-journal";
@@ -280,7 +281,7 @@ export async function chargerFiches() {
         vus.add(p.collection);
         try {
             for (const d of await p.getDocuments()) if (typeDe(d)) out.push({ entry: d, page: pageDe(d), type: typeDe(d) });
-        } catch (e) { console.warn(`[${MOD}] lecture du compendium ${p.collection}`, e); }
+        } catch (e) { journal.avert(`[${MOD}] lecture du compendium ${p.collection}`, e); }
     }
     return out;
 }
@@ -464,7 +465,7 @@ export function afficherEpinglesPartout() {
         if (toggle) return;   // déjà affichées (et cliquables) par Foundry
         if (calque.objects) calque.objects.visible = true;
         calque.interactiveChildren = true;
-    } catch (e) { console.warn(`[${MOD}] épingles`, e); }
+    } catch (e) { journal.avert(`[${MOD}] épingles`, e); }
 }
 
 // Foundry dessine chaque note sur un carré sombre (fond de la ControlIcon) :
@@ -625,7 +626,7 @@ let _minuterieDecouverte = null;
 export function planifierDecouverte() {
     if (!game.user?.isGM) return;
     clearTimeout(_minuterieDecouverte);
-    _minuterieDecouverte = setTimeout(() => appliquerDecouverte().catch(e => console.warn(`[${MOD}] découverte`, e)), 1500);
+    _minuterieDecouverte = setTimeout(() => appliquerDecouverte().catch(e => journal.avert(`[${MOD}] découverte`, e)), 1500);
 }
 
 // ============================================================
@@ -672,7 +673,7 @@ function _suivante() {
             let vol = 0.8;
             try { vol = game.settings.get("core", "globalInterfaceVolume") ?? 0.8; } catch {}
             AH?.play?.({ src: b.son, volume: vol, autoplay: true, loop: false }, false);
-        } catch (e) { console.warn(`[${MOD}] son de la bannière`, e); }
+        } catch (e) { journal.avert(`[${MOD}] son de la bannière`, e); }
     }
     requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add("visible")));
     setTimeout(() => el.classList.remove("visible"), 1200 + 2800);          // apparition + affichage
@@ -682,7 +683,7 @@ function _suivante() {
 // À enregistrer sur tous les clients : le MJ actif cible chaque joueur concerné.
 export function enregistrerQueryBanniere() {
     try { CONFIG.queries["westmarch.lieuDecouvert"] = async ({ nom, son }) => { afficherBanniere(nom, son); return true; }; }
-    catch (e) { console.warn(`[${MOD}] query bannière`, e); }
+    catch (e) { journal.avert(`[${MOD}] query bannière`, e); }
 }
 
 // ============================================================
@@ -1194,7 +1195,7 @@ export async function cablerOngletMonde(root, rerendre, etat = {}) {
     const hote = root?.querySelector(".scwm-monde-hote");
     if (hote) {
         try { hote.innerHTML = await contenuMondeHtml(etat); }
-        catch (e) { console.warn(`[${MOD}] onglet Monde`, e); hote.innerHTML = `<p style="color:#e58f8f;">Impossible de charger les fiches : ${esc(e.message)}</p>`; return; }
+        catch (e) { journal.avert(`[${MOD}] onglet Monde`, e); hote.innerHTML = `<p style="color:#e58f8f;">Impossible de charger les fiches : ${esc(e.message)}</p>`; return; }
     }
     const box = root?.querySelector(".scwm-monde");
     if (!box) return;
@@ -1268,7 +1269,7 @@ export async function rangerDansCompendiums() {
         }
     } catch (e) {
         ui.notifications?.error(`Rangement interrompu : ${e.message}`);
-        console.warn(`[${MOD}] rangement`, e);
+        journal.avert(`[${MOD}] rangement`, e);
         return false;
     }
     // Remplace les anciens uuid partout : relations Monk's, liens @UUID, acteurs.
@@ -1299,7 +1300,7 @@ export async function rangerDansCompendiums() {
             if (update["text.content"] && fiche.hash === empreinte(contenu)) update[`flags.${MOD}.fiche.hash`] = empreinte(nouveau);
         }
         if (Object.keys(update).length) {
-            try { await page.update(update); } catch (e) { console.warn(`[${MOD}] mise à jour des liens de ${f.entry.name}`, e); }
+            try { await page.update(update); } catch (e) { journal.avert(`[${MOD}] mise à jour des liens de ${f.entry.name}`, e); }
         }
     }
     for (const a of game.actors) {
@@ -1408,7 +1409,7 @@ export function MondeHooks() {
             const title = header.querySelector(".window-title");
             if (title) title.insertAdjacentElement("afterend", btn);
             else header.insertBefore(btn, header.querySelector(".close"));
-        } catch (e) { console.warn(`[${MOD}] bouton fiche du monde :`, e); }
+        } catch (e) { journal.avert(`[${MOD}] bouton fiche du monde :`, e); }
     });
 
     const idDe = (li) => li?.dataset?.entryId ?? li?.dataset?.documentId ?? li?.dataset?.sceneId ?? li?.dataset?.actorId;
@@ -1467,8 +1468,8 @@ export function MondeHooks() {
     Hooks.once("ready", () => {
         if (!game.user?.isGM || !mondeActif() || (game.users.activeGM && game.users.activeGM.id !== game.user.id)) return;
         for (const { entry, type } of toutesLesFiches()) if (type === "place") viderEtiquettes(entry).catch(() => {});
-        migrerEpingles().catch(e => console.warn(`[${MOD}] épingles`, e));
-        preparerDossierLieux().catch(e => console.warn(`[${MOD}] dossier des lieux`, e));
+        migrerEpingles().catch(e => journal.avert(`[${MOD}] épingles`, e));
+        preparerDossierLieux().catch(e => journal.avert(`[${MOD}] dossier des lieux`, e));
     });
     // Note d'un lieu posée sur la carte du monde (glisser-déposer du journal,
     // outil Notes…) → épingle fine, par le client qui l'a créée.

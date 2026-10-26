@@ -12,8 +12,9 @@
 // ============================================================
 
 import { MOD } from "./const.js";
+import { journal } from "./log.js";
 import { commonFolderPJ, commonPackCreatures } from "./settings.js";
-import { jetonDuPersonnage, voit, surCarteExpedition } from "./perception.js";
+import { jetonDuPersonnage, voit, surCarteExpedition, ouvrirImage, dateDeRencontre, memeRencontre, texteRencontre } from "./perception.js";
 export const MODULE = MOD;
 
 // ---- État de session ---------------------------------------
@@ -155,6 +156,16 @@ function blocDernierePositionHtml(entry) {
     </div>`;
 }
 
+// Date de la dernière rencontre (automatique, non modifiable).
+function blocDerniereRencontreHtml(entry) {
+    const { texte, titre } = texteRencontre(entry.lastSeen);
+    return `<div class="bst-scene-row">
+        <i class="fa-solid fa-calendar-day"></i>
+        <span class="bst-field-label">Dernière rencontre :</span>
+        <span class="bst-seen-value" data-bst-id="${entry.id}" title="${escB(titre)}">${texte ? escB(texte) : "<em>Inconnue</em>"}</span>
+    </div>`;
+}
+
 // ---- CRUD --------------------------------------------------
 
 function beastList(actor) {
@@ -212,7 +223,7 @@ async function ensureCreatureIndex() {
         _creatureIndex = new Set(idx.map(e => e.name));
         _creatureIndexPack = packId;
     } catch (e) {
-        console.warn("[Bestiaire] Index du compendium illisible :", e);
+        journal.avert("[Bestiaire] Index du compendium illisible :", e);
         _creatureIndex = null;
     }
 }
@@ -281,8 +292,8 @@ function buildRowHtml(entry, actor, canEdit) {
     return `
     <div class="bst-row" data-bst-id="${entry.id}">
         <div class="bst-row-header">
-            <img class="bst-avatar" src="${img}" alt="${name}">
-            <span class="bst-name">${name}</span>
+            <img class="bst-avatar" src="${escB(img)}" alt="${escB(name)}">
+            <span class="bst-name">${escB(name)}</span>
             ${hostilitySelector(entry.hostility ?? 0, canEdit)}
             <div class="bst-btns">
                 ${game.user.isGM && (target || src) ? `<a class="bst-open-sheet" data-target-id="${entry.targetId}" data-source-uuid="${target ? "" : (src?.uuid ?? "")}" title="Ouvrir la fiche"><i class="fa-solid fa-external-link-alt"></i></a>` : ""}
@@ -297,13 +308,14 @@ function buildRowHtml(entry, actor, canEdit) {
                 <span class="bst-scene-value" title="Scène où le personnage a vu la créature pour la première fois">${escB(entry.firstScene ?? "") || "<em>Inconnue</em>"}</span>
             </div>
             ${opt("bestiaryLastPosition") ? blocDernierePositionHtml(entry) : ""}
+            ${opt("bestiaryLastSeen") ? blocDerniereRencontreHtml(entry) : ""}
             ${opt("bestiaryArmorClass") ? blocCaHtml(entry, canEdit) : ""}
             ${opt("bestiaryDamageTags") ? blocDegatsHtml(entry, canEdit) : ""}
             ${canEdit ? `
             <textarea class="bst-note-input" data-bst-id="${entry.id}"
-                placeholder="Notes sur cette créature…">${entry.note ?? ""}</textarea>
+                placeholder="Notes sur cette créature…">${escB(entry.note)}</textarea>
             ` : `
-            <p class="bst-note-ro">${entry.note || "<em>Aucune note.</em>"}</p>
+            <p class="bst-note-ro" style="white-space:pre-wrap;">${entry.note ? escB(entry.note) : "<em>Aucune note.</em>"}</p>
             `}
         </div>
     </div>`;
@@ -366,9 +378,9 @@ export function buildTabHtml(actor) {
 
 function buildCreaturePickerHtml(creatures, uid) {
     const rows = creatures.map(a => `
-        <div class="bst-picker-actor" data-actor-id="${a.id}" data-name="${a.name.toLowerCase()}">
-            <img src="${a.img ?? "icons/svg/mystery-man.svg"}" alt="${a.name}">
-            <span>${a.name}</span>
+        <div class="bst-picker-actor" data-actor-id="${a.id}" data-name="${escB(a.name.toLowerCase())}">
+            <img src="${escB(a.img ?? "icons/svg/mystery-man.svg")}" alt="${escB(a.name)}">
+            <span>${escB(a.name)}</span>
         </div>`).join("");
 
     return `
@@ -438,6 +450,7 @@ async function openAddDialog(actor) {
                         note:       "",
                         firstScene: game.scenes.current?.name ?? "",
                         lastPosition: game.scenes.current?.name ?? "",
+                        lastSeen:   dateDeRencontre(),
                         revealed:   !(target?.getFlag?.(MOD, "anonymous") ?? false),
                     };
                 }
@@ -472,7 +485,7 @@ export function wireTab(actor, $html) {
         const target = game.actors.get(entry.targetId);
         const img    = target?.img  ?? entry.targetImg  ?? "icons/svg/mystery-man.svg";
         const name   = target?.name ?? entry.targetName ?? "Inconnue";
-        new ImagePopout(img, { title: name }).render(true);
+        ouvrirImage(img, name);
     });
 
     // Ajouter manuellement (GM uniquement)
@@ -538,7 +551,7 @@ export function wireTab(actor, $html) {
         if (!entry) return;
         const ok = await foundry.applications.api.DialogV2.confirm({
             window: { title: "Retirer du bestiaire" },
-            content: `<p>Retirer <strong>${entry.targetName}</strong> du bestiaire ?<br>
+            content: `<p>Retirer <strong>${escB(entry.targetName)}</strong> du bestiaire ?<br>
                       <small style="color:#999;">Cette action est irréversible.</small></p>`,
         });
         if (!ok) return;
@@ -646,12 +659,11 @@ export function wireTab(actor, $html) {
 
 // Met à jour le champ « Dernière position » dans les fiches ouvertes (sans
 // re-rendu, l'update se fait avec render:false).
-function _rafraichirPosition(actor, targetId, scene) {
-    const entry = beastList(actor).find(e => e.targetId === targetId);
-    if (!entry) return;
-    document.querySelectorAll(`.bst-tab[data-actor-id="${actor.id}"] .bst-last-value[data-bst-id="${entry.id}"]`).forEach(el => {
-        el.textContent = scene;
-    });
+function _rafraichirPosition(actor, entry) {
+    const sel = (c) => `.bst-tab[data-actor-id="${actor.id}"] .${c}[data-bst-id="${entry.id}"]`;
+    document.querySelectorAll(sel("bst-last-value")).forEach(el => { el.textContent = entry.lastPosition ?? ""; });
+    const { texte, titre } = texteRencontre(entry.lastSeen);
+    document.querySelectorAll(sel("bst-seen-value")).forEach(el => { el.textContent = texte; el.title = titre; });
 }
 
 // ---- Détection automatique (GM only) -----------------------
@@ -681,16 +693,27 @@ async function scanVisibleTokens() {
         const existing = new Set(beastList(myActor).map(e => e.targetId));
         const seenIds  = new Set();
 
-        // Dernière position : créatures déjà connues que le personnage revoit.
-        if (opt("bestiaryLastPosition") && sceneName) {
+        // Créatures déjà connues que le personnage revoit : dernière position
+        // et date de dernière rencontre (une écriture au plus par changement).
+        const avecPos = opt("bestiaryLastPosition") && !!sceneName, avecDate = opt("bestiaryLastSeen");
+        const quand = dateDeRencontre();
+        if (avecPos || avecDate) {
             const revues = new Set(tokens.filter(t => t.actor?.id && existing.has(t.actor.id) && voit(myToken, t)).map(t => t.actor.id));
             const liste = beastList(myActor);
-            if (liste.some(e => revues.has(e.targetId) && e.lastPosition !== sceneName)) {
-                await myActor.update({ [`flags.${MOD}.bestiaryList`]: liste.map(e =>
-                    revues.has(e.targetId) && e.lastPosition !== sceneName ? { ...e, lastPosition: sceneName } : e) }, { render: false });
-                for (const id of revues) _rafraichirPosition(myActor, id, sceneName);
+            const aJour = (e) => {
+                if (!revues.has(e.targetId)) return e;
+                const patch = {};
+                if (avecPos && e.lastPosition !== sceneName) patch.lastPosition = sceneName;
+                if (avecDate && !memeRencontre(e.lastSeen, quand)) patch.lastSeen = quand;
+                return Object.keys(patch).length ? { ...e, ...patch } : e;
+            };
+            const nouvelle = liste.map(aJour);
+            if (nouvelle.some((e, i) => e !== liste[i])) {
+                await myActor.update({ [`flags.${MOD}.bestiaryList`]: nouvelle }, { render: false });
+                for (const e of nouvelle) if (revues.has(e.targetId)) _rafraichirPosition(myActor, e);
             }
         }
+
         const toAdd = tokens.filter(t => {
             if (!t.actor?.id) return false;
             if (t.actor.id === myActor.id) return false;
@@ -718,6 +741,7 @@ async function scanVisibleTokens() {
                 note:       "",
                 firstScene: sceneName,
                 lastPosition: sceneName,
+                lastSeen:   quand,
                 revealed:   !(t.actor.getFlag(MOD, "anonymous") ?? false),
             };
         });
@@ -852,7 +876,7 @@ export function BestiaryHooks() {
         btnRemove.addEventListener("click", async () => {
             const ok = await foundry.applications.api.DialogV2.confirm({
                 window:  { title: "Retirer de chez tous les joueurs" },
-                content: `<p>Retirer <strong>${actor.name}</strong> des Relations et du Bestiaire de <strong>tous les joueurs</strong> ?</p>
+                content: `<p>Retirer <strong>${escB(actor.name)}</strong> des Relations et du Bestiaire de <strong>tous les joueurs</strong> ?</p>
                           <p style="opacity:0.7;font-size:0.9em;">Les listes existantes sont nettoyées. Sans blocage, ce personnage pourra être ré-ajouté automatiquement s'il est recroisé.</p>`
             });
             if (!ok) return;
@@ -901,7 +925,7 @@ export function BestiaryHooks() {
                 });
                 if (changed) await actor.update({ [`flags.${MOD}.bestiaryList`]: next }, { render: false });
             }
-        } catch (e) { console.warn("[Bestiaire] Migration source compendium :", e); }
+        } catch (e) { journal.avert("[Bestiaire] Migration source compendium :", e); }
     });
 
     // Répondre aux hooks (appels depuis les boutons, quel que soit le module émetteur)

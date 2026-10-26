@@ -18,6 +18,7 @@
 
 import { MOD } from "./const.js";
 
+import { journal } from "./log.js";
 const enabled = () => game.settings.get(MOD, "enableCompanions");
 const LINK = "companionLink";
 
@@ -97,7 +98,7 @@ function evalFormula(formula, data) {
     const replaced = Roll.replaceFormulaData(String(formula ?? ""), data, { missing: "0" });
     if (/\dd\d/i.test(replaced)) return { dice: true, str: replaced };
     try { return { value: Roll.safeEval(replaced) }; }
-    catch (e) { console.warn(`[${MOD}] Formule invalide « ${formula} » →`, e); return { value: null }; }
+    catch (e) { journal.avert(`[${MOD}] Formule invalide « ${formula} » →`, e); return { value: null }; }
 }
 
 // ------------------------------------------------------------
@@ -169,7 +170,7 @@ async function applyResync(companion, { force = false } = {}) {
         await companion.update(finalUpdate);
         return { ok: true, level: res.level };
     } catch (e) {
-        console.warn(`[${MOD}] applyResync :`, e);
+        journal.avert(`[${MOD}] applyResync :`, e);
         return { ok: false, msg: "Erreur pendant la resynchronisation." };
     }
 }
@@ -223,7 +224,7 @@ async function resyncForMaster(master, { force = false } = {}) {
         if (!force && link?.auto === false) continue;   // seulement les liens automatiques
         await resyncCompanion(c, { force });
     }
-    if (list.length) console.log(`[${MOD}] compagnons : ${list.length} resync pour ${master.name}`);
+    if (list.length) journal.debug(`[${MOD}] compagnons : ${list.length} resync pour ${master.name}`);
 }
 
 // ============================================================
@@ -288,7 +289,7 @@ export function CompanionHooks() {
             const title = header.querySelector(".window-title");
             if (title) title.insertAdjacentElement("afterend", btn);
             else header.insertBefore(btn, header.querySelector(".close"));
-        } catch (e) { console.warn(`[${MOD}] bouton compagnon :`, e); }
+        } catch (e) { journal.avert(`[${MOD}] bouton compagnon :`, e); }
     });
 }
 
@@ -387,13 +388,3 @@ export async function openProfilesEditor() {
     }).catch(() => {});
 }
 
-// ------------------------------------------------------------
-// Menu de réglages : bouton « Éditer les profils » dans les settings du module.
-// ------------------------------------------------------------
-const _FormBase = foundry.appv1?.api?.FormApplication ?? globalThis.FormApplication
-    ?? foundry.applications.api.ApplicationV2;
-export class CompanionProfilesMenu extends _FormBase {
-    render() { try { openProfilesEditor(); } catch (e) { console.warn(`[${MOD}] menu profils :`, e); } try { this.close?.(); } catch (e) {} return this; }
-    async _updateObject() {}
-    getData() { return {}; }
-}

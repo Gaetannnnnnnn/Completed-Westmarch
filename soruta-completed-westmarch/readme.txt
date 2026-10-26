@@ -212,6 +212,87 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
 
+v6.6.1 | 2026-10-26
+   - Sécurité : les notes et la dernière position des Relations, les notes
+     du Bestiaire, les noms affichés et les titres du Carnet sont échappés ;
+     le contenu HTML des notes du Carnet est nettoyé (scripts, iframes,
+     attributs on…, liens javascript: retirés) à l'affichage et à
+     l'enregistrement. Avant, un joueur pouvait glisser du code dans une
+     note qui s'exécutait chez le MJ à l'ouverture de sa fiche.
+   - Problèmes du module dans le log Discord : tous les messages du module
+     passent par modules/log.js. Les vrais problèmes (erreur, fonction
+     cassée, conflit avec un autre module ou une mise à jour de Foundry qui
+     passe par-dessus, erreur non rattrapée venant des fichiers du module)
+     sont envoyés dans le log Discord par le client où ils arrivent, sous un
+     séparateur « 🚨 Problèmes du module », avec le message, l'endroit dans
+     le code, le joueur concerné, les versions (Foundry, système, module) et
+     la mention « Contacter le propriétaire du module ». Un même problème
+     n'est envoyé qu'une fois toutes les 10 minutes (15 envois au plus par
+     chargement). Nouvelle case « Problèmes du module » (logModuleErrors)
+     dans Paramètres → Log Discord. Les petits soucis contournés restent
+     dans la console du navigateur (F12).
+   - Bouton « Diagnostic » dans les paramètres du module (MJ, disponible
+     même sans licence) : versions, licence, modules tiers nécessaires aux
+     fonctions activées (Monk's, libWrapper, Midi-QOL…), réglages
+     essentiels (dossiers PJ / PNJ, compendium des créatures, carte des
+     expéditions, webhook), joueurs sans personnage ou PJ hors du dossier,
+     et problèmes détectés depuis le chargement. ✅ / ⚠️ / ❌ par ligne, et
+     bouton « Copier » pour l'envoyer au propriétaire du module. Nouveau
+     fichier modules/diagnostic.js.
+   - Relations et Bestiaire : « Dernière rencontre », date mise à jour
+     automatiquement quand le personnage revoit le PJ / PNJ / la créature
+     (date du calendrier du monde si disponible, date réelle au survol ;
+     sinon date réelle). Réglages relationsLastSeen et bestiaryLastSeen.
+   - Indicateur « géré par le module » : icône d'engrenages dorée sur les
+     aptitudes dont le module applique la règle (Healer, Alert, Large Form,
+     Giant's Havoc, Form of the Beast), avec l'explication au survol ;
+     désactivable par chaque joueur (Accessibilité). Nouveau fichier
+     modules/gere.js.
+   - Nettoyage : fichier modules/hotbar.js supprimé (vide, plus importé
+     depuis que « Interface — Masquer des éléments » gère la barre de
+     macros) ; fonctions jamais appelées retirées (closeExpedition,
+     myCharActor, unlockActor, CompanionProfilesMenu, totalStars,
+     openDowntimeDialog, showTutorialSelector, export de test de la
+     licence) ; ouverture des portraits via l'API actuelle de Foundry
+     (ImagePopout) au lieu de l'ancien nom global.
+   - Modifications ciblées → Features : « Healer (Guérisseur) — relance des
+     1 sur les soins » (enableHealerReroll, activé par défaut). Pour un
+     personnage qui a le don Healer, chaque jet de soins d'un sort (ou du
+     Battle Medic du don) reçoit le modificateur « r1 » sur ses dés
+     (2d8 + @mod → 2d8r1 + @mod) : un dé qui fait 1 est relancé une fois et
+     le nouveau résultat est gardé. PV temporaires, potions et dégâts ne
+     sont pas concernés. Nouveau fichier modules/healer.js.
+   - Modifications ciblées → Features : « Alert (Vigilant) — échange
+     d'initiative » (enableAlertSwap, activé par défaut). Pour les comptes
+     MJ, un bouton d'échange apparaît dans le suivi de combat sur la ligne
+     d'un personnage de joueur qui a le don Alert, une fois son initiative
+     lancée. Le MJ choisit un autre joueur du combat (initiative lancée ;
+     un personnage neutralisé est grisé) : les deux initiatives sont
+     échangées et un message l'annonce dans le chat. Après usage, le bouton
+     reste disponible en grisé (nouvel échange avec confirmation). Don
+     reconnu par l'identifiant « alert » ou le nom « Alert » / « Vigilant ».
+     Nouveau fichier modules/alert.js.
+   - Log Discord : les PNJ et créatures importés d'un compendium (ou par
+     Plutonium) ne sont plus jamais loggés (création, suppression, objets,
+     XP, monnaie), pour ne pas dévoiler ce que le MJ prépare. Les PNJ créés
+     à la main et les PJ restent loggés comme avant.
+   - Log Discord : nouveau contenu « Modifications des fiches »
+     (logSheetEdits, activé par défaut). Toute modification d'un objet,
+     d'une aptitude ou d'un sort (nom, description, dégâts, portée,
+     utilisations max…) et de la fiche elle-même (caractéristiques,
+     maîtrises, langues, résistances, biographie…) est loggée, avec la
+     liste des champs changés (avant → après pour les valeurs simples).
+     Seuls les champs réellement modifiés comptent ; ce qui change en jeu
+     n'est pas loggé (PV, utilisations dépensées, emplacements de sorts,
+     équiper / préparer / harmoniser, dés de vie dépensés).
+   - Log Discord : quand le thème des messages change (inventaire,
+     aptitudes & sorts, progression, monnaie, modifications de fiche,
+     personnages, scènes, journaux), une ligne de séparation avec le nom
+     du thème est ajoutée au-dessus du message.
+   - Messages « problème du module » (log Discord, console, diagnostic) :
+     ajout du lien d'invitation du Discord Althéia pour ouvrir un ticket
+     plutôt qu'envoyer un message privé.
+
 v6.6.0 | 2026-10-23
    - Bestiaire : « Première rencontre » n'est plus modifiable à la main
      (remplie une fois, à l'ajout de la créature), comme « Dernière

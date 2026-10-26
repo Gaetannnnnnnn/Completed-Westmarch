@@ -1,4 +1,6 @@
 import { MOD } from "./const.js";
+import { journal } from "./log.js";
+import { ouvrirImage } from "./perception.js";
 // ============================================================
 // token.js — Apparences multiples pour le token (GM uniquement)
 // Le GM importe une image de personnage + une image de bordure
@@ -179,7 +181,7 @@ function openImportPopup(onConfirm) {
                 const result = await FilePicker.upload(uploadSource(), "westmarch-tokens", file);
                 if (result?.path) loadImage(result.path, target);
             } catch (err) {
-                console.error("[WestMarch] Erreur upload :", err);
+                journal.erreur("[WestMarch] Erreur upload :", err);
                 ui.notifications.error("Erreur lors de l'upload de l'image (voir console).");
             }
         });
@@ -262,7 +264,7 @@ function openImportPopup(onConfirm) {
                     cleanup();
                 }
             } catch (err) {
-                console.error("[WestMarch] Erreur création token :", err);
+                journal.erreur("[WestMarch] Erreur création token :", err);
                 ui.notifications.error("Erreur lors de la création du token (voir console).");
             }
         }, "image/png");
@@ -297,10 +299,10 @@ export function TokenHooks() {
                 canvas.hud.token.bind(this);
             }, "MIXED");
         } catch (e) {
-            console.warn("[WestMarch] Impossible de patcher l'ouverture du HUD token (libWrapper) :", e);
+            journal.critique("[WestMarch] Impossible de patcher l'ouverture du HUD token (libWrapper) :", e);
         }
     } else {
-        console.warn("[WestMarch] libWrapper n'est pas actif : le bouton 'Voir le portrait' ne sera utilisable que par le propriétaire du token et le GM.");
+        journal.info("[WestMarch] libWrapper n'est pas actif : le bouton 'Voir le portrait' ne sera utilisable que par le propriétaire du token et le GM.");
     }
 
     // ============================================================
@@ -370,7 +372,7 @@ export function TokenHooks() {
         `);
 
         btn.click(() => {
-            new ImagePopout(actor.img, { title: actor.name }).render(true);
+            ouvrirImage(actor.img, actor.name);
         });
 
         $(html).find(".col.right").append(btn);
@@ -417,7 +419,7 @@ export function TokenHooks() {
         // En v13 l'acteur est accessible via app.document.parent
         const actor = app.document?.parent ?? app.object?.actor ?? app.actor;
         if (!actor) {
-            console.warn("[WestMarch] renderPrototypeTokenConfig : acteur introuvable", app);
+            journal.avert("[WestMarch] renderPrototypeTokenConfig : acteur introuvable", app);
             return;
         }
 
@@ -472,7 +474,7 @@ export function TokenHooks() {
         // Clic sur une miniature : affiche l'image de cette apparence en grand.
         section.on("click", ".westmarch-thumb-image", (ev) => {
             const src = $(ev.currentTarget).data("src");
-            if (src) new ImagePopout(src, { title: actor.name }).render(true);
+            if (src) ouvrirImage(src, actor.name);
         });
 
         const tab = $(html).find(".tab[data-tab='appearance']");

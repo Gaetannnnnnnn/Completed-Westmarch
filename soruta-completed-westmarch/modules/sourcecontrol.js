@@ -15,6 +15,7 @@
 
 import { MOD } from "./const.js";
 
+import { journal } from "./log.js";
 const on = () => game.settings.get(MOD, "enableSourceControl");
 
 // Normalise un mot-clé (repli d'accents + minuscules + alphanum. seulement).
@@ -158,7 +159,7 @@ function planifierRetrait(actor) {
     const e = _aRetirer.get(actor.id) ?? { minuterie: null, ids: new Set() };
     _aRetirer.set(actor.id, e);
     clearTimeout(e.minuterie);
-    e.minuterie = setTimeout(() => retirer(actor).catch(err => console.warn(`[${MOD}] retrait de contenu refusé`, err)), DELAI_RETRAIT_MS);
+    e.minuterie = setTimeout(() => retirer(actor).catch(err => journal.avert(`[${MOD}] retrait de contenu refusé`, err)), DELAI_RETRAIT_MS);
 }
 async function retirer(actor) {
     const e = _aRetirer.get(actor.id);
@@ -170,7 +171,7 @@ async function retirer(actor) {
     const liste = items.map(i => `${i.name} (${i.getFlag(MOD, FLAG_REFUS) ?? "refusé"})`);
     const resume = liste.length > 6 ? `${liste.slice(0, 6).join(", ")}… et ${liste.length - 6} autre(s)` : liste.join(", ");
     ui.notifications?.warn(`${items.length} contenu(s) non autorisé(s) retiré(s) de « ${actor.name} » : ${resume}. Le reste a bien été ajouté.`, { permanent: items.length > 1 });
-    console.warn(`[${MOD}] Contenus retirés de ${actor.name} :`, liste);
+    journal.info(`[${MOD}] Contenus retirés de ${actor.name} :`, liste);
 }
 
 export function SourceControlHooks() {
@@ -183,7 +184,7 @@ export function SourceControlHooks() {
         if (!v) return;
         if (TYPES_BLOQUES.has(item.type)) {
             ui.notifications?.warn(v.long);
-            console.warn(`[${MOD}] Contenu refusé : ${v.long}`);
+            journal.info(`[${MOD}] Contenu refusé : ${v.long}`);
             return false;
         }
         // Sort, don, objet… : créé puis retiré après l'import (voir plus haut).

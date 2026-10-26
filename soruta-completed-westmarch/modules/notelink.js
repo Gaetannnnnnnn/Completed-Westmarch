@@ -11,6 +11,7 @@
 // ============================================================
 
 import { MOD } from "./const.js";
+import { journal } from "./log.js";
 import { getExpeditions } from "./carnet.js";
 
 const enabled = () => game.settings.get(MOD, "enableNoteLink");
@@ -58,7 +59,7 @@ async function detachActors(actorIds) {
             const uids = new Set();
             for (const aid of removed) { const a = game.actors.get(aid); if (a) ownerUserIds(a).forEach(u => uids.add(u)); }
             for (const uid of uids) if (uid in own) own[uid] = OWN().NONE;
-            try { await j.update({ ownership: own }); } catch (e) { console.warn(`[${MOD}] révocation accès carnet :`, e); }
+            try { await j.update({ ownership: own }); } catch (e) { journal.avert(`[${MOD}] révocation accès carnet :`, e); }
         }
     }
     await setGroups(groups.filter(gr => gr.members.length > 0));
@@ -115,7 +116,7 @@ async function linkParty() {
             pages: [{ name: "Notes", type: "text", text: { content: "<p></p>", format: CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML } }],
             flags: { [MOD]: { noteLinkGroup: true } }
         });
-    } catch (e) { console.warn(`[${MOD}] création carnet commun :`, e); ui.notifications?.error("Échec de la création du carnet commun."); return; }
+    } catch (e) { journal.avert(`[${MOD}] création carnet commun :`, e); ui.notifications?.error("Échec de la création du carnet commun."); return; }
 
     const groups = getGroups();
     groups.push({ id: foundry.utils.randomID(), journalId: journal.id, members: actorIds });

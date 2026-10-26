@@ -1,4 +1,5 @@
 import { MOD } from "./const.js";
+import { journal } from "./log.js";
 // ============================================================
 // Correctifs pour les boutiques de Monk's Enhanced Journal (MEJ),
 // module tiers — on ne touche jamais à ses fichiers, tout passe
@@ -148,7 +149,7 @@ export function MejShopHooks() {
         if (!journal) {
             // Log détaillé pour aider le diagnostic : montre les clés disponibles
             // sur l'application et ses options pour trouver la bonne propriété MEJ.
-            console.debug(
+            journal.debug(
                 "[toolkit] _hideMejItems — JournalEntry introuvable\n",
                 "  constructor :", application.constructor?.name,
                 "\n  options keys:", Object.keys(application.options ?? {}),
@@ -168,7 +169,7 @@ export function MejShopHooks() {
 
             // Log diagnostic : montre la structure réelle des items MEJ pour
             // identifier le nom du champ (hidden vs hide vs autre).
-            console.debug(
+            journal.debug(
                 `[toolkit] _hideMejItems — page shop "${page.name}" :`,
                 `${arr.length} item(s),`,
                 "premier item :", arr[0] ? JSON.stringify(arr[0]).slice(0, 200) : "(aucun)"
@@ -184,10 +185,10 @@ export function MejShopHooks() {
         }
 
         if (!hiddenIds.size) {
-            console.debug("[toolkit] _hideMejItems — aucun item caché dans", journal.name);
+            journal.debug("[toolkit] _hideMejItems — aucun item caché dans", journal.name);
             return;
         }
-        console.debug("[toolkit] _hideMejItems — ids cachés :", [...hiddenIds]);
+        journal.debug("[toolkit] _hideMejItems — ids cachés :", [...hiddenIds]);
 
         // ── Retirer les rows du DOM.
         const _removeHidden = (root) => {
@@ -195,7 +196,7 @@ export function MejShopHooks() {
             root.querySelectorAll("[data-id]").forEach(row => {
                 if (hiddenIds.has(row.dataset.id)) { row.remove(); count++; }
             });
-            if (count) console.debug(`[toolkit] _hideMejItems — ${count} item(s) retiré(s) du DOM`);
+            if (count) journal.debug(`[toolkit] _hideMejItems — ${count} item(s) retiré(s) du DOM`);
         };
 
         _removeHidden(element);

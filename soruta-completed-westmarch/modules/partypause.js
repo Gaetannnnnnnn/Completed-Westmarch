@@ -16,6 +16,7 @@
 
 import { MOD } from "./const.js";
 
+import { journal } from "./log.js";
 // Référence vers le vrai game.togglePause (avant patch), pour pouvoir annuler
 // une éventuelle pause globale dans le filet de sécurité.
 let _origTogglePause = null;
@@ -71,9 +72,9 @@ async function forceGlobalUnpause() {
         if (Object.keys(state).length) await game.settings.set(MOD, "partyPauseState", {});
         applyPartyPause();
         ui.notifications?.info("Reprise forcée : pauses globale et de party enlevées.");
-        console.log("westmarch | partypause : reprise forcée (bouton de secours)");
+        journal.debug("westmarch | partypause : reprise forcée (bouton de secours)");
     } catch (e) {
-        console.warn("westmarch | partypause : reprise forcée échouée", e);
+        journal.avert("westmarch | partypause : reprise forcée échouée", e);
         ui.notifications?.warn("Échec de la reprise forcée (voir console).");
     }
 }
@@ -88,8 +89,8 @@ function clearResidualGlobalPause() {
     try {
         const unpause = _origTogglePause ?? game.togglePause?._scwmOrig;
         unpause?.(false, { broadcast: true });
-        console.log("westmarch | partypause : pause globale résiduelle annulée");
-    } catch (e) { console.warn("westmarch | partypause : nettoyage pause globale", e); }
+        journal.debug("westmarch | partypause : pause globale résiduelle annulée");
+    } catch (e) { journal.avert("westmarch | partypause : nettoyage pause globale", e); }
 }
 
 // Id de party de l'utilisateur courant (repli : son propre id s'il est GM
@@ -155,7 +156,7 @@ export function PartyPauseHooks() {
         const activeGM = game.users.activeGM;
         if (activeGM && activeGM.id !== game.user.id) return;
         const toggle = _origTogglePause ?? ((v, o) => game.togglePause?._scwmOrig?.(v, o));
-        try { toggle?.(false, { broadcast: true }); } catch (e) { console.warn("westmarch | partypause : annulation pause globale", e); }
+        try { toggle?.(false, { broadcast: true }); } catch (e) { journal.avert("westmarch | partypause : annulation pause globale", e); }
     });
 
     // Ré-applique si l'utilisateur change de party (il rejoint/quitte).

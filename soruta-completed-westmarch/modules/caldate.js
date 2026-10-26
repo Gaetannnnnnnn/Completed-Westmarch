@@ -1,4 +1,5 @@
 import { MOD } from "./const.js";
+import { journal } from "./log.js";
 // ============================================================
 // caldate.js — Notification Discord lors d'un changement de jour
 // Utilise l'API calendrier native de Foundry v13 :
@@ -36,9 +37,9 @@ export function CalDateHooks() {
             if (!cal) return;
             const c = cal.timeToComponents(game.time.worldTime);
             lastSentDateKey = `${c.year}-${c.month}-${c.dayOfMonth}`;
-            console.log(`westmarch | CalDate : date initiale mémorisée = ${lastSentDateKey}`);
+            journal.debug(`westmarch | CalDate : date initiale mémorisée = ${lastSentDateKey}`);
         } catch(e) {
-            console.warn("westmarch | CalDate : impossible de lire la date initiale", e);
+            journal.avert("westmarch | CalDate : impossible de lire la date initiale", e);
         }
     });
 
@@ -83,16 +84,16 @@ export function CalDateHooks() {
                 ? `📅 La date est maintenant le **${dateStr}**.\n${special.label}`
                 : `📅 La date est maintenant le **${dateStr}**.`;
 
-            console.log(`westmarch | CalDate : envoi webhook Discord — ${dateStr}${special ? ` (${special.label})` : ""}`);
+            journal.debug(`westmarch | CalDate : envoi webhook Discord — ${dateStr}${special ? ` (${special.label})` : ""}`);
 
             fetch(webhookUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ content: messageContent })
-            }).catch(err => console.error("westmarch | Webhook date Discord :", err));
+            }).catch(err => journal.erreur("westmarch | Webhook date Discord :", err));
 
         } catch(e) {
-            console.error("westmarch | CalDate : erreur lors du traitement", e);
+            journal.erreur("westmarch | CalDate : erreur lors du traitement", e);
         }
     });
 }

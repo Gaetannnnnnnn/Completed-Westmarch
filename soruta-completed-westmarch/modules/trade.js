@@ -20,6 +20,7 @@
 // ============================================================
 
 import { MOD } from "./const.js";
+import { journal } from "./log.js";
 import { getExpeditions } from "./carnet.js";
 
 const CURRENCIES = ["pp", "gp", "ep", "sp", "cp"];
@@ -223,7 +224,7 @@ async function executeTrade(s) {
         await moveCurrency(A, B, s.offer[s.a].currency);
         await moveCurrency(B, A, s.offer[s.b].currency);
     } catch (e) {
-        console.error(`[${MOD}] executeTrade :`, e);
+        journal.erreur(`[${MOD}] executeTrade :`, e);
         return { ok: false, reason: "erreur pendant le transfert (voir console MJ)." };
     }
     return { ok: true };
@@ -267,7 +268,7 @@ async function moveCurrency(from, to, cur) {
 function _gmSend(name, data) {
     const gm = activeGM();
     if (!gm) { ui.notifications?.warn("Aucun MJ connecté : les échanges nécessitent un MJ en ligne."); return Promise.resolve({ ok: false }); }
-    return gm.query(name, data).catch((e) => { console.warn(`[${MOD}] trade ${name}`, e); return { ok: false }; });
+    return gm.query(name, data).catch((e) => { journal.avert(`[${MOD}] trade ${name}`, e); return { ok: false }; });
 }
 
 async function startTradeWith(targetUser) {

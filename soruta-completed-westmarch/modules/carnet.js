@@ -12,6 +12,29 @@
 // ============================================================
 
 import { MOD } from "./const.js";
+import { journal } from "./log.js";
+
+// Échappement du texte simple (titres, noms) et nettoyage du HTML des notes :
+// le contenu d'une note est du HTML écrit par un joueur, affiché chez les
+// autres (et le MJ) ; on retire tout ce qui peut exécuter du code (scripts,
+// iframes, attributs on…, liens javascript:) en gardant la mise en forme.
+const escC = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const BALISES_INTERDITES = "script,iframe,object,embed,style,link,meta,base,form,input,button,textarea,select,frame,frameset,svg,math";
+export function nettoyerHtml(html) {
+    try {
+        const t = document.createElement("template");
+        t.innerHTML = String(html ?? "");
+        t.content.querySelectorAll(BALISES_INTERDITES).forEach(n => n.remove());
+        t.content.querySelectorAll("*").forEach(el => {
+            for (const a of [...el.attributes]) {
+                const nom = a.name.toLowerCase(), val = String(a.value ?? "").trim().toLowerCase();
+                if (nom.startsWith("on") || nom === "srcdoc" || nom === "formaction") { el.removeAttribute(a.name); continue; }
+                if (["href", "src", "xlink:href", "action"].includes(nom) && /^(javascript|vbscript|data:text\/html)/.test(val.replace(/\s+/g, ""))) el.removeAttribute(a.name);
+            }
+        });
+        return t.innerHTML;
+    } catch { return escC(html); }
+}
 import { Dialog } from "./compat.js";
 import { expeditionSessionCount } from "./session.js";
 const MODULE = MOD;
@@ -38,13 +61,6 @@ export async function addExpedition(actor, startDate = null, name = "Nouvelle ex
     };
     await actor.setFlag(MODULE, "expeditions", [...exps, newExp]);
     return newExp;
-}
-
-export async function closeExpedition(actor, expId, endDate) {
-    const updated = getExpeditions(actor).map(e =>
-        e.id === expId ? { ...e, endDate } : e
-    );
-    await actor.setFlag(MODULE, "expeditions", updated);
 }
 
 // ================================================================
@@ -618,7 +634,7 @@ export function buildJournalHtml(actor) {
                           data-section-id="${item.id}"
                           value="${titleEsc}"
                           placeholder="Nom de la section">`
-                : `<span class="carnet-section-title-label">${item.title || "Section"}</span>`}
+                : `<span class="carnet-section-title-label">${escC(item.title || "Section")}</span>`}
             ${canEdit ? `
             <a class="carnet-del-section" data-section-id="${item.id}" title="Supprimer la section">
                 <i class="fa-solid fa-trash"></i>
@@ -650,7 +666,7 @@ export function buildJournalHtml(actor) {
                 : "");
 
         const noteHtml = note.content
-            ? `<div class="carnet-note-content">${note.content}</div>`
+            ? `<div class="carnet-note-content">${nettoyerHtml(note.content)}</div>`
             : `<p class="carnet-note-placeholder"><em>Note vide. Cliquez sur Modifier pour rédiger.</em></p>`;
 
         return `
@@ -671,7 +687,7 @@ export function buildJournalHtml(actor) {
                                       data-note-id="${note.id}"
                                       value="${(note.title ?? "").replace(/"/g, "&quot;")}"
                                       placeholder="Titre de la note">`
-                            : `<span class="carnet-note-title-label">${note.title || "Note sans titre"}</span>`}
+                            : `<span class="carnet-note-title-label">${escC(note.title || "Note sans titre")}</span>`}
                         <div class="carnet-note-actions-row">
                             ${linkBadge}
                             ${canEdit ? `
@@ -867,20 +883,20 @@ function _wireDragDrop(actor, element) {
     };
 
     const items = [...element.querySelectorAll('.carnet-item')];
-    console.log(`[Carnet] _wireDragDrop : ${items.length} carnet-item(s) trouvés`);
+    journal.debug(`[Carnet] _wireDragDrop : ${items.length} carnet-item(s) trouvés`);
 
     items.forEach(item => {
         const handle = item.querySelector('.carnet-drag-handle');
-        console.log(`[Carnet]   item carnet-id="${item.dataset.carnetId}" handle=`, handle, `draggable="${handle?.getAttribute('draggable')}"`);
+        journal.debug(`[Carnet]   item carnet-id="${item.dataset.carnetId}" handle=`, handle, `draggable="${handle?.getAttribute('draggable')}"`);
 
         // ── SOURCE : la poignée initie le drag ────────────────────
         if (handle) {
             // On force draggable via JS au cas où le rendu HTML l'aurait retiré
             handle.setAttribute('draggable', 'true');
-            console.log(`[Carnet]   → draggable forcé en JS sur handle`);
+            journal.debug(`[Carnet]   → draggable forcé en JS sur handle`);
 
             handle.addEventListener('dragstart', e => {
-                console.log("[Carnet] dragstart sur handle, carnet-id=", item.dataset.carnetId);
+                journal.debug("[Carnet] dragstart sur handle, carnet-id=", item.dataset.carnetId);
                 // stopPropagation + stopImmediatePropagation pour bloquer
                 // tout handler dnd5e enregistré en amont ou sur le même élément
                 e.stopPropagation();
@@ -893,12 +909,12 @@ function _wireDragDrop(actor, element) {
                 try { e.dataTransfer.setDragImage(item, 20, 10); } catch {}
             });
         } else {
-            console.warn("[Carnet]   ⚠ aucune poignée .carnet-drag-handle dans cet item");
+            journal.info("[Carnet]   ⚠ aucune poignée .carnet-drag-handle dans cet item");
         }
 
         // ── CIBLE : tous les items acceptent un dépôt ─────────────
         item.addEventListener('dragover', e => {
-            if (!_draggedItemId) { console.log("[Carnet] dragover ignoré : pas de _draggedItemId"); return; }
+            if (!_draggedItemId) { journal.debug("[Carnet] dragover ignoré : pas de _draggedItemId"); return; }
             if (_draggedItemId === item.dataset.carnetId) return;
             e.preventDefault();
             e.stopPropagation(); // empêche le handler drop de la fiche dnd5e
@@ -939,7 +955,7 @@ function _wireDragDrop(actor, element) {
     });
 
     element.addEventListener('dragend', () => {
-        console.log("[Carnet] dragend — nettoyage");
+        journal.debug("[Carnet] dragend — nettoyage");
         _draggedItemId = null;
         element.querySelectorAll('.carnet-dragging').forEach(el => el.classList.remove('carnet-dragging'));
         clearDragOver();
@@ -952,10 +968,10 @@ function _wireDragDrop(actor, element) {
 
 export function wireJournalTab(actor, element, sheet) {
     if (!(element instanceof Element)) {
-        console.warn("[Carnet] wireJournalTab : element n'est pas un Element", element);
+        journal.avert("[Carnet] wireJournalTab : element n'est pas un Element", element);
         return;
     }
-    console.log("[Carnet] wireJournalTab appelé", { element, actor: actor?.name });
+    journal.debug("[Carnet] wireJournalTab appelé", { element, actor: actor?.name });
 
     // ── Ajouter une note / une section ───────────────────────────
     element.querySelectorAll('.carnet-add-note').forEach(btn => {
@@ -995,7 +1011,7 @@ export function wireJournalTab(actor, element, sheet) {
             const section   = getCarnetNotes(actor).find(n => n.id === sectionId);
             const ok = await Dialog.confirm({
                 title:   "Supprimer la section ?",
-                content: `<p>Supprimer <strong>${section?.title ?? "cette section"}</strong> ?
+                content: `<p>Supprimer <strong>${escC(section?.title ?? "cette section")}</strong> ?
                            Les notes qu'elle contient ne seront pas supprimées.</p>`,
                 yes: () => true, no: () => false
             });
@@ -1043,7 +1059,7 @@ export function wireJournalTab(actor, element, sheet) {
             const note   = getCarnetNotes(actor).find(n => n.id === noteId);
             const ok = await Dialog.confirm({
                 title:   "Supprimer la note ?",
-                content: `<p>Supprimer <strong>${note?.title ?? "cette note"}</strong> ? Cette action est irréversible.</p>`,
+                content: `<p>Supprimer <strong>${escC(note?.title ?? "cette note")}</strong> ? Cette action est irréversible.</p>`,
                 yes: () => true, no: () => false
             });
             if (!ok) return;
@@ -1185,7 +1201,7 @@ export function wireDowntimeTab(actor, element, sheet) {
                 );
                 await actor.setFlag(MODULE, "expeditions", updated);
             } catch(err) {
-                console.error("[Carnet] Erreur bouton date :", err);
+                journal.erreur("[Carnet] Erreur bouton date :", err);
             }
         });
     });
@@ -1198,7 +1214,7 @@ export function wireDowntimeTab(actor, element, sheet) {
             const exp   = getExpeditions(actor).find(ex => ex.id === expId);
             const ok = await Dialog.confirm({
                 title:   "Supprimer l'expédition ?",
-                content: `<p>Supprimer <strong>${exp?.name ?? "cette expédition"}</strong> ? Cette action est irréversible.</p>`,
+                content: `<p>Supprimer <strong>${escC(exp?.name ?? "cette expédition")}</strong> ? Cette action est irréversible.</p>`,
                 yes: () => true, no: () => false
             });
             if (!ok) return;
@@ -1247,7 +1263,7 @@ function _navigateToTab(sheet, tabName, scrollSelector) {
             setTimeout(() => el.classList.remove("carnet-highlight"), 2000);
         }, 150);
     } catch(err) {
-        console.error("[Carnet] Erreur navigation onglet :", err);
+        journal.erreur("[Carnet] Erreur navigation onglet :", err);
     }
 }
 
@@ -1607,7 +1623,7 @@ function _wireToolbar(editor) {
             // Notifie l'éditeur (met à jour la capture de contenu pour la sauvegarde).
             editor.dispatchEvent(new Event("input", { bubbles: true }));
         } catch (e) {
-            console.warn(`[carnet] application de la taille :`, e);
+            journal.avert(`[carnet] application de la taille :`, e);
         }
         setTimeout(updateState, 10);
     };
@@ -1643,7 +1659,7 @@ function _wireToolbar(editor) {
             sel?.removeAllRanges();
             const nr = document.createRange(); nr.selectNodeContents(span); sel?.addRange(nr);
             editor.dispatchEvent(new Event('input', { bubbles: true }));
-        } catch (e) { console.warn('[carnet] couleur :', e); }
+        } catch (e) { journal.avert('[carnet] couleur :', e); }
         setTimeout(updateState, 10);
     });
 
@@ -1662,7 +1678,7 @@ function _wireToolbar(editor) {
             a.appendChild(saved.extractContents());
             saved.insertNode(a);
             editor.dispatchEvent(new Event('input', { bubbles: true }));
-        } catch (e) { console.warn('[carnet] lien :', e); }
+        } catch (e) { journal.avert('[carnet] lien :', e); }
         setTimeout(updateState, 10);
     });
 
@@ -1699,7 +1715,7 @@ async function initNoteEditor(actor, _container, noteId) {
                  style="flex:1;overflow-y:auto;padding:10px 14px;min-height:280px;
                         outline:none;font-size:13px;line-height:1.7;color:#ccc;
                         background:rgba(0,0,0,0.12);"
-            >${stored}</div>
+            >${nettoyerHtml(stored)}</div>
         </div>`;
 
     const DialogClass = foundry.applications.api?.DialogV2 ?? null;
@@ -1750,9 +1766,9 @@ async function initNoteEditor(actor, _container, noteId) {
                     _autoTimer = setTimeout(async () => {
                         try {
                             const upd = getCarnetNotes(actor).map(n =>
-                                n.id === noteId ? { ...n, content: savedContent } : n);
+                                n.id === noteId ? { ...n, content: nettoyerHtml(savedContent) } : n);
                             await actor.setFlag(MODULE, "carnetNotes", upd);
-                        } catch (e) { console.warn('[carnet] autosave :', e); }
+                        } catch (e) { journal.avert('[carnet] autosave :', e); }
                     }, 900);
                 });
                 setTimeout(() => {
@@ -1785,7 +1801,7 @@ async function initNoteEditor(actor, _container, noteId) {
         if (action !== "save") return;
 
         const updated = getCarnetNotes(actor).map(n =>
-            n.id === noteId ? { ...n, content: savedContent } : n
+            n.id === noteId ? { ...n, content: nettoyerHtml(savedContent) } : n
         );
         await actor.setFlag(MODULE, "carnetNotes", updated);
 

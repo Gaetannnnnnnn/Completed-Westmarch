@@ -19,6 +19,7 @@
 // ============================================================
 
 import { MOD } from "./const.js";
+import { journal } from "./log.js";
 import { buildTabHtml as relBuildTab, wireTab as relWireTab } from "./relations.js";
 import { buildTabHtml as bstBuildTab, wireTab as bstWireTab } from "./bestiary.js";
 import {
@@ -34,7 +35,7 @@ function _actorOf(p) {
 
 function registerTidyTabs(api) {
     if (!api?.registerCharacterTab || !api?.models?.HtmlTab) {
-        console.warn(`[${MOD}] API Tidy5e incomplète : onglets non injectés.`);
+        journal.critique(`[${MOD}] API Tidy5e incomplète : onglets non injectés.`);
         return;
     }
     const HtmlTab = api.models.HtmlTab;
@@ -63,7 +64,7 @@ function registerTidyTabs(api) {
                 el.innerHTML = build(actor);
                 wire(actor, el, p.app);
             } catch (e) {
-                console.error(`[${MOD}] Rendu onglet Tidy « ${title} » :`, e);
+                journal.erreur(`[${MOD}] Rendu onglet Tidy « ${title} » :`, e);
             }
         }
     });
@@ -110,9 +111,9 @@ function registerTidyTabs(api) {
             }), opts);
         }
 
-        console.log(`[${MOD}] Onglets injectés dans les fiches Tidy5e.`);
+        journal.debug(`[${MOD}] Onglets injectés dans les fiches Tidy5e.`);
     } catch (e) {
-        console.error(`[${MOD}] Enregistrement des onglets Tidy5e échoué :`, e);
+        journal.erreur(`[${MOD}] Enregistrement des onglets Tidy5e échoué :`, e);
     }
 }
 

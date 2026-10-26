@@ -1,4 +1,5 @@
 import { MOD } from "./const.js";
+import { journal } from "./log.js";
 // ============================================================
 // anticheat.js — Surveillance des modifications suspectes en combat
 // Avertit les GM (en privé) quand un joueur modifie ses sorts
@@ -26,7 +27,7 @@ export function AntiCheatHooks() {
                 speaker: { alias: "Anti-Cheat" }
             });
             return true;
-        } catch (e) { console.error(`[${MOD}] Anti-Cheat (création message GM) :`, e); return false; }
+        } catch (e) { journal.erreur(`[${MOD}] Anti-Cheat (création message GM) :`, e); return false; }
     };
 
     // Helper commun : envoie l'alerte AU GM de la party concernée, qui la
@@ -43,7 +44,7 @@ export function AntiCheatHooks() {
 
         partyGm.query("westmarch.anticheat", {
             actorName: actor.name, authorName: author, events
-        }).catch(err => console.error(`[${MOD}] Anti-Cheat (query) :`, err));
+        }).catch(err => journal.erreur(`[${MOD}] Anti-Cheat (query) :`, err));
     };
 
     // Un acteur est surveillé s'il participe à UN combat démarré (quel qu'il

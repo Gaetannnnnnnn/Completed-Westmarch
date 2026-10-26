@@ -17,6 +17,7 @@
 
 import { MOD } from "./const.js";
 
+import { journal } from "./log.js";
 const HISTORY_MAX = 20;   // nombre de sessions gardées pour la moyenne
 
 // État de session (module-level) pour un recalcul à la demande.
@@ -108,7 +109,7 @@ function registerConnStatsMenu() {
             restricted: false   // visible par tout le monde (joueurs inclus)
         });
     } catch (e) {
-        console.warn(`[${MOD}] registerMenu « Infos de connexion » échec :`, e);
+        journal.critique(`[${MOD}] registerMenu « Infos de connexion » échec :`, e);
     }
 }
 

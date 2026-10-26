@@ -10,6 +10,7 @@
 // ============================================================
 
 import { MOD } from "./const.js";
+import { journal } from "./log.js";
 import { buildTabHtml as relBuildTab, wireTab as relWireTab } from "./relations.js";
 import { buildTabHtml as bstBuildTab, wireTab as bstWireTab } from "./bestiary.js";
 import {
@@ -203,7 +204,7 @@ export function setupCharacterSheet() {
                 label:       "Soruta — Fiche PNJ"
             });
         } else if (npcNotesOn && !NPCBase) {
-            console.warn(`[${MOD}] Fiche PNJ dnd5e introuvable : onglet Note GM PNJ non injecté sur la fiche native.`);
+            journal.critique(`[${MOD}] Fiche PNJ dnd5e introuvable : onglet Note GM PNJ non injecté sur la fiche native.`);
         }
     });
 }

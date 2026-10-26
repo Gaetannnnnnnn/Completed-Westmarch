@@ -11,6 +11,7 @@
 // ============================================================
 
 import { MOD } from "./const.js";
+import { journal } from "./log.js";
 import { Dialog } from "./compat.js";
 import { getTutorialActor, grantTutorialAccess, revokeTutorialAccess } from "./demoactor.js";
 import { openCasier } from "./casier.js";
@@ -434,7 +435,7 @@ async function _openProtoTokenAppearance() {
         try {
             const Cls = globalThis.PrototypeTokenConfig ?? globalThis.TokenConfig;
             if (Cls) { new Cls(actor.prototypeToken).render(true); opened = true; }
-        } catch(e) { console.warn("[Tutoriel] PrototypeTokenConfig directe :", e); }
+        } catch(e) { journal.avert("[Tutoriel] PrototypeTokenConfig directe :", e); }
     }
 
     // Méthode 3 : ouvrir la fiche acteur puis cliquer le bouton
@@ -453,7 +454,7 @@ async function _openProtoTokenAppearance() {
     if (!opened) {
         Hooks.off("renderPrototypeTokenConfig", hookId);
         hookResolve(null);
-        console.warn("[Tutoriel] _openProtoTokenAppearance : impossible d'ouvrir la config token.");
+        journal.avert("[Tutoriel] _openProtoTokenAppearance : impossible d'ouvrir la config token.");
         return;
     }
 
@@ -486,7 +487,7 @@ async function _openProtoTokenAppearance() {
     }
 
     if (!tcEl) {
-        console.warn("[Tutoriel] _openProtoTokenAppearance : fenêtre introuvable après ouverture.");
+        journal.avert("[Tutoriel] _openProtoTokenAppearance : fenêtre introuvable après ouverture.");
         return;
     }
 
@@ -1621,7 +1622,7 @@ function _endTutorial(completed = false) {
     if (_onComplete) {
         const cb = _onComplete;
         _onComplete = null;
-        try { cb(completed); } catch (e) { console.warn("[Tutoriel] onComplete :", e); }
+        try { cb(completed); } catch (e) { journal.avert("[Tutoriel] onComplete :", e); }
         return;
     }
     if (completed) _promptHideWelcome();

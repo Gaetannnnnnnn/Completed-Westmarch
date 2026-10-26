@@ -18,6 +18,7 @@
 // ============================================================
 
 import { MOD } from "./const.js";
+import { journal } from "./log.js";
 import { niveauMaxServeur } from "./xpprogress.js";
 
 const MAX_LEVEL   = 20;
@@ -50,11 +51,6 @@ export function thresholdForLevel(L) {
     if (L < 1) L = 1;
     if (L >= MAX_LEVEL || L >= niveauMaxServeur()) return Infinity;   // niveau max du serveur
     return starLevelTable()[L - 1];
-}
-
-// Total d'étoiles pour aller du niveau 1 au niveau 20 (= nb de sessions).
-export function totalStars(table = starLevelTable()) {
-    return table.reduce((a, b) => a + (Number(b) || 0), 0);
 }
 
 // ── Lecture des données d'un acteur ─────────────────────────
@@ -142,7 +138,7 @@ async function applyState(actor, { notify = false } = {}) {
     }
 
     if (Object.keys(patch).length) {
-        try { await actor.update(patch); } catch (e) { console.warn(`[${MOD}] applyState`, e); }
+        try { await actor.update(patch); } catch (e) { journal.avert(`[${MOD}] applyState`, e); }
     }
 
     if (ready && !notified && notify) {
@@ -172,7 +168,7 @@ export async function awardStars(actor, n) {
             [`flags.${MOD}.stars`]:      getStars(actor) + n,
             [`flags.${MOD}.starsLevel`]: actor.getFlag(MOD, "starsLevel") ?? cur
         });
-    } catch (e) { console.warn(`[${MOD}] awardStars`, e); return; }
+    } catch (e) { journal.avert(`[${MOD}] awardStars`, e); return; }
     await applyState(actor, { notify: true });
 }
 
@@ -187,7 +183,7 @@ export async function setStars(actor, n) {
             [`flags.${MOD}.stars`]:      n,
             [`flags.${MOD}.starsLevel`]: actor.getFlag(MOD, "starsLevel") ?? cur
         });
-    } catch (e) { console.warn(`[${MOD}] setStars`, e); return; }
+    } catch (e) { journal.avert(`[${MOD}] setStars`, e); return; }
     await applyState(actor, { notify: true });
 }
 
@@ -364,7 +360,7 @@ export function StarXpHooks() {
         try {
             const root = html instanceof HTMLElement ? html : (html?.[0] ?? app?.element?.[0] ?? app?.element);
             injectWidget(app, root);
-        } catch (e) { console.warn(`[${MOD}] widget étoiles`, e); }
+        } catch (e) { journal.avert(`[${MOD}] widget étoiles`, e); }
     };
     Hooks.on("renderActorSheetV2", onRender);
     Hooks.on("renderActorSheet",   onRender);

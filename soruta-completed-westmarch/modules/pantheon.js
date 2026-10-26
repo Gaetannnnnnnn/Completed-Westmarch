@@ -11,6 +11,7 @@
 
 import { MOD } from "./const.js";
 
+import { journal } from "./log.js";
 const FOLDER_NAME  = "Panthéons";
 const FOLDER_COLOR = "#860404";
 
@@ -32,7 +33,7 @@ export function PantheonHooks() {
                 await game.settings.set(MOD, "pantheonSharedOnce", true);
             }
         } catch (e) {
-            console.error(`[${MOD}] Création du dossier « Panthéons » :`, e);
+            journal.erreur(`[${MOD}] Création du dossier « Panthéons » :`, e);
         }
     });
 }
@@ -59,7 +60,7 @@ async function createPantheon() {
     data.flags = foundry.utils.mergeObject(data.flags ?? {}, { [MOD]: { pantheon: true } });
 
     await JournalEntry.create(data, { keepId: false });
-    console.log(`[${MOD}] Dossier « ${FOLDER_NAME} » créé avec « ${data.name} ».`);
+    journal.debug(`[${MOD}] Dossier « ${FOLDER_NAME} » créé avec « ${data.name} ».`);
     ui.notifications?.info(`Dossier « ${FOLDER_NAME} » créé dans les Journaux (Dieux de Faerûn).`);
 }
 
@@ -75,8 +76,8 @@ async function sharePantheonWithPlayers() {
         if ((j.ownership?.default ?? 0) < OBS) {
             try {
                 await j.update({ "ownership.default": OBS, [`flags.${MOD}.pantheon`]: true });
-                console.log(`[${MOD}] Panthéon « ${j.name} » rendu visible par tous les joueurs.`);
-            } catch (e) { console.warn(`[${MOD}] Partage du panthéon échoué :`, e); }
+                journal.debug(`[${MOD}] Panthéon « ${j.name} » rendu visible par tous les joueurs.`);
+            } catch (e) { journal.avert(`[${MOD}] Partage du panthéon échoué :`, e); }
         }
     }
 }

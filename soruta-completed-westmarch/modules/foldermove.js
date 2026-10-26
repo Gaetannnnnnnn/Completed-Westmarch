@@ -1,4 +1,5 @@
 import { MOD } from "./const.js";
+import { journal } from "./log.js";
 // ============================================================
 // foldermove.js — Déplacement et duplication via le clic droit
 // du sidebar Foundry VTT.
@@ -185,12 +186,12 @@ export function FolderMoveHooks() {
                             const docId = el?.dataset?.entryId ?? el?.dataset?.documentId
                                        ?? $(li).attr("data-entry-id") ?? $(li).attr("data-document-id");
                             const doc   = collection().get(docId);
-                            if (!doc) { console.warn("[FM] doc introuvable — docId:", docId); return; }
+                            if (!doc) { journal.info("[FM] doc introuvable — docId:", docId); return; }
                             const folderId = await openFolderPicker(folderType, `Déplacer — ${doc.name}`);
                             if (folderId === false) return;
                             await doc.update({ folder: folderId });
                         } catch(e) {
-                            console.error("[FM] Erreur déplacement doc :", e);
+                            journal.erreur("[FM] Erreur déplacement doc :", e);
                             ui.notifications.error(`Foldermove : ${e.message}`);
                         }
                     }
@@ -204,12 +205,12 @@ export function FolderMoveHooks() {
                             const docId = el?.dataset?.entryId ?? el?.dataset?.documentId
                                        ?? $(li).attr("data-entry-id") ?? $(li).attr("data-document-id");
                             const doc   = collection().get(docId);
-                            if (!doc) { console.warn("[FM] doc introuvable — docId:", docId); return; }
+                            if (!doc) { journal.info("[FM] doc introuvable — docId:", docId); return; }
                             const folderId = await openFolderPicker(folderType, `Dupliquer — ${doc.name}`);
                             if (folderId === false) return;
                             await doc.clone({ folder: folderId }, { save: true });
                         } catch(e) {
-                            console.error("[FM] Erreur duplication doc :", e);
+                            journal.erreur("[FM] Erreur duplication doc :", e);
                             ui.notifications.error(`Foldermove : ${e.message}`);
                         }
                     }
@@ -237,14 +238,14 @@ export function FolderMoveHooks() {
                                  ?? $(li).closest("[data-folder-id]").attr("data-folder-id");
                     const folder = game.folders.get(fId);
                     if (!folder) {
-                        console.warn("[FM] dossier introuvable — fId:", fId, "holder:", holder);
+                        journal.info("[FM] dossier introuvable — fId:", fId, "holder:", holder);
                         return;
                     }
                     const destId = await openFolderPicker(folder.type, `Déplacer — ${folder.name}`, fId);
                     if (destId === false) return;
                     await folder.update({ folder: destId });
                 } catch(e) {
-                    console.error("[FM] Erreur déplacement dossier :", e);
+                    journal.erreur("[FM] Erreur déplacement dossier :", e);
                     ui.notifications.error(`Foldermove : ${e.message}`);
                 }
             }

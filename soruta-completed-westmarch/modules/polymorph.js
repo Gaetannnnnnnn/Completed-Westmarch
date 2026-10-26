@@ -1,4 +1,5 @@
 import { MOD } from "./const.js";
+import { journal } from "./log.js";
 // ============================================================
 // polymorph.js — DEUX systèmes de transformation distincts :
 //   • Wild Shape (aptitude de druide)   — préréglage dnd5e "wildshape"
@@ -121,7 +122,7 @@ async function doTransform(tokenDoc, beast, kind) {
             ui.notifications.warn("Transformation impossible : le MJ doit activer « Autoriser la métamorphose » dans les réglages du système dnd5e.");
         }
     } catch (e) {
-        console.error(`[${MOD}] transformInto échec :`, e);
+        journal.erreur(`[${MOD}] transformInto échec :`, e);
         ui.notifications.error("Échec de la transformation (voir la console F12).");
     }
 }
@@ -133,7 +134,7 @@ async function doRevert(tokenDoc) {
         if (typeof actor.revertOriginalForm === "function") await actor.revertOriginalForm();
         else ui.notifications.warn("Retour à la forme normale indisponible sur cette version dnd5e.");
     } catch (e) {
-        console.error(`[${MOD}] revertOriginalForm échec :`, e);
+        journal.erreur(`[${MOD}] revertOriginalForm échec :`, e);
         ui.notifications.error("Échec du retour à la forme normale (voir la console F12).");
     }
 }

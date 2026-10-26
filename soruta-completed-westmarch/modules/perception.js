@@ -18,6 +18,7 @@
 
 import { expeditionSceneIds } from "./map.js";
 
+import { journal } from "./log.js";
 // La scène affichée est-elle une carte des expéditions ?
 export function surCarteExpedition() {
     try { return !!canvas.scene && expeditionSceneIds().includes(canvas.scene.id); } catch { return false; }
@@ -51,7 +52,7 @@ export function murEntre(a, b) {
             ?? foundry.canvas?.geometry?.ClockwiseSweepPolygon ?? globalThis.ClockwiseSweepPolygon;
         return !!backend?.testCollision?.(a, b, { type: "sight", mode: "any" });
     } catch (e) {
-        console.warn("[perception] test de mur impossible", e);
+        journal.avert("[perception] test de mur impossible", e);
         return false;
     }
 }
@@ -64,4 +65,48 @@ export function voit(obs, cible) {
     if (visionScene && cible.isVisible === false) return false;
     const o = obs.center ?? { x: obs.document.x + (obs.w ?? 0) / 2, y: obs.document.y + (obs.h ?? 0) / 2 };
     return pointsDe(cible).some(p => !murEntre(o, p));
+}
+
+// Ouvre une image en grand (fenêtre « portrait ») avec l'API actuelle de
+// Foundry (v13+), sans passer par l'ancien nom global « ImagePopout ».
+export function ouvrirImage(src, titre) {
+    if (!src) return;
+    const IP = foundry.applications?.apps?.ImagePopout;
+    if (IP) return new IP({ src, window: { title: titre ?? "" } }).render(true);
+    return new globalThis.ImagePopout(src, { title: titre }).render(true);   // anciennes versions
+}
+
+// ---- Date de rencontre (Relations, Bestiaire) ----------------------------
+// { jeu: { day, month, year } | null, reel: "AAAA-MM-JJ" } : date du calendrier
+// du monde (game.time.calendar, ex. Mini Calendar) si disponible, et date réelle.
+export function dateDeRencontre() {
+    let jeu = null;
+    try {
+        const cal = game.time?.calendar;
+        if (cal) { const c = cal.timeToComponents(game.time.worldTime); jeu = { day: c.dayOfMonth + 1, month: c.month, year: c.year }; }
+    } catch {}
+    const d = new Date();
+    const reel = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    return { jeu, reel };
+}
+// Même jour (jeu et réel) ? Sert à n'écrire qu'une fois par jour.
+export function memeRencontre(a, b) {
+    if (!a || !b) return false;
+    const j = (x) => x?.jeu ? `${x.jeu.year}-${x.jeu.month}-${x.jeu.day}` : "";
+    return a.reel === b.reel && j(a) === j(b);
+}
+function nomMois(m) {
+    try {
+        const cal = game.time?.calendar;
+        const nom = cal?.months?.values ? Array.from(cal.months.values)[m]?.name : null;
+        if (nom) return game.i18n.localize(nom);
+    } catch {}
+    return `mois ${m + 1}`;
+}
+// Texte affiché : date du jeu si connue (date réelle au survol), sinon date réelle.
+export function texteRencontre(r) {
+    if (!r) return { texte: "", titre: "" };
+    const reel = r.reel ? r.reel.split("-").reverse().join("/") : "";
+    if (r.jeu) return { texte: `${r.jeu.day} ${nomMois(r.jeu.month)} ${r.jeu.year}`, titre: reel ? `Date réelle : ${reel}` : "" };
+    return { texte: reel, titre: "Date réelle (pas de calendrier de jeu)" };
 }

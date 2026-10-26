@@ -1,4 +1,5 @@
 import { MOD, TM_DEFAULT_SCROLL, TM_DEFAULT_MAGIC, TM_DEFAULT_ROLL } from "./const.js";
+import { journal } from "./log.js";
 import { Dialog } from "./compat.js";
 import { commonPackCraft } from "./settings.js";
 // ============================================================
@@ -35,7 +36,7 @@ function tmEval(formula, vars, fallback) {
         const r = fn(...names.map(n => scope[n]));
         return Number.isFinite(r) ? r : fallback();
     } catch (e) {
-        console.warn("[TM] Formule invalide, valeur par défaut utilisée :", formula, e);
+        journal.avert("[TM] Formule invalide, valeur par défaut utilisée :", formula, e);
         return fallback();
     }
 }
@@ -575,7 +576,7 @@ async function grantCraftedItem(actor, craftName, craftUuid) {
         await actor.createEmbeddedDocuments("Item", [data]);
         return doc.name;
     } catch (e) {
-        console.warn("[TM] Ajout de l'objet craft échoué :", e);
+        journal.avert("[TM] Ajout de l'objet craft échoué :", e);
         return null;
     }
 }
@@ -1261,28 +1262,6 @@ export async function applyDowntimeFromRoot(rootEl) {
     await applyDowntimeGains($(rootEl), allActors);
 }
 
-export async function openDowntimeDialog() {
-    if (!downtimeHasActors()) { ui.notifications.warn("Aucun personnage joueur trouvé."); return; }
-    let dialogHtml = null;
-    await (foundry.applications.api.DialogV2 ?? DialogV2).wait({
-        window: { title: "Temps morts", resizable: true },
-        position: { width: 560 },
-        content: downtimeContentHtml(false),
-        rejectClose: false,
-        render: () => {
-            const rootEl = (document.getElementById("tm-show-list") ?? document.getElementById("tm-actor-list"))
-                ?.closest(".application, .dialog, form") ?? document.body;
-            dialogHtml = rootEl;
-            wireDowntime(rootEl);
-        },
-        buttons: [
-            { action: "apply", label: "Appliquer les gains", icon: '<i class="fa-solid fa-coins"></i>', default: true,
-              callback: async () => { if (dialogHtml) await applyDowntimeFromRoot(dialogHtml); } },
-            { action: "cancel", label: "Annuler", icon: '<i class="fa-solid fa-times"></i>' }
-        ]
-    });
-}
-
 // ============================================================
 // Calcul et application des gains
 // ============================================================
@@ -1507,7 +1486,7 @@ async function applyDowntimeGains($html, actors) {
             body: JSON.stringify({
                 content: `🕰️ **Résumé des temps morts**\n${discordLines.map(l => `• ${l}`).join("\n")}`
             })
-        }).catch(err => console.error("westmarch | Webhook TM Discord :", err));
+        }).catch(err => journal.erreur("westmarch | Webhook TM Discord :", err));
     }
 
     ui.notifications.info(`Temps morts appliqués : ${lines.length} activité${lines.length > 1 ? "s" : ""}.`);
@@ -1535,5 +1514,5 @@ function notifyTmDeclared() {
             content: `⏳ **${pending.length} temps mort${pending.length > 1 ? "s" : ""} en attente** de validation GM.\n`
                    + pending.map(a => `• ${a.name}`).join("\n")
         })
-    }).catch(err => console.error("westmarch | Webhook TM déclaration :", err));
+    }).catch(err => journal.erreur("westmarch | Webhook TM déclaration :", err));
 }

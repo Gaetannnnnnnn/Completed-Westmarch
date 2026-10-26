@@ -1,4 +1,5 @@
 import { MOD } from "./const.js";
+import { journal } from "./log.js";
 // ============================================================
 // session.js — Journal de session WestMarch
 // Capture les données de session et génère un rapport
@@ -49,7 +50,7 @@ function getCloseBtnSingleton() {
         try {
             await closeSession(currentPlayersApp);
         } catch (err) {
-            console.error("[WestMarch] Erreur lors de la clôture de session :", err);
+            journal.erreur("[WestMarch] Erreur lors de la clôture de session :", err);
             ui.notifications.error("Erreur lors de la clôture de la session (voir console).");
         }
     });
@@ -223,7 +224,7 @@ export function startSessionLog(partyId) {
         });
     });
 
-    console.log("[WestMarch] Session démarrée pour la party", partyId);
+    journal.debug("[WestMarch] Session démarrée pour la party", partyId);
 }
 
 // ============================================================
@@ -612,7 +613,7 @@ export async function sendSessionReport(data) {
         });
         return true;
     } catch (err) {
-        console.error("[WestMarch] Webhook rapport de session :", err);
+        journal.erreur("[WestMarch] Webhook rapport de session :", err);
         ui.notifications.warn("Échec de l'envoi du rapport sur Discord (voir console).");
         return false;
     }
@@ -635,7 +636,7 @@ async function sendSessionReportToForum(webhookUrl, embed, data) {
             method: "POST", headers, body: JSON.stringify({ embeds: [embed] })
         });
         if (res.ok) return true;
-        console.warn(`[WestMarch] Fil forum du meneur introuvable (${res.status}) — recréation.`);
+        journal.info(`[WestMarch] Fil forum du meneur introuvable (${res.status}) — recréation.`);
     }
 
     // 2) Sinon, créer un nouveau post de forum au nom du meneur.
@@ -645,7 +646,7 @@ async function sendSessionReportToForum(webhookUrl, embed, data) {
     });
     if (!res.ok) {
         const txt = await res.text().catch(() => "");
-        console.error("[WestMarch] Création du post de forum échouée :", res.status, txt);
+        journal.erreur("[WestMarch] Création du post de forum échouée :", res.status, txt);
         ui.notifications.warn("Échec de l'envoi du rapport sur Discord (forum — voir console).");
         return false;
     }
@@ -701,7 +702,7 @@ async function appendSessionLog(data) {
         const log = getSessionLog();
         log.push(entry);
         await game.settings.set(MOD, "sessionLog", log);
-    } catch (e) { console.warn("[WestMarch] Journal de session :", e); }
+    } catch (e) { journal.avert("[WestMarch] Journal de session :", e); }
 }
 
 // Met à jour les tags d'une entrée du journal (édition depuis le Casier) —
@@ -713,7 +714,7 @@ export async function setSessionLogTags(id, tags) {
         if (!entry) return;
         entry.tags = Array.isArray(tags) ? [...tags] : [];
         await game.settings.set(MOD, "sessionLog", log);
-    } catch (e) { console.warn("[WestMarch] MAJ tags journal :", e); }
+    } catch (e) { journal.avert("[WestMarch] MAJ tags journal :", e); }
 }
 
 // ============================================================

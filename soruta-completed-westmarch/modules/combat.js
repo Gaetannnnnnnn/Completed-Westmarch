@@ -1,4 +1,5 @@
 import { MOD } from "./const.js";
+import { journal } from "./log.js";
 // ============================================================
 // combat.js — Combat lié à la party plutôt qu'à la scène
 // - Le combat garde une scène valide (celle de création) pour que l'ajout
@@ -88,7 +89,7 @@ function installTrackerViewOverride() {
         };
         wrapped.__scwmWrapped = true;
         Object.defineProperty(proto, "viewed", { ...desc, get: wrapped });
-    } catch (e) { console.warn(`[${MOD}] Override tracker.viewed échoué :`, e); }
+    } catch (e) { journal.critique(`[${MOD}] Override tracker.viewed échoué :`, e); }
 }
 
 // Trouve (ou crée) le combat de MA party sur une scène donnée, puis y ajoute
@@ -112,7 +113,7 @@ async function routeCombatantToMyCombat(sceneId, data) {
         // Pas de doublon si le token est déjà dans notre combat.
         if (data?.tokenId && mine.combatants.some(cb => cb.tokenId === data.tokenId)) return;
         await mine.createEmbeddedDocuments("Combatant", [data]);
-    } catch (e) { console.error(`[${MOD}] Aiguillage combattant échoué :`, e); }
+    } catch (e) { journal.erreur(`[${MOD}] Aiguillage combattant échoué :`, e); }
 }
 
 export function CombatHooks() {

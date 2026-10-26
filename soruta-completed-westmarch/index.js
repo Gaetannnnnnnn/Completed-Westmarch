@@ -10,6 +10,7 @@
 // ============================================================
 
 import { registerSettings, migrateCommonResources } from "./modules/settings.js";
+import { journal, registerLogSettings, surveillerErreurs } from "./modules/log.js";
 import { MOD } from "./modules/const.js";
 import { licenceValide, noterEtatInitial, controlerLicence, proposerActivation, renouvelerJetonExpire } from "./modules/licence.js";
 import { MigrationHooks }    from "./modules/migration.js";
@@ -27,6 +28,9 @@ import { SceneAudioHooks }     from "./modules/sceneaudio.js";
 // --- Phase 3 : Toolkit ---
 import { RageHooks }         from "./modules/rage.js";
 import { GoliathHooks }      from "./modules/goliath.js";
+import { HealerHooks }       from "./modules/healer.js";
+import { AlertHooks }        from "./modules/alert.js";
+import { GereHooks }         from "./modules/gere.js";
 import { BeastHooks }        from "./modules/beast.js";
 import { PolymorphHooks }    from "./modules/polymorph.js";
 import { TokenHooks }        from "./modules/token.js";
@@ -102,7 +106,7 @@ Hooks.on("init", () => {
                 { urls: ["modules/soruta-completed-westmarch/fonts/PerryGothic.ttf"], weight: "400", style: "normal" }
             ]
         };
-    } catch (e) { console.warn("westmarch | Enregistrement des polices :", e); }
+    } catch (e) { journal.critique("westmarch | Enregistrement des polices :", e); }
 
     // Helpers Handlebars hérités de westmarch (utilisés par les templates de chat).
     Handlebars.registerHelper("for", function (from, to, incr, block) {
@@ -113,6 +117,8 @@ Hooks.on("init", () => {
     Handlebars.registerHelper("lte", (a, b) => a <= b);
 
     registerSettings();
+    registerLogSettings();   // mode verbeux (par joueur)
+    surveillerErreurs();     // erreurs non rattrapées du module → journal + contact
 
     // --- Licence (validée par le serveur licence.altheia.eu, voir licence.js) ---
     // Sans licence valide pour CE monde, on n'initialise AUCUNE fonctionnalité
@@ -121,7 +127,7 @@ Hooks.on("init", () => {
     const _licenceOk   = noterEtatInitial();
     const _deactivated = game.settings.get(MOD, "moduleDeactivated") === true;
     if (!_licenceOk || _deactivated) {
-        console.warn(`[soruta-completed-westmarch] Module inactif (${_deactivated ? "désactivé via code" : "licence absente, expirée ou invalide"}). Fonctionnalités désactivées. La fenêtre « À propos » reste accessible dans les réglages du module.`);
+        journal.info(`[soruta-completed-westmarch] Module inactif (${_deactivated ? "désactivé via code" : "licence absente, expirée ou invalide"}). Fonctionnalités désactivées. La fenêtre « À propos » reste accessible dans les réglages du module.`);
         if (_deactivated) return;   // désactivé : les réglages « À propos » suffisent (réactivation par code)
         Hooks.once("ready", async () => {
             if (!game.user?.isGM) return;
@@ -151,6 +157,9 @@ Hooks.on("init", () => {
     // --- Phase 3 : Toolkit ---
     RageHooks();
     GoliathHooks();
+    HealerHooks();
+    AlertHooks();
+    GereHooks();
     BeastHooks();
     PolymorphHooks();
     TokenHooks();

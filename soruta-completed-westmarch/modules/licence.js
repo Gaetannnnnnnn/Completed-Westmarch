@@ -22,6 +22,7 @@
 
 import { MOD } from "./const.js";
 
+import { journal } from "./log.js";
 const URL_LICENCE = "https://licence.altheia.eu/validate";
 
 // Clé publique du serveur de licence (générée sur le VPS par generer-cles.mjs).
@@ -299,7 +300,7 @@ export async function renouvelerJetonExpire() {
 }
 
 async function invalider(code) {
-    console.warn(`[${MOD}] Licence refusée : ${code}`);
+    journal.info(`[${MOD}] Licence refusée : ${code}`);
     if (game.user?.isGM) {
         ui.notifications?.error(`Soruta — Completed Westmarch : ${message(code)}`, { permanent: true });
         if (estMjResponsable()) await game.settings.set(MOD, "licenceJeton", "");   // recharge tous les clients
@@ -342,6 +343,3 @@ async function demanderCle(erreur) {
         });
     } catch (e) { return null; }
 }
-
-// Exposé pour les tests automatisés uniquement.
-export const _interne = { signatureValide, verifierPurJs, sha256, decouper };

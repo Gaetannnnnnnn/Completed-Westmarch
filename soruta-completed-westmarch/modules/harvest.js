@@ -19,6 +19,7 @@
 
 import { MOD } from "./const.js";
 
+import { journal } from "./log.js";
 const enabled = () => game.settings.get(MOD, "enableHarvest");
 const sc = (k) => game.settings.get(MOD, k);
 
@@ -189,7 +190,7 @@ async function gmGenerate({ sceneId, tokenId, total }) {
         for (let i = 0; i < draws; i++) {
             let results = [];
             try { ({ results } = await table.roll()); }
-            catch (e) { console.warn(`[${MOD}] table.roll:`, e); continue; }
+            catch (e) { journal.avert(`[${MOD}] table.roll:`, e); continue; }
             for (const r of (results ?? [])) {
                 const p = await parseResult(r);
                 if (p.isNothing || p.qty <= 0) continue;          // « rien » : on n'ajoute pas de ligne
@@ -207,7 +208,7 @@ async function gmGenerate({ sceneId, tokenId, total }) {
 
         await tokenDoc.update({ [`flags.${MOD}.harvestGenerated`]: true, [`flags.${MOD}.harvestLoot`]: loot });
         return { ok: true, loot };
-    } catch (e) { console.warn(`[${MOD}] harvestGenerate:`, e); return { ok: false, msg: "Erreur de génération." }; }
+    } catch (e) { journal.avert(`[${MOD}] harvestGenerate:`, e); return { ok: false, msg: "Erreur de génération." }; }
 }
 
 // Analyse un résultat de table. Renvoie { item, qty, name, img, isNothing }.
@@ -262,7 +263,7 @@ function injectHarvestQtyFields(app, html) {
         if (!root || !table?.results) return;
 
         const rows = root.querySelectorAll("tr[data-result-id]");
-        console.log(`[${MOD}] injectHarvestQtyFields: ${rows.length} ligne(s) de résultat`);
+        journal.debug(`[${MOD}] injectHarvestQtyFields: ${rows.length} ligne(s) de résultat`);
 
         rows.forEach(tr => {
             if (tr.querySelector(".scwm-qty")) return;
@@ -282,7 +283,7 @@ function injectHarvestQtyFields(app, html) {
                 result.setFlag(MOD, "harvestQty", e.target.value.trim()));
             cell.appendChild(wrap);
         });
-    } catch (e) { console.warn(`[${MOD}] injectHarvestQtyFields:`, e); }
+    } catch (e) { journal.avert(`[${MOD}] injectHarvestQtyFields:`, e); }
 }
 
 async function resultToItem(result) {
@@ -386,7 +387,7 @@ async function gmTake({ sceneId, tokenId, taken, harvesterActorId }) {
         await placeBloodStain(tokenDoc);
         await tokenDoc.delete();
         return { ok: true, emptied: true };
-    } catch (e) { console.warn(`[${MOD}] harvestTake:`, e); return { ok: false, msg: "Erreur de prise." }; }
+    } catch (e) { journal.avert(`[${MOD}] harvestTake:`, e); return { ok: false, msg: "Erreur de prise." }; }
 }
 
 // Message de butin CHUCHOTÉ aux MJ (aveugle) : qui a récolté quoi sur quelle
@@ -412,7 +413,7 @@ async function postHarvestLootWhisper(harvester, carcassName, takenList) {
             speaker: harvester ? ChatMessage.getSpeaker({ actor: harvester }) : {},
             flags: { [MOD]: { harvestLootLog: true } }
         });
-    } catch (e) { console.warn(`[${MOD}] postHarvestLootWhisper:`, e); }
+    } catch (e) { journal.avert(`[${MOD}] postHarvestLootWhisper:`, e); }
 }
 
 // Images de sang fournies avec le module (posées au hasard si aucune image
@@ -455,7 +456,7 @@ async function placeBloodStain(tokenDoc) {
             const baseR = Math.max(w, h) / 2 * 1.15;
             await scene.createEmbeddedDocuments("Drawing", makeSplatterDrawings(cx, cy, baseR));
         }
-    } catch (e) { console.warn(`[${MOD}] placeBloodStain:`, e); }
+    } catch (e) { journal.avert(`[${MOD}] placeBloodStain:`, e); }
 }
 
 // Génère un éclaboussement de sang réaliste : une flaque centrale irrégulière
@@ -521,7 +522,7 @@ async function cleanBloodStains() {
         if (tileIds.length) await scene.deleteEmbeddedDocuments("Tile", tileIds);
         if (drawIds.length) await scene.deleteEmbeddedDocuments("Drawing", drawIds);
         ui.notifications?.info(`${total} tache(s) de sang supprimée(s).`);
-    } catch (e) { console.warn(`[${MOD}] cleanBloodStains:`, e); ui.notifications?.warn("Erreur lors du nettoyage (voir console)."); }
+    } catch (e) { journal.avert(`[${MOD}] cleanBloodStains:`, e); ui.notifications?.warn("Erreur lors du nettoyage (voir console)."); }
 }
 
 // ============================================================
@@ -549,7 +550,7 @@ function injectHarvestHudButton(hud, html) {
             harvestTargeted(token.actor, null);
         });
         root.appendChild(btn);
-    } catch (e) { console.warn(`[${MOD}] injectHarvestHudButton:`, e); }
+    } catch (e) { journal.avert(`[${MOD}] injectHarvestHudButton:`, e); }
 }
 
 // ============================================================
@@ -583,7 +584,7 @@ function injectHarvestBlockButton(app, element) {
         const title = header.querySelector(".window-title");
         if (title) title.insertAdjacentElement("afterend", btn);
         else header.insertBefore(btn, header.querySelector(".close"));
-    } catch (e) { console.warn(`[${MOD}] injectHarvestBlockButton:`, e); }
+    } catch (e) { journal.avert(`[${MOD}] injectHarvestBlockButton:`, e); }
 }
 
 // ============================================================

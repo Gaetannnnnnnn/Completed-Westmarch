@@ -16,6 +16,7 @@
 
 import { MOD } from "./const.js";
 
+import { journal } from "./log.js";
 const FLAG_EXPLORED = "exploredHexes";           // sur l'acteur personnage
 const TEMPLATE_GROUP_NAME = "Token à copier et rennomer";
 
@@ -301,7 +302,7 @@ async function revealForGroupMove(tokenDoc, changes = {}) {
         for (const k of keys) if (!prev.has(k)) { prev.add(k); changed = true; }
         if (changed) await setExplored(actor, sid, [...prev]);
     }
-    console.log(`[CE] révélation : ${keys.size} cases (arrivée ${hexKey(toOff)}) pour ${memberIds.length} membre(s)`);
+    journal.debug(`[CE] révélation : ${keys.size} cases (arrivée ${hexKey(toOff)}) pour ${memberIds.length} membre(s)`);
 }
 
 // ============================================================
@@ -424,9 +425,9 @@ async function ensureTemplateGroupActor() {
                     displayName: CONST.TOKEN_DISPLAY_MODES.HOVER
                 }
             });
-            console.log(`[${MOD}] Acteur Groupe modèle « ${TEMPLATE_GROUP_NAME} » créé.`);
+            journal.debug(`[${MOD}] Acteur Groupe modèle « ${TEMPLATE_GROUP_NAME} » créé.`);
         } catch (e) {
-            console.warn(`[${MOD}] Création de l'acteur Groupe modèle échouée :`, e);
+            journal.avert(`[${MOD}] Création de l'acteur Groupe modèle échouée :`, e);
             return null;
         }
     }
@@ -435,7 +436,7 @@ async function ensureTemplateGroupActor() {
     try {
         const fid = await resolveTemplateFolderId();
         if (fid && actor.folder?.id !== fid) await actor.update({ folder: fid });
-    } catch (e) { console.warn(`[${MOD}] Rangement du token modèle échoué :`, e); }
+    } catch (e) { journal.avert(`[${MOD}] Rangement du token modèle échoué :`, e); }
 
     // NOTE : on ne dépose PLUS automatiquement le token modèle sur les scènes de
     // carte. L'acteur « modèle » reste disponible dans la barre latérale ; le MJ
@@ -449,8 +450,8 @@ async function ensureTemplateGroupActor() {
 async function removeLegacyAnchor() {
     const anchors = game.actors.filter(a => a.getFlag(MOD, "visionAnchor") === true);
     for (const a of anchors) {
-        try { await a.delete(); console.log(`[${MOD}] Ancre de vision obsolète supprimée.`); }
-        catch (e) { console.warn(`[${MOD}] Suppression ancre échouée :`, e); }
+        try { await a.delete(); journal.debug(`[${MOD}] Ancre de vision obsolète supprimée.`); }
+        catch (e) { journal.avert(`[${MOD}] Suppression ancre échouée :`, e); }
     }
 }
 
@@ -463,8 +464,8 @@ async function disableNativeSceneFog() {
         if (scene.tokenVision) upd.tokenVision = false;
         if (scene.fog?.exploration) upd["fog.exploration"] = false;
         if (Object.keys(upd).length) {
-            try { await scene.update(upd); console.log(`[${MOD}] Vision/brouillard natifs désactivés (scène ${scene.name}).`); }
-            catch (e) { console.warn(`[${MOD}] Désactivation vision native échouée (scène ${sid}) :`, e); }
+            try { await scene.update(upd); journal.debug(`[${MOD}] Vision/brouillard natifs désactivés (scène ${scene.name}).`); }
+            catch (e) { journal.avert(`[${MOD}] Désactivation vision native échouée (scène ${sid}) :`, e); }
         }
     }
 }
@@ -536,7 +537,7 @@ async function syncGroupOwnership(groupActor) {
         }
 
         if (Object.keys(updates).length) await groupActor.update(updates);
-    } catch (e) { console.warn(`[${MOD}] Sync permissions du groupe échoué :`, e); }
+    } catch (e) { journal.avert(`[${MOD}] Sync permissions du groupe échoué :`, e); }
 }
 
 // Renomme un groupe fraîchement dupliqué : applique le nom à la fiche (acteur)
@@ -561,7 +562,7 @@ async function promptRenameGroup(actor) {
     const update = { [`flags.${MOD}.-=templateGroupToken`]: null };   // la copie n'est plus un « modèle »
     if (name) { update.name = name; update["prototypeToken.name"] = name; }
     try { await actor.update(update); }
-    catch (e) { console.warn(`[${MOD}] Renommage du groupe échoué :`, e); }
+    catch (e) { journal.avert(`[${MOD}] Renommage du groupe échoué :`, e); }
 }
 
 async function openFogResetDialog() {

@@ -10,6 +10,7 @@
 
 import { MOD } from "./const.js";
 
+import { journal } from "./log.js";
 export const URL_PAGE_MODULE = "https://altheia.eu/foundry-modules.html";
 
 export function registerSiteSettings() {
@@ -20,7 +21,7 @@ export function registerSiteSettings() {
 }
 
 export function SiteHooks() {
-    Hooks.once("ready", () => { annoncerSite().catch((e) => console.warn(`[${MOD}] Message du site :`, e)); });
+    Hooks.once("ready", () => { annoncerSite().catch((e) => journal.avert(`[${MOD}] Message du site :`, e)); });
 }
 
 async function annoncerSite() {

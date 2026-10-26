@@ -1,4 +1,5 @@
 import { MOD } from "./const.js";
+import { journal } from "./log.js";
 // ============================================================
 // mejrestock.js — Réapprovisionnement automatique des boutiques MEJ
 //
@@ -96,12 +97,12 @@ export function MejRestockHooks() {
                 if (itemDays <= 0) continue; // rareté désactivée
                 timers[itemId] = game.time.worldTime + itemDays * spd;
                 changed = true;
-                console.log(`westmarch | MejRestock : timer lancé pour "${item.name}" (${itemDays} j)`);
+                journal.debug(`westmarch | MejRestock : timer lancé pour "${item.name}" (${itemDays} j)`);
             } else if (qty > 0 && (itemId in timers)) {
                 // Remis en stock manuellement → annuler le timer
                 delete timers[itemId];
                 changed = true;
-                console.log(`westmarch | MejRestock : timer annulé pour "${item.name}" (remis manuellement)`);
+                journal.debug(`westmarch | MejRestock : timer annulé pour "${item.name}" (remis manuellement)`);
             }
         }
 
@@ -145,7 +146,7 @@ export function MejRestockHooks() {
                     anyExpired = true;
 
                     const itemName = page.flags?.["monks-enhanced-journal"]?.items?.[itemId]?.name ?? itemId;
-                    console.log(`westmarch | MejRestock : réapprovisionnement de "${itemName}" dans "${journal.name}"`);
+                    journal.debug(`westmarch | MejRestock : réapprovisionnement de "${itemName}" dans "${journal.name}"`);
                 }
 
                 if (anyExpired) {

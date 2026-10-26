@@ -1,4 +1,5 @@
 import { MOD } from "./const.js";
+import { journal } from "./log.js";
 /**
  * @file        modules/range-fix.js
  * @module      midi-range-fix
@@ -62,7 +63,7 @@ import { MOD } from "./const.js";
 const _MODULE     = MOD;
 const _PATCH_MARK = Symbol("midiRangeFix"); // identifie _ourPatch sans comparer le code
 
-console.log("[midi-range-fix] v1.5.9 chargé.");
+journal.debug("[midi-range-fix] v1.5.9 chargé.");
 
 // Référence stable à la version "originale" (midi-qol) à appeler en fallback.
 let _trueOriginal = null;
@@ -171,13 +172,13 @@ function _ourPatch(waypoints, options) {
             // donc le blocage est correct (5.26 > 5 → bloqué).
             result.distance = raw;
 
-            console.log(`[midi-range-fix] bord→bord=${result.distance.toFixed(2)} + ${adjust} = ${raw.toFixed(2)} ft`);
+            journal.debug(`[midi-range-fix] bord→bord=${result.distance.toFixed(2)} + ${adjust} = ${raw.toFixed(2)} ft`);
         }
         return result;
 
     } catch(err) {
         _reentering = false;
-        console.warn("[midi-range-fix] Erreur dans measurePath, fallback proto :", err);
+        journal.avert("[midi-range-fix] Erreur dans measurePath, fallback proto :", err);
         return _protoCall(waypoints, options);
     }
 }
@@ -203,7 +204,7 @@ function _patchRulerLabel() {
     if (!ruler) return;
     const RulerClass = ruler.constructor;
     if (!RulerClass?.prototype?._getWaypointLabelContext) {
-        console.warn("[midi-range-fix] _getWaypointLabelContext introuvable sur Ruler — patch ruler annulé.");
+        journal.critique("[midi-range-fix] _getWaypointLabelContext introuvable sur Ruler — patch ruler annulé.");
         return;
     }
 
@@ -218,7 +219,7 @@ function _patchRulerLabel() {
         _rulerOrigFn = currentFn?.__origFn ?? currentFn;
     }
     if (!_rulerOrigFn) {
-        console.warn("[midi-range-fix] Impossible de récupérer _getWaypointLabelContext original.");
+        journal.critique("[midi-range-fix] Impossible de récupérer _getWaypointLabelContext original.");
         return;
     }
 
@@ -284,7 +285,7 @@ function _patchRulerLabel() {
         // Vérifier : srcBorder et tgtBorder doivent être sur l'ELLIPSE de leur token,
         // pas sur le coin du rectangle. Pour des tokens carrés (cercles), la distance
         // du border au centre doit être exactement égale au rayon (b.width/2).
-        console.debug(
+        journal.debug(
             `[midi-range-fix] ruler ellipse | ${srcToken.name} → ${tgtToken.name}`,
             `\n  srcBounds:  x=${srcToken.bounds.x} y=${srcToken.bounds.y} w=${srcToken.bounds.width} h=${srcToken.bounds.height}`,
             `\n  tgtBounds:  x=${tgtToken.bounds.x} y=${tgtToken.bounds.y} w=${tgtToken.bounds.width} h=${tgtToken.bounds.height}`,
@@ -329,7 +330,7 @@ function _patchRulerLabel() {
     _rulerPatch.__origFn     = _rulerOrigFn; // pour récupérer l'original si re-chargement
 
     RulerClass.prototype._getWaypointLabelContext = _rulerPatch;
-    console.log("[midi-range-fix] Patch ruler label (ré)appliqué — ellipse actif.");
+    journal.debug("[midi-range-fix] Patch ruler label (ré)appliqué — ellipse actif.");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -386,7 +387,7 @@ function _installPatch() {
     }
 
     if (!_trueOriginal || _trueOriginal[_PATCH_MARK]) {
-        console.warn("[midi-range-fix] Impossible de trouver un fallback valide — patch annulé.");
+        journal.critique("[midi-range-fix] Impossible de trouver un fallback valide — patch annulé.");
         return;
     }
 
@@ -402,9 +403,9 @@ function _installPatch() {
             configurable: true,
             enumerable:   true,
         });
-        console.log("[midi-range-fix] Patch bord→bord actif.");
+        journal.debug("[midi-range-fix] Patch bord→bord actif.");
     } catch(e) {
-        console.warn("[midi-range-fix] Object.defineProperty échoué, assignment direct :", e);
+        journal.avert("[midi-range-fix] Object.defineProperty échoué, assignment direct :", e);
         try { canvas.grid.measurePath = _ourPatch; } catch {}
     }
 }
@@ -422,7 +423,7 @@ function _ensurePatch() {
         _trueOriginal = typeof current.bind === "function" ? current.bind(canvas.grid) : current;
     }
     _installPatch();
-    console.log("[midi-range-fix] Patch réinstallé (écrasement détecté).");
+    journal.debug("[midi-range-fix] Patch réinstallé (écrasement détecté).");
 }
 
 /**

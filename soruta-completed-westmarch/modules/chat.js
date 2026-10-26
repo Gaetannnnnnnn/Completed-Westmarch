@@ -1,4 +1,5 @@
 import { MOD } from "./const.js";
+import { journal } from "./log.js";
 import { partyFeatureEnabled } from './settings.js';
 import { registerSoundFilter } from './audio.js';
 
@@ -423,7 +424,7 @@ function _injectPartyChatButtons() {
     // pas par le ChatLog — il n'est pas dans log.element au moment du hook.
     const controlButtons = document.querySelector('#chat-controls .control-buttons, .control-buttons');
     if (!controlButtons) {
-        console.warn("[westmarch] Boutons party chat : .control-buttons introuvable.");
+        journal.critique("[westmarch] Boutons party chat : .control-buttons introuvable.");
         return;
     }
     const $controlButtons = $(controlButtons);
@@ -558,7 +559,7 @@ async function _importPartyChatJSON() {
                 ui.notifications.info(`${toCreate.length} message(s) importé(s).`);
             } catch (err) {
                 ui.notifications.error(`Erreur d'import : ${err.message}`);
-                console.error("[westmarch] Import chat :", err);
+                journal.erreur("[westmarch] Import chat :", err);
             }
             resolve();
         };

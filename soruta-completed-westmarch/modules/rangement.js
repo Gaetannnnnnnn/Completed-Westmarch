@@ -15,6 +15,7 @@
 
 import { MOD } from "./const.js";
 
+import { journal } from "./log.js";
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const lire = (k, def = "") => { try { return game.settings.get(MOD, k); } catch { return def; } };
@@ -269,7 +270,7 @@ export async function genererEtOuvrirGuide() {
         e.sheet?.render(true);
         return e;
     } catch (err) {
-        console.warn(`[${MOD}] guide de rangement`, err);
+        journal.avert(`[${MOD}] guide de rangement`, err);
         ui.notifications?.error("Échec de la génération du journal « Où ranger quoi ? ».");
         return null;
     }
@@ -296,6 +297,6 @@ export function RangementHooks() {
         const cle = String(setting?.key ?? "");
         if (!CLES_SUIVIES.some(k => cle === `${MOD}.${k}`)) return;
         clearTimeout(t);
-        t = setTimeout(() => publierGuide().catch(e => console.warn(`[${MOD}] guide de rangement`, e)), 1000);
+        t = setTimeout(() => publierGuide().catch(e => journal.avert(`[${MOD}] guide de rangement`, e)), 1000);
     });
 }

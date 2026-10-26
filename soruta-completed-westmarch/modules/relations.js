@@ -13,7 +13,7 @@
 
 import { MOD } from "./const.js";
 import { commonFolderPJ, commonFolderPNJ, commonPackPNJ, commonPackCemetery } from "./settings.js";
-import { jetonDuPersonnage, voit, surCarteExpedition } from "./perception.js";
+import { jetonDuPersonnage, voit, surCarteExpedition, ouvrirImage, dateDeRencontre, memeRencontre, texteRencontre } from "./perception.js";
 export const MODULE = MOD;
 
 // ---- État de session ---------------------------------------
@@ -123,6 +123,8 @@ function availableActors(actor) {
 
 // ---- HTML onglet -------------------------------------------
 
+const dateRencontreActive = () => { try { return game.settings.get(MOD, "relationsLastSeen") !== false; } catch { return true; } };
+
 export function buildRowHtml(r, actor, canEdit) {
     const target   = game.actors.get(r.targetId);
     const revealed = r.revealed ?? true;
@@ -132,8 +134,8 @@ export function buildRowHtml(r, actor, canEdit) {
     return `
     <div class="rel-row" data-rel-id="${r.id}">
         <div class="rel-header">
-            <img class="rel-avatar" src="${img}" alt="${name}">
-            <span class="rel-name">${name}</span>
+            <img class="rel-avatar" src="${escA(img)}" alt="${escA(name)}">
+            <span class="rel-name">${escA(name)}</span>
             ${levelSelector(r.level ?? 0, canEdit)}
             <div class="rel-btns">
                 ${game.user.isGM && target ? `<a class="rel-open-sheet" data-target-id="${r.targetId}" title="Ouvrir la fiche"><i class="fa-solid fa-external-link-alt"></i></a>` : ""}
@@ -142,20 +144,25 @@ export function buildRowHtml(r, actor, canEdit) {
             </div>
         </div>
         <div class="rel-notes"${open ? "" : ' style="display:none;"'}>
+            ${dateRencontreActive() ? (() => { const { texte, titre } = texteRencontre(r.lastSeen); return `
+            <div class="rel-lastpos-row rel-readonly" title="${escA(titre)}">
+                <i class="fa-solid fa-calendar-day"></i>
+                <span>Dernière rencontre : <span class="rel-seen-value" data-rel-id="${r.id}">${texte ? escA(texte) : "<em>inconnue</em>"}</span></span>
+            </div>`; })() : ""}
             ${canEdit ? `
             <div class="rel-lastpos-row">
                 <label class="rel-field-label"><i class="fa-solid fa-map-marker-alt"></i> Dernière position</label>
                 <input class="rel-lastpos-input" type="text" data-rel-id="${r.id}"
-                    value="${r.lastPosition ?? ""}" placeholder="Scène, lieu…">
+                    value="${escA(r.lastPosition)}" placeholder="Scène, lieu…">
             </div>
             <textarea class="rel-note-input" data-rel-id="${r.id}"
-                placeholder="Notes sur cette relation…">${r.note ?? ""}</textarea>
+                placeholder="Notes sur cette relation…">${escA(r.note)}</textarea>
             ` : `
             <div class="rel-lastpos-row rel-readonly">
                 <i class="fa-solid fa-map-marker-alt"></i>
-                <span>${r.lastPosition || "<em>Position inconnue</em>"}</span>
+                <span>${r.lastPosition ? escA(r.lastPosition) : "<em>Position inconnue</em>"}</span>
             </div>
-            <p class="rel-note-ro">${r.note || "<em>Aucune note.</em>"}</p>
+            <p class="rel-note-ro" style="white-space:pre-wrap;">${r.note ? escA(r.note) : "<em>Aucune note.</em>"}</p>
             `}
         </div>
     </div>`;
@@ -433,7 +440,7 @@ async function openEditDialog(actor, rel) {
     let result = null;
 
     await foundry.applications.api.DialogV2.wait({
-        window: { title: `Modifier — ${rel.targetName}` },
+        window: { title: `Modifier — ${rel.targetName ?? ""}` },
         position: { width: 360 },
         rejectClose: false,
         content: `
@@ -442,7 +449,7 @@ async function openEditDialog(actor, rel) {
                 background:#1a1a1a;border-radius:6px;border:1px solid #333;">
                 <img src="${rel.targetImg || "icons/svg/mystery-man.svg"}"
                     style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:1px solid #444;">
-                <strong style="font-size:13px;">${rel.targetName}</strong>
+                <strong style="font-size:13px;">${escA(rel.targetName)}</strong>
             </div>
             <label style="font-size:12px;color:#aaa;">Type de relation
                 <input id="${uid}-type" type="text" value="${rel.type ?? ""}"
@@ -523,7 +530,7 @@ export function wireTab(actor, $html) {
         const target = game.actors.get(rel.targetId);
         const img    = target?.img  ?? rel.targetImg  ?? "icons/svg/mystery-man.svg";
         const name   = target?.name ?? rel.targetName ?? "Inconnu";
-        new ImagePopout(img, { title: name }).render(true);
+        ouvrirImage(img, name);
     });
 
     // Ajouter — DOM uniquement, pas de re-render
@@ -584,7 +591,7 @@ export function wireTab(actor, $html) {
         if (!rel) return;
         const ok = await foundry.applications.api.DialogV2.confirm({
             window: { title: "Supprimer la relation" },
-            content: `<p>Supprimer la relation avec <strong>${rel.targetName}</strong> ?<br>
+            content: `<p>Supprimer la relation avec <strong>${escA(rel.targetName)}</strong> ?<br>
                       <small style="color:#999;">Cette action est irréversible.</small></p>`,
         });
         if (!ok) return;
@@ -667,6 +674,21 @@ async function scanVisibleTokens() {
         const myActor = myToken.actor;
 
         const existing = new Set(relList(myActor).map(r => r.targetId));
+        const quand = dateDeRencontre();
+
+        // Relations déjà connues que le personnage revoit : date de dernière
+        // rencontre (une écriture au plus par jour).
+        if (dateRencontreActive()) {
+            const revus = new Set(tokens.filter(t => t.actor?.id && existing.has(t.actor.id) && voit(myToken, t)).map(t => t.actor.id));
+            const liste = relList(myActor);
+            const nouvelle = liste.map(r => revus.has(r.targetId) && !memeRencontre(r.lastSeen, quand) ? { ...r, lastSeen: quand } : r);
+            if (nouvelle.some((r, i) => r !== liste[i])) {
+                await myActor.update({ [`flags.${MOD}.relationsList`]: nouvelle }, { render: false });
+                const { texte, titre } = texteRencontre(quand);
+                for (const r of nouvelle) if (revus.has(r.targetId))
+                    document.querySelectorAll(`.rel-seen-value[data-rel-id="${r.id}"]`).forEach(el => { el.textContent = texte; el.closest(".rel-lastpos-row")?.setAttribute("title", titre); });
+            }
+        }
 
         // Jetons PJ (dossier des PJ) / PNJ (dossier des PNJ) que SON jeton voit :
         // pas derrière un mur ou une porte fermée, pas caché par le MJ, et
@@ -693,6 +715,7 @@ async function scanVisibleTokens() {
             level:        0,
             note:         "",
             lastPosition: sceneName,
+            lastSeen:     quand,
             secret:       false,
             revealed:     !(t.actor.getFlag(MOD, "anonymous") ?? false),
         }));
@@ -835,7 +858,7 @@ export function RelationsHooks() {
         btnRemove.addEventListener("click", async () => {
             const ok = await foundry.applications.api.DialogV2.confirm({
                 window:  { title: "Retirer de chez tous les joueurs" },
-                content: `<p>Retirer <strong>${actor.name}</strong> des Relations et du Bestiaire de <strong>tous les joueurs</strong> ?</p>
+                content: `<p>Retirer <strong>${escA(actor.name)}</strong> des Relations et du Bestiaire de <strong>tous les joueurs</strong> ?</p>
                           <p style="opacity:0.7;font-size:0.9em;">Les listes existantes sont nettoyées. Sans blocage, ce personnage pourra être ré-ajouté automatiquement s'il est recroisé.</p>`
             });
             if (!ok) return;

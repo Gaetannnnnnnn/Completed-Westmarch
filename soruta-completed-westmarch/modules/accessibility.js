@@ -24,7 +24,9 @@
 // ============================================================
 
 import { MOD } from "./const.js";
+import { rafraichirFiches } from "./gere.js";
 
+import { journal } from "./log.js";
 // Clés de réglages (toutes "client").
 const K_DALTON   = "a11yDaltonism";      // "none" | "protan" | "deutan" | "tritan"
 const K_CONTRAST = "a11yContrast";        // Boolean
@@ -32,6 +34,7 @@ const K_CONTRASTCOL = "a11yContrastColor"; // String (couleur des contours)
 const K_AVATARS  = "a11yPlayerAvatars";   // Boolean
 const K_AUTOHIDE = "a11yAutoHide";        // Boolean
 const K_COMPACT  = "a11yCompactControls"; // Boolean
+const K_GERE     = "a11yManagedBadge";    // Boolean (indicateur « géré par le module »)
 
 const DEFAULT_BORDER = "#ffd54a";
 
@@ -67,6 +70,10 @@ function registerA11ySettings() {
         name: "Auto-masquage de l'interface", scope: "client", config: false,
         type: Boolean, default: true, onChange: applyAccessibility
     });
+    game.settings.register(MOD, K_GERE, {
+        name: "Indicateur « géré par le module »", scope: "client", config: false,
+        type: Boolean, default: true, onChange: () => rafraichirFiches()
+    });
     game.settings.register(MOD, K_COMPACT, {
         name: "Contrôles de gauche compacts", scope: "client", config: false,
         type: Boolean, default: true, onChange: applyAccessibility
@@ -89,7 +96,7 @@ function registerA11yMenu() {
             restricted: false
         });
     } catch (e) {
-        console.warn(`[${MOD}] registerMenu « Accessibilité » échec :`, e);
+        journal.critique(`[${MOD}] registerMenu « Accessibilité » échec :`, e);
     }
 }
 
@@ -147,6 +154,7 @@ export async function openA11yDialog() {
         ${row(K_AVATARS,  "Avatars dans la liste des joueurs", "Affiche la miniature du portrait de chaque joueur à côté de son nom.", "avatars")}
         ${row(K_AUTOHIDE, "Auto-masquage de l'interface", "Estompe contrôles, navigation, macros et liste des joueurs tant que la souris ne les survole pas.", "autohide")}
         ${row(K_COMPACT,  "Contrôles de gauche compacts", "Réduit la taille des icônes de la barre d'outils de gauche.", "compact")}
+        ${row(K_GERE,     "Indicateur « géré par le module »", "Petite icône d'engrenages dorée sur les aptitudes de ta fiche dont le module applique la règle tout seul (Healer, Alert, Large Form…). Au survol : ce que fait le module.", "gere")}
 
         <div style="margin:10px 0 4px;font-weight:700;color:#c9a227;font-size:.9em;">Cartes de chat</div>
         <div class="scwm-a11y-row" data-a11y-row="chatcol" style="padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.07);">
@@ -191,7 +199,7 @@ export async function openA11yDialog() {
                     await game.settings.set(MOD, K_DALTON, sel?.value ?? "none");
                     const col = root.querySelector(`[name="${K_CONTRASTCOL}"]`);
                     await game.settings.set(MOD, K_CONTRASTCOL, col?.value || DEFAULT_BORDER);
-                    for (const k of [K_CONTRAST, K_AVATARS, K_AUTOHIDE, K_COMPACT]) {
+                    for (const k of [K_CONTRAST, K_AVATARS, K_AUTOHIDE, K_COMPACT, K_GERE]) {
                         const cb = root.querySelector(`[name="${k}"]`);
                         await game.settings.set(MOD, k, !!cb?.checked);
                     }
@@ -254,7 +262,7 @@ function applyCanvasDaltonism() {
     }
 
     const CMF = globalThis.PIXI?.filters?.ColorMatrixFilter ?? globalThis.PIXI?.ColorMatrixFilter;
-    if (!CMF) { console.warn(`[${MOD}] PIXI.ColorMatrixFilter indisponible : daltonisme non appliqué.`); return; }
+    if (!CMF) { journal.avert(`[${MOD}] PIXI.ColorMatrixFilter indisponible : daltonisme non appliqué.`); return; }
 
     try {
         const f = new CMF();
@@ -265,7 +273,7 @@ function applyCanvasDaltonism() {
         // qui se déplace/zoome et ne couvre pas le viewport).
         stage.filterArea = app.renderer.screen;
     } catch (e) {
-        console.error(`[${MOD}] Application du filtre daltonisme :`, e);
+        journal.erreur(`[${MOD}] Application du filtre daltonisme :`, e);
     }
 }
 

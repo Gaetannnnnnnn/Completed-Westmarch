@@ -1,3 +1,4 @@
+import { journal } from "./log.js";
 // ============================================================
 // socket.js — Communication ciblée entre clients pour déplacer un
 // utilisateur précis vers une scène.
@@ -39,7 +40,7 @@ export function pullUserToScene(sceneId, userId) {
     const targetUser = game.users.get(userId);
     if (!targetUser) return;
     targetUser.query("westmarch.pullToScene", { sceneId }).catch(err =>
-        console.error("[WestMarch] Erreur lors du déplacement de", targetUser.name, ":", err)
+        journal.erreur("[WestMarch] Erreur lors du déplacement de", targetUser.name, ":", err)
     );
 }
 

@@ -1,3 +1,4 @@
+import { journal } from "./log.js";
 // ============================================================
 // compat.js — Shim de compatibilité Dialog (V1) → DialogV2
 // ------------------------------------------------------------
@@ -42,7 +43,7 @@ function convertButtons(buttons, def) {
             const orig = b.callback;
             entry.callback = async (event, button, dialog) => {
                 try { return await orig(jq(dialog?.element), event, button, dialog); }
-                catch (e) { console.error("[SCWM compat] button callback", e); }
+                catch (e) { journal.erreur("[SCWM compat] button callback", e); }
             };
         }
         out.push(entry);
@@ -103,7 +104,7 @@ export class Dialog {
         // render() V1 : wiring post-affichage avec l'élément (jQuery).
         if (typeof d.render === "function") {
             try { await d.render(jq(this._dv2.element)); }
-            catch (e) { console.error("[SCWM compat] render callback", e); }
+            catch (e) { journal.erreur("[SCWM compat] render callback", e); }
         }
         return this;
     }

@@ -21,6 +21,7 @@
 // ============================================================
 
 import { MOD } from "./const.js";
+import { journal } from "./log.js";
 import { Dialog } from "./compat.js";
 import { commonFolderNewChars, commonFolderPJ } from "./settings.js";
 
@@ -68,10 +69,6 @@ export function getPendingActors() {
             changes: a.getFlag(MOD, "levelUpChanges") ?? []
         }));
 }
-export function myCharActor() {
-    return game.actors?.find(a => a.getFlag(MOD, "createdFor") === game.user.id) ?? null;
-}
-
 // ---- Stock / actifs -------------------------------------------------------
 const maxTotal  = () => Number(game.settings.get(MOD, "charMaxTotal"))  || 0;   // 0 = illimité
 const maxActive = () => Math.max(1, Number(game.settings.get(MOD, "charMaxActive")) || 2);
@@ -121,7 +118,7 @@ async function requestCharStock(actorId, stock) {
     const gm = game.users.find(u => u.isGM && u.active);
     if (!gm) { ui.notifications?.warn("Aucun MJ en ligne pour (dés)activer ce personnage."); return; }
     try { await gm.query("westmarch.charStock", { actorId, stock }); }
-    catch (e) { console.warn(`[${MOD}] charStock :`, e); }
+    catch (e) { journal.avert(`[${MOD}] charStock :`, e); }
 }
 
 async function ensureFolder() {
@@ -181,7 +178,7 @@ async function ensurePlayerPJFolder(user) {
         x.type === "Actor" && x.name === name && (x.folder?.id ?? null) === (parent.id ?? null));
     if (!f) {
         f = await Folder.create({ name, type: "Actor", folder: parent.id });
-        console.log(`[${MOD}] Sous-dossier PJ créé pour « ${name} ».`);
+        journal.debug(`[${MOD}] Sous-dossier PJ créé pour « ${name} ».`);
     }
     return f;
 }
@@ -198,13 +195,13 @@ async function ensureGmFolders(user) {
         let parent = game.folders?.find(f => f.type === type && f.name === parentName && !f.folder);
         if (!parent) {
             try { parent = await Folder.create({ name: parentName, type }); }
-            catch (e) { console.warn(`[${MOD}] Dossier parent MJ (${type}) :`, e); continue; }
+            catch (e) { journal.avert(`[${MOD}] Dossier parent MJ (${type}) :`, e); continue; }
         }
         const exists = game.folders?.find(f =>
             f.type === type && f.name === name && (f.folder?.id ?? null) === (parent.id ?? null));
         if (!exists) {
             try { await Folder.create({ name, type, folder: parent.id }); }
-            catch (e) { console.warn(`[${MOD}] Sous-dossier MJ (${type}) :`, e); }
+            catch (e) { journal.avert(`[${MOD}] Sous-dossier MJ (${type}) :`, e); }
         }
     }
 }
@@ -236,7 +233,7 @@ async function placeImportedCreature(actor, userId) {
             f.type === "Actor" && f.name === "Import" && (f.folder?.id ?? null) === gmSub.id);
         if (!dest) dest = await Folder.create({ name: "Import", type: "Actor", folder: gmSub.id });
         await actor.update({ folder: dest.id });
-    } catch (e) { console.warn(`[${MOD}] Rangement créature importée :`, e); }
+    } catch (e) { journal.avert(`[${MOD}] Rangement créature importée :`, e); }
 }
 
 // Si l'acteur est rangé dans un sous-dossier « au nom d'un joueur » situé dans
@@ -421,15 +418,6 @@ export async function returnActor(actorId) {
     const uid = actor.getFlag(MOD, "createdFor");
     if (uid) ChatMessage.create({ whisper: [uid], speaker: { alias: "Validation" }, content: `↩️ <strong>${actor.name}</strong> vous est renvoyé pour ajustements avant re-soumission.` });
 }
-export async function unlockActor(actorId) {
-    if (!game.user.isGM) return;
-    const actor = game.actors.get(actorId);
-    if (!actor) return;
-    await actor.setFlag(MOD, "locked", false);
-    const uid = actor.getFlag(MOD, "createdFor");
-    if (uid) ChatMessage.create({ whisper: [uid], speaker: { alias: "Validation" }, content: `🔓 <strong>${actor.name}</strong> est déverrouillé : vous pouvez modifier sa construction, puis le re-soumettre.` });
-}
-
 // ============================================================
 // UI JOUEUR — hub « Mon personnage »
 // ============================================================
@@ -651,7 +639,7 @@ export async function dedupeAutoFolders() {
                 }
                 await dup.delete();
                 removed++;
-            } catch (e) { console.warn(`[${MOD}] dédoublonnage « ${dup.name} » :`, e); }
+            } catch (e) { journal.avert(`[${MOD}] dédoublonnage « ${dup.name} » :`, e); }
         }
     }
     ui.notifications?.info(`[${MOD}] Dédoublonnage terminé : ${removed} dossier(s) en double fusionné(s).`);

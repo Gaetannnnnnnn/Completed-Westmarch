@@ -7,6 +7,8 @@
 // ============================================================
 
 import { MOD, TUTO_TOGGLES, TM_DEFAULT_SCROLL, TM_DEFAULT_MAGIC, TM_DEFAULT_ROLL, DEACTIVATION_CODE } from "./const.js";
+import { journal } from "./log.js";
+import { registerDiagnosticMenu } from "./diagnostic.js";
 import { registerLicenceSettings, licenceValide, etatLicence, activerLicence, messageLicence } from "./licence.js";
 import { registerSiteSettings, URL_PAGE_MODULE } from "./site.js";
 import { applyPartyPause } from "./partypause.js";
@@ -394,6 +396,12 @@ export function registerSettings() {
     game.settings.register(MOD, "logLevelsElements", B(
         "Niveaux & autres éléments",
         "Logge les montées de niveau ET l'ajout/retrait de tout autre élément d'une fiche : sorts, dons, races, classes, sous-classes, historiques.", true));
+    game.settings.register(MOD, "logModuleErrors", B(
+        "Problèmes du module",
+        "Envoie dans ce salon les vrais problèmes du module (fonction cassée, erreur, conflit avec un autre module ou une mise à jour de Foundry), avec l'endroit, les versions, la mention « Contacter le propriétaire du module » et le lien du Discord Althéia pour ouvrir un ticket. Un même problème n'est envoyé qu'une fois toutes les 10 minutes.", true));
+    game.settings.register(MOD, "logSheetEdits", B(
+        "Modifications des fiches",
+        "Logge toute modification faite sur une fiche : objets, aptitudes, sorts (nom, description, dégâts, portée, utilisations max…) et la fiche elle-même (caractéristiques, maîtrises, langues, biographie…). Ce qui change en jeu n'est pas loggé : PV, utilisations dépensées, emplacements de sort, équiper / préparer.", true));
     game.settings.register(MOD, "logActors", B(
         "Création / suppression de fiche",
         "Logge la création et la suppression de personnages.", true));
@@ -491,6 +499,12 @@ export function registerSettings() {
     game.settings.register(MOD, "enableLargeForm", B(
         "Taille Large — Goliath (Large Form)",
         "Goliaths avec 'Large Form' : utiliser la feature bascule le token en 2x2 (Large) et inversement."));
+    game.settings.register(MOD, "enableHealerReroll", B(
+        "Healer (Guérisseur) — relance des 1 sur les soins",
+        "Personnages qui ont le don Healer : à chaque jet de soins d'un sort (ou du Battle Medic du don), les dés qui font 1 sont relancés une fois (« r1 » ajouté à la formule). Les PV temporaires ne sont pas concernés."));
+    game.settings.register(MOD, "enableAlertSwap", B(
+        "Alert (Vigilant) — échange d'initiative",
+        "Pour les MJ : bouton « échanger » dans le suivi de combat sur la ligne des personnages qui ont le don Alert. Il échange leur initiative avec celle d'un autre joueur du combat (non neutralisé) et l'annonce dans le chat."));
     game.settings.register(MOD, "enableFormOfTheBeast", B(
         "Armes naturelles — Voie de la Bête (Form of the Beast)",
         "Barbares dont une feature a l'identifiant 'form-of-the-beast' : le module crée 3 armes naturelles (Morsure, Griffes, Queue) avec jets d'attaque/dégâts, et les retire si la feature disparaît.",
@@ -643,12 +657,18 @@ export function registerSettings() {
     game.settings.register(MOD, "bestiaryEnabled", B(
         "Bestiaire — Activer",
         "Active la détection automatique des créatures rencontrées sur les scènes et l'onglet Bestiaire."));
+    game.settings.register(MOD, "relationsLastSeen", B(
+        "Relations — Date de dernière rencontre",
+        "Date (calendrier du monde, sinon date réelle) à laquelle le personnage a vu ce PJ / PNJ pour la dernière fois, mise à jour automatiquement."));
     game.settings.register(MOD, "bestiaryAnonymization", B(
         "Bestiaire — Anonymisation",
         "Boutons 'Révéler'/'Masquer' dans l'en-tête des fiches (GM). Utilisé si Relations est désactivé."));
     game.settings.register(MOD, "bestiaryLastPosition", B(
         "Bestiaire — Dernière position",
         "Champ « Dernière position » sur chaque créature : rempli avec la scène où le personnage l'a vue en dernier, mis à jour automatiquement (non modifiable)."));
+    game.settings.register(MOD, "bestiaryLastSeen", B(
+        "Bestiaire — Date de dernière rencontre",
+        "Date (calendrier du monde, sinon date réelle) à laquelle le personnage a vu la créature pour la dernière fois, mise à jour automatiquement."));
     game.settings.register(MOD, "bestiaryDamageTags", B(
         "Bestiaire — Faiblesses, résistances, immunités",
         "Une étiquette par type de dégâts sur chaque créature. Chaque clic change son état : neutre → faiblesse → résistance → immunité → neutre. Le joueur note ce qu'il a découvert."));
@@ -823,6 +843,7 @@ export function registerSettings() {
     // inclus), même module non activé/désactivé : c'est la seule entrée publique,
     // et elle contient le champ code (activation manquante → réactivation possible).
     registerAboutMenu();
+    registerDiagnosticMenu();   // toujours dispo (MJ), même sans licence
 
     // Les menus MJ (restricted:true, dont « À propos & protection ») restent
     // enregistrés dès que le CODE D'ACTIVATION est valide — même si le module est
@@ -848,7 +869,7 @@ function registerAboutMenu() {
             restricted: false   // visible par tout le monde (joueurs inclus)
         });
     } catch (e) {
-        console.warn(`[${MOD}] registerMenu « À propos » échec :`, e);
+        journal.critique(`[${MOD}] registerMenu « À propos » échec :`, e);
     }
 }
 
@@ -1074,7 +1095,14 @@ const TWEAK_TREE = {
         } }
     } },
     "Sorts":       { icon: "fa-wand-magic-sparkles", children: {} },
-    "Features":    { icon: "fa-star",                children: {} },
+    "Features":    { icon: "fa-star",                children: {
+        "Alert (Vigilant)": { children: {
+            "Bouton d'échange d'initiative (suivi de combat, MJ)": { key: "enableAlertSwap" }
+        } },
+        "Healer (Guérisseur)": { children: {
+            "Relance des 1 sur les soins (sorts, Battle Medic)": { key: "enableHealerReroll" }
+        } }
+    } },
     "Backgrounds": { icon: "fa-scroll",              children: {} },
 };
 
@@ -1149,7 +1177,7 @@ const CATEGORIES = [
       keys: ["enableXpBlock","enableFakeWarning","enableGmNotes","hidePlayerStarTab","createPantheonFolder","downtimeWebhookUrl","tmWebhookUrl"] },
     { firstKey: "enableDiscordLog", master: "enableDiscordLog", icon: "fa-clipboard-list", title: "Log Discord",
       desc: "Envoie un message Discord à chaque modification de fiche (objets, XP, pièces, niveaux…) et, en option, à la création/suppression de fiches, scènes et journaux. Cochez précisément ce qui est loggé, et si les PNJ sont inclus.",
-      keys: ["enableDiscordLog","discordLogWebhookUrl","logInventory","logXp","logCurrency","logLevelsElements","logActors","logScenes","logJournals","logIncludeNpc"] },
+      keys: ["enableDiscordLog","discordLogWebhookUrl","logInventory","logXp","logCurrency","logLevelsElements","logSheetEdits","logModuleErrors","logActors","logScenes","logJournals","logIncludeNpc"] },
     { firstKey: "enableChatCards", master: "enableChatCards", icon: "fa-comment-dots", title: "Cartes de chat",
       desc: "Habillage des cartes de chat dnd5e (attaques, sorts, objets). Interrupteur général + choix de ce qui est activé. La couleur reste un choix par joueur (fenêtre « Accessibilité »).",
       keys: ["enableChatCards","chatCardsTheme","chatCardsBigButtons","chatCardsExpandDice","chatCardsFoldDescription"] },
@@ -1167,10 +1195,10 @@ const CATEGORIES = [
       keys: ["enableTokenAppearance","enableTokenPortraitButton","enableGmNotesNpc","enableTgcm","enableCompanions","enableFolderMove","enableToolAbilityFix","enableConnStats","enablePlayerListCompact","enableTemplateSnap","enableFollowTemplates","enableMejShopFix","enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
     { firstKey: "relationsEnabled", master: "relationsEnabled",      icon: "fa-heart",           title: "Fiche PJ — Relations",
       desc: "Onglet Relations : liens entre personnages, détection automatique des rencontres, anonymisation.",
-      keys: ["relationsEnabled","relationsAnonymization"] },
+      keys: ["relationsEnabled","relationsAnonymization","relationsLastSeen"] },
     { firstKey: "bestiaryEnabled", master: "bestiaryEnabled",       icon: "fa-dragon",          title: "Fiche PJ — Bestiaire",
       desc: "Onglet Bestiaire : créatures rencontrées, répertoriées par personnage.",
-      keys: ["bestiaryEnabled","bestiaryAnonymization","bestiaryLastPosition","bestiaryDamageTags","bestiaryArmorClass"] },
+      keys: ["bestiaryEnabled","bestiaryAnonymization","bestiaryLastPosition","bestiaryLastSeen","bestiaryDamageTags","bestiaryArmorClass"] },
     { firstKey: "carnetEnabled", master: "carnetEnabled",         icon: "fa-book-open",       title: "Fiche PJ — Carnet & Expéditions",
       desc: "Onglets Carnet (notes enrichies) et Expéditions (dates + durée).",
       keys: ["carnetEnabled","enablePcStatus"] },
@@ -1355,7 +1383,7 @@ function registerConfigHub() {
             restricted: true
         });
     } catch (e) {
-        console.warn(`[${MOD}] registerMenu « Panneau de configuration » échec :`, e);
+        journal.critique(`[${MOD}] registerMenu « Panneau de configuration » échec :`, e);
     }
 }
 
@@ -1421,7 +1449,7 @@ export async function openConfigHub() {
         for (const g of groups) for (const cat of g.cats) {
             if (!_catIsInlinable(cat)) continue;
             const host = document.getElementById(_hubHostId(cat));
-            if (host) { try { wireCategoryForm(cat, host); } catch (err) { console.warn(`[${MOD}] wire hub ${cat.firstKey}`, err); } }
+            if (host) { try { wireCategoryForm(cat, host); } catch (err) { journal.avert(`[${MOD}] wire hub ${cat.firstKey}`, err); } }
         }
     };
 
@@ -1477,7 +1505,7 @@ function registerCategoryMenus() {
                 restricted: true   // GM uniquement (réglages "world")
             });
         } catch (e) {
-            console.warn(`[${MOD}] registerMenu "${cat.title}" échec :`, e);
+            journal.critique(`[${MOD}] registerMenu "${cat.title}" échec :`, e);
         }
     }
 }

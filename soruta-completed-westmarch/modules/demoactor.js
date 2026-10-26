@@ -18,6 +18,7 @@
 
 import { MOD } from "./const.js";
 
+import { journal } from "./log.js";
 const DEMO_VERSION = 10;
 const rid = () => foundry.utils.randomID();
 
@@ -80,10 +81,10 @@ export async function ensureTutorialActor() {
             await createDemoActor();
             await game.settings.set(MOD, "tutorialActorVersion", DEMO_VERSION);
             await game.settings.set(MOD, "tutorialActorCreated", true);
-            try { await existing.delete(); } catch (e) { console.warn(`[${MOD}] Suppression ancienne fiche démo :`, e); }
-            console.log(`[${MOD}] Fiche démo du tutoriel mise à jour (v${DEMO_VERSION}).`);
+            try { await existing.delete(); } catch (e) { journal.avert(`[${MOD}] Suppression ancienne fiche démo :`, e); }
+            journal.debug(`[${MOD}] Fiche démo du tutoriel mise à jour (v${DEMO_VERSION}).`);
         } catch (err) {
-            console.error(`[${MOD}] Échec de la mise à jour de la fiche démo (ancienne conservée) :`, err);
+            journal.erreur(`[${MOD}] Échec de la mise à jour de la fiche démo (ancienne conservée) :`, err);
         }
         return;
     }
@@ -97,9 +98,9 @@ export async function ensureTutorialActor() {
         await createDemoActor();
         await game.settings.set(MOD, "tutorialActorVersion", DEMO_VERSION);
         await game.settings.set(MOD, "tutorialActorCreated", true);
-        console.log(`[${MOD}] Fiche démo du tutoriel créée (v${DEMO_VERSION}).`);
+        journal.debug(`[${MOD}] Fiche démo du tutoriel créée (v${DEMO_VERSION}).`);
     } catch (err) {
-        console.error(`[${MOD}] Échec de la création de la fiche démo du tutoriel :`, err);
+        journal.erreur(`[${MOD}] Échec de la création de la fiche démo du tutoriel :`, err);
         ui.notifications?.warn("Completed Westmarch : échec de la création de la fiche démo du tutoriel (voir la console F12). Nouvelle tentative au prochain rechargement.");
     }
 }

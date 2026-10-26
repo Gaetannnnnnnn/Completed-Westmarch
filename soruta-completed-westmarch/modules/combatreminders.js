@@ -12,12 +12,13 @@
 // ============================================================
 
 import { MOD } from "./const.js";
+import { journal } from "./log.js";
 import { Dialog } from "./compat.js";
 
 const on = (k) => { try { return game.settings.get(MOD, k); } catch { return false; } };
 // Opt-out par joueur (réglage client) : ce client a-t-il coupé les rappels ?
 const _muted = () => { try { return game.settings.get(MOD, "combatRemindersOff") === true; } catch { return false; } };
-const _log = (...a) => console.log(`%c[WM combat]`, "color:#c9a227", ...a);
+const _log = (...a) => journal.debug(`%c[WM combat]`, "color:#c9a227", ...a);
 
 // ── Détection des réactions d'un acteur (items/activités de type "reaction") ──
 function reactionItems(actor) {
@@ -98,7 +99,7 @@ async function showReactionPrompt({ promptId, actorId, attacker, reactionIds }) 
                 const root = dlg?.element ?? ev?.target?.closest?.(".application") ?? document;
                 root.querySelectorAll?.(".scwm-react-opt").forEach(b => b.addEventListener("click", async () => {
                     const it = actor.items.get(b.dataset.id);
-                    try { await (it?.use?.() ?? it?.roll?.()); } catch (e) { console.warn(`[${MOD}] usage réaction :`, e); }
+                    try { await (it?.use?.() ?? it?.roll?.()); } catch (e) { journal.avert(`[${MOD}] usage réaction :`, e); }
                     try { dlg?.close?.(); } catch (e) {}
                 }));
             }
@@ -122,7 +123,7 @@ function showGmNotify({ promptId, player, target, attacker }) {
         }, { width: 360 });
         dlg.render(true);
         _gmDialogs.set(promptId, dlg);
-    } catch (e) { console.warn(`[${MOD}] notif MJ réaction :`, e); }
+    } catch (e) { journal.avert(`[${MOD}] notif MJ réaction :`, e); }
 }
 function clearGmNotify(promptId) {
     const dlg = _gmDialogs.get(promptId);
@@ -238,7 +239,7 @@ async function offerCleave(attacker, item) {
             rejectClose: false
         });
     } catch { use = false; }
-    if (use) { try { await (item.use?.() ?? item.roll?.()); } catch (e) { console.warn(`[${MOD}] attaque de Cleave :`, e); } }
+    if (use) { try { await (item.use?.() ?? item.roll?.()); } catch (e) { journal.avert(`[${MOD}] attaque de Cleave :`, e); } }
 }
 
 // Construit et poste le(s) message(s) de maîtrise à la fin d'une attaque.
@@ -344,7 +345,7 @@ async function _runMasteryAction(btn) {
         }
         btn.disabled = true;
         btn.style.opacity = "0.5";
-    } catch (e) { console.warn(`[${MOD}] action de maîtrise :`, e); }
+    } catch (e) { journal.avert(`[${MOD}] action de maîtrise :`, e); }
 }
 
 // ============================================================
@@ -444,7 +445,7 @@ async function onBonusReminder(workflow) {
                 const root = dlg?.element ?? ev?.target?.closest?.(".application") ?? document;
                 root.querySelectorAll?.(".scwm-smite-opt").forEach(b => b.addEventListener("click", async () => {
                     const it = attacker.items.get(b.dataset.id);
-                    try { await (it?.use?.() ?? it?.roll?.()); } catch (e) { console.warn(`[${MOD}] usage smite :`, e); }
+                    try { await (it?.use?.() ?? it?.roll?.()); } catch (e) { journal.avert(`[${MOD}] usage smite :`, e); }
                     try { dlg?.close?.(); } catch (e) {}
                 }));
             }
@@ -517,7 +518,7 @@ export function CombatRemindersHooks() {
                 mastery: on("enableMasteryReminder"), advantage: on("enableAdvantageReminder")
             };
         } };
-    } catch (e) { console.warn(`[${MOD}] api combatDebug :`, e); }
+    } catch (e) { journal.avert(`[${MOD}] api combatDebug :`, e); }
 
     // Queries (toujours enregistrées : réception des pop-ups / fermetures).
     CONFIG.queries["westmarch.reactPrompt"] = async (data) => { await showReactionPrompt(data); return true; };

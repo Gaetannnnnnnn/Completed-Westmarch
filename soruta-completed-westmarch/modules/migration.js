@@ -13,6 +13,7 @@
 
 import { MOD, LEGACY_IDS, TUTO_TOGGLES } from "./const.js";
 
+import { journal } from "./log.js";
 // Version courante du schéma de migration. Incrémenter si de nouvelles
 // reprises sont ajoutées plus tard.
 const MIGRATION_VERSION = 1;
@@ -102,7 +103,7 @@ function readRawWorldSetting(fullKey) {
         const raw = doc.value;
         try { return JSON.parse(raw); } catch { return raw; }
     } catch (e) {
-        console.warn(`[${MOD}] readRawWorldSetting échec pour ${fullKey}:`, e);
+        journal.avert(`[${MOD}] readRawWorldSetting échec pour ${fullKey}:`, e);
         return undefined;
     }
 }
@@ -119,7 +120,7 @@ async function migrateSettings() {
             await game.settings.set(MOD, newKey, val);
             count++;
         } catch (e) {
-            console.warn(`[${MOD}] migration setting ${oldFull} → ${newKey} échec:`, e);
+            journal.avert(`[${MOD}] migration setting ${oldFull} → ${newKey} échec:`, e);
         }
     }
     return count;
@@ -154,7 +155,7 @@ async function migrateDocuments(collection, label) {
                 count++;
             }
         } catch (e) {
-            console.warn(`[${MOD}] migration flags ${label} "${doc?.name ?? doc?.id}" échec:`, e);
+            journal.avert(`[${MOD}] migration flags ${label} "${doc?.name ?? doc?.id}" échec:`, e);
         }
     }
     return count;
@@ -171,7 +172,7 @@ async function migrateSceneTokens() {
                     count++;
                 }
             } catch (e) {
-                console.warn(`[${MOD}] migration flags token "${token?.name}" (scène ${scene?.name}) échec:`, e);
+                journal.avert(`[${MOD}] migration flags token "${token?.name}" (scène ${scene?.name}) échec:`, e);
             }
         }
     }
@@ -191,7 +192,7 @@ async function migrateJournalPages() {
                     count++;
                 }
             } catch (e) {
-                console.warn(`[${MOD}] migration flags page "${page?.name}" (journal ${entry?.name}) échec:`, e);
+                journal.avert(`[${MOD}] migration flags page "${page?.name}" (journal ${entry?.name}) échec:`, e);
             }
         }
     }
@@ -210,7 +211,7 @@ export function MigrationHooks() {
         const done = game.settings.get(MOD, "migrationVersion");
         if (done >= MIGRATION_VERSION) return;
 
-        console.log(`[${MOD}] Migration des données des anciens modules — démarrage…`);
+        journal.debug(`[${MOD}] Migration des données des anciens modules — démarrage…`);
 
         const nSettings = await migrateSettings();
         const nActors   = await migrateDocuments(game.actors, "acteur");
@@ -225,7 +226,7 @@ export function MigrationHooks() {
         await game.settings.set(MOD, "migrationVersion", MIGRATION_VERSION);
 
         const total = nActors + nScenes + nTokens + nUsers + nItems + nJournals + nPages + nCombats;
-        console.log(`[${MOD}] Migration terminée — ${nSettings} settings, ${total} documents (` +
+        journal.debug(`[${MOD}] Migration terminée — ${nSettings} settings, ${total} documents (` +
             `${nActors} acteurs, ${nScenes} scènes, ${nTokens} tokens, ${nUsers} users, ${nItems} objets, ${nJournals} journaux, ${nPages} pages, ${nCombats} combats).`);
         ui.notifications?.info(
             `Completed Westmarch : migration des données terminée (${nSettings} réglages, ${total} documents).`,

@@ -42,6 +42,9 @@ function ajouterBadges(app, html) {
             const g = GERES.find(x => x.test(item));
             if (!g || lire(g.cle, false) !== true) continue;
             root.querySelectorAll(`[data-item-id="${item.id}"]`).forEach(ligne => {
+                // Une seule icône par ligne : on ignore les éléments imbriqués
+                // qui portent aussi data-item-id (image, contrôles…).
+                if (ligne.parentElement?.closest(`[data-item-id="${item.id}"]`)) return;
                 if (ligne.querySelector(".scwm-gere")) return;
                 const cible = ligne.querySelector(".item-name .title, .item-name h4, .item-name, .name .title, .name, h4, .title") ?? ligne;
                 const i = document.createElement("i");

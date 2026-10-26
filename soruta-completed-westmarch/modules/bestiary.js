@@ -152,7 +152,7 @@ function blocDernierePositionHtml(entry) {
     return `<div class="bst-scene-row">
         <i class="fa-solid fa-location-crosshairs"></i>
         <span class="bst-field-label">Dernière position :</span>
-        <span class="bst-last-value" data-bst-id="${entry.id}" title="Mise à jour automatiquement quand le personnage revoit la créature">${val || "<em>Inconnue</em>"}</span>
+        <span class="bst-scene-value bst-last-value" data-bst-id="${entry.id}" title="Mise à jour automatiquement quand le personnage revoit la créature">${val || "<em>Inconnue</em>"}</span>
     </div>`;
 }
 
@@ -162,7 +162,7 @@ function blocDerniereRencontreHtml(entry) {
     return `<div class="bst-scene-row">
         <i class="fa-solid fa-calendar-day"></i>
         <span class="bst-field-label">Dernière rencontre :</span>
-        <span class="bst-seen-value" data-bst-id="${entry.id}" title="${escB(titre)}">${texte ? escB(texte) : "<em>Inconnue</em>"}</span>
+        <span class="bst-scene-value bst-seen-value" data-bst-id="${entry.id}" title="${escB(titre)}">${texte ? escB(texte) : "<em>Inconnue</em>"}</span>
     </div>`;
 }
 

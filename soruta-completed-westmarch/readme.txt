@@ -212,6 +212,20 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
 
+v6.6.2 | 2026-10-26
+   - Corrections : l'icône « géré par le module » n'apparaît plus en double
+     sur les lignes de la fiche ; « Dernière position » et « Dernière
+     rencontre » du Bestiaire ont la même police que « Première rencontre » ;
+     cartes de chat : un bouton-icône qui répète une action déjà présente en
+     bouton texte (ex. « Healing » d'une activité de soin Midi-QOL) est
+     masqué au lieu d'apparaître une seconde fois. Plus généralement, deux
+     boutons de la même carte qui portent le même libellé (dnd5e, Midi-QOL
+     ou habillage du module) ne s'affichent jamais ensemble : seul le
+     premier reste visible.
+   - Cartes de chat (thème) : la formule des jets (barre sombre « 1d20 + 7 »
+     des cartes dnd5e / Midi-QOL) héritait du texte foncé du thème et
+     devenait illisible ; elle repasse en texte clair.
+
 v6.6.1 | 2026-10-26
    - Sécurité : les notes et la dernière position des Relations, les notes
      du Bestiaire, les noms affichés et les titres du Carnet sont échappés ;

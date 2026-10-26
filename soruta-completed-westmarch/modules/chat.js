@@ -76,6 +76,15 @@ body.scwm-chat-theme ${SCOPE} .message .chat-card .name-stacked .subtitle {
     color: var(--scwm-chat-fg);
 }
 
+/* Barres sombres des jets (formule « 1d20 + 7 » des cartes dnd5e / Midi-QOL) :
+   elles n'ont pas de couleur de texte propre et héritaient du texte foncé du
+   thème → illisible sur leur fond sombre. On leur rend un texte clair. */
+body.scwm-chat-theme ${SCOPE} .message .dice-roll .dice-formula,
+body.scwm-chat-theme ${SCOPE} .message .dice-roll .dice-total,
+body.scwm-chat-theme ${SCOPE} .message .dice-roll .dice-formula * {
+    color: #efe7cf !important;
+}
+
 /* ── En-tête 5.3.x : grosse icône encadrée + titre gras + sous-titre italique + filet ── */
 body.scwm-chat-theme ${SCOPE} .message .chat-card .card-header {
     display: flex; align-items: center; gap: 8px;
@@ -212,9 +221,23 @@ function reskinChatCard(root) {
                     (b.hasAttribute("data-action") || b.classList.contains("icon")) &&
                     !b.classList.contains("dice-roll"));
                 if (!btns.length) return;
+                // Doublons : certaines cartes (ex. activité de soin de Midi-QOL)
+                // affichent déjà la même action en bouton texte (« Healing »)
+                // hors de cette rangée. On masque le bouton-icône en double au
+                // lieu d'en faire un second gros bouton.
+                const carte = row.closest(".chat-message, .message") ?? root;
+                const norme = (t) => String(t ?? "").replace(/\s+/g, " ").trim().toLowerCase();
+                const existants = new Set([...carte.querySelectorAll("button")]
+                    .filter(b => !row.contains(b) && !b.classList.contains("dice-roll"))
+                    .map(b => norme(b.textContent)).filter(Boolean));
+                btns.forEach(b => {
+                    const lbl = norme(b.getAttribute("aria-label") || b.getAttribute("data-tooltip") || b.textContent);
+                    if (lbl && existants.has(lbl)) { b.style.display = "none"; b.dataset.scwmDoublon = "1"; }
+                });
+                if (btns.every(b => b.dataset.scwmDoublon)) { row.style.display = "none"; return; }
                 row.classList.add("scwm-btn-row");
                 btns.forEach(btn => {
-                    if (btn.querySelector(".scwm-btn-label")) return;
+                    if (btn.dataset.scwmDoublon || btn.querySelector(".scwm-btn-label")) return;
                     const lbl = (btn.getAttribute("aria-label") || btn.getAttribute("data-tooltip") || btn.textContent || "").trim();
                     if (lbl) {
                         const s = document.createElement("span");
@@ -227,9 +250,39 @@ function reskinChatCard(root) {
         } catch (e) {}
     }
 
+    // 2 bis) Garantie « l'un ou l'autre » : dans une même carte, deux boutons
+    //    visibles pour la même action (même libellé, qu'ils viennent de dnd5e,
+    //    de Midi-QOL ou de notre habillage) ne s'affichent jamais ensemble.
+    //    On garde le premier bouton visible, on masque les suivants.
+    try {
+        const cartes = root.matches?.(".chat-message") ? [root] : [...root.querySelectorAll(".chat-message")];
+        for (const carte of cartes) dedoublonnerBoutons(carte);
+    } catch (e) {}
+
     // 3) Jets dépliés par défaut.
     if (game.settings.get(MOD, "chatCardsExpandDice") !== false) {
         try { root.querySelectorAll(".dice-roll:not(.expanded)").forEach(r => r.classList.add("expanded")); } catch (e) {}
+    }
+}
+
+function libelleBouton(b) {
+    const clone = b.cloneNode(true);
+    clone.querySelectorAll(".scwm-btn-label").forEach(x => x.remove());
+    return String(b.getAttribute("aria-label") || b.getAttribute("data-tooltip") || clone.textContent || "")
+        .replace(/\s+/g, " ").trim().toLowerCase();
+}
+function dedoublonnerBoutons(carte) {
+    const vus = new Set();
+    for (const b of carte.querySelectorAll("button")) {
+        if (b.classList.contains("dice-roll") || b.dataset.scwmDoublon) continue;
+        if (b.offsetParent === null && b.style.display === "none") continue;
+        const lbl = libelleBouton(b);
+        if (!lbl) continue;
+        if (vus.has(lbl)) {
+            b.style.display = "none"; b.dataset.scwmDoublon = "1";
+            const ligne = b.closest(".icon-row");
+            if (ligne && [...ligne.querySelectorAll("button")].every(x => x.style.display === "none")) ligne.style.display = "none";
+        } else vus.add(lbl);
     }
 }
 

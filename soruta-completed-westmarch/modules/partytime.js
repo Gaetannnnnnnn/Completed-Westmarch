@@ -45,8 +45,8 @@
 //     l'heure atteinte (et traite les rations si minuit est passé).
 //   - Combat (option) : chaque nouveau round du combat de la party ajoute
 //     6 secondes (CONFIG.time.roundTime) à son horloge.
-//   - Affichage (option) : petite horloge au-dessus de la liste des
-//     joueurs, montrant l'heure de SA party (ou du calendrier global hors
+//   - Affichage (option) : rectangle à droite de la liste des joueurs
+//     (heure avec les secondes), montrant l'heure de SA party (ou du calendrier global hors
 //     expédition). Chaque joueur peut la masquer dans Accessibilité.
 //
 // État partagé : réglage de monde "partyClockState"
@@ -704,16 +704,8 @@ function renderClockWidget() {
         el.id = WIDGET_ID;
         el.setAttribute("role", "status");
     }
-    // Au-dessus de la liste des joueurs (en bas à gauche), loin du
-    // carrousel de combat en haut de l'écran.
-    const players = document.getElementById("players");
-    if (players?.parentElement) {
-        if (el.nextElementSibling !== players) players.parentElement.insertBefore(el, players);
-        el.classList.remove("scwm-pc-floating");
-    } else if (!el.isConnected) {
-        document.body.appendChild(el);
-        el.classList.add("scwm-pc-floating");
-    }
+    if (!el.isConnected) document.body.appendChild(el);
+    placeWidget(el);
 
     const pid   = game.user.getFlag(MOD, "partyId") ?? null;
     const clock = pid ? getPartyClock(pid) : null;
@@ -724,35 +716,55 @@ function renderClockWidget() {
     const mName = game.i18n.localize(game.time.calendar?.months?.values?.[c.month]?.name ?? tl("Mois {0}", c.month + 1));
     const hh    = String(c.hour ?? 0).padStart(2, "0");
     const mm    = String(c.minute ?? 0).padStart(2, "0");
+    const ss    = String(Math.floor(c.second ?? 0)).padStart(2, "0");
     const icon  = isDaytime(time) ? "fa-sun" : "fa-moon";
     const label = clock ? tl("Party") : tl("Monde");
     const frozen = clock && realTimeEnabled() && !clock.anchor;
     const html = `
-        <i class="fa-solid ${icon}"></i>
-        <span class="scwm-pc-time">${hh}:${mm}</span>
-        <span class="scwm-pc-date">${c.dayOfMonth + 1} ${foundry.utils.escapeHTML(mName)} ${c.year}</span>
-        <span class="scwm-pc-label">${label}${frozen ? ` <i class="fa-solid fa-pause" title="${tl("Temps arrêté (pause ou combat)")}"></i>` : ""}</span>`;
+        <div class="scwm-pc-row">
+            <i class="fa-solid ${icon}"></i>
+            <span class="scwm-pc-time">${hh}:${mm}<span class="scwm-pc-sec">:${ss}</span></span>
+        </div>
+        <div class="scwm-pc-date">${c.dayOfMonth + 1} ${foundry.utils.escapeHTML(mName)} ${c.year}</div>
+        <div class="scwm-pc-label">${label}${frozen ? ` <i class="fa-solid fa-pause" title="${tl("Temps arrêté (pause ou combat)")}"></i>` : ""}</div>`;
     if (el._scwmHtml !== html) { el.innerHTML = html; el._scwmHtml = html; }
     el.title = clock
         ? tl("Heure de votre party : {0}", formatClock(time))
         : tl("Calendrier du monde : {0}", formatClock(time));
 }
 
+// Rectangle collé à DROITE de la liste des joueurs, aligné sur son bas.
+// Recalculé à chaque rafraîchissement : la liste change de taille quand
+// des joueurs se connectent ou quand elle est repliée.
+function placeWidget(el) {
+    const players = document.getElementById("players");
+    const r = players?.getBoundingClientRect?.();
+    if (r && r.width > 0 && r.height > 0) {
+        el.style.left   = `${Math.round(r.right + 8)}px`;
+        el.style.bottom = `${Math.round(window.innerHeight - r.bottom)}px`;
+    } else {
+        el.style.left   = "10px";
+        el.style.bottom = "10px";
+    }
+}
+
 const WIDGET_CSS = `
 #${WIDGET_ID} {
-    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
-    margin: 0 0 6px; padding: 4px 9px; width: max-content; max-width: 100%;
-    border: 1px solid rgba(201,162,39,0.45); border-radius: 6px;
-    background: rgba(10,10,14,0.72); color: #e8dcb5;
-    font-size: 12px; line-height: 1.3; pointer-events: auto;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+    position: fixed; z-index: 60;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    min-width: 118px; padding: 7px 12px;
+    border: 1px solid rgba(201,162,39,0.55); border-radius: 6px;
+    background: rgba(10,10,14,0.78); color: #e8dcb5;
+    font-size: 12px; line-height: 1.25; text-align: center; pointer-events: auto;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.55);
 }
-#${WIDGET_ID}.scwm-pc-floating { position: fixed; left: 10px; bottom: 140px; z-index: 60; }
+#${WIDGET_ID} .scwm-pc-row   { display: flex; align-items: center; gap: 7px; }
 #${WIDGET_ID} .fa-sun  { color: #f2c94c; }
 #${WIDGET_ID} .fa-moon { color: #9db4e0; }
-#${WIDGET_ID} .scwm-pc-time  { font-weight: 700; font-size: 13px; font-variant-numeric: tabular-nums; }
-#${WIDGET_ID} .scwm-pc-date  { opacity: 0.9; }
-#${WIDGET_ID} .scwm-pc-label { opacity: 0.6; font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; }
+#${WIDGET_ID} .scwm-pc-time  { font-weight: 700; font-size: 18px; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+#${WIDGET_ID} .scwm-pc-sec   { font-size: 13px; opacity: 0.75; }
+#${WIDGET_ID} .scwm-pc-date  { opacity: 0.9; white-space: nowrap; }
+#${WIDGET_ID} .scwm-pc-label { opacity: 0.6; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
 `;
 
 function ensureWidgetCss() {

@@ -168,7 +168,7 @@ export async function openA11yDialog() {
         ${row(K_AUTOHIDE, tl("Auto-masquage de l'interface"), tl("Estompe contrôles, navigation, macros et liste des joueurs tant que la souris ne les survole pas."), "autohide")}
         ${row(K_COMPACT,  tl("Contrôles de gauche compacts"), tl("Réduit la taille des icônes de la barre d'outils de gauche."), "compact")}
         ${healthEstimateActive() ? row(K_HEALTH, tl("Afficher l'état de santé estimé"), tl("Texte du module Health Estimate au survol des tokens (« Blessé », « Mal en point »…). Décoche pour ne plus le voir sur ton compte ; les autres joueurs gardent leur propre choix."), "health") : ""}
-        ${partyClockOffered() ? row(K_PCLOCK, tl("Afficher l'horloge de la party"), tl("Petite horloge au-dessus de la liste des joueurs : heure de ta party pendant l'expédition, sinon celle du monde."), "partyclock") : ""}
+        ${partyClockOffered() ? row(K_PCLOCK, tl("Afficher l'horloge de la party"), tl("Horloge à droite de la liste des joueurs (avec les secondes) : heure de ta party pendant l'expédition, sinon celle du monde."), "partyclock") : ""}
         ${row(K_GERE,     tl("Indicateur « géré par le module »"), tl("Petite icône d'engrenages dorée sur les aptitudes de ta fiche dont le module applique la règle tout seul (Healer, Alert, Large Form…). Au survol : ce que fait le module."), "gere")}
 
         <div style="margin:10px 0 4px;font-weight:700;color:#c9a227;font-size:.9em;">${tl("Cartes de chat")}</div>

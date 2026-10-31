@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 6.6.12
+Version : 6.6.13
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -217,6 +217,12 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v6.6.13 | 2026-10-31
+   - Horloge de la party affichée dans un rectangle à DROITE de la liste des
+     joueurs, aligné sur son bas (position recalculée chaque seconde : suit
+     la taille de la liste). Heure avec les secondes (hh:mm:ss), date et
+     étiquette Party / Monde en dessous. Fichier : modules/partytime.js.
 
 v6.6.12 | 2026-10-31
    - Réglages du module → « Contenu homebrew (Plutonium) » (ouvert à tous) :

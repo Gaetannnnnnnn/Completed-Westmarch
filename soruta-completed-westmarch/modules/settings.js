@@ -334,7 +334,7 @@ export function registerSettings() {
         tl("Pendant un combat de la party, chaque nouveau round ajoute 6 secondes à son horloge (durée d'un round de D&D).")));
     game.settings.register(MOD, "partyTimeShowClock", B(
         tl("Afficher l'horloge de la party"),
-        tl("Petite horloge au-dessus de la liste des joueurs : chacun voit l'heure de SA party (ou du calendrier du monde hors expédition). Chaque joueur peut la masquer pour lui dans Accessibilité.")));
+        tl("Horloge à droite de la liste des joueurs (avec les secondes) : chacun voit l'heure de SA party (ou du calendrier du monde hors expédition). Chaque joueur peut la masquer pour lui dans Accessibilité.")));
     game.settings.register(MOD, "partyTimeRations", B(
         tl("Consommation des rations"),
         tl("Chaque jour franchi retire 1 ration par PJ, sauf ceux cochés « Nourri autrement » dans la fenêtre d'avance du temps.")));

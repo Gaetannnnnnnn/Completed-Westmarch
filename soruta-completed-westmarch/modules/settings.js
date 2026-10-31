@@ -321,6 +321,11 @@ export function registerSettings() {
     });
     // État de pause par party (mapping partyId -> true), synchronisé sur tous
     // les clients. Non affiché dans la configuration.
+    // --- Contenu personnalisé (voir origins.js) ---
+    game.settings.register(MOD, "enableCustomBackground", B(
+        tl("Background « Origine personnalisée »"),
+        tl("Installe le background « Origine personnalisée » dans le compendium « Backgrounds » du module (dossier « Soruta WestMarch ») : +2/+1 ou +1/+1/+1 au choix, un don d'origine, deux compétences, un outil / instrument / jeu, 200 po. Rechargement requis à l'activation ; le background est recréé automatiquement après chaque mise à jour du module."),
+        false, { requiresReload: true }));
     // --- Horloge de party (section dédiée, voir partytime.js) ---
     game.settings.register(MOD, "enablePartyTime", B(
         tl("Horloge de party"),
@@ -1082,7 +1087,7 @@ async function openAboutDialog() {
 // Cases à cocher "Activé" injectées à côté du nom de chaque catégorie qui
 // possède un interrupteur maître (Party, Relations, Bestiaire, Carnet, Carte,
 // Midi). Permet d'activer/désactiver la fonctionnalité sans ouvrir la fenêtre.
-const CAT_RELOAD = new Set(["relationsEnabled", "bestiaryEnabled", "carnetEnabled", "rangeFixEnabled", "tmEnabled", "tutoEnabled"]);
+const CAT_RELOAD = new Set(["enableCustomBackground", "relationsEnabled", "bestiaryEnabled", "carnetEnabled", "rangeFixEnabled", "tmEnabled", "tutoEnabled"]);
 
 function registerCategoryToggles() {
     Hooks.on("renderSettingsConfig", (app, html) => {
@@ -1240,6 +1245,9 @@ const CATEGORIES = [
     { firstKey: "mondeEnabled", master: "mondeEnabled", icon: "fa-book-atlas", title: tl("Registre du monde"),
       desc: tl("Fiches de PNJ, lieux et organisations dans Monk's Enhanced Journal, rédigées sur un modèle commun (rubriques ci-dessous), reliées aux acteurs, aux scènes, à la carte du monde et entre elles. PNJ et organisations sont rangés dans des compendiums (chargés à la demande), les lieux dans un dossier du monde (pour leurs épingles). Tout se retrouve dans l'onglet « Monde » du Casier. Nécessite Monk's Enhanced Journal."),
       keys: ["mondeEnabled","mondeDecouverte","mondeDecouverteMessage","mondeBanniere","mondeBanniereSon","mondeEpinglesPartout","mondeTailleEpingle","mondePackPerson","mondePackPersonFolder","mondePackOrg","mondePackOrgFolder","mondeFolderPlace","mondeRubriques"] },
+    { firstKey: "enableCustomBackground", master: "enableCustomBackground", icon: "fa-scroll", title: tl("Contenu personnalisé"),
+      desc: tl("Contenu de jeu propre au serveur, installé dans les compendiums du module (dossier « Soruta WestMarch »)."),
+      keys: ["enableCustomBackground"] },
     { firstKey: "enableCharValidation", master: "enableCharValidation", icon: "fa-id-card", title: tl("Création de personnages"),
       desc: tl("Les joueurs demandent la création d'un personnage ; un GM valide depuis le Casier, puis le joueur construit et soumet sa fiche ; à la validation elle est verrouillée. Le dossier de destination se règle dans « Dossiers & Compendiums »."),
       keys: ["enableCharValidation","charMaxTotal","charMaxActive","charFreeLevelUp","charNotifyLevelUp","blockPlayerPlutonium"] },
@@ -1426,7 +1434,7 @@ function readStarTableFromForm(root) {
 // listées ici sont ajoutées automatiquement à « Divers ».
 const CONFIG_GROUPS = [
     { title: tl("Fiche PJ & personnages"), icon: "fa-id-card",
-      cats: ["relationsEnabled", "bestiaryEnabled", "carnetEnabled", "enableCharValidation", "enableStarXp", "xpProgEnabled", "enableSourceControl", "disableElectrum"] },
+      cats: ["relationsEnabled", "bestiaryEnabled", "carnetEnabled", "enableCharValidation", "enableCustomBackground", "enableStarXp", "xpProgEnabled", "enableSourceControl", "disableElectrum"] },
     { title: tl("Party & jeu de groupe"), icon: "fa-users",
       cats: ["enableParty", "enablePartyTime", "enableExpeditionMap", "enableHarvest"] },
     { title: "Combat", icon: "fa-bolt",

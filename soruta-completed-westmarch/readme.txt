@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 6.6.7
+Version : 6.6.8
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -91,6 +91,8 @@ WESTMARCH CORE
      natif), pause de party (remplace le pause global, banner natif), liste des
      joueurs compacte, journal / clôture de session, anti-cheat, téléportation
      de groupe, partage d'images, stats de connexion, audio cloisonné par party.
+   origins.js   — Background « Origine personnalisée » écrit dans le
+                  compendium « Backgrounds » du module (réglage dédié).
    partytime.js — Horloge de party : date propre à chaque party pendant
                   l'expédition, avance par heures / jours, consommation des
                   rations, rattrapage du calendrier global à la clôture,
@@ -215,6 +217,25 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v6.6.8 | 2026-10-31
+   - Background « Origine personnalisée » installé automatiquement dans le
+     compendium « Backgrounds » du module (dossier « Soruta WestMarch »).
+     Nouvelle section de réglages « Contenu personnalisé » → « Background
+     Origine personnalisée » (désactivé par défaut, rechargement requis).
+     Activé, le GM actif écrit au chargement du monde le background au
+     format dnd5e (plus besoin de Plutonium) :
+       caractéristiques +2/+1 ou +1/+1/+1 parmi les six (avancement ASI,
+       3 points, max 2) ; un don d'origine au choix (ItemChoice restreint
+       aux dons de sous-type « origin » des compendiums chargés, PHB
+       préféré au SRD à nom égal, dépôt d'un autre don possible) ; deux
+       compétences ; un outil d'artisan / instrument / jeu ; aucun
+       équipement, 200 po de richesse de départ.
+     Le compendium est déverrouillé le temps de l'écriture puis reverrouillé.
+     Une mise à jour du module vide le compendium : le background est
+     recréé au chargement suivant (id stable scwmOriginePerso, version
+     dans flags). Couper le réglage ne supprime rien. Fichier :
+     modules/origins.js (nouveau).
 
 v6.6.7 | 2026-10-31
    - Section de réglages dédiée « Horloge de party » (thème Party & jeu de

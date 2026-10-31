@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 6.6.11
+Version : 6.6.12
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -91,6 +91,8 @@ WESTMARCH CORE
      natif), pause de party (remplace le pause global, banner natif), liste des
      joueurs compacte, journal / clôture de session, anti-cheat, téléportation
      de groupe, partage d'images, stats de connexion, audio cloisonné par party.
+   homebrew.js  — Menu des réglages donnant l'adresse de la source homebrew
+                  Plutonium propre au serveur.
    partytime.js — Horloge de party : date propre à chaque party pendant
                   l'expédition, avance par heures / jours, consommation des
                   rations, rattrapage du calendrier global à la clôture,
@@ -215,6 +217,13 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v6.6.12 | 2026-10-31
+   - Réglages du module → « Contenu homebrew (Plutonium) » (ouvert à tous) :
+     affiche l'adresse de la source homebrew du serveur (background
+     « Origine personnalisée »), calculée pour CE serveur (origine du
+     navigateur + préfixe de route de Foundry via getRoute), avec un bouton
+     « Copier ». Fichier : modules/homebrew.js (nouveau).
 
 v6.6.11 | 2026-10-31
    - Retrait du background en compendium (6.6.6 et 6.6.8) : plus de

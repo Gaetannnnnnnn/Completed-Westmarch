@@ -2603,5 +2603,14 @@ export default {
  "Temps arrêté (pause ou combat)": "Time stopped (pause or combat)",
  "Heure de votre party : {0}": "Your party's time: {0}",
  "Calendrier du monde : {0}": "World calendar: {0}",
- "[Party] Aucune expédition ouverte : le temps de la party ne s'avance que pendant une expédition. Ouvrez-en une avec le bouton « Date Expédition ».": "[Party] No open expedition: party time can only be advanced during an expedition. Open one with the “Expedition Date” button."
+ "[Party] Aucune expédition ouverte : le temps de la party ne s'avance que pendant une expédition. Ouvrez-en une avec le bouton « Date Expédition ».": "[Party] No open expedition: party time can only be advanced during an expedition. Open one with the “Expedition Date” button.",
+ "Le background « Origine personnalisée » du serveur est fourni comme source homebrew pour Plutonium. Ajoute cette adresse dans Plutonium pour l'avoir à la création de personnage :": "The server's “Custom Origin” background is provided as a homebrew source for Plutonium. Add this address in Plutonium to get it during character creation:",
+ "Cette adresse est propre à ce serveur : elle est calculée automatiquement. Elle reste valable après les mises à jour du module.": "This address is specific to this server: it is computed automatically. It stays valid after module updates.",
+ "Contenu homebrew (Plutonium)": "Homebrew content (Plutonium)",
+ "Adresse copiée dans le presse-papiers.": "Address copied to the clipboard.",
+ "[{0}] Copie de l'adresse homebrew impossible": "[{0}] Could not copy the homebrew address",
+ "Copie impossible : sélectionne l'adresse et copie-la à la main (Ctrl+C).": "Copy failed: select the address and copy it manually (Ctrl+C).",
+ "Voir l'adresse": "Show address",
+ "Adresse de la source homebrew du serveur (background « Origine personnalisée ») à ajouter dans Plutonium. Calculée pour ce serveur.": "Address of the server's homebrew source (“Custom Origin” background) to add in Plutonium. Computed for this server.",
+ "[{0}] registerMenu « Contenu homebrew » échec :": "[{0}] registerMenu “Homebrew content” failed:"
 };

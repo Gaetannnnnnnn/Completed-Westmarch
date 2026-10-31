@@ -2610,5 +2610,6 @@ export default {
  "Party": "Party",
  "Temps arrêté (pause ou combat)": "Time stopped (pause or combat)",
  "Heure de votre party : {0}": "Your party's time: {0}",
- "Calendrier du monde : {0}": "World calendar: {0}"
+ "Calendrier du monde : {0}": "World calendar: {0}",
+ "[Party] Aucune expédition ouverte : le temps de la party ne s'avance que pendant une expédition. Ouvrez-en une avec le bouton « Date Expédition ».": "[Party] No open expedition: party time can only be advanced during an expedition. Open one with the “Expedition Date” button."
 };

@@ -212,18 +212,19 @@ function partyMembers(partyId) {
 
 // ── Démarrage / clôture (appelés par carnet.js) ────────────────
 
-/** Démarre l'horloge de la party à la date d'ouverture de l'expédition.
- *  Même jour que le calendrier global → heure globale exacte ; autre jour
- *  → 8 h du matin ce jour-là. Une horloge déjà en cours est conservée. */
+/** Démarre l'horloge de la party à l'ouverture de l'expédition, recalée
+ *  sur le calendrier global : même jour → heure globale exacte ; autre
+ *  date choisie → ce jour-là, à l'heure globale actuelle. Une ancienne
+ *  horloge de cette party (expédition mal close) est remplacée. */
 export async function startPartyClock(partyId, startDate) {
     if (!partyTimeEnabled() || !game.user.isGM || !partyId) return;
-    if (getPartyClock(partyId)) return;
     try {
         const now  = game.time.worldTime;
         const time = (!startDate || sameDate(startDate, timeToCarnetDate(now)))
             ? now
-            : carnetDateToTime(startDate, 8 * secondsPerHour());
-        await savePartyClock(partyId, { time, anchor: null, fedOther: [], hungry: {} });
+            : carnetDateToTime(startDate, now - dayStart(now));
+        if (getPartyClock(partyId)) await releasePartyDarkness(partyId);
+        await serial(() => savePartyClock(partyId, { time, anchor: null, fedOther: [], hungry: {} }));
         await applyPartyDarkness(partyId, time);
         scheduleReconcile();   // démarre l'écoulement en temps réel si la party joue
         journal.debug(`[partytime] Horloge démarrée pour la party ${partyId} : ${formatClock(time)}`);
@@ -321,6 +322,7 @@ function serial(fn) {
 /** Avance l'horloge de la party de `seconds` (fenêtre du sablier). */
 export function advancePartyTime(partyId, seconds, fedOtherIds) {
     if (!game.user.isGM || !partyId || !(seconds > 0)) return Promise.resolve();
+    if (!getPartyClock(partyId)) return Promise.resolve();   // pas d'expédition ouverte
     return commitTime(partyId, (t) => t + seconds, { fedOtherIds, announce: true });
 }
 
@@ -335,8 +337,9 @@ function commitTime(partyId, target, { fedOtherIds, announce = false, run } = {}
 }
 
 async function _commitTime(partyId, target, { fedOtherIds, announce, run }) {
-    let clock = getPartyClock(partyId)
-        ?? { time: game.time.worldTime, anchor: null, fedOther: [], hungry: {} };
+    // L'horloge n'existe que pendant une expédition : sans elle, rien à faire.
+    const clock = getPartyClock(partyId);
+    if (!clock) return;
     if (Array.isArray(fedOtherIds)) clock.fedOther = fedOtherIds;
     clock.fedOther = clock.fedOther ?? [];
     clock.hungry   = clock.hungry ?? {};
@@ -513,12 +516,13 @@ async function openAdvanceDialog() {
         return;
     }
 
-    const clock    = getPartyClock(partyId);
-    const time     = clock ? effectiveTime(clock) : game.time.worldTime;
-    const fedOther = clock?.fedOther ?? [];
-    const noClock  = !clock
-        ? `<p style="margin:0 0 8px;font-size:11px;color:#e67e22;">${tl("Aucune expédition ouverte : l'horloge démarrera à la date du calendrier global.")}</p>`
-        : "";
+    const clock = getPartyClock(partyId);
+    if (!clock) {
+        ui.notifications.warn(tl("[Party] Aucune expédition ouverte : le temps de la party ne s'avance que pendant une expédition. Ouvrez-en une avec le bouton « Date Expédition »."));
+        return;
+    }
+    const time     = effectiveTime(clock);
+    const fedOther = clock.fedOther ?? [];
 
     const rows = !rationsEnabled() ? "" : members.map(a => `
         <li style="list-style:none;margin:3px 0;display:flex;justify-content:space-between;gap:8px;">
@@ -531,7 +535,6 @@ async function openAdvanceDialog() {
 
     const content = `
 <div style="display:flex;flex-direction:column;gap:10px;padding:4px 0;">
-    ${noClock}
     <div>${tl("Date de la party :")} <strong>${formatClock(time)}</strong></div>
     <div style="display:flex;gap:6px;align-items:center;">
         <label>${tl("Avancer de")}</label>

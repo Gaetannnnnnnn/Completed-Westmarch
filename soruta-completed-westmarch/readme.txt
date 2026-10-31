@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 6.6.9
+Version : 6.6.10
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -217,6 +217,17 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v6.6.10 | 2026-10-31
+   - Horloge de party : le sablier « Avancer le temps de la party » refuse
+     de s'ouvrir sans expédition ouverte (avertissement). Plus aucune
+     écriture d'horloge (avance, round de combat, enregistrement minute)
+     sans expédition en cours.
+   - Ouverture d'expédition : l'horloge de la party est toujours recalée sur
+     le calendrier global (heure globale exacte ; si une autre date est
+     choisie, ce jour-là à l'heure globale actuelle, au lieu de 8 h). Une
+     ancienne horloge restée ouverte pour la party est remplacée.
+   Fichier : modules/partytime.js.
 
 v6.6.9 | 2026-10-31
    - Horloge de party — écoulement en temps réel (option « Écoulement en

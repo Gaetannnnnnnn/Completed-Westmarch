@@ -736,12 +736,27 @@ function renderClockWidget() {
 // Rectangle collé à DROITE de la liste des joueurs, aligné sur son bas.
 // Recalculé à chaque rafraîchissement : la liste change de taille quand
 // des joueurs se connectent ou quand elle est repliée.
+// Bord droit réellement visible de la liste : le conteneur #players peut
+// être plus étroit que son contenu (noms longs, avatars, liste repliée qui
+// déborde), on prend donc le plus à droite de tous ses éléments visibles.
+function playersBox(players) {
+    let right = -Infinity, bottom = -Infinity;
+    for (const node of [players, ...players.querySelectorAll("*")]) {
+        if (node.id === WIDGET_ID || node.closest?.(`#${WIDGET_ID}`)) continue;
+        const r = node.getBoundingClientRect?.();
+        if (!r || r.width <= 0 || r.height <= 0) continue;
+        right  = Math.max(right, r.right);
+        bottom = Math.max(bottom, r.bottom);
+    }
+    return Number.isFinite(right) ? { right, bottom } : null;
+}
+
 function placeWidget(el) {
     const players = document.getElementById("players");
-    const r = players?.getBoundingClientRect?.();
-    if (r && r.width > 0 && r.height > 0) {
-        el.style.left   = `${Math.round(r.right + 8)}px`;
-        el.style.bottom = `${Math.round(window.innerHeight - r.bottom)}px`;
+    const box = players ? playersBox(players) : null;
+    if (box) {
+        el.style.left   = `${Math.round(box.right + 10)}px`;
+        el.style.bottom = `${Math.max(0, Math.round(window.innerHeight - box.bottom))}px`;
     } else {
         el.style.left   = "10px";
         el.style.bottom = "10px";

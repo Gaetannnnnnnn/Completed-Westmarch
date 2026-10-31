@@ -91,6 +91,9 @@ WESTMARCH CORE
      natif), pause de party (remplace le pause global, banner natif), liste des
      joueurs compacte, journal / clôture de session, anti-cheat, téléportation
      de groupe, partage d'images, stats de connexion, audio cloisonné par party.
+   partytime.js — Horloge de party : date propre à chaque party pendant
+                  l'expédition, avance par heures / jours, consommation des
+                  rations, rattrapage du calendrier global à la clôture.
 
 GESTION DES PERSONNAGES & MENEUR
    casier.js         — Tableau de bord du MJ (bouton WestMarch) : onglets
@@ -211,6 +214,36 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+(version à fixer par Soruta) | 2026-10-31
+   - Horloge de party et rations (Système de Party → « Horloge de party et
+     rations », activée par défaut). Pendant une expédition, chaque party a
+     sa propre date, sans toucher au calendrier global :
+       - l'horloge démarre à l'ouverture de l'expédition (bouton Date
+         Expédition du Carnet) : heure globale exacte si l'expédition
+         commence aujourd'hui, sinon 8 h le jour choisi ;
+       - bouton sablier « Avancer le temps de la party » (groupe WestMarch,
+         GM) : avance de N heures ou N jours, ou repos long (+8 h) ;
+       - chaque minuit franchi consomme 1 ration par PJ (objet consommable
+         d'identifiant « rations », ou dont le nom contient « ration ») ;
+         case « Nourri autrement » par PJ (Baie nourricière, Création de
+         nourriture et d'eau, chasse…), mémorisée pour la party ;
+       - plus de rations : le module compte les jours sans manger et le dit
+         dans le chat ; au-delà de 3 + mod. de Constitution (min. 1), il
+         rappelle la règle d'Épuisement, sans rien appliquer (le MJ tranche) ;
+       - rappel de l'eau dans le chat à chaque nouveau jour (réglage
+         « Horloge de party : rappel de l'eau ») ;
+       - résumé publié dans le chat de la party (date, rations, alertes).
+   - Clôture d'expédition : la date proposée est celle de la party (libellé
+     « Date de la party »). Quand plus aucun PJ de la party n'a d'expédition
+     ouverte, le calendrier global avance jusqu'à la date de la party si
+     elle est plus loin (notification Discord de changement de jour
+     incluse), puis l'horloge de la party est supprimée. Si le calendrier
+     global est déjà plus loin, il ne bouge pas.
+   - État stocké dans le réglage de monde « partyClockState » (une entrée
+     par party, clé = id du GM de la party).
+   Fichiers : modules/partytime.js (nouveau), modules/carnet.js,
+   modules/settings.js, modules/i18n-en.js, index.js.
 
 v6.6.4 | 2026-10-26
    - Moine — Arts martiaux automatiques (Modifications ciblées → Classes →

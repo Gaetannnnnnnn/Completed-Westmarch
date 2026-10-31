@@ -38,6 +38,7 @@ export function nettoyerHtml(html) {
 import { Dialog } from "./compat.js";
 import { expeditionSessionCount } from "./session.js";
 import { tl } from "./i18n.js";
+import { startPartyClock, partyCarnetDate, endPartyClock } from "./partytime.js";
 const MODULE = MOD;
 
 // ================================================================
@@ -237,7 +238,7 @@ async function onClickDateTM() {
 
 // ── Helpers communs aux deux dialogs ──────────────────────────
 
-function _dateDialogContent(currentDate, extraHtml = "") {
+function _dateDialogContent(currentDate, extraHtml = "", currentLabel = null) {
     const preDay  = currentDate?.day   ?? 1;
     const preMo   = currentDate?.month ?? 0;
     const preYear = currentDate?.year  ?? 1;
@@ -258,7 +259,7 @@ function _dateDialogContent(currentDate, extraHtml = "") {
         <input type="radio" name="carnet-tm-mode" id="carnet-tm-radio-current" value="current"
                ${currentDate ? "checked" : "disabled"} style="margin:0;flex-shrink:0;">
         <span>
-            <span style="font-weight:600;">${tl("Date actuelle")}</span><br>
+            <span style="font-weight:600;">${currentLabel ?? tl("Date actuelle")}</span><br>
             <span style="font-size:11px;color:#aaa;">
                 ${currentDate
                     ? `${preDay} ${_getMonthName(preMo)} ${preYear}`
@@ -438,13 +439,19 @@ async function _createExpDialog(members) {
     for (const actor of members) {
         await addExpedition(actor, resolvedDate, resolvedName);
     }
+    // Horloge de party (partytime.js) : démarre à la date d'ouverture.
+    await startPartyClock(game.user.getFlag(MOD, "partyId"), resolvedDate);
     ui.notifications.info(tl("[Carnet] Expédition \"{0}\" créée pour {1} PJ.", resolvedName, members.length));
 }
 
 // ── Dialog : clôturer les expéditions ouvertes ─────────────────
 
 async function _closeExpDialog(members) {
-    const currentDate = getCurrentDate();
+    // Date proposée : celle de la party (horloge de party) si elle existe,
+    // sinon la date du calendrier global.
+    const partyId     = game.user.getFlag(MOD, "partyId");
+    const partyDate   = partyCarnetDate(partyId);
+    const currentDate = partyDate ?? getCurrentDate();
 
     // Cases à cocher : un PJ par expédition en cours (cochés par défaut).
     // Seuls les PJ cochés verront leur expédition clôturée.
@@ -475,7 +482,7 @@ async function _closeExpDialog(members) {
             ${tl("<i class=\"fa-solid fa-flag-checkered\"></i>\n            Les PJ non cochés continuent leur expédition.")}
         </p>`;
 
-    const { html: content } = _dateDialogContent(currentDate, extraHtml);
+    const { html: content } = _dateDialogContent(currentDate, extraHtml, partyDate ? tl("Date de la party") : null);
 
     let resolvedDate = null;
     let selectedIds  = null;   // PJ cochés → seuls ceux-là s'arrêtent
@@ -539,6 +546,11 @@ async function _closeExpDialog(members) {
         closedCount++;
     }
     ui.notifications.info(tl("[Carnet] Expédition clôturée pour {0} PJ.", closedCount));
+
+    // Horloge de party : quand plus aucun PJ de la party n'a d'expédition
+    // ouverte, le calendrier global rattrape la party si elle est plus loin.
+    const stillOpen = members.some(a => getExpeditions(a).some(e => e.startDate && !e.endDate));
+    if (!stillOpen) await endPartyClock(partyId, resolvedDate);
 }
 
 // ================================================================

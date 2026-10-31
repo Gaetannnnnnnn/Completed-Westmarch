@@ -67,7 +67,9 @@ export const PARTY_DEPENDENT_SETTINGS = [
     "enableSessionLog",
     "enableCombatParty",
     "enableCombatTurnLock",
-    "enablePartyPause"
+    "enablePartyPause",
+    "enablePartyTime",
+    "partyTimeWaterReminder"
 ];
 
 // Vérifie qu'un setting dépendant de la party est actif ET que la party l'est.
@@ -311,6 +313,15 @@ export function registerSettings() {
     });
     // État de pause par party (mapping partyId -> true), synchronisé sur tous
     // les clients. Non affiché dans la configuration.
+    game.settings.register(MOD, "enablePartyTime", B(
+        tl("Horloge de party et rations"),
+        tl("Chaque party a sa propre date pendant l'expédition. Le GM l'avance par heures ou par jours (bouton sablier du groupe WestMarch) ; chaque jour franchi consomme 1 ration par PJ, sauf ceux cochés « Nourri autrement ». Plus de rations : avertissement dans le chat. À la clôture de l'expédition, le calendrier global avance jusqu'à la date de la party si elle est plus loin.")));
+    game.settings.register(MOD, "partyTimeWaterReminder", B(
+        tl("Horloge de party : rappel de l'eau"),
+        tl("À chaque nouveau jour de la party, ajoute un rappel dans le chat pour l'eau (outres à remplir). Simple rappel, rien n'est retiré.")));
+    game.settings.register(MOD, "partyClockState", {
+        scope: "world", config: false, type: Object, default: {}
+    });
     game.settings.register(MOD, "partyPauseState", {
         scope: "world", config: false, type: Object, default: {},
         onChange: () => applyPartyPause()
@@ -1180,7 +1191,7 @@ const CATEGORIES = [
       keys: ["commonFolderPJ","autoPlayerFolder","gmAutoFolderParent","commonFolderPNJ","commonFolderNewChars","commonPackPNJ","commonPackCemetery","commonPackCreatures","commonPackCraft"] },
     { firstKey: "enableParty", master: "enableParty",           icon: "fa-users",           title: tl("Système de Party"),
       desc: tl("Groupes de joueurs : chat filtré, combat par party, téléportation de groupe, journal de session, anti-cheat."),
-      keys: ["enableParty","enableJoinScene","enableShowParty","enablePlayerGrouping","enableGoWithPartyScenes","enableGoWithPartyJournal","enableChatFilter","enableChatTabs","enableTrade","enableNoteLink","enableSessionLog","sessionLogWebhookUrl","sessionLogForum","sessionTags","enableCombatParty","enableCombatTurnLock","enablePartyPause","enableAntiCheat"] },
+      keys: ["enableParty","enableJoinScene","enableShowParty","enablePlayerGrouping","enableGoWithPartyScenes","enableGoWithPartyJournal","enableChatFilter","enableChatTabs","enableTrade","enableNoteLink","enableSessionLog","sessionLogWebhookUrl","sessionLogForum","sessionTags","enableCombatParty","enableCombatTurnLock","enablePartyPause","enablePartyTime","partyTimeWaterReminder","enableAntiCheat"] },
     { firstKey: "enableStarXp", master: "enableStarXp", icon: "fa-star", title: tl("Système d'étoiles"),
       desc: tl("XP par étoiles : le MJ attribue 1 à 3 étoiles à la clôture de session ; le tableau fixe le coût en étoiles de chaque niveau (avec le total = nombre de sessions). Sur la fiche, l'XP est remplacée par un compteur d'étoiles."),
       keys: ["enableStarXp","starXpLevels"] },

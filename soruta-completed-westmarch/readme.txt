@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 6.6.8
+Version : 6.6.9
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -217,6 +217,30 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v6.6.9 | 2026-10-31
+   - Horloge de party — écoulement en temps réel (option « Écoulement en
+     temps réel ») : pendant l'expédition, hors combat, une seconde réelle =
+     une seconde de jeu pour la party. L'horloge s'arrête quand la party est
+     en pause (pause de party ou pause globale), en combat, ou dissoute
+     (clôture de session), et repart ensuite. Stockage : heure de base +
+     heure serveur de départ (anchor) ; chaque client calcule l'heure sans
+     écriture. Le GM de la party enregistre l'heure atteinte une fois par
+     minute (rations et obscurité si besoin). Si le GM n'est plus connecté,
+     au plus 3 minutes sont comptées.
+   - Combat (option « +6 secondes par round de combat ») : chaque nouveau
+     round du combat de la party ajoute CONFIG.time.roundTime (6 s) à son
+     horloge. Un retour en arrière de round ne remonte pas le temps.
+   - Horloge affichée (option « Afficher l'horloge de la party ») : petit
+     bandeau au-dessus de la liste des joueurs (pas en haut : carrousel de
+     combat). Chacun voit l'heure de SA party (soleil / lune, heure, date,
+     icône pause quand le temps est arrêté), ou celle du calendrier du monde
+     hors expédition. Rafraîchi chaque seconde, sans écriture. Chaque joueur
+     peut le masquer dans Accessibilité (« Afficher l'horloge de la party »).
+   - Toutes les écritures d'horloge passent par une file unique (avance
+     manuelle, rounds, enregistrement minute, pause) : pas d'écrasement.
+   Fichiers : modules/partytime.js, modules/settings.js,
+   modules/accessibility.js, modules/i18n-en.js.
 
 v6.6.8 | 2026-10-31
    - Background « Origine personnalisée » installé automatiquement dans le

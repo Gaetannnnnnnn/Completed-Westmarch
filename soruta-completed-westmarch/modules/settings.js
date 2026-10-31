@@ -74,6 +74,7 @@ export const PARTY_DEPENDENT_SETTINGS = [
 // principal (enablePartyTime) est coupé ; les 3 réglages de l'obscurité
 // sont en plus grisés quand l'obscurité est coupée.
 const PARTYTIME_SUB_SETTINGS = [
+    "partyTimeRealTime", "partyTimeCombatRounds", "partyTimeShowClock",
     "partyTimeRations", "partyTimeHungerWarning", "partyTimeWaterReminder",
     "partyTimeChatSummary", "partyTimeCatchUp", "enablePartyDarkness",
     "partyDarknessNight", "partyDarknessSunrise", "partyDarknessSunset"
@@ -330,6 +331,15 @@ export function registerSettings() {
     game.settings.register(MOD, "enablePartyTime", B(
         tl("Horloge de party"),
         tl("Interrupteur principal. Chaque party a sa propre date pendant l'expédition : elle démarre à l'ouverture de l'expédition et le GM l'avance par heures ou par jours (bouton sablier du groupe WestMarch). La date de la party est proposée à la clôture. Nécessite le Système de Party.")));
+    game.settings.register(MOD, "partyTimeRealTime", B(
+        tl("Écoulement en temps réel"),
+        tl("Hors combat, le temps de la party s'écoule tout seul : une seconde réelle = une seconde de jeu. Il s'arrête quand la party est en pause, en combat, ou dissoute (clôture de session).")));
+    game.settings.register(MOD, "partyTimeCombatRounds", B(
+        tl("+6 secondes par round de combat"),
+        tl("Pendant un combat de la party, chaque nouveau round ajoute 6 secondes à son horloge (durée d'un round de D&D).")));
+    game.settings.register(MOD, "partyTimeShowClock", B(
+        tl("Afficher l'horloge de la party"),
+        tl("Petite horloge au-dessus de la liste des joueurs : chacun voit l'heure de SA party (ou du calendrier du monde hors expédition). Chaque joueur peut la masquer pour lui dans Accessibilité.")));
     game.settings.register(MOD, "partyTimeRations", B(
         tl("Consommation des rations"),
         tl("Chaque jour franchi retire 1 ration par PJ, sauf ceux cochés « Nourri autrement » dans la fenêtre d'avance du temps.")));
@@ -1235,7 +1245,7 @@ const CATEGORIES = [
       keys: ["enableParty","enableJoinScene","enableShowParty","enablePlayerGrouping","enableGoWithPartyScenes","enableGoWithPartyJournal","enableChatFilter","enableChatTabs","enableTrade","enableNoteLink","enableSessionLog","sessionLogWebhookUrl","sessionLogForum","sessionTags","enableCombatParty","enableCombatTurnLock","enablePartyPause","enableAntiCheat"] },
     { firstKey: "enablePartyTime", master: "enablePartyTime", icon: "fa-hourglass-half", title: tl("Horloge de party"),
       desc: tl("Date propre à chaque party pendant l'expédition, avancée par le GM par heures ou par jours. Chaque option se coupe indépendamment : rations, alerte de faim, rappel de l'eau, résumé dans le chat, rattrapage du calendrier global à la clôture, obscurité des scènes. Nécessite le Système de Party."),
-      keys: ["enablePartyTime","partyTimeRations","partyTimeHungerWarning","partyTimeWaterReminder","partyTimeChatSummary","partyTimeCatchUp","enablePartyDarkness","partyDarknessNight","partyDarknessSunrise","partyDarknessSunset"] },
+      keys: ["enablePartyTime","partyTimeRealTime","partyTimeCombatRounds","partyTimeShowClock","partyTimeRations","partyTimeHungerWarning","partyTimeWaterReminder","partyTimeChatSummary","partyTimeCatchUp","enablePartyDarkness","partyDarknessNight","partyDarknessSunrise","partyDarknessSunset"] },
     { firstKey: "enableStarXp", master: "enableStarXp", icon: "fa-star", title: tl("Système d'étoiles"),
       desc: tl("XP par étoiles : le MJ attribue 1 à 3 étoiles à la clôture de session ; le tableau fixe le coût en étoiles de chaque niveau (avec le total = nombre de sessions). Sur la fiche, l'XP est remplacée par un compteur d'étoiles."),
       keys: ["enableStarXp","starXpLevels"] },

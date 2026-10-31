@@ -41,6 +41,7 @@ const K_AUTOHIDE = "a11yAutoHide";        // Boolean
 const K_COMPACT  = "a11yCompactControls"; // Boolean
 const K_GERE     = "a11yManagedBadge";    // Boolean (indicateur « géré par le module »)
 const K_HEALTH   = "a11yHealthEstimate";  // Boolean (afficher Health Estimate)
+const K_PCLOCK   = "a11yPartyClock";      // Boolean (afficher l'horloge de la party, partytime.js)
 
 const DEFAULT_BORDER = "#ffd54a";
 
@@ -83,6 +84,10 @@ function registerA11ySettings() {
     game.settings.register(MOD, K_HEALTH, {
         name: tl("Afficher l'état de santé estimé (Health Estimate)"), scope: "client", config: false,
         type: Boolean, default: true, onChange: () => applyHealthEstimate()
+    });
+    game.settings.register(MOD, K_PCLOCK, {
+        name: tl("Afficher l'horloge de la party"), scope: "client", config: false,
+        type: Boolean, default: true
     });
     game.settings.register(MOD, K_COMPACT, {
         name: tl("Contrôles de gauche compacts"), scope: "client", config: false,
@@ -163,6 +168,7 @@ export async function openA11yDialog() {
         ${row(K_AUTOHIDE, tl("Auto-masquage de l'interface"), tl("Estompe contrôles, navigation, macros et liste des joueurs tant que la souris ne les survole pas."), "autohide")}
         ${row(K_COMPACT,  tl("Contrôles de gauche compacts"), tl("Réduit la taille des icônes de la barre d'outils de gauche."), "compact")}
         ${healthEstimateActive() ? row(K_HEALTH, tl("Afficher l'état de santé estimé"), tl("Texte du module Health Estimate au survol des tokens (« Blessé », « Mal en point »…). Décoche pour ne plus le voir sur ton compte ; les autres joueurs gardent leur propre choix."), "health") : ""}
+        ${partyClockOffered() ? row(K_PCLOCK, tl("Afficher l'horloge de la party"), tl("Petite horloge au-dessus de la liste des joueurs : heure de ta party pendant l'expédition, sinon celle du monde."), "partyclock") : ""}
         ${row(K_GERE,     tl("Indicateur « géré par le module »"), tl("Petite icône d'engrenages dorée sur les aptitudes de ta fiche dont le module applique la règle tout seul (Healer, Alert, Large Form…). Au survol : ce que fait le module."), "gere")}
 
         <div style="margin:10px 0 4px;font-weight:700;color:#c9a227;font-size:.9em;">${tl("Cartes de chat")}</div>
@@ -215,6 +221,8 @@ export async function openA11yDialog() {
                     // Health Estimate : la case n'existe que si le module est actif.
                     const he = root.querySelector(`[name="${K_HEALTH}"]`);
                     if (he) await game.settings.set(MOD, K_HEALTH, !!he.checked);
+                    const pc = root.querySelector(`[name="${K_PCLOCK}"]`);
+                    if (pc) await game.settings.set(MOD, K_PCLOCK, !!pc.checked);
                     // Préférences « cartes de chat » (par joueur).
                     const chatCol = root.querySelector(`[name="chatCardColor"]`);
                     await game.settings.set(MOD, "chatCardColor", chatCol?.value || "#f4ecd8");
@@ -361,6 +369,14 @@ function decoratePlayers(root) {
 // Toutes ses mises à jour passent par cette méthode (survol, combat,
 // changement de PV) : rien ne s'affiche plus. Recocher la case supprime la
 // surcharge et la méthode d'origine (celle de la classe) reprend la main.
+// L'horloge de la party n'est proposée que si le MJ l'a activée.
+function partyClockOffered() {
+    try {
+        return !!game.settings.get(MOD, "enableParty") && !!game.settings.get(MOD, "enablePartyTime")
+            && game.settings.get(MOD, "partyTimeShowClock") !== false;
+    } catch { return false; }
+}
+
 function healthEstimateActive() {
     return !!game.modules?.get("healthEstimate")?.active;
 }

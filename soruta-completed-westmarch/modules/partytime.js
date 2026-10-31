@@ -36,9 +36,25 @@
 //     ne la reprend que quand la première n'y a plus de PJ ou a clôturé son
 //     expédition.
 //
+//   - Écoulement en temps réel (option) : hors combat et hors pause, une
+//     seconde réelle = une seconde de jeu pour la party. L'horloge stocke
+//     un temps de base et l'instant réel (heure serveur) où elle s'est mise
+//     à courir ; chaque client calcule l'heure courante sans écriture.
+//     Le GM de la party « fige » l'horloge quand la party est en pause ou
+//     en combat, et la relance ensuite ; une fois par minute, il enregistre
+//     l'heure atteinte (et traite les rations si minuit est passé).
+//   - Combat (option) : chaque nouveau round du combat de la party ajoute
+//     6 secondes (CONFIG.time.roundTime) à son horloge.
+//   - Affichage (option) : petite horloge au-dessus de la liste des
+//     joueurs, montrant l'heure de SA party (ou du calendrier global hors
+//     expédition). Chaque joueur peut la masquer dans Accessibilité.
+//
 // État partagé : réglage de monde "partyClockState"
-//   { [partyId]: { time, fedOther: [actorId], hungry: { [actorId]: jours } } }
-// Seuls les GM l'écrivent (réglage de monde).
+//   { [partyId]: { time, anchor, fedOther: [actorId], hungry: { [actorId]: jours } } }
+//   time   = heure de la party (secondes) à l'instant `anchor` ;
+//   anchor = heure serveur (ms) depuis laquelle l'horloge court, ou null si
+//            elle est figée.
+// Seul le GM de la party l'écrit (partyId = id de ce GM).
 // © 2026 Soruta.
 // ============================================================
 
@@ -63,6 +79,9 @@ const hungerWarningEnabled = () => opt("partyTimeHungerWarning");
 const waterReminderEnabled = () => opt("partyTimeWaterReminder");
 const chatSummaryEnabled   = () => opt("partyTimeChatSummary");
 const catchUpEnabled       = () => opt("partyTimeCatchUp");
+const realTimeEnabled      = () => opt("partyTimeRealTime");
+const combatRoundsEnabled  = () => opt("partyTimeCombatRounds");
+const showClockEnabled     = () => opt("partyTimeShowClock");
 
 function allClocks() {
     const s = game.settings.get(MOD, "partyClockState");
@@ -79,6 +98,25 @@ async function savePartyClock(partyId, clock) {
     if (clock) all[partyId] = clock;
     else delete all[partyId];
     await game.settings.set(MOD, "partyClockState", all);
+}
+
+// ── Temps qui court ────────────────────────────────────────────
+// Écart maximal pris en compte depuis le dernier enregistrement : le GM
+// enregistre chaque minute ; au-delà de 3 minutes, c'est qu'il n'est plus
+// là (déconnecté, monde fermé) et ce temps-là ne compte pas.
+const MAX_RUN_GAP_S = 180;
+
+function nowMs() {
+    const t = game.time?.serverTime;
+    return Number.isFinite(t) ? t : Date.now();
+}
+
+/** Heure courante d'une horloge de party (secondes de jeu). */
+export function effectiveTime(clock) {
+    if (!clock) return game.time.worldTime;
+    if (!clock.anchor) return clock.time;
+    const elapsed = (nowMs() - clock.anchor) / 1000;
+    return clock.time + Math.max(0, Math.min(elapsed, MAX_RUN_GAP_S));
 }
 
 // ── Calendrier : conversions ───────────────────────────────────
@@ -185,8 +223,9 @@ export async function startPartyClock(partyId, startDate) {
         const time = (!startDate || sameDate(startDate, timeToCarnetDate(now)))
             ? now
             : carnetDateToTime(startDate, 8 * secondsPerHour());
-        await savePartyClock(partyId, { time, fedOther: [], hungry: {} });
+        await savePartyClock(partyId, { time, anchor: null, fedOther: [], hungry: {} });
         await applyPartyDarkness(partyId, time);
+        scheduleReconcile();   // démarre l'écoulement en temps réel si la party joue
         journal.debug(`[partytime] Horloge démarrée pour la party ${partyId} : ${formatClock(time)}`);
     } catch (e) {
         journal.avert(tl("[Party] Impossible de démarrer l'horloge de la party"), e);
@@ -198,7 +237,7 @@ export async function startPartyClock(partyId, startDate) {
 export function partyCarnetDate(partyId) {
     if (!partyTimeEnabled()) return null;
     const clock = getPartyClock(partyId);
-    return clock ? timeToCarnetDate(clock.time) : null;
+    return clock ? timeToCarnetDate(effectiveTime(clock)) : null;
 }
 
 /** Fin d'expédition : rattrapage du calendrier global puis suppression de
@@ -210,10 +249,11 @@ export async function endPartyClock(partyId, endDate) {
     try {
         // Instant de fin : l'horloge exacte si la date n'a pas été changée ;
         // sinon la date choisie, à la même heure que l'horloge de la party.
-        const clockDate = timeToCarnetDate(clock.time);
+        const current   = effectiveTime(clock);
+        const clockDate = timeToCarnetDate(current);
         const target = (!endDate || sameDate(endDate, clockDate))
-            ? clock.time
-            : carnetDateToTime(endDate, clock.time - dayStart(clock.time));
+            ? current
+            : carnetDateToTime(endDate, current - dayStart(current));
 
         const now = game.time.worldTime;
         if (!catchUpEnabled()) {
@@ -269,20 +309,44 @@ function foodlessLimit(actor) {
 
 // ── Avancer le temps ───────────────────────────────────────────
 
-/** Avance l'horloge de la party de `seconds`, consomme les rations et
- *  publie le résumé dans le chat de la party. */
-export async function advancePartyTime(partyId, seconds, fedOtherIds) {
-    if (!game.user.isGM || !partyId || !(seconds > 0)) return;
+// Les écritures d'une même party passent l'une après l'autre (avance
+// manuelle, round de combat, enregistrement minute, pause…).
+let _queue = Promise.resolve();
+function serial(fn) {
+    const run = _queue.then(fn, fn);
+    _queue = run.catch(() => {});
+    return run;
+}
 
+/** Avance l'horloge de la party de `seconds` (fenêtre du sablier). */
+export function advancePartyTime(partyId, seconds, fedOtherIds) {
+    if (!game.user.isGM || !partyId || !(seconds > 0)) return Promise.resolve();
+    return commitTime(partyId, (t) => t + seconds, { fedOtherIds, announce: true });
+}
+
+/** Enregistre une nouvelle heure pour la party : rations pour chaque
+ *  minuit franchi, obscurité, message de chat.
+ *  - target(t)  : nouvelle heure à partir de l'heure courante t ;
+ *  - announce   : message même sans changement de jour (avance manuelle) ;
+ *  - run        : true = l'horloge court ensuite, false = elle est figée,
+ *                 undefined = elle garde son état. */
+function commitTime(partyId, target, { fedOtherIds, announce = false, run } = {}) {
+    return serial(() => _commitTime(partyId, target, { fedOtherIds, announce, run }));
+}
+
+async function _commitTime(partyId, target, { fedOtherIds, announce, run }) {
     let clock = getPartyClock(partyId)
-        ?? { time: game.time.worldTime, fedOther: [], hungry: {} };
-    clock.fedOther = Array.isArray(fedOtherIds) ? fedOtherIds : (clock.fedOther ?? []);
+        ?? { time: game.time.worldTime, anchor: null, fedOther: [], hungry: {} };
+    if (Array.isArray(fedOtherIds)) clock.fedOther = fedOtherIds;
+    clock.fedOther = clock.fedOther ?? [];
     clock.hungry   = clock.hungry ?? {};
 
-    const before = clock.time;
-    const after  = before + seconds;
-    const days   = daysCrossed(before, after);
-    clock.time   = after;
+    const before  = effectiveTime(clock);
+    const after   = Math.max(before, target(before));
+    const days    = daysCrossed(before, after);
+    const running = (run === undefined) ? !!clock.anchor : run;
+    clock.time    = after;
+    clock.anchor  = running ? nowMs() : null;
 
     const lines  = [];   // résumé : rations consommées (option « Résumé dans le chat »)
     const alerts = [];   // alertes : faim / épuisement et eau (chacune son option)
@@ -326,6 +390,7 @@ export async function advancePartyTime(partyId, seconds, fedOtherIds) {
 
     // Message du GM de la party : le filtrage du chat (chat.js) le limite
     // aux membres de cette party. Résumé coupé → seules les alertes partent.
+    if (!announce && days === 0) return;   // simple enregistrement : rien à dire
     let content = "";
     if (chatSummaryEnabled()) {
         const header = days > 0
@@ -336,7 +401,7 @@ export async function advancePartyTime(partyId, seconds, fedOtherIds) {
     } else if (alerts.length) {
         content = alerts.join("<br>");
     } else {
-        ui.notifications.info(tl("[Party] Date de la party : {0}.", formatClock(after)));
+        if (announce) ui.notifications.info(tl("[Party] Date de la party : {0}.", formatClock(after)));
         return;
     }
     await ChatMessage.create({ speaker: { alias: tl("Temps de la party") }, content });
@@ -449,7 +514,7 @@ async function openAdvanceDialog() {
     }
 
     const clock    = getPartyClock(partyId);
-    const time     = clock?.time ?? game.time.worldTime;
+    const time     = clock ? effectiveTime(clock) : game.time.worldTime;
     const fedOther = clock?.fedOther ?? [];
     const noClock  = !clock
         ? `<p style="margin:0 0 8px;font-size:11px;color:#e67e22;">${tl("Aucune expédition ouverte : l'horloge démarrera à la date du calendrier global.")}</p>`
@@ -519,9 +584,219 @@ async function openAdvanceDialog() {
     }
 }
 
+// ── Écoulement en temps réel (côté GM de la party) ─────────────
+// Seul le GM dont l'id est le partyId écrit l'horloge de sa party.
+
+// Id de la party dont ce GM tient l'horloge (= son propre id), qu'elle soit
+// réunie ou non : une party dissoute à la clôture de session doit pouvoir
+// être figée.
+function ownPartyId() {
+    return game.user.isGM ? game.user.id : null;
+}
+
+// La party de ce GM est-elle réunie (« Create Party » fait) ?
+function partyAssembled(partyId) {
+    return game.users.get(partyId)?.getFlag(MOD, "partyId") === partyId;
+}
+
+function isPartyPaused(partyId) {
+    if (game.paused) return true;
+    try {
+        const st = game.settings.get(MOD, "partyPauseState");
+        return !!st && typeof st === "object" && st[partyId] === true;
+    } catch { return false; }
+}
+
+// Combat commencé de la party : tagué à son nom (combat.js), ou non tagué
+// mais avec un PJ de la party parmi les combattants.
+function partyCombats(partyId) {
+    const ids = new Set(partyMembers(partyId).map(a => a.id));
+    return (game.combats?.contents ?? []).filter(c => {
+        const tag = c.getFlag?.(MOD, "partyId");
+        if (tag) return tag === partyId;
+        return c.combatants?.some(cb => ids.has(cb.actorId));
+    });
+}
+
+function isPartyInCombat(partyId) {
+    return partyCombats(partyId).some(c => c.started);
+}
+
+function shouldRun(partyId) {
+    return partyTimeEnabled() && realTimeEnabled() && !!getPartyClock(partyId)
+        && partyAssembled(partyId) && !isPartyPaused(partyId) && !isPartyInCombat(partyId);
+}
+
+// Fige ou relance l'horloge selon l'état de la party.
+async function reconcile() {
+    const pid = ownPartyId();
+    if (!pid) return;
+    const clock = getPartyClock(pid);
+    if (!clock) return;
+    const want = shouldRun(pid);
+    if (want && !clock.anchor)  await commitTime(pid, (t) => t, { run: true });
+    if (!want && clock.anchor)  await commitTime(pid, (t) => t, { run: false });
+}
+
+let _reconcileTimer = null;
+function scheduleReconcile() {
+    if (!game.user?.isGM) return;
+    clearTimeout(_reconcileTimer);
+    _reconcileTimer = setTimeout(() => {
+        reconcile().catch(e => journal.avert("[partytime] reconcile", e));
+    }, 250);
+}
+
+// Enregistrement minute : fixe l'heure atteinte (rations si minuit passé,
+// obscurité qui suit l'aube et le crépuscule).
+async function heartbeat() {
+    const pid = ownPartyId();
+    if (!pid) return;
+    const clock = getPartyClock(pid);
+    if (clock?.anchor) await commitTime(pid, (t) => t);
+    await reconcile();
+}
+
+// ── Rounds de combat : +6 s par round ──────────────────────────
+const _roundBefore = new Map();
+
+function onPreUpdateCombat(combat, changed) {
+    if ("round" in (changed ?? {})) _roundBefore.set(combat.id, combat.round ?? 0);
+}
+
+async function onUpdateCombat(combat, changed) {
+    if (!("round" in (changed ?? {}))) return;
+    const before = _roundBefore.get(combat.id) ?? 0;
+    _roundBefore.delete(combat.id);
+    const pid = ownPartyId();
+    if (!pid || !partyTimeEnabled() || !combatRoundsEnabled() || !getPartyClock(pid)) return;
+    if (!partyCombats(pid).some(c => c.id === combat.id)) return;
+    const rounds = (Number(changed.round) || 0) - before;
+    if (rounds <= 0) return;   // retour en arrière : on ne remonte pas le temps
+    const perRound = Number(CONFIG.time?.roundTime) || 6;
+    await commitTime(pid, (t) => t + rounds * perRound, { run: false });
+}
+
+// ── Horloge affichée ───────────────────────────────────────────
+const WIDGET_ID = "scwm-party-clock";
+
+function widgetVisible() {
+    if (!partyTimeEnabled() || !showClockEnabled()) return false;
+    try { return game.settings.get(MOD, "a11yPartyClock") !== false; } catch { return true; }
+}
+
+function isDaytime(time) {
+    const c = components(time);
+    if (!c) return true;
+    const h = (c.hour ?? 0);
+    return h >= num("partyDarknessSunrise", 6) && h < num("partyDarknessSunset", 20);
+}
+
+function renderClockWidget() {
+    let el = document.getElementById(WIDGET_ID);
+    if (!widgetVisible()) { el?.remove(); return; }
+
+    if (!el) {
+        el = document.createElement("div");
+        el.id = WIDGET_ID;
+        el.setAttribute("role", "status");
+    }
+    // Au-dessus de la liste des joueurs (en bas à gauche), loin du
+    // carrousel de combat en haut de l'écran.
+    const players = document.getElementById("players");
+    if (players?.parentElement) {
+        if (el.nextElementSibling !== players) players.parentElement.insertBefore(el, players);
+        el.classList.remove("scwm-pc-floating");
+    } else if (!el.isConnected) {
+        document.body.appendChild(el);
+        el.classList.add("scwm-pc-floating");
+    }
+
+    const pid   = game.user.getFlag(MOD, "partyId") ?? null;
+    const clock = pid ? getPartyClock(pid) : null;
+    const time  = clock ? effectiveTime(clock) : game.time.worldTime;
+    const c     = components(time);
+    if (!c) { el.textContent = ""; return; }
+
+    const mName = game.i18n.localize(game.time.calendar?.months?.values?.[c.month]?.name ?? tl("Mois {0}", c.month + 1));
+    const hh    = String(c.hour ?? 0).padStart(2, "0");
+    const mm    = String(c.minute ?? 0).padStart(2, "0");
+    const icon  = isDaytime(time) ? "fa-sun" : "fa-moon";
+    const label = clock ? tl("Party") : tl("Monde");
+    const frozen = clock && realTimeEnabled() && !clock.anchor;
+    const html = `
+        <i class="fa-solid ${icon}"></i>
+        <span class="scwm-pc-time">${hh}:${mm}</span>
+        <span class="scwm-pc-date">${c.dayOfMonth + 1} ${foundry.utils.escapeHTML(mName)} ${c.year}</span>
+        <span class="scwm-pc-label">${label}${frozen ? ` <i class="fa-solid fa-pause" title="${tl("Temps arrêté (pause ou combat)")}"></i>` : ""}</span>`;
+    if (el._scwmHtml !== html) { el.innerHTML = html; el._scwmHtml = html; }
+    el.title = clock
+        ? tl("Heure de votre party : {0}", formatClock(time))
+        : tl("Calendrier du monde : {0}", formatClock(time));
+}
+
+const WIDGET_CSS = `
+#${WIDGET_ID} {
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    margin: 0 0 6px; padding: 4px 9px; width: max-content; max-width: 100%;
+    border: 1px solid rgba(201,162,39,0.45); border-radius: 6px;
+    background: rgba(10,10,14,0.72); color: #e8dcb5;
+    font-size: 12px; line-height: 1.3; pointer-events: auto;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+#${WIDGET_ID}.scwm-pc-floating { position: fixed; left: 10px; bottom: 140px; z-index: 60; }
+#${WIDGET_ID} .fa-sun  { color: #f2c94c; }
+#${WIDGET_ID} .fa-moon { color: #9db4e0; }
+#${WIDGET_ID} .scwm-pc-time  { font-weight: 700; font-size: 13px; font-variant-numeric: tabular-nums; }
+#${WIDGET_ID} .scwm-pc-date  { opacity: 0.9; }
+#${WIDGET_ID} .scwm-pc-label { opacity: 0.6; font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; }
+`;
+
+function ensureWidgetCss() {
+    if (document.getElementById(`${WIDGET_ID}-style`)) return;
+    const st = document.createElement("style");
+    st.id = `${WIDGET_ID}-style`;
+    st.textContent = WIDGET_CSS;
+    document.head.appendChild(st);
+}
+
 // ── Hooks ──────────────────────────────────────────────────────
 
 export function PartyTimeHooks() {
+    Hooks.once("ready", () => {
+        // Horloge affichée : rafraîchie chaque seconde sur tous les clients
+        // (lecture seule, aucune écriture).
+        ensureWidgetCss();
+        renderClockWidget();
+        setInterval(() => { try { renderClockWidget(); } catch { /* */ } }, 1000);
+
+        if (!game.user.isGM) return;
+        // GM de la party : au chargement, une horloge restée « en marche »
+        // pendant que le monde était fermé ne compte que 3 minutes au plus
+        // (voir MAX_RUN_GAP_S), puis l'état est recalé.
+        scheduleReconcile();
+        setInterval(() => { heartbeat().catch(e => journal.avert("[partytime] heartbeat", e)); }, 60 * 1000);
+    });
+
+    // Pause, combat ou composition de la party qui change : on fige ou on
+    // relance l'horloge.
+    Hooks.on("pauseGame",     () => scheduleReconcile());
+    Hooks.on("updateSetting", (setting) => {
+        if (setting?.key === `${MOD}.partyPauseState` || setting?.key === `${MOD}.partyClockState`) scheduleReconcile();
+    });
+    Hooks.on("combatStart",   () => scheduleReconcile());
+    Hooks.on("deleteCombat",  () => scheduleReconcile());
+    Hooks.on("updateUser",    (user, changed) => {
+        if (changed?.flags?.[MOD] && "partyId" in changed.flags[MOD]) scheduleReconcile();
+        if (changed?.flags?.[MOD]?.["-=partyId"] !== undefined) scheduleReconcile();
+    });
+    Hooks.on("preUpdateCombat", (combat, changed) => onPreUpdateCombat(combat, changed));
+    Hooks.on("updateCombat",    (combat, changed) => {
+        scheduleReconcile();
+        onUpdateCombat(combat, changed).catch(e => journal.avert("[partytime] round de combat", e));
+    });
+    Hooks.on("renderPlayers", () => { try { renderClockWidget(); } catch { /* */ } });
+
     Hooks.on("getSceneControlButtons", (controls) => {
         if (!game.user.isGM || !partyTimeEnabled()) return;
         if (!controls.westmarch) {

@@ -2599,5 +2599,16 @@ export default {
  "Background « Origine personnalisée »": "“Custom Origin” background",
  "Installe le background « Origine personnalisée » dans le compendium « Backgrounds » du module (dossier « Soruta WestMarch ») : +2/+1 ou +1/+1/+1 au choix, un don d'origine, deux compétences, un outil / instrument / jeu, 200 po. Rechargement requis à l'activation ; le background est recréé automatiquement après chaque mise à jour du module.": "Installs the “Custom Origin” background in the module's “Backgrounds” compendium (“Soruta WestMarch” folder): +2/+1 or +1/+1/+1 of your choice, one Origin feat, two skills, one tool / instrument / gaming set, 200 GP. Reload required when enabled; the background is recreated automatically after each module update.",
  "Contenu personnalisé": "Custom content",
- "Contenu de jeu propre au serveur, installé dans les compendiums du module (dossier « Soruta WestMarch »).": "Server-specific game content, installed in the module's compendiums (“Soruta WestMarch” folder)."
+ "Contenu de jeu propre au serveur, installé dans les compendiums du module (dossier « Soruta WestMarch »).": "Server-specific game content, installed in the module's compendiums (“Soruta WestMarch” folder).",
+ "Écoulement en temps réel": "Real-time flow",
+ "Hors combat, le temps de la party s'écoule tout seul : une seconde réelle = une seconde de jeu. Il s'arrête quand la party est en pause, en combat, ou dissoute (clôture de session).": "Outside combat, party time flows on its own: one real second = one game second. It stops when the party is paused, in combat, or disbanded (session closed).",
+ "+6 secondes par round de combat": "+6 seconds per combat round",
+ "Pendant un combat de la party, chaque nouveau round ajoute 6 secondes à son horloge (durée d'un round de D&D).": "During a party combat, each new round adds 6 seconds to its clock (the length of a D&D round).",
+ "Afficher l'horloge de la party": "Show party clock",
+ "Petite horloge au-dessus de la liste des joueurs : chacun voit l'heure de SA party (ou du calendrier du monde hors expédition). Chaque joueur peut la masquer pour lui dans Accessibilité.": "Small clock above the player list: everyone sees THEIR party's time (or the world calendar outside expeditions). Each player can hide it for themselves in Accessibility.",
+ "Petite horloge au-dessus de la liste des joueurs : heure de ta party pendant l'expédition, sinon celle du monde.": "Small clock above the player list: your party's time during an expedition, otherwise the world's.",
+ "Party": "Party",
+ "Temps arrêté (pause ou combat)": "Time stopped (pause or combat)",
+ "Heure de votre party : {0}": "Your party's time: {0}",
+ "Calendrier du monde : {0}": "World calendar: {0}"
 };

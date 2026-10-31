@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 6.6.10
+Version : 6.6.11
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -91,8 +91,6 @@ WESTMARCH CORE
      natif), pause de party (remplace le pause global, banner natif), liste des
      joueurs compacte, journal / clôture de session, anti-cheat, téléportation
      de groupe, partage d'images, stats de connexion, audio cloisonné par party.
-   origins.js   — Background « Origine personnalisée » écrit dans le
-                  compendium « Backgrounds » du module (réglage dédié).
    partytime.js — Horloge de party : date propre à chaque party pendant
                   l'expédition, avance par heures / jours, consommation des
                   rations, rattrapage du calendrier global à la clôture,
@@ -217,6 +215,15 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v6.6.11 | 2026-10-31
+   - Retrait du background en compendium (6.6.6 et 6.6.8) : plus de
+     compendium « Backgrounds » ni de dossier « Soruta WestMarch », plus de
+     section « Contenu personnalisé » ni de modules/origins.js. Le background
+     « Origine personnalisée » est fourni uniquement par la source homebrew
+     5etools pour Plutonium : homebrew/westmarch-perso.json, à charger par
+     son URL <serveur>/modules/soruta-completed-westmarch/homebrew/
+     westmarch-perso.json.
 
 v6.6.10 | 2026-10-31
    - Horloge de party : le sablier « Avancer le temps de la party » refuse

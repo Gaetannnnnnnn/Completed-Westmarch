@@ -71,7 +71,6 @@ import { CombatHooks }    from "./modules/combat.js";
 import { AudioHooks }     from "./modules/audio.js";
 import { PartyPauseHooks } from "./modules/partypause.js";
 import { PartyTimeHooks }  from "./modules/partytime.js";
-import { OriginsHooks }    from "./modules/origins.js";
 
 // --- Phase 5 : Serveur ---
 import { SocketHooks as ServeurSocketHooks } from "./modules/serveur-socket.js";
@@ -221,7 +220,6 @@ Hooks.on("init", () => {
     AudioHooks();
     PartyPauseHooks();
     PartyTimeHooks();
-    OriginsHooks();
 
     // --- Phase 5 : Serveur (ordre d'origine) ---
     ServeurSocketHooks();

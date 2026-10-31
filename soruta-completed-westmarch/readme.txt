@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 5.8.9
+Version : 6.6.5
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -216,7 +216,14 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
 
-(version à fixer par Soruta) | 2026-10-31
+v6.6.5 | 2026-10-31
+   - Accessibilité → « Afficher l'état de santé estimé » (par joueur, coché
+     par défaut, visible seulement si le module Health Estimate est actif) :
+     chaque joueur choisit s'il voit le texte d'état de santé au survol des
+     tokens. Health Estimate reste actif pour la table ; sur le client du
+     joueur qui décoche, sa fonction d'affichage est remplacée par une
+     fonction vide et son calque est masqué. Recocher rétablit l'affichage
+     sans rechargement. Fichier : modules/accessibility.js.
    - Horloge de party et rations (Système de Party → « Horloge de party et
      rations », activée par défaut). Pendant une expédition, chaque party a
      sa propre date, sans toucher au calendrier global :

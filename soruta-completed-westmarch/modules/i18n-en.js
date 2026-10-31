@@ -2555,5 +2555,10 @@ export default {
  "Obscurité : heure du lever du soleil": "Darkness: sunrise hour",
  "Heure où l'aube commence ; il fait plein jour 2 h plus tard.": "Hour when dawn begins; it is full daylight 2 h later.",
  "Obscurité : heure du coucher du soleil": "Darkness: sunset hour",
- "Heure où il fait nuit noire ; le crépuscule commence 2 h avant.": "Hour when it is fully dark; dusk begins 2 h before."
+ "Heure où il fait nuit noire ; le crépuscule commence 2 h avant.": "Hour when it is fully dark; dusk begins 2 h before.",
+ "Afficher l'état de santé estimé (Health Estimate)": "Show estimated health (Health Estimate)",
+ "Afficher l'état de santé estimé": "Show estimated health",
+ "Texte du module Health Estimate au survol des tokens (« Blessé », « Mal en point »…). Décoche pour ne plus le voir sur ton compte ; les autres joueurs gardent leur propre choix.": "Text from the Health Estimate module when hovering tokens (“Injured”, “Badly hurt”…). Untick to stop seeing it on your account; other players keep their own choice.",
+ "[{0}] Health Estimate : préférence d'affichage non appliquée.": "[{0}] Health Estimate: display preference not applied.",
+ "Options personnelles : daltonisme, contraste, avatars, auto-masquage, contrôles compacts, Health Estimate. Chaque joueur règle les siennes.": "Personal options: colour blindness, contrast, avatars, auto-hide, compact controls, Health Estimate. Each player sets their own."
 };

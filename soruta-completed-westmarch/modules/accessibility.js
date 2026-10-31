@@ -19,6 +19,10 @@
 //   4. Auto-masquage — fond d'écran des contrôles/nav/macros/joueurs
 //      estompés tant que la souris ne les survole pas.
 //   5. Contrôles compacts — barre d'outils de gauche réduite.
+//   6. Health Estimate — chaque joueur choisit s'il voit ou non l'état de
+//      santé estimé des tokens (module « Health Estimate », s'il est actif).
+//      Le module tiers reste actif pour la table : on coupe seulement son
+//      affichage sur ce client.
 //
 // © 2026 Soruta.
 // ============================================================
@@ -36,6 +40,7 @@ const K_AVATARS  = "a11yPlayerAvatars";   // Boolean
 const K_AUTOHIDE = "a11yAutoHide";        // Boolean
 const K_COMPACT  = "a11yCompactControls"; // Boolean
 const K_GERE     = "a11yManagedBadge";    // Boolean (indicateur « géré par le module »)
+const K_HEALTH   = "a11yHealthEstimate";  // Boolean (afficher Health Estimate)
 
 const DEFAULT_BORDER = "#ffd54a";
 
@@ -75,6 +80,10 @@ function registerA11ySettings() {
         name: tl("Indicateur « géré par le module »"), scope: "client", config: false,
         type: Boolean, default: true, onChange: () => rafraichirFiches()
     });
+    game.settings.register(MOD, K_HEALTH, {
+        name: tl("Afficher l'état de santé estimé (Health Estimate)"), scope: "client", config: false,
+        type: Boolean, default: true, onChange: () => applyHealthEstimate()
+    });
     game.settings.register(MOD, K_COMPACT, {
         name: tl("Contrôles de gauche compacts"), scope: "client", config: false,
         type: Boolean, default: true, onChange: applyAccessibility
@@ -87,7 +96,7 @@ function registerA11yMenu() {
         game.settings.registerMenu(MOD, "menu-accessibility", {
             name:  tl("Accessibilité"),
             label: tl("Ouvrir"),
-            hint:  tl("Options personnelles : daltonisme, contraste, avatars, auto-masquage, contrôles compacts. Chaque joueur règle les siennes."),
+            hint:  tl("Options personnelles : daltonisme, contraste, avatars, auto-masquage, contrôles compacts, Health Estimate. Chaque joueur règle les siennes."),
             icon:  "fas fa-universal-access",
             type:  class extends foundry.applications.api.ApplicationV2 {
                 static DEFAULT_OPTIONS = { id: "scwm-menu-accessibility", window: { title: tl("Accessibilité") } };
@@ -153,6 +162,7 @@ export async function openA11yDialog() {
         ${row(K_AVATARS,  tl("Avatars dans la liste des joueurs"), tl("Affiche la miniature du portrait de chaque joueur à côté de son nom."), "avatars")}
         ${row(K_AUTOHIDE, tl("Auto-masquage de l'interface"), tl("Estompe contrôles, navigation, macros et liste des joueurs tant que la souris ne les survole pas."), "autohide")}
         ${row(K_COMPACT,  tl("Contrôles de gauche compacts"), tl("Réduit la taille des icônes de la barre d'outils de gauche."), "compact")}
+        ${healthEstimateActive() ? row(K_HEALTH, tl("Afficher l'état de santé estimé"), tl("Texte du module Health Estimate au survol des tokens (« Blessé », « Mal en point »…). Décoche pour ne plus le voir sur ton compte ; les autres joueurs gardent leur propre choix."), "health") : ""}
         ${row(K_GERE,     tl("Indicateur « géré par le module »"), tl("Petite icône d'engrenages dorée sur les aptitudes de ta fiche dont le module applique la règle tout seul (Healer, Alert, Large Form…). Au survol : ce que fait le module."), "gere")}
 
         <div style="margin:10px 0 4px;font-weight:700;color:#c9a227;font-size:.9em;">${tl("Cartes de chat")}</div>
@@ -202,6 +212,9 @@ export async function openA11yDialog() {
                         const cb = root.querySelector(`[name="${k}"]`);
                         await game.settings.set(MOD, k, !!cb?.checked);
                     }
+                    // Health Estimate : la case n'existe que si le module est actif.
+                    const he = root.querySelector(`[name="${K_HEALTH}"]`);
+                    if (he) await game.settings.set(MOD, K_HEALTH, !!he.checked);
                     // Préférences « cartes de chat » (par joueur).
                     const chatCol = root.querySelector(`[name="chatCardColor"]`);
                     await game.settings.set(MOD, "chatCardColor", chatCol?.value || "#f4ecd8");
@@ -340,6 +353,36 @@ function decoratePlayers(root) {
     });
 }
 
+// ── Health Estimate (par joueur) ────────────────────────────
+// Le module « Health Estimate » est activé pour tout le monde (réglage de
+// monde). Pour qu'un joueur puisse s'en passer sur SON compte, on remplace
+// sur ce client la méthode d'affichage de l'instance (game.healthEstimate.
+// _handleOverlay) par une fonction vide, et on masque son calque PIXI.
+// Toutes ses mises à jour passent par cette méthode (survol, combat,
+// changement de PV) : rien ne s'affiche plus. Recocher la case supprime la
+// surcharge et la méthode d'origine (celle de la classe) reprend la main.
+function healthEstimateActive() {
+    return !!game.modules?.get("healthEstimate")?.active;
+}
+
+function applyHealthEstimate() {
+    const he = game.healthEstimate;
+    if (!healthEstimateActive() || !he) return;
+    const show = _get(K_HEALTH) !== false;
+    try {
+        if (!show && !Object.hasOwn(he, "_handleOverlay")) {
+            he.clearOverlays?.();                    // retire les textes déjà affichés
+            he._handleOverlay = function () {};      // plus rien ne s'affiche sur ce client
+        } else if (show && Object.hasOwn(he, "_handleOverlay")) {
+            delete he._handleOverlay;                // retour à la méthode du module
+        }
+        const layer = canvas?.interface?.healthEstimate;
+        if (layer) layer.visible = show;
+    } catch (e) {
+        journal.avert(tl("[{0}] Health Estimate : préférence d'affichage non appliquée.", MOD), e);
+    }
+}
+
 // ── Application des classes/état sur le <body> ──────────────
 export function applyAccessibility() {
     const body = document.body;
@@ -357,6 +400,7 @@ export function applyAccessibility() {
     body.style.setProperty("--scwm-a11y-border", _get(K_CONTRASTCOL) || DEFAULT_BORDER);
 
     try { decoratePlayers(document.getElementById("players")); } catch {}
+    applyHealthEstimate();
 }
 
 // ── Hooks ───────────────────────────────────────────────────
@@ -367,7 +411,7 @@ export function AccessibilityHooks() {
     Hooks.once("ready", () => applyAccessibility());
     // Le stage du canvas est reconstruit à chaque (re)dessin de scène : on
     // réapplique alors le filtre de daltonisation.
-    Hooks.on("canvasReady", () => applyCanvasDaltonism());
+    Hooks.on("canvasReady", () => { applyCanvasDaltonism(); applyHealthEstimate(); });
     // Réappliquer après chaque rendu de la liste des joueurs (Foundry la
     // reconstruit à chaque changement de statut de connexion).
     Hooks.on("renderPlayers", (app, html) => {

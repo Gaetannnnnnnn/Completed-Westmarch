@@ -22,11 +22,11 @@ Le module `westmarch` est gelé. Aucune modification de ses fichiers (code, sett
 ### 3. Mise à jour des readme
 Pour tous les modules custom : mettre à jour `readme.txt` en continu à chaque feature ajoutée (structure, section feature, settings, changelog daté). Ne jamais toucher `module.json` pour la version — Lyra le gère elle-même, **sauf exception explicitement accordée**.
 
-### 5. Numérotation des versions
-Chaque chiffre de version reste entre 0 et 9 : après x.y.9 vient x.(y+1).0, et après x.9.9 vient (x+1).0.0. Le nouveau numéro doit toujours être plus grand que la dernière version publiée, sinon Foundry ne propose pas la mise à jour. Historique : les versions publiées 6.6.10 à 6.6.13 correspondent à 6.7.0 à 6.7.3 ; la numérotation a repris en 6.7.4.
-
 ### 4. Tests joueur
 Les comptes joueurs (non-GM) ne peuvent pas exécuter de commandes dans la console Foundry. Tous les tests de diagnostic doivent passer par le compte GM, en reproduisant l'interaction UI qu'un joueur ferait.
+
+### 5. Numérotation des versions
+Chaque chiffre de version reste entre 0 et 9 : après x.y.9 vient x.(y+1).0, et après x.9.9 vient (x+1).0.0. Le nouveau numéro doit toujours être plus grand que la dernière version publiée, sinon Foundry ne propose pas la mise à jour. Historique : les versions publiées 6.6.10 à 6.6.13 correspondent à 6.7.0 à 6.7.3 ; la numérotation a repris en 6.7.4.
 
 ---
 

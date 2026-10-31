@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 6.6.6
+Version : 6.6.7
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -215,6 +215,24 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v6.6.7 | 2026-10-31
+   - Section de réglages dédiée « Horloge de party » (thème Party & jeu de
+     groupe), sortie de « Système de Party ». Interrupteur principal
+     (enablePartyTime) + options indépendantes, toutes cochées par défaut :
+       Consommation des rations (partyTimeRations) ;
+       Alerte de faim et d'épuisement (partyTimeHungerWarning, grisée sans
+       les rations) ;
+       Rappel de l'eau (partyTimeWaterReminder) ;
+       Résumé dans le chat (partyTimeChatSummary) : coupé, seules les
+       alertes sont publiées et le GM voit la date dans une notification ;
+       Rattrapage du calendrier global (partyTimeCatchUp) : coupé, la
+       clôture ferme l'horloge sans toucher au calendrier global ;
+       Obscurité des scènes (enablePartyDarkness) avec niveau de nuit,
+       lever et coucher du soleil (grisés sans l'obscurité).
+     Les options sont grisées quand l'interrupteur principal est coupé.
+     Les réglages existants gardent leur valeur. Fichiers :
+     modules/settings.js, modules/partytime.js, modules/i18n-en.js.
 
 v6.6.6 | 2026-10-31
    - Compendium « Backgrounds » (type Item, dnd5e) rangé dans le dossier de

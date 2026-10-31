@@ -2560,5 +2560,19 @@ export default {
  "Afficher l'état de santé estimé": "Show estimated health",
  "Texte du module Health Estimate au survol des tokens (« Blessé », « Mal en point »…). Décoche pour ne plus le voir sur ton compte ; les autres joueurs gardent leur propre choix.": "Text from the Health Estimate module when hovering tokens (“Injured”, “Badly hurt”…). Untick to stop seeing it on your account; other players keep their own choice.",
  "[{0}] Health Estimate : préférence d'affichage non appliquée.": "[{0}] Health Estimate: display preference not applied.",
- "Options personnelles : daltonisme, contraste, avatars, auto-masquage, contrôles compacts, Health Estimate. Chaque joueur règle les siennes.": "Personal options: colour blindness, contrast, avatars, auto-hide, compact controls, Health Estimate. Each player sets their own."
+ "Options personnelles : daltonisme, contraste, avatars, auto-masquage, contrôles compacts, Health Estimate. Chaque joueur règle les siennes.": "Personal options: colour blindness, contrast, avatars, auto-hide, compact controls, Health Estimate. Each player sets their own.",
+ "Horloge de party": "Party clock",
+ "Interrupteur principal. Chaque party a sa propre date pendant l'expédition : elle démarre à l'ouverture de l'expédition et le GM l'avance par heures ou par jours (bouton sablier du groupe WestMarch). La date de la party est proposée à la clôture. Nécessite le Système de Party.": "Main switch. Each party has its own date during the expedition: it starts when the expedition opens and the GM advances it by hours or days (hourglass button in the WestMarch group). The party's date is offered when closing. Requires the Party System.",
+ "Consommation des rations": "Ration consumption",
+ "Chaque jour franchi retire 1 ration par PJ, sauf ceux cochés « Nourri autrement » dans la fenêtre d'avance du temps.": "Each day that passes removes 1 ration per PC, except those ticked “Fed another way” in the advance-time window.",
+ "Alerte de faim et d'épuisement": "Hunger and exhaustion warning",
+ "Quand un PJ n'a plus de rations : message dans le chat avec les jours sans manger, et rappel de la règle d'Épuisement au-delà de 3 + mod. de Constitution jours. Rien n'est appliqué automatiquement. Nécessite la consommation des rations.": "When a PC runs out of rations: chat message with the days without food, and a reminder of the Exhaustion rule beyond 3 + Constitution modifier days. Nothing is applied automatically. Requires ration consumption.",
+ "Rappel de l'eau": "Water reminder",
+ "Résumé dans le chat": "Chat summary",
+ "À chaque avance, publie dans le chat de la party la nouvelle date et les rations consommées. Coupé : seules les alertes (faim, eau) sont publiées, et le GM voit la date dans une notification.": "On each advance, posts the new date and the rations eaten in the party chat. Off: only the warnings (hunger, water) are posted, and the GM sees the date in a notification.",
+ "Rattrapage du calendrier global": "Global calendar catch-up",
+ "À la clôture de l'expédition, le calendrier global avance jusqu'à la date de la party si elle est plus loin. Coupé : le calendrier global n'est jamais modifié par l'horloge de party.": "When the expedition is closed, the global calendar moves forward to the party's date if it is further ahead. Off: the party clock never changes the global calendar.",
+ "Obscurité des scènes": "Scene darkness",
+ "Date propre à chaque party pendant l'expédition, avancée par le GM par heures ou par jours. Chaque option se coupe indépendamment : rations, alerte de faim, rappel de l'eau, résumé dans le chat, rattrapage du calendrier global à la clôture, obscurité des scènes. Nécessite le Système de Party.": "Each party's own date during the expedition, advanced by the GM by hours or days. Each option can be turned off on its own: rations, hunger warning, water reminder, chat summary, global calendar catch-up on closing, scene darkness. Requires the Party System.",
+ "[Party] Date de la party : {0}.": "[Party] Party date: {0}."
 };

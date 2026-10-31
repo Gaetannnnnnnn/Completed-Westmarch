@@ -19,6 +19,10 @@
 //     seuil au-delà duquel les règles donnent un niveau d'Épuisement par
 //     jour. Rien n'est appliqué automatiquement : le MJ tranche.
 //   - Eau : simple rappel dans le chat à chaque nouveau jour (réglable).
+//   - Section de réglages « Horloge de party » : interrupteur principal
+//     (enablePartyTime) + options indépendantes : rations, alerte de faim,
+//     rappel de l'eau, résumé dans le chat, rattrapage du calendrier
+//     global, obscurité des scènes.
 //   - À la clôture de l'expédition (carnet.js), l'horloge de la party est
 //     comparée au calendrier global : si la party est plus loin, le
 //     calendrier global avance jusqu'à elle (ce qui déclenche au passage la
@@ -50,9 +54,15 @@ export function partyTimeEnabled() {
     } catch { return false; }
 }
 
-function waterReminderEnabled() {
-    try { return game.settings.get(MOD, "partyTimeWaterReminder") !== false; } catch { return true; }
+// Options de la section « Horloge de party » : chacune se coupe seule.
+function opt(key) {
+    try { return game.settings.get(MOD, key) !== false; } catch { return true; }
 }
+const rationsEnabled       = () => opt("partyTimeRations");
+const hungerWarningEnabled = () => opt("partyTimeHungerWarning");
+const waterReminderEnabled = () => opt("partyTimeWaterReminder");
+const chatSummaryEnabled   = () => opt("partyTimeChatSummary");
+const catchUpEnabled       = () => opt("partyTimeCatchUp");
 
 function allClocks() {
     const s = game.settings.get(MOD, "partyClockState");
@@ -206,7 +216,9 @@ export async function endPartyClock(partyId, endDate) {
             : carnetDateToTime(endDate, clock.time - dayStart(clock.time));
 
         const now = game.time.worldTime;
-        if (target > now) {
+        if (!catchUpEnabled()) {
+            // Rattrapage désactivé : le calendrier global ne bouge pas.
+        } else if (target > now) {
             await game.time.advance(target - now);
             ui.notifications.info(tl("[Party] Le calendrier global avance jusqu'à la date de la party : {0}.", formatClock(target)));
         } else {
@@ -272,8 +284,9 @@ export async function advancePartyTime(partyId, seconds, fedOtherIds) {
     const days   = daysCrossed(before, after);
     clock.time   = after;
 
-    const lines = [];
-    if (days > 0) {
+    const lines  = [];   // résumé : rations consommées (option « Résumé dans le chat »)
+    const alerts = [];   // alertes : faim / épuisement et eau (chacune son option)
+    if (days > 0 && rationsEnabled()) {
         for (const actor of partyMembers(partyId)) {
             if (clock.fedOther.includes(actor.id)) {
                 clock.hungry[actor.id] = 0;
@@ -290,6 +303,10 @@ export async function advancePartyTime(partyId, seconds, fedOtherIds) {
             // Les jours sans manger s'accumulent depuis le dernier repas.
             const hungry = (eaten > 0 ? 0 : (clock.hungry[actor.id] ?? 0)) + missed;
             clock.hungry[actor.id] = hungry;
+            if (!hungerWarningEnabled()) {
+                lines.push(tl("🍖 <strong>{0}</strong> : {1} ration(s) consommée(s), il en reste {2}.", actor.name, eaten, rationCount(actor)));
+                continue;
+            }
             const limit = foodlessLimit(actor);
             let line = tl("⚠️ <strong>{0}</strong> : plus de rations ({1} consommée(s)). {2} jour(s) sans manger.", actor.name, eaten, hungry);
             if (hungry > limit) {
@@ -297,23 +314,31 @@ export async function advancePartyTime(partyId, seconds, fedOtherIds) {
             } else {
                 line += " " + tl("Limite avant Épuisement : {0} jours.", limit);
             }
-            lines.push(line);
+            alerts.push(line);
         }
-        if (waterReminderEnabled()) {
-            lines.push(tl("💧 Pensez à l'eau : chaque PJ boit chaque jour, vérifiez les outres (ou une source à proximité)."));
-        }
+    }
+    if (days > 0 && waterReminderEnabled()) {
+        alerts.push(tl("💧 Pensez à l'eau : chaque PJ boit chaque jour, vérifiez les outres (ou une source à proximité)."));
     }
 
     await savePartyClock(partyId, clock);
     await applyPartyDarkness(partyId, after);
 
-    const header = days > 0
-        ? tl("🕰️ <strong>Le temps passe pour la party</strong> ({0} jour(s) écoulé(s)).<br>Date de la party : <strong>{1}</strong>", days, formatClock(after))
-        : tl("🕰️ <strong>Le temps passe pour la party.</strong><br>Date de la party : <strong>{0}</strong>", formatClock(after));
-    const content = lines.length ? `${header}<hr>${lines.join("<br>")}` : header;
-
     // Message du GM de la party : le filtrage du chat (chat.js) le limite
-    // aux membres de cette party.
+    // aux membres de cette party. Résumé coupé → seules les alertes partent.
+    let content = "";
+    if (chatSummaryEnabled()) {
+        const header = days > 0
+            ? tl("🕰️ <strong>Le temps passe pour la party</strong> ({0} jour(s) écoulé(s)).<br>Date de la party : <strong>{1}</strong>", days, formatClock(after))
+            : tl("🕰️ <strong>Le temps passe pour la party.</strong><br>Date de la party : <strong>{0}</strong>", formatClock(after));
+        const body = [...lines, ...alerts];
+        content = body.length ? `${header}<hr>${body.join("<br>")}` : header;
+    } else if (alerts.length) {
+        content = alerts.join("<br>");
+    } else {
+        ui.notifications.info(tl("[Party] Date de la party : {0}.", formatClock(after)));
+        return;
+    }
     await ChatMessage.create({ speaker: { alias: tl("Temps de la party") }, content });
 }
 
@@ -430,7 +455,7 @@ async function openAdvanceDialog() {
         ? `<p style="margin:0 0 8px;font-size:11px;color:#e67e22;">${tl("Aucune expédition ouverte : l'horloge démarrera à la date du calendrier global.")}</p>`
         : "";
 
-    const rows = members.map(a => `
+    const rows = !rationsEnabled() ? "" : members.map(a => `
         <li style="list-style:none;margin:3px 0;display:flex;justify-content:space-between;gap:8px;">
             <span>${foundry.utils.escapeHTML(a.name)} <span style="color:#aaa;font-size:11px;">— ${tl("{0} ration(s)", rationCount(a))}</span></span>
             <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;">
@@ -451,14 +476,16 @@ async function openAdvanceDialog() {
             <option value="days" selected>${tl("jour(s)")}</option>
         </select>
     </div>
-    <div>
+    ${rationsEnabled() ? `<div>
         <p style="margin:0 0 4px;font-size:11px;color:#aaa;">${tl("1 ration par PJ et par jour franchi. Cochez ceux qui se nourrissent autrement (sort, chasse, capacité…).")}</p>
         <ul style="margin:0;padding:0;">${rows}</ul>
-    </div>
+    </div>` : ""}
 </div>`;
 
     const readForm = (form) => {
-        const ids = members.filter(a => form?.elements?.[`scwm-fed-${a.id}`]?.checked).map(a => a.id);
+        const ids = rationsEnabled()
+            ? members.filter(a => form?.elements?.[`scwm-fed-${a.id}`]?.checked).map(a => a.id)
+            : fedOther;
         const amount = Math.max(0, Math.floor(Number(form?.elements?.["scwm-amount"]?.value) || 0));
         const unit = form?.elements?.["scwm-unit"]?.value === "hours" ? secondsPerHour() : secondsPerDay();
         return { ids, seconds: amount * unit };

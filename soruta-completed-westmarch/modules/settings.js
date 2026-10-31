@@ -67,11 +67,18 @@ export const PARTY_DEPENDENT_SETTINGS = [
     "enableSessionLog",
     "enableCombatParty",
     "enableCombatTurnLock",
-    "enablePartyPause",
-    "enablePartyTime",
-    "partyTimeWaterReminder",
-    "enablePartyDarkness"
+    "enablePartyPause"
 ];
+
+// Section « Horloge de party » : options grisées quand l'interrupteur
+// principal (enablePartyTime) est coupé ; les 3 réglages de l'obscurité
+// sont en plus grisés quand l'obscurité est coupée.
+const PARTYTIME_SUB_SETTINGS = [
+    "partyTimeRations", "partyTimeHungerWarning", "partyTimeWaterReminder",
+    "partyTimeChatSummary", "partyTimeCatchUp", "enablePartyDarkness",
+    "partyDarknessNight", "partyDarknessSunrise", "partyDarknessSunset"
+];
+const PARTYDARK_SUB_SETTINGS = ["partyDarknessNight", "partyDarknessSunrise", "partyDarknessSunset"];
 
 // Vérifie qu'un setting dépendant de la party est actif ET que la party l'est.
 export function partyFeatureEnabled(key) {
@@ -314,14 +321,27 @@ export function registerSettings() {
     });
     // État de pause par party (mapping partyId -> true), synchronisé sur tous
     // les clients. Non affiché dans la configuration.
+    // --- Horloge de party (section dédiée, voir partytime.js) ---
     game.settings.register(MOD, "enablePartyTime", B(
-        tl("Horloge de party et rations"),
-        tl("Chaque party a sa propre date pendant l'expédition. Le GM l'avance par heures ou par jours (bouton sablier du groupe WestMarch) ; chaque jour franchi consomme 1 ration par PJ, sauf ceux cochés « Nourri autrement ». Plus de rations : avertissement dans le chat. À la clôture de l'expédition, le calendrier global avance jusqu'à la date de la party si elle est plus loin.")));
+        tl("Horloge de party"),
+        tl("Interrupteur principal. Chaque party a sa propre date pendant l'expédition : elle démarre à l'ouverture de l'expédition et le GM l'avance par heures ou par jours (bouton sablier du groupe WestMarch). La date de la party est proposée à la clôture. Nécessite le Système de Party.")));
+    game.settings.register(MOD, "partyTimeRations", B(
+        tl("Consommation des rations"),
+        tl("Chaque jour franchi retire 1 ration par PJ, sauf ceux cochés « Nourri autrement » dans la fenêtre d'avance du temps.")));
+    game.settings.register(MOD, "partyTimeHungerWarning", B(
+        tl("Alerte de faim et d'épuisement"),
+        tl("Quand un PJ n'a plus de rations : message dans le chat avec les jours sans manger, et rappel de la règle d'Épuisement au-delà de 3 + mod. de Constitution jours. Rien n'est appliqué automatiquement. Nécessite la consommation des rations.")));
     game.settings.register(MOD, "partyTimeWaterReminder", B(
-        tl("Horloge de party : rappel de l'eau"),
+        tl("Rappel de l'eau"),
         tl("À chaque nouveau jour de la party, ajoute un rappel dans le chat pour l'eau (outres à remplir). Simple rappel, rien n'est retiré.")));
+    game.settings.register(MOD, "partyTimeChatSummary", B(
+        tl("Résumé dans le chat"),
+        tl("À chaque avance, publie dans le chat de la party la nouvelle date et les rations consommées. Coupé : seules les alertes (faim, eau) sont publiées, et le GM voit la date dans une notification.")));
+    game.settings.register(MOD, "partyTimeCatchUp", B(
+        tl("Rattrapage du calendrier global"),
+        tl("À la clôture de l'expédition, le calendrier global avance jusqu'à la date de la party si elle est plus loin. Coupé : le calendrier global n'est jamais modifié par l'horloge de party.")));
     game.settings.register(MOD, "enablePartyDarkness", B(
-        tl("Horloge de party : obscurité des scènes"),
+        tl("Obscurité des scènes"),
         tl("Les scènes marquées « Suivre l'heure de la party » (clic droit dans le répertoire des scènes) prennent l'obscurité de l'heure de la party qui s'y trouve. Deux parties sur la même scène : la première arrivée garde la main jusqu'à son départ.")));
     game.settings.register(MOD, "partyDarknessNight", N(
         tl("Obscurité : niveau de nuit"),
@@ -1207,7 +1227,10 @@ const CATEGORIES = [
       keys: ["commonFolderPJ","autoPlayerFolder","gmAutoFolderParent","commonFolderPNJ","commonFolderNewChars","commonPackPNJ","commonPackCemetery","commonPackCreatures","commonPackCraft"] },
     { firstKey: "enableParty", master: "enableParty",           icon: "fa-users",           title: tl("Système de Party"),
       desc: tl("Groupes de joueurs : chat filtré, combat par party, téléportation de groupe, journal de session, anti-cheat."),
-      keys: ["enableParty","enableJoinScene","enableShowParty","enablePlayerGrouping","enableGoWithPartyScenes","enableGoWithPartyJournal","enableChatFilter","enableChatTabs","enableTrade","enableNoteLink","enableSessionLog","sessionLogWebhookUrl","sessionLogForum","sessionTags","enableCombatParty","enableCombatTurnLock","enablePartyPause","enablePartyTime","partyTimeWaterReminder","enablePartyDarkness","partyDarknessNight","partyDarknessSunrise","partyDarknessSunset","enableAntiCheat"] },
+      keys: ["enableParty","enableJoinScene","enableShowParty","enablePlayerGrouping","enableGoWithPartyScenes","enableGoWithPartyJournal","enableChatFilter","enableChatTabs","enableTrade","enableNoteLink","enableSessionLog","sessionLogWebhookUrl","sessionLogForum","sessionTags","enableCombatParty","enableCombatTurnLock","enablePartyPause","enableAntiCheat"] },
+    { firstKey: "enablePartyTime", master: "enablePartyTime", icon: "fa-hourglass-half", title: tl("Horloge de party"),
+      desc: tl("Date propre à chaque party pendant l'expédition, avancée par le GM par heures ou par jours. Chaque option se coupe indépendamment : rations, alerte de faim, rappel de l'eau, résumé dans le chat, rattrapage du calendrier global à la clôture, obscurité des scènes. Nécessite le Système de Party."),
+      keys: ["enablePartyTime","partyTimeRations","partyTimeHungerWarning","partyTimeWaterReminder","partyTimeChatSummary","partyTimeCatchUp","enablePartyDarkness","partyDarknessNight","partyDarknessSunrise","partyDarknessSunset"] },
     { firstKey: "enableStarXp", master: "enableStarXp", icon: "fa-star", title: tl("Système d'étoiles"),
       desc: tl("XP par étoiles : le MJ attribue 1 à 3 étoiles à la clôture de session ; le tableau fixe le coût en étoiles de chaque niveau (avec le total = nombre de sessions). Sur la fiche, l'XP est remplacée par un compteur d'étoiles."),
       keys: ["enableStarXp","starXpLevels"] },
@@ -1405,7 +1428,7 @@ const CONFIG_GROUPS = [
     { title: tl("Fiche PJ & personnages"), icon: "fa-id-card",
       cats: ["relationsEnabled", "bestiaryEnabled", "carnetEnabled", "enableCharValidation", "enableStarXp", "xpProgEnabled", "enableSourceControl", "disableElectrum"] },
     { title: tl("Party & jeu de groupe"), icon: "fa-users",
-      cats: ["enableParty", "enableExpeditionMap", "enableHarvest"] },
+      cats: ["enableParty", "enablePartyTime", "enableExpeditionMap", "enableHarvest"] },
     { title: "Combat", icon: "fa-bolt",
       cats: ["enableReactReminder", "rangeFixEnabled", "enablePolymorph"] },
     { title: "Serveur & monde", icon: "fa-server",
@@ -1835,6 +1858,31 @@ function wireCategoryForm(category, root) {
     wireXpProg(root);
     // Registre du monde : éditeur des rubriques.
     cablerMonde(root);
+
+    // Cascade Horloge de party : options grisées sans l'interrupteur principal,
+    // réglages d'obscurité grisés sans l'obscurité, alerte de faim grisée sans
+    // les rations.
+    const ptMaster = root.querySelector(`[name="enablePartyTime"]`);
+    if (ptMaster) {
+        const dark    = root.querySelector(`[name="enablePartyDarkness"]`);
+        const rations = root.querySelector(`[name="partyTimeRations"]`);
+        const setState = (key, on) => {
+            const el = root.querySelector(`[name="${key}"]`);
+            if (!el) return;
+            el.disabled = !on;
+            const box = el.closest(".scwm-set");
+            if (box) box.style.opacity = on ? "1" : "0.5";
+        };
+        const applyPt = () => {
+            for (const k of PARTYTIME_SUB_SETTINGS) setState(k, ptMaster.checked);
+            for (const k of PARTYDARK_SUB_SETTINGS) setState(k, ptMaster.checked && !!dark?.checked);
+            setState("partyTimeHungerWarning", ptMaster.checked && !!rations?.checked);
+        };
+        ptMaster.addEventListener("change", applyPt);
+        dark?.addEventListener("change", applyPt);
+        rations?.addEventListener("change", applyPt);
+        applyPt();
+    }
 
     // Cascade Party : grise les sous-options quand le maître est décoché.
     const master = root.querySelector(`[name="enableParty"]`);

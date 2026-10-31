@@ -69,7 +69,8 @@ export const PARTY_DEPENDENT_SETTINGS = [
     "enableCombatTurnLock",
     "enablePartyPause",
     "enablePartyTime",
-    "partyTimeWaterReminder"
+    "partyTimeWaterReminder",
+    "enablePartyDarkness"
 ];
 
 // Vérifie qu'un setting dépendant de la party est actif ET que la party l'est.
@@ -319,6 +320,21 @@ export function registerSettings() {
     game.settings.register(MOD, "partyTimeWaterReminder", B(
         tl("Horloge de party : rappel de l'eau"),
         tl("À chaque nouveau jour de la party, ajoute un rappel dans le chat pour l'eau (outres à remplir). Simple rappel, rien n'est retiré.")));
+    game.settings.register(MOD, "enablePartyDarkness", B(
+        tl("Horloge de party : obscurité des scènes"),
+        tl("Les scènes marquées « Suivre l'heure de la party » (clic droit dans le répertoire des scènes) prennent l'obscurité de l'heure de la party qui s'y trouve. Deux parties sur la même scène : la première arrivée garde la main jusqu'à son départ.")));
+    game.settings.register(MOD, "partyDarknessNight", N(
+        tl("Obscurité : niveau de nuit"),
+        tl("Obscurité appliquée la nuit (0 = plein jour, 1 = noir complet)."),
+        0.9));
+    game.settings.register(MOD, "partyDarknessSunrise", N(
+        tl("Obscurité : heure du lever du soleil"),
+        tl("Heure où l'aube commence ; il fait plein jour 2 h plus tard."),
+        6));
+    game.settings.register(MOD, "partyDarknessSunset", N(
+        tl("Obscurité : heure du coucher du soleil"),
+        tl("Heure où il fait nuit noire ; le crépuscule commence 2 h avant."),
+        20));
     game.settings.register(MOD, "partyClockState", {
         scope: "world", config: false, type: Object, default: {}
     });
@@ -1191,7 +1207,7 @@ const CATEGORIES = [
       keys: ["commonFolderPJ","autoPlayerFolder","gmAutoFolderParent","commonFolderPNJ","commonFolderNewChars","commonPackPNJ","commonPackCemetery","commonPackCreatures","commonPackCraft"] },
     { firstKey: "enableParty", master: "enableParty",           icon: "fa-users",           title: tl("Système de Party"),
       desc: tl("Groupes de joueurs : chat filtré, combat par party, téléportation de groupe, journal de session, anti-cheat."),
-      keys: ["enableParty","enableJoinScene","enableShowParty","enablePlayerGrouping","enableGoWithPartyScenes","enableGoWithPartyJournal","enableChatFilter","enableChatTabs","enableTrade","enableNoteLink","enableSessionLog","sessionLogWebhookUrl","sessionLogForum","sessionTags","enableCombatParty","enableCombatTurnLock","enablePartyPause","enablePartyTime","partyTimeWaterReminder","enableAntiCheat"] },
+      keys: ["enableParty","enableJoinScene","enableShowParty","enablePlayerGrouping","enableGoWithPartyScenes","enableGoWithPartyJournal","enableChatFilter","enableChatTabs","enableTrade","enableNoteLink","enableSessionLog","sessionLogWebhookUrl","sessionLogForum","sessionTags","enableCombatParty","enableCombatTurnLock","enablePartyPause","enablePartyTime","partyTimeWaterReminder","enablePartyDarkness","partyDarknessNight","partyDarknessSunrise","partyDarknessSunset","enableAntiCheat"] },
     { firstKey: "enableStarXp", master: "enableStarXp", icon: "fa-star", title: tl("Système d'étoiles"),
       desc: tl("XP par étoiles : le MJ attribue 1 à 3 étoiles à la clôture de session ; le tableau fixe le coût en étoiles de chaque niveau (avec le total = nombre de sessions). Sur la fiche, l'XP est remplacée par un compteur d'étoiles."),
       keys: ["enableStarXp","starXpLevels"] },

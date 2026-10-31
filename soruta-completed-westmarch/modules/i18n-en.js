@@ -2542,5 +2542,18 @@ export default {
  "Horloge de party et rations": "Party clock and rations",
  "Horloge de party : rappel de l'eau": "Party clock: water reminder",
  "Chaque party a sa propre date pendant l'expédition. Le GM l'avance par heures ou par jours (bouton sablier du groupe WestMarch) ; chaque jour franchi consomme 1 ration par PJ, sauf ceux cochés « Nourri autrement ». Plus de rations : avertissement dans le chat. À la clôture de l'expédition, le calendrier global avance jusqu'à la date de la party si elle est plus loin.": "Each party has its own date during the expedition. The GM advances it by hours or days (hourglass button in the WestMarch group); each day that passes uses 1 ration per PC, except those ticked “Fed another way”. Out of rations: a warning in chat. When the expedition is closed, the global calendar moves forward to the party's date if the party is further ahead.",
- "À chaque nouveau jour de la party, ajoute un rappel dans le chat pour l'eau (outres à remplir). Simple rappel, rien n'est retiré.": "On each new day for the party, adds a water reminder in chat (waterskins to refill). Reminder only, nothing is removed."
+ "À chaque nouveau jour de la party, ajoute un rappel dans le chat pour l'eau (outres à remplir). Simple rappel, rien n'est retiré.": "On each new day for the party, adds a water reminder in chat (waterskins to refill). Reminder only, nothing is removed.",
+ "[Party] Impossible de régler l'obscurité de la scène {0}": "[Party] Could not set the darkness of scene {0}",
+ "Suivre l'heure de la party (obscurité)": "Follow party time (darkness)",
+ "Ne plus suivre l'heure de la party": "Stop following party time",
+ "[Party] « {0} » suit maintenant l'heure de la party.": "[Party] “{0}” now follows party time.",
+ "[Party] « {0} » ne suit plus l'heure de la party.": "[Party] “{0}” no longer follows party time.",
+ "Horloge de party : obscurité des scènes": "Party clock: scene darkness",
+ "Les scènes marquées « Suivre l'heure de la party » (clic droit dans le répertoire des scènes) prennent l'obscurité de l'heure de la party qui s'y trouve. Deux parties sur la même scène : la première arrivée garde la main jusqu'à son départ.": "Scenes marked “Follow party time” (right-click in the scene directory) take the darkness of the hour of the party on them. Two parties on the same scene: the first one there keeps control until it leaves.",
+ "Obscurité : niveau de nuit": "Darkness: night level",
+ "Obscurité appliquée la nuit (0 = plein jour, 1 = noir complet).": "Darkness applied at night (0 = full daylight, 1 = pitch black).",
+ "Obscurité : heure du lever du soleil": "Darkness: sunrise hour",
+ "Heure où l'aube commence ; il fait plein jour 2 h plus tard.": "Hour when dawn begins; it is full daylight 2 h later.",
+ "Obscurité : heure du coucher du soleil": "Darkness: sunset hour",
+ "Heure où il fait nuit noire ; le crépuscule commence 2 h avant.": "Hour when it is fully dark; dusk begins 2 h before."
 };

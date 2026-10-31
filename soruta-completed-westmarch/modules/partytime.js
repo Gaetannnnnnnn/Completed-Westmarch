@@ -24,6 +24,14 @@
 //     calendrier global avance jusqu'à elle (ce qui déclenche au passage la
 //     notification Discord de changement de jour de caldate.js).
 //
+//   - Obscurité (réglage "enablePartyDarkness") : les scènes marquées
+//     « Suit l'heure de la party » (menu clic droit du répertoire des
+//     scènes) prennent l'obscurité correspondant à l'heure de la party qui
+//     s'y trouve. Si deux parties sont sur la même scène, c'est la première
+//     arrivée qui garde la main (flag de scène "darknessParty") ; une autre
+//     ne la reprend que quand la première n'y a plus de PJ ou a clôturé son
+//     expédition.
+//
 // État partagé : réglage de monde "partyClockState"
 //   { [partyId]: { time, fedOther: [actorId], hungry: { [actorId]: jours } } }
 // Seuls les GM l'écrivent (réglage de monde).
@@ -168,6 +176,7 @@ export async function startPartyClock(partyId, startDate) {
             ? now
             : carnetDateToTime(startDate, 8 * secondsPerHour());
         await savePartyClock(partyId, { time, fedOther: [], hungry: {} });
+        await applyPartyDarkness(partyId, time);
         journal.debug(`[partytime] Horloge démarrée pour la party ${partyId} : ${formatClock(time)}`);
     } catch (e) {
         journal.avert(tl("[Party] Impossible de démarrer l'horloge de la party"), e);
@@ -204,6 +213,7 @@ export async function endPartyClock(partyId, endDate) {
             ui.notifications.info(tl("[Party] Le calendrier global est déjà plus loin que la party : il ne change pas."));
         }
         await savePartyClock(partyId, null);
+        await releasePartyDarkness(partyId);
     } catch (e) {
         journal.erreur(tl("[Party] Erreur lors du rattrapage du calendrier global"), e);
         ui.notifications.error(tl("[Party] Le calendrier global n'a pas pu être mis à jour (voir console)."));
@@ -295,6 +305,7 @@ export async function advancePartyTime(partyId, seconds, fedOtherIds) {
     }
 
     await savePartyClock(partyId, clock);
+    await applyPartyDarkness(partyId, after);
 
     const header = days > 0
         ? tl("🕰️ <strong>Le temps passe pour la party</strong> ({0} jour(s) écoulé(s)).<br>Date de la party : <strong>{1}</strong>", days, formatClock(after))
@@ -304,6 +315,98 @@ export async function advancePartyTime(partyId, seconds, fedOtherIds) {
     // Message du GM de la party : le filtrage du chat (chat.js) le limite
     // aux membres de cette party.
     await ChatMessage.create({ speaker: { alias: tl("Temps de la party") }, content });
+}
+
+// ── Obscurité des scènes ───────────────────────────────────────
+
+function darknessEnabled() {
+    try { return partyTimeEnabled() && game.settings.get(MOD, "enablePartyDarkness") !== false; } catch { return false; }
+}
+
+function num(key, def) {
+    try { const n = Number(game.settings.get(MOD, key)); return Number.isFinite(n) ? n : def; } catch { return def; }
+}
+
+const TRANSITION_HOURS = 2;
+
+/** Obscurité (0 à 1) pour un instant : nuit pleine avant le lever et après
+ *  le coucher, transition de 2 h à l'aube et au crépuscule, 0 en journée. */
+export function darknessAt(time) {
+    const c = components(time);
+    if (!c) return null;
+    const perHour = game.time?.calendar?.days?.minutesPerHour ?? 60;
+    const h     = (c.hour ?? 0) + (c.minute ?? 0) / perHour;
+    const night = Math.min(1, Math.max(0, num("partyDarknessNight", 0.9)));
+    const rise  = num("partyDarknessSunrise", 6);
+    const set   = num("partyDarknessSunset", 20);
+    const T     = TRANSITION_HOURS;
+    if (h < rise || h >= set) return night;
+    if (h < rise + T)         return night * (1 - (h - rise) / T);
+    if (h >= set - T)         return night * ((h - (set - T)) / T);
+    return 0;
+}
+
+export function sceneFollowsPartyTime(scene) {
+    return scene?.getFlag?.(MOD, "followPartyTime") === true;
+}
+
+// La party a-t-elle au moins un PJ (token) sur cette scène ?
+function partyOnScene(partyId, scene) {
+    const ids = new Set(partyMembers(partyId).map(a => a.id));
+    return scene.tokens.some(t => ids.has(t.actorId));
+}
+
+// La party propriétaire de l'obscurité est-elle toujours « là » ?
+// (PJ présents ET expédition en cours, c.-à-d. horloge active)
+function ownerStillThere(ownerId, scene) {
+    if (!ownerId) return false;
+    return !!getPartyClock(ownerId) && partyOnScene(ownerId, scene);
+}
+
+/** Règle l'obscurité des scènes « Suit l'heure de la party » où se trouve
+ *  la party. La première party arrivée garde la main. */
+export async function applyPartyDarkness(partyId, time) {
+    // L'obscurité est un plus : une erreur ici ne doit jamais bloquer
+    // l'avance du temps ni la consommation des rations.
+    try { await _applyPartyDarkness(partyId, time); }
+    catch (e) { journal.avert("[partytime] applyPartyDarkness", e); }
+}
+
+async function _applyPartyDarkness(partyId, time) {
+    if (!darknessEnabled() || !game.user.isGM || !partyId) return;
+    const level = darknessAt(time);
+    if (level === null) return;
+    for (const scene of game.scenes) {
+        try {
+            if (!sceneFollowsPartyTime(scene) || !partyOnScene(partyId, scene)) continue;
+            const owner = scene.getFlag(MOD, "darknessParty");
+            if (owner && owner !== partyId && ownerStillThere(owner, scene)) continue;   // la première party garde la main
+            const update = {};
+            if (owner !== partyId) update[`flags.${MOD}.darknessParty`] = partyId;
+            const current = scene.environment?.darknessLevel;
+            if (current === undefined || Math.abs(current - level) > 0.001) update["environment.darknessLevel"] = level;
+            if (Object.keys(update).length) await scene.update(update);
+        } catch (e) {
+            journal.avert(tl("[Party] Impossible de régler l'obscurité de la scène {0}", scene.name), e);
+        }
+    }
+}
+
+// Fin d'expédition : la party rend la main sur ses scènes.
+async function releasePartyDarkness(partyId) {
+    try {
+        for (const scene of game.scenes) {
+            if (scene.getFlag(MOD, "darknessParty") !== partyId) continue;
+            await scene.unsetFlag(MOD, "darknessParty");
+        }
+    } catch (e) { journal.avert("[partytime] releasePartyDarkness", e); }
+}
+
+function sceneFromLi(li) {
+    const el = (li instanceof HTMLElement) ? li : li?.[0];
+    const id = el?.dataset?.entryId ?? el?.dataset?.documentId
+            ?? globalThis.$?.(li)?.attr?.("data-entry-id") ?? globalThis.$?.(li)?.attr?.("data-document-id");
+    return game.scenes.get(id);
 }
 
 // ── Fenêtre « Avancer le temps de la party » ───────────────────
@@ -408,5 +511,34 @@ export function PartyTimeHooks() {
             onChange: () => openAdvanceDialog(),
             visible:  true
         };
+    });
+
+    // Clic droit sur une scène : la faire suivre (ou non) l'heure de la party.
+    Hooks.on("getSceneContextOptions", (app, options) => {
+        if (!game.user.isGM || !darknessEnabled()) return;
+        options.push(
+            {
+                name:      tl("Suivre l'heure de la party (obscurité)"),
+                icon:      '<i class="fa-solid fa-sun"></i>',
+                condition: (li) => { const s = sceneFromLi(li); return !!s && !sceneFollowsPartyTime(s); },
+                callback:  async (li) => {
+                    const s = sceneFromLi(li);
+                    if (!s) return;
+                    await s.setFlag(MOD, "followPartyTime", true);
+                    ui.notifications.info(tl("[Party] « {0} » suit maintenant l'heure de la party.", s.name));
+                }
+            },
+            {
+                name:      tl("Ne plus suivre l'heure de la party"),
+                icon:      '<i class="fa-solid fa-moon"></i>',
+                condition: (li) => { const s = sceneFromLi(li); return !!s && sceneFollowsPartyTime(s); },
+                callback:  async (li) => {
+                    const s = sceneFromLi(li);
+                    if (!s) return;
+                    await s.update({ [`flags.${MOD}.-=followPartyTime`]: null, [`flags.${MOD}.-=darknessParty`]: null });
+                    ui.notifications.info(tl("[Party] « {0} » ne suit plus l'heure de la party.", s.name));
+                }
+            }
+        );
     });
 }

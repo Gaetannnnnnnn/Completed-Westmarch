@@ -93,7 +93,8 @@ WESTMARCH CORE
      de groupe, partage d'images, stats de connexion, audio cloisonné par party.
    partytime.js — Horloge de party : date propre à chaque party pendant
                   l'expédition, avance par heures / jours, consommation des
-                  rations, rattrapage du calendrier global à la clôture.
+                  rations, rattrapage du calendrier global à la clôture,
+                  obscurité des scènes selon l'heure de la party.
 
 GESTION DES PERSONNAGES & MENEUR
    casier.js         — Tableau de bord du MJ (bouton WestMarch) : onglets
@@ -240,6 +241,18 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
      elle est plus loin (notification Discord de changement de jour
      incluse), puis l'horloge de la party est supprimée. Si le calendrier
      global est déjà plus loin, il ne bouge pas.
+   - Obscurité des scènes (réglage « Horloge de party : obscurité des
+     scènes », activé par défaut) : clic droit sur une scène du répertoire →
+     « Suivre l'heure de la party ». Une scène cochée où se trouve un PJ de
+     la party prend l'obscurité de l'heure de la party à chaque avance :
+     nuit pleine avant le lever et après le coucher du soleil, transition de
+     2 h à l'aube et au crépuscule, 0 en journée. Niveau de nuit (0,9) et
+     heures du lever (6 h) et du coucher (20 h) réglables. Deux parties sur
+     la même scène : la première arrivée garde la main (flag de scène
+     « darknessParty ») tant qu'elle y a un PJ et que son expédition est
+     ouverte ; l'autre reprend la main à sa prochaine avance. Les scènes non
+     cochées (donjons, intérieurs) ne changent jamais. Une erreur sur
+     l'obscurité ne bloque ni l'avance du temps ni les rations.
    - État stocké dans le réglage de monde « partyClockState » (une entrée
      par party, clé = id du GM de la party).
    Fichiers : modules/partytime.js (nouveau), modules/carnet.js,

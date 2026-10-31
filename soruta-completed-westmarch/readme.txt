@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 6.6.5
+Version : 6.6.6
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -215,6 +215,21 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v6.6.6 | 2026-10-31
+   - Compendium « Backgrounds » (type Item, dnd5e) rangé dans le dossier de
+     compendiums « Soruta WestMarch » (visible en Observateur par les
+     joueurs). Livré vide : le MJ le déverrouille et y importe le background
+     via Plutonium, puis le dossier packs/backgrounds/ du serveur est recopié
+     dans le dépôt pour qu'il survive aux mises à jour.
+   - homebrew/westmarch-perso.json : source homebrew 5etools « West Marches
+     - Contenu personnalisé » (abréviation WMP, auteur Soruta), lisible par
+     Plutonium à l'adresse
+     <serveur>/modules/soruta-completed-westmarch/homebrew/westmarch-perso.json.
+     Contient le background « Origine personnalisée » : +2/+1 ou +1/+1/+1
+     au choix parmi les six caractéristiques, un don d'origine, deux
+     compétences, un outil d'artisan / instrument / jeu, 200 po en
+     équipement de départ.
 
 v6.6.5 | 2026-10-31
    - Accessibilité → « Afficher l'état de santé estimé » (par joueur, coché

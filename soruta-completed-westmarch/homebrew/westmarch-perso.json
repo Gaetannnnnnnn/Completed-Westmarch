@@ -1,0 +1,141 @@
+{
+	"_meta": {
+		"sources": [
+			{
+				"json": "WestMarchesPerso",
+				"abbreviation": "WMP",
+				"full": "West Marches - Contenu personnalisé",
+				"authors": [
+					"Soruta"
+				],
+				"convertedBy": [
+					"Soruta"
+				],
+				"version": "1.0.0"
+			}
+		],
+		"dateAdded": 1793454000,
+		"dateLastModified": 1793456115
+	},
+	"background": [
+		{
+			"name": "Origine personnalisée",
+			"source": "WestMarchesPerso",
+			"edition": "one",
+			"ability": [
+				{
+					"choose": {
+						"weighted": {
+							"from": [
+								"str",
+								"dex",
+								"con",
+								"int",
+								"wis",
+								"cha"
+							],
+							"weights": [
+								2,
+								1
+							]
+						}
+					}
+				},
+				{
+					"choose": {
+						"weighted": {
+							"from": [
+								"str",
+								"dex",
+								"con",
+								"int",
+								"wis",
+								"cha"
+							],
+							"weights": [
+								1,
+								1,
+								1
+							]
+						}
+					}
+				}
+			],
+			"feats": [
+				{
+					"anyFromCategory": {
+						"category": [
+							"O"
+						],
+						"count": 1
+					}
+				}
+			],
+			"skillProficiencies": [
+				{
+					"any": 2
+				}
+			],
+			"toolProficiencies": [
+				{
+					"anyArtisansTool": 1
+				},
+				{
+					"anyMusicalInstrument": 1
+				},
+				{
+					"anyGamingSet": 1
+				}
+			],
+			"startingEquipment": [
+				{
+					"_": [
+						{
+							"value": 20000
+						}
+					]
+				}
+			],
+			"entries": [
+				{
+					"type": "list",
+					"style": "list-hang-notitle",
+					"items": [
+						{
+							"type": "item",
+							"name": "Valeurs de caractéristique :",
+							"entry": "+2 à une caractéristique et +1 à une autre, ou +1 à trois caractéristiques différentes (au choix parmi les six)."
+						},
+						{
+							"type": "item",
+							"name": "Don :",
+							"entry": "Un don d'origine au choix."
+						},
+						{
+							"type": "item",
+							"name": "Maîtrises de compétences :",
+							"entry": "Deux compétences au choix."
+						},
+						{
+							"type": "item",
+							"name": "Maîtrise d'outil :",
+							"entry": "Un outil d'artisan, un instrument de musique ou un jeu au choix."
+						},
+						{
+							"type": "item",
+							"name": "Équipement :",
+							"entry": "200 po, à dépenser pour acheter son équipement de départ."
+						}
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Description",
+					"entries": [
+						"Ce background est laissé libre : chaque joueur en écrit l'histoire avec le MJ."
+					]
+				}
+			]
+		}
+	]
+}

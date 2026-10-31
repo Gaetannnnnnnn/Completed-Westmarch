@@ -1,7 +1,7 @@
 {
   "id": "soruta-completed-westmarch",
   "title": "Soruta — Completed Westmarch",
-  "version": "6.6.5",
+  "version": "6.6.6",
   "changelog": "2026-10-31",
   "authors": [
     {
@@ -39,6 +39,27 @@
     "./styles/settings-hub.css",
     "./styles/chat-cards.css",
     "./styles/trade.css"
+  ],
+  "packs": [
+    {
+      "name": "backgrounds",
+      "label": "Backgrounds",
+      "path": "packs/backgrounds",
+      "type": "Item",
+      "system": "dnd5e",
+      "ownership": {
+        "PLAYER": "OBSERVER",
+        "ASSISTANT": "OWNER"
+      }
+    }
+  ],
+  "packFolders": [
+    {
+      "name": "Soruta WestMarch",
+      "sorting": "a",
+      "color": "#c9a227",
+      "packs": ["backgrounds"]
+    }
   ],
   "relationships": {
     "requires": [

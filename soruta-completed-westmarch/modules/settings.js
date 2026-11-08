@@ -551,6 +551,9 @@ export function registerSettings() {
     game.settings.register(MOD, "enableTokenPortraitButton", B(
         tl("Bouton 'Voir le portrait' (HUD du token)"),
         tl("Ajoute un bouton dans le HUD du token qui affiche en grand l'image de la fiche.")));
+    game.settings.register(MOD, "enableTokenAccroche", B(
+        tl("Accrocher un token à un PJ (porter / mener)"),
+        tl("Bouton du HUD du token (MJ) : accroche un PNJ, un objet ou un autre PJ au token d'un PJ. Quand le joueur se déplace, le token accroché suit tout seul, sans droit à donner : posé sur le PJ (porter) ou derrière lui (mener), toujours par le chemin du PJ, donc sans traverser les murs. Nécessite un MJ connecté.")));
     game.settings.register(MOD, "enableRageSize", B(
         tl("Taille Large pendant la Rage (Voie du Géant)"),
         tl("Barbares avec 'Giant's Havoc' : le token passe en 2x2 (Large) pendant la Rage, puis revient à sa taille d'origine.")));
@@ -1282,7 +1285,7 @@ const CATEGORIES = [
       keys: ["tmEnabled","tmSkillBase","tmAddAbilityMod","tmBonusMaitrise","tmBonusExpertise","tmBonusTools","tmRollMinDays","tmReliableTalent","tmSkillFormula","tmCraftNonMagicCostDiv","tmCraftNonMagicDaysPerGp","tmCraftNonMagicCostFormula","tmCraftNonMagicDaysFormula","tmSingleUseFactor","tmScrollTable","tmMagicTable","tmRollTable"] },
     { firstKey: "enableTokenAppearance", icon: "fa-toolbox",         title: "Toolkit",
       desc: tl("Apparences de tokens, transformations, tailles Large, TGCM, utilitaires GM, templates AoE, boutiques MEJ et réapprovisionnement."),
-      keys: ["enableTokenAppearance","enableTokenPortraitButton","enableGmNotesNpc","enableTgcm","enableCompanions","enableFolderMove","enableToolAbilityFix","enableConnStats","enablePlayerListCompact","enableTemplateSnap","enableFollowTemplates","enableMejShopFix","enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
+      keys: ["enableTokenAppearance","enableTokenPortraitButton","enableTokenAccroche","enableGmNotesNpc","enableTgcm","enableCompanions","enableFolderMove","enableToolAbilityFix","enableConnStats","enablePlayerListCompact","enableTemplateSnap","enableFollowTemplates","enableMejShopFix","enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
     { firstKey: "relationsEnabled", master: "relationsEnabled",      icon: "fa-heart",           title: tl("Fiche PJ — Relations"),
       desc: tl("Onglet Relations : liens entre personnages, détection automatique des rencontres, anonymisation."),
       keys: ["relationsEnabled","relationsAnonymization","relationsLastSeen"] },

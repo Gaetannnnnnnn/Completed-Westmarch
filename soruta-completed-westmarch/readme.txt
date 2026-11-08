@@ -218,6 +218,52 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
 
+v6.7.5 | 2026-11-08
+   - Casier → Dashboard : bouton « Préparer l'ouverture du serveur… » pour
+     effacer d'un coup les données laissées par les tests. Une fenêtre liste,
+     avec le nombre d'éléments concernés, ce qui peut être effacé (tout coché
+     par défaut) : rapports en attente, fils Discord des rapports, journal des
+     sessions (présence, assiduité), zones révélées de la carte, historique des
+     expéditions et temps morts sur toutes les fiches de PJ, demandes de
+     création et de montée de niveau en attente. En dessous, la liste des
+     fiches de PJ ayant un joueur, à supprimer au choix (aucune cochée par
+     défaut) : les onglets Statistiques et Registre se calculent à partir de
+     ces fiches. Confirmation par la saisie de « RESET ». Réservé aux MJ,
+     s'applique à tous les MJ, irréversible. Fichier : modules/casier.js.
+   - Nouveau : accrocher un token à un PJ (Toolkit, activé par défaut). Dans
+     le HUD d'un token (clic droit, MJ), l'icône chaîne accroche ce token (PNJ,
+     objet, autre PJ) au token d'un PJ de la scène, en mode « Porter » (posé
+     sur le PJ, même trajet) ou « Mener » (suit derrière à la distance de
+     l'accrochage). Quand le joueur déplace son PJ, le token accroché suit
+     tout seul : aucun droit à donner, c'est le MJ connecté qui le déplace.
+     Le token accroché passe uniquement par le chemin du PJ (son trajet, ou
+     sa piste en mode Mener) : il ne traverse pas les murs, et l'animation
+     suit ce même chemin. Décrochage : même icône, suppression du porteur, ou
+     déplacement du token accroché par quelqu'un d'autre. Boucles refusées.
+     Nouveau fichier : modules/accroche.js.
+   - Nouveau : FunnyStats, tableau de fin de combat façon « fin de partie »
+     (option personnelle dans « Accessibilité » → Divertissement, désactivée
+     par défaut ; lien « Voir le dernier tableau »). Pour chaque combattant,
+     PJ d'un côté, PNJ de l'autre : dégâts infligés, reçus, annulés
+     (résistances, immunités, réductions), absorbés par les PV temporaires,
+     soins sur soi et sur les autres, PV temporaires gagnés, éliminations,
+     K.O. (onglet « Combat ») ; distance parcourue (unité de la scène, sans
+     compter les trajets d'un token porté ou mené), actions, actions bonus et
+     réactions utilisées, sorts lancés, consommables utilisés, attaques
+     réussies et ratées, réussites critiques (20 naturel ou critique, compté
+     une seule fois par jet) et échecs critiques (1 naturel) (onglet
+     « Déplacements, actions et dés »). Meilleure valeur de chaque colonne en
+     doré, et des titres parmi les PJ : MVP, Bourreau, Tank, Ange gardien,
+     Inébranlable, Globe-trotter, Infatigable, Béni des dés, Maudit des dés.
+     Relevé fait par le MJ connecté (hooks de PV de dnd5e, calcul des dégâts,
+     messages d'attaque / dégâts / soins, utilisation des activités dnd5e,
+     déplacements des tokens, hooks de Midi-QOL s'il est actif),
+     gardé sur le combat pour survivre à un rechargement, puis publié à la
+     suppression du combat. L'auteur d'un dégât ou d'un soin est déduit du
+     dernier jet qui visait la cible (sinon le dernier jet, sinon le
+     combattant dont c'est le tour). Nouveau fichier : modules/funnystats.js ;
+     modifiés : accessibility.js, index.js.
+
 v6.7.4 | 2026-10-31
    - Numérotation : chaque chiffre de version reste entre 0 et 9. Les
      versions publiées 6.6.10 à 6.6.13 correspondent à 6.7.0 à 6.7.3 ; la

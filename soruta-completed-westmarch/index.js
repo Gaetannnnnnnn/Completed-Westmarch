@@ -37,6 +37,8 @@ import { GereHooks }         from "./modules/gere.js";
 import { BeastHooks }        from "./modules/beast.js";
 import { PolymorphHooks }    from "./modules/polymorph.js";
 import { TokenHooks }        from "./modules/token.js";
+import { AccrocheHooks }     from "./modules/accroche.js";
+import { FunnyStatsHooks }   from "./modules/funnystats.js";
 import { ItemHooks }         from "./modules/items.js";
 import { TgcmHooks }         from "./modules/tgcm.js";
 import { FolderMoveHooks }   from "./modules/foldermove.js";
@@ -187,6 +189,8 @@ Hooks.on("init", () => {
     BeastHooks();
     PolymorphHooks();
     TokenHooks();
+    AccrocheHooks();
+    FunnyStatsHooks();
     ItemHooks();
     TgcmHooks();
     FolderMoveHooks();

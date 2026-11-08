@@ -32,6 +32,7 @@ import { rafraichirFiches } from "./gere.js";
 
 import { journal } from "./log.js";
 import { tl } from "./i18n.js";
+import { K_FUN, ouvrirTableau } from "./funnystats.js";
 // Clés de réglages (toutes "client").
 const K_DALTON   = "a11yDaltonism";      // "none" | "protan" | "deutan" | "tritan"
 const K_CONTRAST = "a11yContrast";        // Boolean
@@ -171,6 +172,9 @@ export async function openA11yDialog() {
         ${partyClockOffered() ? row(K_PCLOCK, tl("Afficher l'horloge de la party"), tl("Horloge à droite de la liste des joueurs (avec les secondes) : heure de ta party pendant l'expédition, sinon celle du monde."), "partyclock") : ""}
         ${row(K_GERE,     tl("Indicateur « géré par le module »"), tl("Petite icône d'engrenages dorée sur les aptitudes de ta fiche dont le module applique la règle tout seul (Healer, Alert, Large Form…). Au survol : ce que fait le module."), "gere")}
 
+        <div style="margin:10px 0 4px;font-weight:700;color:#c9a227;font-size:.9em;">${tl("Divertissement")}</div>
+        ${row(K_FUN, tl("FunnyStats — tableau de fin de combat"), tl("À la fin de chaque combat, ouvre un tableau des stats de tout le monde (dégâts infligés et reçus, soins, éliminations, critiques…) avec des titres, façon fin de partie. <a class=\"scwm-fun-voir\" style=\"color:#c9a227;cursor:pointer;\">Voir le dernier tableau</a>"), "funnystats")}
+
         <div style="margin:10px 0 4px;font-weight:700;color:#c9a227;font-size:.9em;">${tl("Cartes de chat")}</div>
         <div class="scwm-a11y-row" data-a11y-row="chatcol" style="padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.07);">
             <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0;font-weight:600;">
@@ -197,6 +201,7 @@ export async function openA11yDialog() {
                 const inp = root.querySelector(`[name="${K_CONTRASTCOL}"]`);
                 if (inp) inp.value = DEFAULT_BORDER;
             });
+            root?.querySelector(".scwm-fun-voir")?.addEventListener("click", (e) => { e.preventDefault(); ouvrirTableau(); });
             root?.querySelector(".scwm-chat-col-reset")?.addEventListener("click", (e) => {
                 e.preventDefault();
                 const inp = root.querySelector(`[name="chatCardColor"]`);
@@ -214,7 +219,7 @@ export async function openA11yDialog() {
                     await game.settings.set(MOD, K_DALTON, sel?.value ?? "none");
                     const col = root.querySelector(`[name="${K_CONTRASTCOL}"]`);
                     await game.settings.set(MOD, K_CONTRASTCOL, col?.value || DEFAULT_BORDER);
-                    for (const k of [K_CONTRAST, K_AVATARS, K_AUTOHIDE, K_COMPACT, K_GERE]) {
+                    for (const k of [K_CONTRAST, K_AVATARS, K_AUTOHIDE, K_COMPACT, K_GERE, K_FUN]) {
                         const cb = root.querySelector(`[name="${k}"]`);
                         await game.settings.set(MOD, k, !!cb?.checked);
                     }

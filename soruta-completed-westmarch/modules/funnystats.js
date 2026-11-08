@@ -314,7 +314,6 @@ export async function ouvrirTableau(data = null) {
             ${tableau(tl("Héros"), lignes.filter(l => l.pj), "#5aa9e6", o)}
             ${tableau(tl("Adversaires et alliés PNJ"), lignes.filter(l => !l.pj), "#e65a5a", o)}
         </div>`).join("")}
-        <p style="margin:4px 0 0;font-size:11px;opacity:.6;">${tl("Pour le fun : l'auteur d'un dégât ou d'un soin est deviné d'après le dernier jet qui visait la cible.")}</p>
     </div>`;
     await foundry.applications.api.DialogV2.wait({
         window: { title: tl("FunnyStats — fin du combat"), icon: "fa-solid fa-ranking-star" },

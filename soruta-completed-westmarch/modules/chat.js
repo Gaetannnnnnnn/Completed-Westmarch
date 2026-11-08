@@ -472,6 +472,7 @@ async function renderChatLog(log, html, data) {
 function _injectPartyChatButtons() {
     // Supprimer les anciens boutons (re-render repart de zéro).
     document.querySelectorAll('[data-wm-action]').forEach(el => el.remove());
+    try { if (game.settings.get(MOD, "enableChatTools") === false) return; } catch {}
 
     // En v13, les contrôles sont dans .control-buttons (dans #chat-controls).
     // On cherche depuis document car le footer est rendu par la Sidebar parente,

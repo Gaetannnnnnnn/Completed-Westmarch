@@ -1,12 +1,14 @@
 import { MOD } from "./const.js";
 import { pullUserToScene } from './socket.js';
 import { tl } from "./i18n.js";
+import { partyFeatureEnabled } from "./settings.js";
 
 export function JournalHooks() {
     Hooks.on("renderJournalEntrySheet", (sheet, html, data) => renderJournalEntrySheet(sheet, html, data));
 }
 
 function renderJournalEntrySheet(sheet, html, data) {
+    if (!partyFeatureEnabled("enableGoWithPartyJournal")) return;
     const sceneLinks = $(html).find(".content-link[data-type='Scene']");
     if (sceneLinks.length === 0) return;
 

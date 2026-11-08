@@ -218,6 +218,51 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
 
+v6.7.7 | 2026-11-08
+   - Réinitialisation du brouillard : l'outil « gomme » de la barre
+     WestMarch est retiré. La réinitialisation (un personnage ou tout le
+     monde) ne se lance plus que depuis Réglages du module → Administration
+     du module, avec le mot de passe admin. Le bouton s'y appelle
+     « Réinitialisation du brouillard » (au lieu de « Effacer la carte
+     d'expédition »). L'étape du tutoriel indique ce nouveau chemin.
+   - Changement d'apparence des tokens temporairement désactivé (comme le
+     TGCM) : plus de bouton « Image suivante » dans le HUD ni de liste
+     d'apparences dans l'onglet Jeton du prototype. Le réglage est grisé
+     dans le Toolkit (« temporairement désactivé »). Les apparences déjà
+     enregistrées sur les acteurs sont conservées. Le tutoriel saute
+     l'étape « Cycle d'apparences », et aussi l'étape « Protection TGCM »
+     (fonction déjà gelée) : une étape peut porter « disabled: true ».
+   - Tout se désactive : nouveaux réglages (Toolkit, activés par défaut)
+     pour ce qui tournait sans interrupteur :
+       « Casier du MJ » (bouton Casier du MJ + « Présentations des MJ »
+       des joueurs), « Bouton Date Expédition », « Outils de chat du MJ »
+       (effacer sa party, importer, export .txt/JSON), « Export d'acteur
+       avec choix » (sinon export natif), « Bouton pour réduire la liste
+       des joueurs ».
+     Le réglage « Go With Party depuis les journaux » existait mais n'était
+     jamais lu : le menu « Go Alone / Go With Party » des liens de scène
+     des journaux le respecte maintenant.
+     Nouvelle catégorie « Module — éléments de base » (thème Aide &
+     découverte) : menu Diagnostic, menu Administration du module (ces
+     deux-là après rechargement), message du site après une mise à jour,
+     reprise des anciennes données, fenêtre des droits défilante. Seule
+     la fenêtre « À propos » reste toujours présente : elle reçoit le code
+     de licence.
+     Échange entre joueurs : quand le réglage est coupé, le MJ refuse
+     aussi les demandes d'échange (pas seulement le bouton masqué).
+     L'onglet WestMarch disparaît de la barre quand il n'a plus aucun outil
+     visible (tout désactivé, ou rien pour cet utilisateur : un joueur
+     n'avait parfois qu'un onglet vide).
+   - FunnyStats : retrait de la note « Pour le fun : l'auteur d'un dégât
+     ou d'un soin est deviné… » sous le tableau de fin de combat.
+   Fichiers : modules/map.js, modules/adminpass.js, modules/casier.js,
+   modules/tutorial.js, modules/token.js, modules/settings.js,
+   modules/funnystats.js, modules/carnet.js, modules/journal.js,
+   modules/playerlist.js, modules/export-dialog.js, modules/chat.js,
+   modules/trade.js, modules/adminpass.js, modules/site.js,
+   modules/migration.js, modules/document.js,
+   modules/i18n-en.js, index.js.
+
 v6.7.6 | 2026-11-08
    - Mot de passe admin du module : Réglages du module → « Administration du
      module » (MJ). Il protège « Préparer l'ouverture du serveur » et

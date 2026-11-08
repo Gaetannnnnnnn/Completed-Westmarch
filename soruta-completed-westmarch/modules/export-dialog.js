@@ -30,6 +30,7 @@ export function ExportDialogHooks() {
         || (typeof o.label === "string" && /export/i.test(o.label));
 
     const handler = (_html, options) => {
+        try { if (game.settings.get(MOD, "enableExportDialog") === false) return; } catch {}
         journal.debug(tl("[Toolkit Export] hook contextuel déclenché, options :"),
             options.map(o => ({ name: o.name, label: o.label, icon: o.icon }))
         );

@@ -4,8 +4,8 @@
 // Protège les actions de remise à zéro les plus lourdes, pour qu'un autre MJ
 // (ou un clic malheureux) ne puisse pas les lancer :
 //   - « Préparer l'ouverture du serveur » (casier.js) ;
-//   - l'effacement de la carte d'expédition : brouillard exploré (map.js) et
-//     zones révélées (bouton du Casier, onglet Expéditions).
+//   - la réinitialisation du brouillard (map.js, uniquement depuis la fenêtre
+//     d'administration) et des zones révélées (bouton du Casier, onglet Expéditions).
 //
 // Réglages du module → « Administration du module » (MJ) : créer ou changer
 // le mot de passe, et lancer ces actions. Si aucun mot de passe n'existe
@@ -156,12 +156,13 @@ async function ouvrirAdministration() {
         content: `<p style="margin:0 0 6px;">${tl("Actions protégées par le mot de passe admin du module :")}</p>
             <ul style="margin:0 0 8px 18px;padding:0;">
                 <li>${tl("<strong>Préparer l'ouverture du serveur</strong> : efface les données de test (rapports, journal des sessions, historique des expéditions, temps morts, fiches de test…).")}</li>
-                <li>${tl("<strong>Effacer la carte d'expédition</strong> : brouillard exploré d'un personnage ou de tous, et zones révélées.")}</li>
+                <li>${tl("<strong>Réinitialisation du brouillard</strong> : brouillard exploré de la carte des expéditions, d'un personnage ou de tous.")}</li>
+                <li>${tl("<strong>Zones révélées</strong> de la carte : bouton de l'onglet Expéditions du Casier.")}</li>
             </ul>
             <p style="margin:0;font-size:12px;opacity:.8;"><i class="fa-solid fa-key"></i> ${etat}</p>`,
         buttons: [
             { action: "ouverture", label: tl("Préparer l'ouverture du serveur…"), icon: "fa-solid fa-broom" },
-            { action: "carte", label: tl("Effacer la carte d'expédition…"), icon: "fa-solid fa-eraser" },
+            { action: "carte", label: tl("Réinitialisation du brouillard…"), icon: "fa-solid fa-eraser" },
             { action: "mdp", label: s.hash ? tl("Changer le mot de passe") : tl("Créer le mot de passe"), icon: "fa-solid fa-key" },
             { action: "close", label: tl("Fermer"), icon: "fa-solid fa-xmark" }
         ]
@@ -173,11 +174,12 @@ async function ouvrirAdministration() {
 
 export function AdminPassHooks() {
     game.settings.register(MOD, CLE, { scope: "world", config: false, type: Object, default: {} });
+    try { if (game.settings.get(MOD, "enableAdminMenu") === false) return; } catch {}
     try {
         game.settings.registerMenu(MOD, "menu-admin", {
             name: tl("Administration du module"),
             label: tl("Ouvrir"),
-            hint: tl("Mot de passe admin, préparation de l'ouverture du serveur, effacement de la carte d'expédition."),
+            hint: tl("Mot de passe admin, préparation de l'ouverture du serveur, réinitialisation du brouillard."),
             icon: "fas fa-user-shield",
             type: class extends foundry.applications.api.ApplicationV2 {
                 static DEFAULT_OPTIONS = { id: "scwm-menu-admin", window: { title: tl("Administration du module") } };

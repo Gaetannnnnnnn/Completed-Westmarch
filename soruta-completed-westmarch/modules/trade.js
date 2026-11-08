@@ -120,6 +120,8 @@ async function _closeSession(s, reason) {
 // Demande d'échange (A → MJ). Le MJ crée la session en phase « invite »,
 // invite B (sans bloquer) et renvoie l'id à A pour sa fenêtre d'attente.
 async function gmTradeRequest({ fromUserId, toUserId }) {
+    // Réglage coupé : le MJ refuse aussi les demandes envoyées à la main.
+    if (!game.settings.get(MOD, "enableTrade")) return { ok: false, reason: tl("L'échange entre joueurs est désactivé sur ce serveur.") };
     const A = game.users.get(fromUserId), B = game.users.get(toUserId);
     if (!A || !B) return { ok: false, reason: tl("Joueur introuvable.") };
     if (!canTradeWith(A, B)) return { ok: false, reason: tradeBlockReason(A, B) };

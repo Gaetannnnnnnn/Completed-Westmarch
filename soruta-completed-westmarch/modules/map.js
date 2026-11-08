@@ -142,20 +142,14 @@ export function MapHooks() {
         await syncGroupOwnership(actor);
     });
 
-    // ---- Bouton MJ : réinitialiser le brouillard (onglet WestMarch) ----
+    // ---- Outil MJ de la barre WestMarch : éclairer une zone ----
+    // La réinitialisation du brouillard n'est plus ici : uniquement dans
+    // Réglages du module → Administration du module (mot de passe admin).
     Hooks.on("getSceneControlButtons", (controls) => {
         if (!game.user.isGM || !enabled()) return;
         if (!controls.westmarch) {
             controls.westmarch = { name: "westmarch", title: "WestMarch", icon: "fa-solid fa-hammer", layer: "tokens", tools: {} };
         }
-        controls.westmarch.tools.scwmFogReset = {
-            name: "scwmFogReset",
-            title: tl("Carte d'expédition — Réinitialiser le brouillard"),
-            icon: "fa-solid fa-eraser",
-            button: true,
-            visible: true,
-            onChange: () => openFogResetDialog()
-        };
         controls.westmarch.tools.scwmLightZone = {
             name: "scwmLightZone",
             title: tl("Carte d'expédition — Éclairer une zone (villes) : clic gauche = éclairer, clic droit = masquer"),
@@ -567,12 +561,12 @@ async function promptRenameGroup(actor) {
     catch (e) { journal.avert(tl("[{0}] Renommage du groupe échoué :", MOD), e); }
 }
 
-// Effacement de la carte d'expédition, depuis les réglages (Administration).
+// Réinitialisation du brouillard, depuis les réglages (Administration) uniquement.
 export async function ouvrirEffacementCarte() { return openFogResetDialog(); }
 
 async function openFogResetDialog() {
     if (!game.user.isGM) return;
-    if (!(await verifierAdmin(tl("Effacer la carte d'expédition")))) return;
+    if (!(await verifierAdmin(tl("Réinitialisation du brouillard")))) return;
     const DialogV2 = foundry.applications.api.DialogV2;
 
     const chars = game.actors.filter(a => a.type === "character" && a.hasPlayerOwner)

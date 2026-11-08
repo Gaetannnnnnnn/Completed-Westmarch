@@ -275,6 +275,13 @@ function openImportPopup(onConfirm) {
     $(document.body).append(overlay);
 }
 
+// Changement d'apparence des tokens temporairement DÉSACTIVÉ (en attente
+// d'une décision). Le réglage est grisé dans la configuration. Pour réactiver :
+// repasser à false et retirer "enableTokenAppearance" de FROZEN_SETTINGS
+// (settings.js).
+const APPARENCE_DISABLED = true;
+const apparenceActive = () => !APPARENCE_DISABLED && game.settings.get(MOD, "enableTokenAppearance");
+
 export function TokenHooks() {
 
     // ============================================================
@@ -312,7 +319,7 @@ export function TokenHooks() {
     // - Les apparences sont stockées sur l'acteur (prototype token)
     // ============================================================
     Hooks.on("renderTokenHUD", (hud, html, data) => {
-        if (!game.settings.get(MOD, "enableTokenAppearance")) return;
+        if (!apparenceActive()) return;
         const token = hud.object;
         if (!token) return;
 
@@ -414,7 +421,7 @@ export function TokenHooks() {
     //   pour tous les tokens posés depuis cette fiche
     // ============================================================
     Hooks.on("renderPrototypeTokenConfig", (app, html, data) => {
-        if (!game.settings.get(MOD, "enableTokenAppearance")) return;
+        if (!apparenceActive()) return;
         if (!game.user.isGM) return;
 
         // En v13 l'acteur est accessible via app.document.parent

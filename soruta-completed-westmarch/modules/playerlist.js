@@ -45,8 +45,15 @@ function _ensureToggle() {
 export function PlayerListHooks() {
 
     // ── Repli du panneau des joueurs (bouton fixe, indépendant du mode compact) ──
-    Hooks.once("ready", () => { _ensureToggle(); _applyCollapsed(_isCollapsed()); _refreshToggle(); });
-    Hooks.on("renderPlayers", () => { _ensureToggle(); _applyCollapsed(_isCollapsed()); _refreshToggle(); });
+    const majRepli = () => {
+        let on = true;
+        try { on = game.settings.get(MOD, "enablePlayerListToggle") !== false; } catch {}
+        if (!on) { _toggleBtn?.remove(); _toggleBtn = null; _applyCollapsed(false); return; }
+        _ensureToggle(); _applyCollapsed(_isCollapsed()); _refreshToggle();
+    };
+    Hooks.once("ready", majRepli);
+    Hooks.on("renderPlayers", majRepli);
+    Hooks.on("updateSetting", (st) => { if (st?.key === `${MOD}.enablePlayerListToggle`) majRepli(); });
 
     Hooks.on("renderPlayers", (app, html) => {
         if (!game.settings.get(MOD, "enablePlayerListCompact")) return;

@@ -1215,12 +1215,11 @@ const STEPS_BY_FEATURE = {
             gmOnly:     true
         },
         {
-            beforeShow: _expandWestmarch,
-            target:     "[data-tool='scwmFogReset']",
-            title:      tl("Bouton « Réinitialiser le brouillard »"),
-            text:       `${tl("Cet outil <i class='fa-solid fa-eraser'></i> ouvre une fenêtre pour effacer le brouillard exploré.<br><br>")}`
+            target:     null,
+            title:      tl("Réinitialisation du brouillard"),
+            text:       `${tl("Pour effacer le brouillard exploré : Réglages du module → <strong>Administration du module</strong> → <i class='fa-solid fa-eraser'></i> <strong>Réinitialisation du brouillard</strong>. Elle demande le <strong>mot de passe admin</strong> du module.<br><br>")}`
                       + `${tl("Tu peux réinitialiser <strong>un seul personnage</strong> (choisi dans la liste) ou <strong>tout le monde</strong>. La réinitialisation totale est protégée par plusieurs avertissements et une confirmation à <strong>taper</strong>, car elle est <strong>irréversible</strong> : les zones effacées ne se récupèrent pas, chaque joueur reverra sa carte noire jusqu'à ré-exploration.")}`,
-            position:   "right",
+            position:   "center",
             gmOnly:     true
         },
     ],
@@ -1348,6 +1347,7 @@ const STEPS_BY_FEATURE = {
         {
             beforeShow: _openProtoTokenAppearance,
             target:     ".tuto-proto-token",
+            disabled:   true,   // changement d'apparence temporairement désactivé (token.js)
             title:      tl("Cycle d'apparences"),
             text:       `${tl("La fenêtre ouverte est le <strong>Prototype Token</strong>, onglet <strong>Apparence</strong>. La section <strong>Cycle d'apparences</strong> permet d'ajouter plusieurs images alternatives pour le token. En jeu, le bouton <i class='fa-solid fa-images'></i> dans le HUD (clic droit sur le token) bascule entre ces images — utile pour les tenues, les états visuels ou les formes mineures.")}`,
             position:   "left",
@@ -1392,6 +1392,7 @@ const STEPS_BY_FEATURE = {
         },
         {
             target:   null,
+            disabled: true,     // TGCM temporairement désactivé (tgcm.js)
             title:    tl("Protection TGCM"),
             text:     `${tl("Le bouton <i class='fa-solid fa-shield-halved'></i> dans le HUD d'un token (GM uniquement) le protège de la mort. Un token TGCM ne peut jamais tomber à 0 PV — tout dégât fatal le laisse à 1 PV.")}`,
             position: "center",
@@ -1579,6 +1580,7 @@ export async function startTutorial(selectedSections = null, onComplete = null) 
         if (!include) continue;
 
         const sectionSteps = (STEPS_BY_FEATURE[section] ?? []).filter(s => {
+            if (s.disabled) return false;                   // fonctionnalité gelée
             if (s.gmOnly     && !game.user.isGM) return false;
             if (s.playerOnly &&  game.user.isGM) return false;
             if (experienced  && s.native) return false;   // étape native isolée

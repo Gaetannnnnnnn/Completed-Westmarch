@@ -197,6 +197,7 @@ function getPartyMembers() {
 export function CarnetToolbarHooks() {
     Hooks.on("getSceneControlButtons", (controls) => {
         if (!game.user.isGM) return;
+        try { if (game.settings.get(MOD, "enableExpeditionDate") === false) return; } catch {}
         if (!controls.westmarch) {
             controls.westmarch = {
                 name: "westmarch", title: "WestMarch",

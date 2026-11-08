@@ -27,6 +27,7 @@ export function SiteHooks() {
 
 async function annoncerSite() {
     if (!game.user?.isGM) return;
+    try { if (game.settings.get(MOD, "enableSiteMessage") === false) return; } catch {}
     if ((game.users?.activeGM ?? game.user) !== game.user) return;   // un seul MJ envoie le message
     const version = String(game.modules.get(MOD)?.version ?? "");
     if (game.settings.get(MOD, "siteMessageVersion") === version) return;

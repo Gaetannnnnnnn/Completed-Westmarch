@@ -36,6 +36,7 @@ export const commonPackCraft      = () => game.settings.get(MOD, "commonPackCraf
 // communes, pour qu'elles s'affichent dans la nouvelle section centrale.
 export async function migrateCommonResources() {
     if (!game.user.isGM) return;
+    try { if (game.settings.get(MOD, "enableLegacyMigration") === false) return; } catch {}
     if (game.settings.get(MOD, "commonResourcesMigrated")) return;
     const map = {
         commonFolderPJ:       ["relationsFolderPJ", "bestiaryFolderPJ"],
@@ -561,6 +562,21 @@ export function registerSettings() {
     game.settings.register(MOD, "enableTokenPortraitButton", B(
         tl("Bouton 'Voir le portrait' (HUD du token)"),
         tl("Ajoute un bouton dans le HUD du token qui affiche en grand l'image de la fiche.")));
+    game.settings.register(MOD, "enableCasierGm", B(
+        tl("Casier du MJ (barre WestMarch)"),
+        tl("Bouton « Casier » de la barre WestMarch (MJ) et bouton « Présentations des MJ » (joueurs). Désactivé : les brouillons de session enregistrés « pour plus tard » restent stockés, mais ne sont plus accessibles tant que le Casier est coupé.")));
+    game.settings.register(MOD, "enableExpeditionDate", B(
+        tl("Bouton « Date Expédition » (ouvrir / clôturer)"),
+        tl("Bouton de la barre WestMarch (MJ) qui ouvre ou clôture une expédition datée. Désactivé : plus d'expédition ouverte depuis la barre, donc l'Horloge de party ne peut plus avancer.")));
+    game.settings.register(MOD, "enablePlayerListToggle", B(
+        tl("Bouton pour réduire la liste des joueurs"),
+        tl("Petit bouton fixe qui replie ou déplie la liste des joueurs (chaque utilisateur garde son choix).")));
+    game.settings.register(MOD, "enableExportDialog", B(
+        tl("Export d'acteur avec choix"),
+        tl("Remplace l'option « Exporter » du clic droit sur un acteur par une fenêtre qui propose d'exporter avec ou sans les données du module. Désactivé : l'export natif de Foundry revient.")));
+    game.settings.register(MOD, "enableChatTools", B(
+        tl("Outils de chat du MJ"),
+        tl("Boutons du MJ sous le chat : effacer les messages de sa party uniquement, importer des messages (JSON / .txt), et export du chat au choix en .txt ou JSON.")));
     game.settings.register(MOD, "enableTokenAccroche", B(
         tl("Accrocher un token à un PJ (porter / mener)"),
         tl("Bouton du HUD du token (MJ) : accroche un PNJ, un objet ou un autre PJ au token d'un PJ. Quand le joueur se déplace, le token accroché suit tout seul, sans droit à donner : posé sur le PJ (porter) ou derrière lui (mener), toujours par le chemin du PJ, donc sans traverser les murs. Nécessite un MJ connecté.")));
@@ -938,8 +954,27 @@ export function registerSettings() {
     // Fenêtre « À propos » — TOUJOURS enregistrée et visible par TOUS (joueurs
     // inclus), même module non activé/désactivé : c'est la seule entrée publique,
     // et elle contient le champ code (activation manquante → réactivation possible).
-    registerAboutMenu();
-    registerDiagnosticMenu();   // toujours dispo (MJ), même sans licence
+    // ÉLÉMENTS DE BASE DU MODULE : chacun a son interrupteur (activés par défaut).
+    game.settings.register(MOD, "enableDiagnosticMenu", B(
+        tl("Menu « Diagnostic »"),
+        tl("Bouton « Diagnostic » des réglages du module (versions, licence, modules nécessaires, problèmes récents). Utile pour ouvrir un ticket de support."),
+        true, { requiresReload: true }));
+    game.settings.register(MOD, "enableAdminMenu", B(
+        tl("Menu « Administration du module »"),
+        tl("Fenêtre des réglages pour le mot de passe admin, la préparation de l'ouverture du serveur et la réinitialisation du brouillard. Désactivé : ces actions ne sont plus accessibles."),
+        true, { requiresReload: true }));
+    game.settings.register(MOD, "enableSiteMessage", B(
+        tl("Message du site après une mise à jour"),
+        tl("Message privé aux MJ dans le chat, une fois par version, avec le lien de la page du module sur le site d'Althéia.")));
+    game.settings.register(MOD, "enableLegacyMigration", B(
+        tl("Reprise des anciennes données"),
+        tl("Au chargement d'un MJ, recopie une seule fois les données et réglages des anciens modules séparés vers ce module. Inutile sur un monde neuf.")));
+    game.settings.register(MOD, "enableOwnershipScroll", B(
+        tl("Fenêtre des droits défilante"),
+        tl("La fenêtre des droits d'un document (Configurer les droits) défile quand la liste des joueurs est trop longue.")));
+
+    registerAboutMenu();   // toujours : c'est là qu'on saisit le code de licence
+    if (game.settings.get(MOD, "enableDiagnosticMenu")) registerDiagnosticMenu();
 
     // Les menus MJ (restricted:true, dont « À propos & protection ») restent
     // enregistrés dès que le CODE D'ACTIVATION est valide — même si le module est
@@ -1295,7 +1330,7 @@ const CATEGORIES = [
       keys: ["tmEnabled","tmSkillBase","tmAddAbilityMod","tmBonusMaitrise","tmBonusExpertise","tmBonusTools","tmRollMinDays","tmReliableTalent","tmSkillFormula","tmCraftNonMagicCostDiv","tmCraftNonMagicDaysPerGp","tmCraftNonMagicCostFormula","tmCraftNonMagicDaysFormula","tmSingleUseFactor","tmScrollTable","tmMagicTable","tmRollTable"] },
     { firstKey: "enableTokenAppearance", icon: "fa-toolbox",         title: "Toolkit",
       desc: tl("Apparences de tokens, transformations, tailles Large, TGCM, utilitaires GM, templates AoE, boutiques MEJ et réapprovisionnement."),
-      keys: ["enableTokenAppearance","enableTokenPortraitButton","enableTokenAccroche","enableGmNotesNpc","enableTgcm","enableCompanions","enableFolderMove","enableToolAbilityFix","enableConnStats","enablePlayerListCompact","enableTemplateSnap","enableFollowTemplates","enableMejShopFix","enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
+      keys: ["enableCasierGm","enableExpeditionDate","enableChatTools","enableExportDialog","enablePlayerListToggle","enableTokenAppearance","enableTokenPortraitButton","enableTokenAccroche","enableGmNotesNpc","enableTgcm","enableCompanions","enableFolderMove","enableToolAbilityFix","enableConnStats","enablePlayerListCompact","enableTemplateSnap","enableFollowTemplates","enableMejShopFix","enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
     { firstKey: "relationsEnabled", master: "relationsEnabled",      icon: "fa-heart",           title: tl("Fiche PJ — Relations"),
       desc: tl("Onglet Relations : liens entre personnages, détection automatique des rencontres, anonymisation."),
       keys: ["relationsEnabled","relationsAnonymization","relationsLastSeen"] },
@@ -1314,6 +1349,9 @@ const CATEGORIES = [
     { firstKey: "rangeFixEnabled", master: "rangeFixEnabled",       icon: "fa-bullseye",        title: tl("Midi Range Fix"),
       desc: tl("Correction du calcul de portée midi-qol pour les tokens Large et plus."),
       keys: ["rangeFixEnabled","rangeAdjust"] },
+    { firstKey: "enableDiagnosticMenu", icon: "fa-gear", title: tl("Module — éléments de base"),
+      desc: tl("Menus et automatismes du module lui-même : diagnostic, administration, message après mise à jour, reprise des anciennes données, fenêtre des droits. La fenêtre « À propos » reste toujours là : c'est elle qui reçoit le code de licence."),
+      keys: ["enableDiagnosticMenu","enableAdminMenu","enableSiteMessage","enableLegacyMigration","enableOwnershipScroll"] },
     { firstKey: "serverName", master: "tutoEnabled", icon: "fa-circle-question", title: tl("Tutoriel"),
       desc: tl("Fenêtre de bienvenue et guide interactif, configurable section par section."),
       keys: ["tutoEnabled","serverName","tutoBarreWestmarch","tutoTourFiche","tutoNoteGm","tutoMonPerso","tutoBestiary","tutoRelations","tutoCarnet","tutoCasier","tutoCues","tutoBoutiques","tutoTempsMorts","tutoApparenceTokens","tutoOutilsGm","tutoAccessibilite","tutoEchange","tutoTransformation","tutoCompagnons","tutoPantheon","showWelcome"] },
@@ -1323,7 +1361,7 @@ const ACCENT = "#e67e22";
 
 // Réglages GELÉS : affichés grisés/désactivés dans la configuration (on ne peut
 // pas les modifier). Utilisé pour une fonctionnalité temporairement coupée.
-const FROZEN_SETTINGS = new Set(["enableTgcm"]);
+const FROZEN_SETTINGS = new Set(["enableTgcm", "enableTokenAppearance"]);
 
 // Schémas des tables de temps morts éditées en grille (champs structurés).
 const TM_TABLE_SCHEMAS = {
@@ -1459,7 +1497,7 @@ const CONFIG_GROUPS = [
     { title: "Personnalisation & interface", icon: "fa-sliders",
       cats: ["enableChatCards", "enableTokenAppearance", "uihide", "tweakTree", "companionProfiles"] },
     { title: tl("Aide & découverte"), icon: "fa-circle-question",
-      cats: ["serverName"] }
+      cats: ["serverName", "enableDiagnosticMenu"] }
 ];
 
 function _groupedCategories() {

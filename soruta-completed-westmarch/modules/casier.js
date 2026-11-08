@@ -628,7 +628,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
     async #confirmReset(key) {
         const def = this.#resetDefs()[key];
         if (!def) return;
-        if (key === "expeditionRevealedZones" && !(await verifierAdmin(tl("Effacer la carte d'expédition")))) return;
+        if (key === "expeditionRevealedZones" && !(await verifierAdmin(tl("Réinitialiser les zones révélées de la carte")))) return;
         const DV2 = foundry.applications.api.DialogV2;
         const content = `
             <p>${tl("Tu vas effacer <strong>{0}</strong> pour <strong>TOUS les MJ</strong>.", esc(def.label))}</p>
@@ -1540,9 +1540,11 @@ export function openGmPresentations() {
     }).catch(() => {});
 }
 
+const casierActif = () => { try { return game.settings.get(MOD, "enableCasierGm") !== false; } catch { return true; } };
+
 export function CasierHooks() {
     Hooks.on("getSceneControlButtons", (controls) => {
-        if (!game.user.isGM) return;
+        if (!game.user.isGM || !casierActif()) return;
         if (!controls.westmarch) {
             controls.westmarch = { name: "westmarch", title: "WestMarch", icon: "fa-solid fa-hammer", layer: "tokens", tools: {} };
         }
@@ -1559,6 +1561,7 @@ export function CasierHooks() {
     // Bouton JOUEUR : voir les présentations des MJ (lecture seule).
     Hooks.on("getSceneControlButtons", (controls) => {
         if (game.user.isGM) return;   // le MJ a déjà le Casier complet
+        if (!casierActif()) return;
         if (!controls.westmarch) {
             controls.westmarch = { name: "westmarch", title: "WestMarch", icon: "fa-solid fa-hammer", layer: "tokens", tools: {} };
         }

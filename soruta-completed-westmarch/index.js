@@ -250,6 +250,16 @@ Hooks.on("init", () => {
     // lui-même le setting tutoEnabled (voir toolbar.js) : on l'enregistre
     // donc toujours, sans le gater ici.
     registerTutorielButton();
+
+    // Onglet WestMarch sans aucun outil visible (tout est désactivé, ou rien
+    // ne concerne cet utilisateur) : on le retire de la barre. Enregistré EN
+    // DERNIER pour passer après tous les hooks qui y ajoutent des outils.
+    Hooks.on("getSceneControlButtons", (controls) => {
+        const wm = controls?.westmarch;
+        if (!wm) return;
+        const outils = Object.values(wm.tools ?? {}).filter(t => t && t.visible !== false);
+        if (!outils.length) delete controls.westmarch;
+    });
 });
 
 Hooks.on("ready", () => {

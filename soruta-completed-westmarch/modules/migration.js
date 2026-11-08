@@ -208,6 +208,7 @@ export function MigrationHooks() {
         // Seul le GM actif effectue les écritures (évite les doublons multi-clients).
         const primaryGM = game.users?.activeGM ?? game.users?.find(u => u.isGM && u.active);
         if (!game.user.isGM || (primaryGM && primaryGM !== game.user)) return;
+        try { if (game.settings.get(MOD, "enableLegacyMigration") === false) return; } catch {}
 
         const done = game.settings.get(MOD, "migrationVersion");
         if (done >= MIGRATION_VERSION) return;

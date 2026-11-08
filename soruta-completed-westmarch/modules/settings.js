@@ -222,8 +222,18 @@ export function registerSettings() {
     // ============================================================
     game.settings.register(MOD, "enableStarXp", B(
         tl("Système d'étoiles (XP par étoiles)"),
-        tl("Remplace l'XP chiffrée par des étoiles. À la clôture de session, le MJ attribue 1 à 3 étoiles ; chaque niveau coûte un nombre d'étoiles réglé dans le tableau ci-dessous. Sur la fiche, l'XP est remplacée par un compteur d'étoiles."),
+        tl("Remplace l'XP chiffrée par des étoiles. À la clôture de session, le MJ attribue des étoiles (le maximum se règle ci-dessous) ; chaque niveau coûte un nombre d'étoiles réglé dans le tableau. Sur la fiche, l'XP est remplacée par un compteur d'étoiles."),
         false));
+    // Panneau de configuration : n'afficher que ce qui est actif (préférence
+    // de chaque MJ, cochée par défaut ; voir openConfigHub).
+    game.settings.register(MOD, "hubActifsSeulement", {
+        scope: "user", config: false, type: Boolean, default: true, requiresReload: false
+    });
+    game.settings.register(MOD, "starXpMaxAward", {
+        name: tl("Étoiles maximum par session"),
+        hint: tl("Nombre d'étoiles que le MJ peut donner au plus dans « Clore la session » (et dans le Casier pour une attribution en attente). 3 par défaut."),
+        scope: "world", config: false, type: Number, default: 3, range: { min: 1, max: 10, step: 1 }, requiresReload: false
+    });
     game.settings.register(MOD, "starXpLevels", {
         scope: "world", config: false, type: Array, default: Array.from({ length: 19 }, () => 3)
     });
@@ -1245,8 +1255,8 @@ const CATEGORIES = [
       desc: tl("Date propre à chaque party pendant l'expédition, avancée par le GM par heures ou par jours. Chaque option se coupe indépendamment : rations, alerte de faim, rappel de l'eau, résumé dans le chat, rattrapage du calendrier global à la clôture, obscurité des scènes. Nécessite le Système de Party."),
       keys: ["enablePartyTime","partyTimeRealTime","partyTimeCombatRounds","partyTimeShowClock","partyTimeRations","partyTimeHungerWarning","partyTimeWaterReminder","partyTimeChatSummary","partyTimeCatchUp","enablePartyDarkness","partyDarknessNight","partyDarknessSunrise","partyDarknessSunset"] },
     { firstKey: "enableStarXp", master: "enableStarXp", icon: "fa-star", title: tl("Système d'étoiles"),
-      desc: tl("XP par étoiles : le MJ attribue 1 à 3 étoiles à la clôture de session ; le tableau fixe le coût en étoiles de chaque niveau (avec le total = nombre de sessions). Sur la fiche, l'XP est remplacée par un compteur d'étoiles."),
-      keys: ["enableStarXp","starXpLevels"] },
+      desc: tl("XP par étoiles : le MJ attribue des étoiles à la clôture de session (de 1 au maximum réglé par le curseur) ; le tableau fixe le coût en étoiles de chaque niveau (avec le total = nombre de sessions). Sur la fiche, l'XP est remplacée par un compteur d'étoiles."),
+      keys: ["enableStarXp","starXpMaxAward","starXpLevels"] },
     { firstKey: "xpProgEnabled", master: "xpProgEnabled", icon: "fa-chart-line", title: "Progression XP (D&D 5e)",
       desc: tl("Pour jouer avec l'XP de base : niveau max, XP par session (proposée dans « Clore la session » avec les bonus de plage), sessions par semaine, et paliers de niveau : ceux de D&D par défaut (le module montre le temps qu'il faut) ou mis à l'échelle d'un objectif en mois réels, en gardant la courbe de D&D. Tableau modifiable niveau par niveau. Le niveau max autorisé s'applique toujours, même interrupteur éteint et même avec le système d'étoiles."),
       keys: ["xpProgEnabled","xpLevelCap","xpPerSession","xpThresholdMode","xpMonthsToCap","xpSessionsPerWeek","xpGrowthOverrides","xpBonusRanges"] },
@@ -1485,21 +1495,72 @@ function registerConfigHub() {
 const _catIsInlinable = (cat) => Array.isArray(cat.keys) && cat.keys.length > 0 || !!cat.tree;
 const _hubHostId = (cat) => `scwm-hub-cat-${cat.firstKey}`;
 
+// ── Filtre « Uniquement l'actif » du panneau ───────────────────
+// Réglages non booléens qui n'ont de sens que si une case est cochée : masqués
+// avec elle.
+const HUB_DEPENDANCES = {
+    sessionLogWebhookUrl: "enableSessionLog", sessionLogForum: "enableSessionLog", sessionTags: "enableSessionLog",
+    shopRestockDays: "enableMejRestock", shopRestockDaysCommon: "enableMejRestock", shopRestockDaysUncommon: "enableMejRestock",
+    shopRestockDaysRare: "enableMejRestock", shopRestockDaysVeryRare: "enableMejRestock", shopRestockDaysLegendary: "enableMejRestock",
+    ...Object.fromEntries(PARTYDARK_SUB_SETTINGS.map(k => [k, "enablePartyDarkness"]))
+};
+const _hubFiltreActif = () => { try { return game.settings.get(MOD, "hubActifsSeulement") !== false; } catch { return true; } };
+const _bool = (k) => { try { return game.settings.settings.get(`${MOD}.${k}`)?.type === Boolean ? !!game.settings.get(MOD, k) : null; } catch { return null; } };
+
+function _hubMarquerInactifs(root) {
+    // 1. Lignes : case décochée, ou réglage dépendant d'une case décochée.
+    root.querySelectorAll(".scwm-hub-cat .scwm-set[data-key]").forEach(el => {
+        const k = el.dataset.key;
+        if (_bool(k) === false || (HUB_DEPENDANCES[k] && _bool(HUB_DEPENDANCES[k]) === false)) el.setAttribute("data-scwm-off", "");
+    });
+    // 2. Branches de l'arbre des modifications ciblées sans aucune feuille active.
+    [...root.querySelectorAll(".scwm-hub-cat details")].reverse().forEach(d => {
+        if (!d.querySelector(".scwm-set:not([data-scwm-off])")) d.setAttribute("data-scwm-off", "");
+    });
+    // 3. Catégorie dont tout est désactivé (et sans autre champ hors lignes).
+    root.querySelectorAll(".scwm-hub-cat:not([data-scwm-off])").forEach(cat => {
+        const body = cat.querySelector(".scwm-hub-cat-body");
+        const lignes = body ? [...body.querySelectorAll(".scwm-set")] : [];
+        if (!lignes.length || lignes.some(l => !l.hasAttribute("data-scwm-off"))) return;
+        const autres = [...body.querySelectorAll("input, select, textarea")].some(i => !i.closest(".scwm-set"));
+        if (!autres) cat.setAttribute("data-scwm-off", "");
+    });
+    // 4. Thèmes sans catégorie visible : bouton de navigation masqué aussi.
+    root.querySelectorAll(".scwm-hub-group").forEach(sec => {
+        if (sec.querySelector(".scwm-hub-cat:not([data-scwm-off]), .scwm-hub-launch:not([data-scwm-off])")) return;
+        sec.setAttribute("data-scwm-off", "");
+        root.querySelector(`.scwm-hub-navbtn[data-group="${sec.dataset.group}"]`)?.setAttribute("data-scwm-off", "");
+    });
+}
+
+function _hubAppliquerFiltre(root, on) {
+    root.classList.toggle("scwm-filtre-actifs", on);
+    const n = root.querySelectorAll(".scwm-hub-scroll .scwm-set[data-scwm-off], .scwm-hub-cat[data-scwm-off], .scwm-hub-launch[data-scwm-off]").length;
+    const lbl = root.querySelector(".scwm-hub-filtre-n");
+    if (lbl) lbl.textContent = on && n ? ` ${tl("({0} masqués)", n)}` : "";
+    // Thème affiché devenu masqué → on passe au premier thème visible.
+    const actif = root.querySelector(".scwm-hub-navbtn.active");
+    if (on && actif?.hasAttribute("data-scwm-off")) root.querySelector(".scwm-hub-navbtn:not([data-scwm-off])")?.click();
+}
+
 export async function openConfigHub() {
     const groups = _groupedCategories();
 
+    const filtreOn = _hubFiltreActif();
     const groupHtml = groups.map((g, gi) => {
         const cats = g.cats.map(cat => {
+            // Catégorie coupée par son interrupteur principal → masquée par le filtre.
+            const off = cat.master && !game.settings.get(MOD, cat.master) ? " data-scwm-off" : "";
             if (!_catIsInlinable(cat)) {
                 // Catégorie à éditeur dédié (Profils compagnons, Interface—Masquer…).
-                return `<div class="scwm-hub-launch">
+                return `<div class="scwm-hub-launch"${off}>
                     <div><i class="fa-solid ${cat.icon}"></i> <strong>${cat.title}</strong>
                         <div class="scwm-hub-launch-desc">${cat.desc ?? ""}</div></div>
                     <button type="button" class="scwm-hub-open" data-cat="${cat.firstKey}">
                         ${tl("<i class=\"fa-solid fa-up-right-from-square\"></i> Ouvrir")}</button>
                 </div>`;
             }
-            return `<details class="scwm-hub-cat">
+            return `<details class="scwm-hub-cat"${off}>
                 <summary><i class="scwm-hub-caret fa-solid fa-caret-right"></i><i class="fa-solid ${cat.icon}"></i> ${cat.title}</summary>
                 <div class="scwm-hub-cat-body">${buildCategoryForm(cat, _hubHostId(cat), { banner: false })}</div>
             </details>`;
@@ -1514,9 +1575,12 @@ export async function openConfigHub() {
         `<button type="button" class="scwm-hub-navbtn ${gi === 0 ? "active" : ""}" data-group="${gi}">
             <i class="fa-solid ${g.icon}"></i><span>${g.title}</span></button>`).join("");
 
+    const filtre = `<label class="scwm-hub-filtre" title="${tl("Masque les fonctions et options désactivées pour ne gérer au quotidien que ce qui est actif. Décoche pour tout voir (et réactiver une fonction).")}">
+        <input type="checkbox" class="scwm-hub-filtre-cb" ${filtreOn ? "checked" : ""}>
+        <span>${tl("Uniquement l'actif")}<small class="scwm-hub-filtre-n"></small></span></label>`;
     const content = `
-    <div id="scwm-hub" class="scwm-hub">
-        <div class="scwm-hub-nav">${nav}</div>
+    <div id="scwm-hub" class="scwm-hub ${filtreOn ? "scwm-filtre-actifs" : ""}">
+        <div class="scwm-hub-nav">${filtre}${nav}</div>
         <div class="scwm-hub-scroll">${groupHtml}</div>
     </div>`;
 
@@ -1544,6 +1608,15 @@ export async function openConfigHub() {
             const host = document.getElementById(_hubHostId(cat));
             if (host) { try { wireCategoryForm(cat, host); } catch (err) { journal.avert(`[${MOD}] wire hub ${cat.firstKey}`, err); } }
         }
+        // Filtre « Uniquement l'actif » : marque ce qui est désactivé À L'OUVERTURE
+        // (une case décochée pendant l'édition reste visible jusqu'à la prochaine).
+        _hubMarquerInactifs(root);
+        const cb = root.querySelector(".scwm-hub-filtre-cb");
+        cb?.addEventListener("change", async () => {
+            _hubAppliquerFiltre(root, cb.checked);
+            try { await game.settings.set(MOD, "hubActifsSeulement", cb.checked); } catch (err) { journal.avert(`[${MOD}] hubActifsSeulement`, err); }
+        });
+        _hubAppliquerFiltre(root, !!cb?.checked);
     };
 
     await foundry.applications.api.DialogV2.wait({
@@ -1714,6 +1787,13 @@ function settingControlHtml(key) {
         // Nom de dossier saisi librement (PAS un sélecteur : le même nom sert
         // dans Acteurs, Journaux et Scènes).
         control = `<input type="text" name="${key}" value="${escapeAttr(val ?? "")}" placeholder="${tl("Nom du dossier parent (ex. Game Master)")}" style="width:100%;">`;
+    } else if (key === "starXpMaxAward") {
+        // Curseur 1 à 10 + valeur affichée en étoiles.
+        const r = cfg.range ?? { min: 1, max: 10, step: 1 };
+        const v = Math.min(r.max, Math.max(r.min, Math.round(Number(val)) || 3));
+        control = `<div style="display:flex;align-items:center;gap:8px;">
+            <input type="range" name="${key}" class="scwm-star-max" min="${r.min}" max="${r.max}" step="${r.step}" value="${v}" style="flex:1;">
+            <span class="scwm-star-max-v" style="flex:0 0 64px;text-align:right;font-weight:600;color:#e6be3c;">${v} ★</span></div>`;
     } else if (key === "mondeTailleEpingle") {
         // Curseur + valeur affichée (8 à 512 px).
         const v = Math.min(512, Math.max(8, Number(val) || 32));
@@ -1805,6 +1885,12 @@ function wireCategoryForm(category, root) {
         if (!input) return;
         const FP = foundry.applications?.apps?.FilePicker?.implementation ?? globalThis.FilePicker;
         new FP({ type: btn.dataset.fptype || "image", current: input.value, callback: (path) => { input.value = path; } }).browse();
+    }));
+
+    // Système d'étoiles : maximum par session (valeur affichée à côté du curseur).
+    root.querySelectorAll(".scwm-star-max").forEach(r => r.addEventListener("input", () => {
+        const v = r.parentElement?.querySelector(".scwm-star-max-v");
+        if (v) v.textContent = `${r.value} ★`;
     }));
 
     // Registre du monde : taille des épingles (valeur affichée à côté du curseur).

@@ -18,6 +18,7 @@ import { MOD } from "./const.js";
 
 import { journal } from "./log.js";
 import { tl, memeNom } from "./i18n.js";
+import { verifierAdmin } from "./adminpass.js";
 const FLAG_EXPLORED = "exploredHexes";           // sur l'acteur personnage
 const TEMPLATE_GROUP_NAME = tl("Token à copier et rennomer");
 
@@ -566,8 +567,12 @@ async function promptRenameGroup(actor) {
     catch (e) { journal.avert(tl("[{0}] Renommage du groupe échoué :", MOD), e); }
 }
 
+// Effacement de la carte d'expédition, depuis les réglages (Administration).
+export async function ouvrirEffacementCarte() { return openFogResetDialog(); }
+
 async function openFogResetDialog() {
     if (!game.user.isGM) return;
+    if (!(await verifierAdmin(tl("Effacer la carte d'expédition")))) return;
     const DialogV2 = foundry.applications.api.DialogV2;
 
     const chars = game.actors.filter(a => a.type === "character" && a.hasPlayerOwner)

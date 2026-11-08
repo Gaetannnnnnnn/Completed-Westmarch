@@ -218,6 +218,67 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
 
+v6.7.6 | 2026-11-08
+   - Mot de passe admin du module : Réglages du module → « Administration du
+     module » (MJ). Il protège « Préparer l'ouverture du serveur » et
+     l'effacement de la carte d'expédition (brouillard exploré, d'un
+     personnage ou de tous : bouton de la barre WestMarch ; zones révélées :
+     bouton de l'onglet Expéditions du Casier). Créé par le premier MJ qui
+     lance une action protégée, ou depuis la fenêtre d'administration ; on
+     peut le changer en donnant l'ancien. 6 caractères minimum, commun à
+     tous les MJ. Seule son empreinte est enregistrée (PBKDF2-SHA-256, sel
+     aléatoire, réglage monde « adminPass »), jamais le mot de passe. Après
+     une saisie correcte, il n'est pas redemandé pendant 5 minutes.
+     Protection côté navigateur : elle empêche les erreurs et les abus
+     simples, pas un MJ qui efface le réglage depuis la console.
+   - « Préparer l'ouverture du serveur » passe du Casier (Dashboard) à la
+     fenêtre « Administration du module » des réglages.
+   - Contenu homebrew (Plutonium) : l'ancienne méthode (copier l'adresse
+     du fichier du module dans « Additional Homebrew Files ») est retirée,
+     car elle ne marchait que pour ceux qui l'avaient ajoutée eux-mêmes. Le
+     menu des réglages, désormais réservé au MJ (« Installer / vérifier »),
+     donne la marche à suivre de l'index homebrew local de Plutonium :
+     lien de homebrew/westmarch-perso.json dans Data/assets/homebrew/,
+     index.json {"toImport":["westmarch-perso.json"]}, option « Load Local
+     Homebrew Index », Blocklist et Contrôle des sources. Bouton « Vérifier
+     ce serveur » : teste index.json et le fichier servis.
+   - Système d'étoiles : curseur « Étoiles maximum par session » (1 à 10,
+     3 par défaut, réglage monde starXpMaxAward) dans la catégorie Système
+     d'étoiles. Il fixe le nombre d'étoiles du sélecteur de « Clore la
+     session » et de l'attribution en attente du Casier (une valeur déjà
+     choisie au-dessus du nouveau maximum reste affichée).
+   - Panneau de configuration : case « Uniquement l'actif » en haut de la
+     colonne des thèmes, cochée par défaut (préférence de chaque MJ,
+     réglage utilisateur hubActifsSeulement). Elle masque les fonctions
+     coupées par leur interrupteur principal, les options décochées (et les
+     champs qui en dépendent : webhook du journal de session, délais de
+     réapprovisionnement, heures d'obscurité), les branches vides des
+     modifications ciblées et les thèmes sans rien d'actif. Calculé à
+     l'ouverture : une case décochée pendant l'édition reste visible. Le
+     lien « Tout activer » est caché tant que le filtre est actif. Décocher
+     la case affiche tout, pour réactiver une fonction.
+   - Registre du monde : le dossier des lieux n'est plus créé en double
+     selon la langue (« Lieux » pour un MJ en français, « Places » pour un
+     MJ en anglais). Le nom par défaut est reconnu dans les deux langues et
+     le dossier retenu porte un flag (mondeDossier) qui le retrouve ensuite
+     quel que soit le client. Les doublons existants sont fusionnés au
+     prochain chargement d'un MJ : fiches et sous-dossiers déplacés dans le
+     dossier retenu, doublon vide supprimé. Même correction pour retrouver
+     les compendiums « Registre — PNJ » / « Registre — Organisations » (le
+     nom de comparaison était traduit, donc jamais reconnu dans l'autre
+     langue).
+   - Registre du monde, fiche PNJ : bouton « Créer l'acteur » à côté de la
+     zone « Acteur lié » (affiché tant qu'aucun acteur n'est lié). Il crée
+     un acteur PNJ (type npc) au nom saisi dans la fiche, rangé dans le
+     dossier des PNJ de « Dossiers & Compendiums », invisible des joueurs,
+     et le lie tout de suite dans les deux sens (comme un acteur glissé),
+     même si la fenêtre est ensuite annulée. Lien « ouvrir » pour remplir
+     sa fiche. Glisser un acteur existant reste possible.
+   Fichiers : modules/adminpass.js (nouveau), modules/casier.js,
+   modules/map.js, modules/homebrew.js, modules/monde.js, modules/starxp.js,
+   modules/settings.js, modules/tutorial.js, modules/i18n-en.js,
+   styles/settings-hub.css, index.js.
+
 v6.7.5 | 2026-11-08
    - Casier → Dashboard : bouton « Préparer l'ouverture du serveur… » pour
      effacer d'un coup les données laissées par les tests. Une fenêtre liste,

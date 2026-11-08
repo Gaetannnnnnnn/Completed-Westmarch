@@ -39,6 +39,7 @@ import { PolymorphHooks }    from "./modules/polymorph.js";
 import { TokenHooks }        from "./modules/token.js";
 import { AccrocheHooks }     from "./modules/accroche.js";
 import { FunnyStatsHooks }   from "./modules/funnystats.js";
+import { AdminPassHooks }    from "./modules/adminpass.js";
 import { ItemHooks }         from "./modules/items.js";
 import { TgcmHooks }         from "./modules/tgcm.js";
 import { FolderMoveHooks }   from "./modules/foldermove.js";
@@ -126,6 +127,7 @@ Hooks.on("init", () => {
 
     registerLangueSetting();   // langue du module (par utilisateur), avant tout le reste
     registerSettings();
+    AdminPassHooks();          // mot de passe admin + menu « Administration du module »
     registerLogSettings();   // mode verbeux (par joueur)
 
     // --- Langue : anglais par défaut, français pour les clients en français ---

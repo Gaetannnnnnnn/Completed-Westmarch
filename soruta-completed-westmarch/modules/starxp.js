@@ -2,7 +2,7 @@
 // starxp.js — Système d'XP par étoiles (WestMarch)
 //
 // Remplace l'XP chiffrée par un compteur d'étoiles. À la clôture de
-// session, le MJ attribue 1 à 3 étoiles selon la difficulté (dans la
+// session, le MJ attribue 1 à N étoiles selon la difficulté (dans la
 // même fenêtre « Clore la session » qui servait à l'XP). Chaque niveau
 // a un coût en étoiles, réglé dans un tableau (Paramètres → Système
 // d'étoiles) qui affiche le TOTAL (= nombre de sessions).
@@ -12,6 +12,8 @@
 //   la validation MJ existante (flag pendingLevelUp + whisper MJ).
 // - Sur la fiche PJ, le champ d'XP est remplacé par un compteur
 //   d'étoiles jusqu'au prochain niveau.
+// - N (maximum d'étoiles par session) se règle avec un curseur
+//   (starXpMaxAward, 1 à 10, 3 par défaut).
 // - Toute la fonctionnalité est désactivable en un clic (enableStarXp).
 //
 // © 2026 Soruta.
@@ -24,6 +26,15 @@ import { tl } from "./i18n.js";
 
 const MAX_LEVEL   = 20;
 const DEFAULT_STARS = 3;   // coût par défaut d'un niveau (éditable)
+export const STAR_AWARD_MIN = 1;
+export const STAR_AWARD_MAX = 10;   // borne du curseur des réglages
+
+// Nombre maximum d'étoiles attribuables à la clôture d'une session (réglage).
+export function maxEtoilesSession() {
+    let n = 3;
+    try { n = Math.round(Number(game.settings.get(MOD, "starXpMaxAward"))) || 3; } catch {}
+    return Math.min(STAR_AWARD_MAX, Math.max(STAR_AWARD_MIN, n));
+}
 
 // ── État global : la fonctionnalité est-elle active ? ──
 export function starXpEnabled() {
@@ -380,10 +391,11 @@ export function StarXpHooks() {
 }
 
 // ── Intégration à la fenêtre « Clore la session » ───────────
-// Bloc de sélection 1–3 étoiles (appliqué à toute la party).
+// Bloc de sélection 1–N étoiles (N = maxEtoilesSession(), appliqué à toute la party).
 export function starAwardBlockHtml(pcs) {
     const names = (pcs ?? []).map(p => p.name).join(", ");
-    const stars = [1, 2, 3].map(n =>
+    const max = maxEtoilesSession();
+    const stars = Array.from({ length: max }, (_, i) => i + 1).map(n =>
         `<button type="button" class="scwm-star-pick" data-n="${n}"
             style="background:none;border:none;cursor:pointer;font-size:26px;line-height:1;padding:0 2px;color:#bbb;">★</button>`
     ).join("");
@@ -391,7 +403,7 @@ export function starAwardBlockHtml(pcs) {
     <div class="scwm-star-award" style="margin-bottom:10px;">
         <p style="margin:0 0 4px;font-weight:bold;">${tl("Étoiles de la session (difficulté)")}</p>
         <p style="margin:0 0 6px;font-size:.82em;color:#aaa;">${tl("Attribuées à toute la party{0}.", names ? ` : ${names}` : "")}</p>
-        <div class="scwm-star-row" style="display:flex;align-items:center;gap:6px;">
+        <div class="scwm-star-row" style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;">
             ${stars}
             <span class="scwm-star-count" style="margin-left:8px;font-weight:600;">${tl("1 étoile")}</span>
         </div>
@@ -417,6 +429,6 @@ export function wireStarAwardBlock(root) {
 
 export function readStarAward(root) {
     const v = root?.querySelector(".scwm-star-award .scwm-star-value")?.value;
-    const n = Math.max(1, Math.min(3, Math.round(Number(v) || 1)));
+    const n = Math.max(1, Math.min(maxEtoilesSession(), Math.round(Number(v) || 1)));
     return n;
 }

@@ -38,7 +38,7 @@
 import { MOD } from "./const.js";
 import { journal } from "./log.js";
 import { expeditionSceneIds, getExplored, zonesMap } from "./map.js";
-import { tl, locale, memeNom } from "./i18n.js";
+import { tl, locale, memeNom, nomsPossibles } from "./i18n.js";
 
 const MEJ = "monks-enhanced-journal";
 const NONE = () => CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE;
@@ -46,9 +46,9 @@ const OBSERVER = () => CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER;
 const HISTORIQUE_AFFICHE = 30;  // lignes écrites dans le texte de la page
 
 export const TYPES = {
-    person:       { label: tl("PNJ"),      pluriel: tl("PNJ"),           icon: "fa-user",         packKey: "mondePackPerson", packFolderKey: "mondePackPersonFolder", packLabel: tl("Registre — PNJ"), packLabelFr: tl("Registre — PNJ") },
-    place:        { label: tl("Lieu"),         pluriel: tl("Lieux"),         icon: "fa-location-dot", dossierKey: "mondeFolderPlace", dossier: tl("Lieux") },
-    organization: { label: tl("Organisation"), pluriel: tl("Organisations"), icon: "fa-people-group", packKey: "mondePackOrg", packFolderKey: "mondePackOrgFolder", packLabel: tl("Registre — Organisations"), packLabelFr: tl("Registre — Organisations") }
+    person:       { label: tl("PNJ"),      pluriel: tl("PNJ"),           icon: "fa-user",         packKey: "mondePackPerson", packFolderKey: "mondePackPersonFolder", packLabel: tl("Registre — PNJ"), packLabelFr: "Registre — PNJ" },
+    place:        { label: tl("Lieu"),         pluriel: tl("Lieux"),         icon: "fa-location-dot", dossierKey: "mondeFolderPlace", dossier: tl("Lieux"), dossierFr: "Lieux" },
+    organization: { label: tl("Organisation"), pluriel: tl("Organisations"), icon: "fa-people-group", packKey: "mondePackOrg", packFolderKey: "mondePackOrgFolder", packLabel: tl("Registre — Organisations"), packLabelFr: "Registre — Organisations" }
 };
 
 export const RUBRIQUES_DEFAUT = {
@@ -690,13 +690,50 @@ export function enregistrerQueryBanniere() {
 // ============================================================
 // Écriture
 // ============================================================
+// Le nom par défaut du dossier dépend de la langue du client (« Lieux » /
+// « Places ») : sans précaution, un MJ en français et un MJ en anglais créaient
+// chacun le leur. Le dossier du registre porte donc un flag (mondeDossier = type)
+// et le nom par défaut est reconnu dans les deux langues.
+const racinesJournaux = () => game.folders.filter(f => f.type === "JournalEntry" && !f.folder);
+function nomDossier(type) {
+    const t = TYPES[type];
+    const nom = String(lire(t.dossierKey, t.dossier) || "").trim();
+    return { nom, parDefaut: !!nom && memeNom(nom, t.dossierFr) };
+}
+// Tous les dossiers qui sont « le » dossier de ce type : marqués, ou portant le
+// nom réglé (dans l'une des deux langues s'il s'agit du nom par défaut).
+function dossiersCandidats(type) {
+    const { nom, parDefaut } = nomDossier(type);
+    if (!nom) return [];
+    const noms = parDefaut ? nomsPossibles(TYPES[type].dossierFr) : [nom];
+    const marque = (f) => f.getFlag?.(MOD, "mondeDossier") === type;
+    return racinesJournaux()
+        .filter(f => noms.includes(f.name) || (marque(f) && (parDefaut || f.name === nom)))
+        .sort((a, b) => (marque(b) - marque(a)) || ((b.name === nom) - (a.name === nom)) || ((b.contents?.length ?? 0) - (a.contents?.length ?? 0)));
+}
 async function dossier(type) {
     if (!TYPES[type]?.dossierKey) return null;
-    const nom = String(lire(TYPES[type].dossierKey, TYPES[type].dossier) || "").trim();
+    const { nom } = nomDossier(type);
     if (!nom) return null;
-    const existant = game.folders.find(f => f.type === "JournalEntry" && f.name === nom && !f.folder);
-    if (existant) return existant;
-    return Folder.create({ name: nom, type: "JournalEntry" });
+    const existant = dossiersCandidats(type)[0];
+    if (existant) {
+        if (existant.getFlag?.(MOD, "mondeDossier") !== type && game.user?.isGM) await existant.setFlag(MOD, "mondeDossier", type).catch(() => {});
+        return existant;
+    }
+    return Folder.create({ name: nom, type: "JournalEntry", flags: { [MOD]: { mondeDossier: type } } });
+}
+// Doublons laissés par l'ancien comportement : leur contenu (fiches et
+// sous-dossiers) passe dans le dossier retenu, puis le doublon vide est supprimé.
+async function fusionnerDoublons(type, garde) {
+    let n = 0;
+    for (const f of dossiersCandidats(type)) {
+        if (f.id === garde.id) continue;
+        for (const e of [...(f.contents ?? [])]) { await e.update({ folder: garde.id }); n++; }
+        for (const sf of [...(f.children ?? [])].map(c => c.folder ?? c)) await sf.update({ folder: garde.id });
+        const reste = (f.contents?.length ?? 0) + game.folders.filter(x => x.folder?.id === f.id).length;
+        if (!reste) await f.delete();
+    }
+    return n;
 }
 
 // Dossier (par son nom) DANS le compendium d'un type, créé au besoin. null = racine.
@@ -715,6 +752,8 @@ export async function preparerDossierLieux() {
     if (!game.user?.isGM || !mondeActif()) return null;
     const f = await dossier("place");
     if (!f) return null;
+    const fusion = await fusionnerDoublons("place", f).catch(e => { journal.avert(tl("[{0}] fusion des dossiers de lieux", MOD), e); return 0; });
+    if (fusion) ui.notifications?.info(tl("{0} fiche(s) de lieu regroupée(s) dans le dossier « {1} » (doublon d'une autre langue supprimé).", fusion, f.name));
     const aRanger = toutesLesFiches().filter(x => x.type === "place" && !x.entry.folder && !x.entry.pack);
     for (const { entry } of aRanger) await entry.update({ folder: f.id });
     if (aRanger.length) ui.notifications?.info(tl("{0} fiche(s) de lieu rangée(s) dans le dossier « {1} ».", aRanger.length, f.name));
@@ -901,6 +940,8 @@ export async function redigerFiche(entry) {
             <div class="scwm-monde-acteur" style="flex:1;padding:4px 8px;border:1px dashed rgba(201,162,39,.5);border-radius:4px;min-height:22px;">
                 ${actor ? `<i class="fa-solid fa-user"></i> ${esc(actor.name)}` : `<span style="opacity:.6;">${tl("Glisse un acteur ici")}</span>`}</div>
             <input type="hidden" class="scwm-monde-acteur-id" value="${actor?.id ?? ""}">
+            <button type="button" class="scwm-monde-creer-acteur" title="${tl("Crée un acteur PNJ au nom de la fiche, rangé dans le dossier des PNJ, et le lie à la fiche.")}"
+                style="flex:0 0 auto;width:auto;padding:1px 8px;${actor ? "display:none;" : ""}"><i class="fa-solid fa-user-plus"></i> ${tl("Créer l'acteur")}</button>
         </div>
         <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
             <span style="flex:0 0 120px;font-weight:600;">${tl("Lieu principal")}</span>
@@ -1044,6 +1085,25 @@ export async function redigerFiche(entry) {
             finally { try { await dialogue?.maximize?.(); dialogue?.bringToFront?.(); } catch {} }
             if (pose && bouton?.isConnected) bouton.outerHTML = `<span style="color:#7fd1a0;">${tl("Épingle posée.")}</span>`;
         });
+        // Créer l'acteur du PNJ (au lieu d'en glisser un) : lié tout de suite.
+        root.querySelector(".scwm-monde-creer-acteur")?.addEventListener("click", async (e) => {
+            e.preventDefault();
+            const bouton = e.currentTarget;
+            bouton.disabled = true;
+            try {
+                const a = await creerActeurPnj(entry, root.querySelector(".scwm-monde-nom")?.value.trim() || entry.name);
+                if (!a) return;
+                root.querySelector(".scwm-monde-acteur-id").value = a.id;
+                const z = root.querySelector(".scwm-monde-acteur");
+                if (z) z.innerHTML = `<i class="fa-solid fa-user"></i> ${esc(a.name)} <a class="scwm-monde-ouvrir-acteur" style="margin-left:6px;cursor:pointer;text-decoration:underline;">${tl("ouvrir")}</a>`;
+                z?.querySelector(".scwm-monde-ouvrir-acteur")?.addEventListener("click", (ev) => { ev.preventDefault(); a.sheet?.render(true); });
+                bouton.style.display = "none";
+                ui.notifications?.info(tl("Acteur « {0} » créé et lié à la fiche.", a.name));
+            } catch (err) {
+                journal.erreur(tl("[{0}] création de l'acteur du PNJ", MOD), err);
+                ui.notifications?.error(err.message);
+            } finally { if (bouton.isConnected) bouton.disabled = false; }
+        });
         // Glisser un acteur sur la zone « Acteur lié ».
         const zone = root.querySelector(".scwm-monde-acteur");
         zone?.addEventListener("dragover", ev => ev.preventDefault());
@@ -1055,6 +1115,8 @@ export async function redigerFiche(entry) {
             if (!a || a.pack) { ui.notifications?.warn(tl("Glisse un acteur du monde (pas d'un compendium).")); return; }
             root.querySelector(".scwm-monde-acteur-id").value = a.id;
             zone.innerHTML = `<i class="fa-solid fa-user"></i> ${esc(a.name)}`;
+            const b = root.querySelector(".scwm-monde-creer-acteur");
+            if (b) b.style.display = "none";
         });
     };
 
@@ -1070,6 +1132,28 @@ export async function redigerFiche(entry) {
             { action: "cancel", label: tl("Annuler"), icon: "fa-solid fa-xmark" }
         ]
     });
+}
+
+// Crée l'acteur d'une fiche PNJ : type « npc », au nom de la fiche, rangé dans
+// le dossier des PNJ réglé (Dossiers & Compendiums), invisible des joueurs, puis
+// lié dans les deux sens (comme un acteur glissé sur la fiche).
+export async function creerActeurPnj(entry, nom) {
+    if (!game.user.isGM || !entry) return null;
+    const page = pageDe(entry);
+    const reglage = lire("commonFolderPNJ", "") || lire("relationsFolderPNJ", "");
+    const dossierPnj = reglage ? (game.folders.get(reglage) ?? game.folders.find(f => f.type === "Actor" && f.name === reglage)) : null;
+    const types = game.system?.documentTypes?.Actor ?? CONFIG.Actor?.dataModels ?? {};
+    const type = ("npc" in types) ? "npc" : Object.keys(types).find(t => t !== "base") ?? "npc";
+    const a = await Actor.create({
+        name: nom || entry.name,
+        type,
+        folder: dossierPnj?.id ?? null,
+        ownership: { default: NONE() }
+    });
+    if (!a) return null;
+    if (page) await page.setFlag(MEJ, "actor", { id: a.id, uuid: a.uuid, img: a.img, name: a.name });
+    await a.setFlag(MOD, "fichePage", entry.uuid);
+    return a;
 }
 
 // Ouvre (ou crée) la fiche d'un acteur / d'une scène, puis « Rédiger ».

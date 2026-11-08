@@ -124,3 +124,23 @@
     white-space: nowrap;
 }
 .scwm-hub-open:hover { background: rgba(201, 162, 39, 0.3); color: #fff; }
+
+/* Filtre « Uniquement l'actif » : masque ce qui est désactivé. */
+.scwm-hub-filtre {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 6px;
+    padding: 6px 8px;
+    border: 1px dashed rgba(201, 162, 39, 0.45);
+    border-radius: 5px;
+    font-size: 0.82em;
+    color: #d8cfa8;
+    cursor: pointer;
+}
+.scwm-hub-filtre input { width: 15px; height: 15px; margin: 0; flex: 0 0 auto; }
+.scwm-hub-filtre small { display: block; opacity: 0.7; font-size: 0.9em; }
+.scwm-hub.scwm-filtre-actifs [data-scwm-off] { display: none !important; }
+/* « Tout activer » cocherait des options masquées : caché avec le filtre. */
+.scwm-hub.scwm-filtre-actifs .scwm-all-on,
+.scwm-hub.scwm-filtre-actifs .scwm-all-on + span { display: none !important; }

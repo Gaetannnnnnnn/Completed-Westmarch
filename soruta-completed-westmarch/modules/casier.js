@@ -25,6 +25,8 @@ import {
 import { downtimeContentHtml, wireDowntime, applyDowntimeFromRoot } from "./tm.js";
 import { mondeActif, ongletMondeHtml, cablerOngletMonde } from "./monde.js";
 import { tl, locale } from "./i18n.js";
+import { verifierAdmin } from "./adminpass.js";
+import { maxEtoilesSession } from "./starxp.js";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -599,7 +601,6 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                 { key: "expeditionRevealedZones", label: tl("Réinitialiser les zones révélées de la carte") },
             ],
         };
-        if (tab === "dashboard") return this.#zoneOuverture();
         const list = zones[tab];
         if (!list?.length) return "";
         const btn = (b) => `<button type="button" class="scwm-casier-reset" data-reset="${b.key}"`
@@ -615,127 +616,6 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             </div>`;
     }
 
-    // ---- « Préparer l'ouverture du serveur » (Dashboard) : efface d'un coup
-    // les données laissées par les tests. Choix par cases à cocher, puis
-    // confirmation par la saisie du mot « RESET ».
-    #zoneOuverture() {
-        return `
-            <div class="scwm-casier-reset-zone" style="margin-top:18px;padding-top:12px;border-top:1px solid rgba(192,57,43,0.35);">
-                <div style="font-size:12px;opacity:.85;margin-bottom:6px;color:#c0392b;">
-                    ${tl("<i class=\"fa-solid fa-triangle-exclamation\"></i> Réinitialisation — tous les MJ, irréversible")}
-                </div>
-                <button type="button" class="scwm-casier-ouverture"
-                    style="background:rgba(192,57,43,0.12);border:1px solid rgba(192,57,43,0.5);color:#c0392b;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px;">
-                    <i class="fa-solid fa-broom"></i> ${tl("Préparer l'ouverture du serveur…")}
-                </button>
-                <p style="font-size:11px;opacity:.75;margin:6px 0 0;">${tl("Efface les données laissées par les tests : rapports, journal des sessions, zones de carte, historique des expéditions… Tu choisis quoi avant de confirmer.")}</p>
-            </div>`;
-    }
-
-    async #preparerOuverture() {
-        if (!game.user.isGM) return;
-        const pjs = (game.actors ?? []).filter(a => a.type === "character" && a.hasPlayerOwner)
-            .sort((a, b) => a.name.localeCompare(b.name, "fr", { sensitivity: "base" }));
-        const nbExp = pjs.reduce((n, a) => n + getExpeditions(a).length, 0);
-        const nbTm = pjs.filter(a => a.getFlag(MOD, "tm") != null).length;
-        const nbDemandes = getCreationRequests().length + getLevelUpRequests().length;
-        const len = (k) => { const v = game.settings.get(MOD, k); return Array.isArray(v) ? v.length : Object.keys(v ?? {}).length; };
-
-        const options = [
-            { key: "sessionDrafts",           label: tl("Rapports en attente"),                         n: len("sessionDrafts") },
-            { key: "sessionForumThreads",     label: tl("Fils Discord des rapports"),                   n: len("sessionForumThreads") },
-            { key: "sessionLog",              label: tl("Journal des sessions (présence, assiduité, dernière session)"), n: len("sessionLog") },
-            { key: "expeditionRevealedZones", label: tl("Zones révélées de la carte des expéditions"),  n: len("expeditionRevealedZones") },
-            { key: "expeditions",             label: tl("Historique des expéditions sur les fiches de PJ (en cours et clôturées)"), n: nbExp },
-            { key: "tm",                      label: tl("Temps morts déclarés sur les fiches de PJ"),   n: nbTm },
-            { key: "demandes",                label: tl("Demandes de création et de montée de niveau en attente"), n: nbDemandes },
-        ];
-        const ligne = (o) => `<label style="display:flex;gap:8px;align-items:center;padding:2px 0;">
-            <input type="checkbox" name="opt" value="${o.key}" checked>
-            <span style="flex:1;">${esc(o.label)}</span><span style="opacity:.7;">${o.n}</span></label>`;
-        const lignePj = (a) => `<label style="display:flex;gap:8px;align-items:center;padding:2px 0;">
-            <input type="checkbox" name="pj" value="${a.id}">
-            <img src="${esc(a.img ?? "icons/svg/mystery-man.svg")}" style="width:22px;height:22px;border:none;object-fit:cover;">
-            <span style="flex:1;">${esc(a.name)}</span><span style="opacity:.7;">${esc(playerOf(a))}</span></label>`;
-        const content = `
-            <div class="scwm-ouverture">
-                <p style="margin:0 0 6px;">${tl("Coche ce qu'il faut effacer. Les nombres indiquent ce qui sera supprimé.")}</p>
-                ${options.map(ligne).join("")}
-                <h4 style="margin:10px 0 4px;">${tl("Fiches de PJ à supprimer (tests)")}</h4>
-                <p style="margin:0 0 4px;font-size:11px;opacity:.8;">${tl("Aucune n'est cochée par défaut. Les statistiques et le registre comptent toutes les fiches de PJ qui ont un joueur : supprime ici celles qui ont servi aux tests.")}</p>
-                <div style="max-height:200px;overflow-y:auto;">${pjs.map(lignePj).join("") || `<em style="opacity:.7;">${tl("Aucune fiche de PJ.")}</em>`}</div>
-                <p style="margin:10px 0 4px;color:#c0392b;">${tl("<i class=\"fa-solid fa-triangle-exclamation\"></i> Action <strong>irréversible</strong>, pour tous les MJ. Tape <strong>RESET</strong> pour confirmer :")}</p>
-                <input type="text" class="scwm-reset-input" autocomplete="off" placeholder="RESET" style="width:100%;box-sizing:border-box;" />
-            </div>`;
-
-        let choix = null;
-        const res = await foundry.applications.api.DialogV2.wait({
-            window: { title: tl("Préparer l'ouverture du serveur"), icon: "fa-solid fa-broom" },
-            position: { width: 520 },
-            content,
-            rejectClose: false,
-            buttons: [
-                { action: "cancel", label: tl("Annuler"), icon: "fa-solid fa-xmark", default: true },
-                { action: "go", label: tl("Effacer"), icon: "fa-solid fa-trash-can",
-                  callback: (e, b, dlg) => {
-                      const el = dlg.element;
-                      if ((el.querySelector(".scwm-reset-input")?.value || "").trim().toUpperCase() !== "RESET") return false;
-                      choix = {
-                          opts: new Set([...el.querySelectorAll('input[name="opt"]:checked')].map(i => i.value)),
-                          pjs: [...el.querySelectorAll('input[name="pj"]:checked')].map(i => i.value)
-                      };
-                      return true;
-                  } }
-            ]
-        }).catch(() => "cancel");
-        if (res !== true || !choix) {
-            if (res === false) ui.notifications?.warn(tl("Réinitialisation annulée : le mot « RESET » n'a pas été saisi correctement."));
-            return;
-        }
-
-        const fait = [];
-        try {
-            // Fiches de test d'abord : inutile de nettoyer ce qui va disparaître.
-            if (choix.pjs.length) {
-                await Actor.implementation.deleteDocuments(choix.pjs);
-                fait.push(tl("{0} fiche(s) supprimée(s)", choix.pjs.length));
-            }
-            const restants = (game.actors ?? []).filter(a => a.type === "character");
-
-            for (const k of ["sessionDrafts", "sessionForumThreads", "sessionLog", "expeditionRevealedZones"]) {
-                if (!choix.opts.has(k)) continue;
-                const v = game.settings.get(MOD, k);
-                await game.settings.set(MOD, k, Array.isArray(v) ? [] : {});
-                fait.push(this.#resetDefs()[k]?.label ?? k);
-            }
-            if (choix.opts.has("expeditions")) {
-                const cibles = restants.filter(a => a.getFlag(MOD, "expeditions") != null);
-                for (const a of cibles) await a.unsetFlag(MOD, "expeditions");
-                fait.push(tl("historique des expéditions ({0} fiche(s))", cibles.length));
-            }
-            if (choix.opts.has("tm")) {
-                const cibles = restants.filter(a => a.getFlag(MOD, "tm") != null);
-                for (const a of cibles) await a.unsetFlag(MOD, "tm");
-                fait.push(tl("temps morts ({0} fiche(s))", cibles.length));
-            }
-            if (choix.opts.has("demandes")) {
-                for (const u of game.users ?? []) if (!u.isGM && u.getFlag(MOD, "charRequest")) await u.unsetFlag(MOD, "charRequest");
-                for (const a of restants) {
-                    if (a.getFlag(MOD, "pendingLevelUp") != null) await a.unsetFlag(MOD, "pendingLevelUp");
-                    if (a.getFlag(MOD, "levelUpGranted") != null) await a.unsetFlag(MOD, "levelUpGranted");
-                }
-                fait.push(tl("demandes en attente"));
-            }
-            ui.notifications?.info(tl("Ouverture du serveur — effacé : {0}.", fait.join(", ") || tl("rien")), { permanent: true });
-            journal.info(tl("[WestMarch] Préparer l'ouverture du serveur :"), fait);
-        } catch (err) {
-            journal.erreur(tl("[WestMarch] Préparer l'ouverture du serveur :"), err);
-            ui.notifications?.error(tl("Échec de la réinitialisation (voir console)."));
-        }
-        this.render();
-        refreshCasierBadge();
-    }
-
     #resetDefs() {
         return {
             sessionDrafts:           { label: tl("les rapports en attente"),        empty: [] },
@@ -748,6 +628,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
     async #confirmReset(key) {
         const def = this.#resetDefs()[key];
         if (!def) return;
+        if (key === "expeditionRevealedZones" && !(await verifierAdmin(tl("Effacer la carte d'expédition")))) return;
         const DV2 = foundry.applications.api.DialogV2;
         const content = `
             <p>${tl("Tu vas effacer <strong>{0}</strong> pour <strong>TOUS les MJ</strong>.", esc(def.label))}</p>
@@ -1100,14 +981,16 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
         const aw = d.pendingAward;
         if (!aw) return "";
         if (aw.type === "stars") {
-            const n = Math.max(1, Math.min(3, aw.n || 1));
-            const stars = [1, 2, 3].map(i =>
+            // Le maximum suit le réglage, sans jamais cacher une valeur déjà choisie.
+            const max = Math.max(maxEtoilesSession(), aw.n || 1);
+            const n = Math.max(1, Math.min(max, aw.n || 1));
+            const stars = Array.from({ length: max }, (_, i) => i + 1).map(i =>
                 `<button type="button" class="scwm-casier-star" data-n="${i}"
                     style="background:none;border:none;cursor:pointer;font-size:24px;line-height:1;padding:0 2px;color:${i <= n ? "#e6be3c" : "#888"};">★</button>`
             ).join("");
             return `
                 <h3>${tl("<i class=\"fa-solid fa-hourglass-half\"></i> Étoiles à attribuer (en attente d'envoi)")}</h3>
-                <div class="scwm-casier-award" data-type="stars" style="display:flex;align-items:center;gap:6px;">
+                <div class="scwm-casier-award" data-type="stars" style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;">
                     ${stars}<span class="scwm-casier-star-count" style="margin-left:8px;font-weight:600;">${tl("{0} étoile{1}", n, n > 1 ? "s" : "")}</span>
                 </div>
                 <p style="opacity:.7;font-size:.85em;margin:2px 0 0;">${tl("Attribuées à toute la party au moment de l'envoi du rapport.")}</p>`;
@@ -1395,7 +1278,6 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
 
         // ---- Boutons de réinitialisation (maintenance, par page) ----
         root.querySelectorAll(".scwm-casier-reset").forEach(b => b.addEventListener("click", () => this.#confirmReset(b.dataset.reset)));
-        root.querySelector(".scwm-casier-ouverture")?.addEventListener("click", () => this.#preparerOuverture());
 
         // Onglet Temps morts embarqué : câblage + application des gains.
         if (this.#tab === "downtime") {
@@ -1463,7 +1345,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                 if (c) c.textContent = tl("{0} étoile{1}", n, n > 1 ? "s" : "");
             };
             awardBox.querySelectorAll(".scwm-casier-star").forEach(b => b.addEventListener("click", async () => {
-                const n = Math.max(1, Math.min(3, Number(b.dataset.n) || 1));
+                const n = Math.max(1, Number(b.dataset.n) || 1);
                 const d = myDrafts().find(x => x.id === this.#selectedId);
                 if (!d?.pendingAward) return;
                 d.pendingAward.n = n;
@@ -1512,6 +1394,121 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
         });
     }
 }
+
+// ---- « Préparer l'ouverture du serveur » (réglages du module, protégé par le
+// mot de passe admin) : efface d'un coup les données laissées par les tests.
+// Choix par cases à cocher, puis confirmation par la saisie du mot « RESET ».
+const LIB_RESET = {
+    sessionDrafts:           () => tl("les rapports en attente"),
+    sessionForumThreads:     () => tl("les fils Discord"),
+    sessionLog:              () => tl("le journal des sessions (présence, assiduité)"),
+    expeditionRevealedZones: () => tl("les zones révélées de la carte")
+};
+export async function preparerOuverture() {
+    if (!game.user.isGM) return;
+    if (!(await verifierAdmin(tl("Préparer l'ouverture du serveur")))) return;
+    const pjs = (game.actors ?? []).filter(a => a.type === "character" && a.hasPlayerOwner)
+        .sort((a, b) => a.name.localeCompare(b.name, "fr", { sensitivity: "base" }));
+    const nbExp = pjs.reduce((n, a) => n + getExpeditions(a).length, 0);
+    const nbTm = pjs.filter(a => a.getFlag(MOD, "tm") != null).length;
+    const nbDemandes = getCreationRequests().length + getLevelUpRequests().length;
+    const len = (k) => { const v = game.settings.get(MOD, k); return Array.isArray(v) ? v.length : Object.keys(v ?? {}).length; };
+
+    const options = [
+        { key: "sessionDrafts",           label: tl("Rapports en attente"),                         n: len("sessionDrafts") },
+        { key: "sessionForumThreads",     label: tl("Fils Discord des rapports"),                   n: len("sessionForumThreads") },
+        { key: "sessionLog",              label: tl("Journal des sessions (présence, assiduité, dernière session)"), n: len("sessionLog") },
+        { key: "expeditionRevealedZones", label: tl("Zones révélées de la carte des expéditions"),  n: len("expeditionRevealedZones") },
+        { key: "expeditions",             label: tl("Historique des expéditions sur les fiches de PJ (en cours et clôturées)"), n: nbExp },
+        { key: "tm",                      label: tl("Temps morts déclarés sur les fiches de PJ"),   n: nbTm },
+        { key: "demandes",                label: tl("Demandes de création et de montée de niveau en attente"), n: nbDemandes },
+    ];
+    const ligne = (o) => `<label style="display:flex;gap:8px;align-items:center;padding:2px 0;">
+        <input type="checkbox" name="opt" value="${o.key}" checked>
+        <span style="flex:1;">${esc(o.label)}</span><span style="opacity:.7;">${o.n}</span></label>`;
+    const lignePj = (a) => `<label style="display:flex;gap:8px;align-items:center;padding:2px 0;">
+        <input type="checkbox" name="pj" value="${a.id}">
+        <img src="${esc(a.img ?? "icons/svg/mystery-man.svg")}" style="width:22px;height:22px;border:none;object-fit:cover;">
+        <span style="flex:1;">${esc(a.name)}</span><span style="opacity:.7;">${esc(playerOf(a))}</span></label>`;
+    const content = `
+        <div class="scwm-ouverture">
+            <p style="margin:0 0 6px;">${tl("Coche ce qu'il faut effacer. Les nombres indiquent ce qui sera supprimé.")}</p>
+            ${options.map(ligne).join("")}
+            <h4 style="margin:10px 0 4px;">${tl("Fiches de PJ à supprimer (tests)")}</h4>
+            <p style="margin:0 0 4px;font-size:11px;opacity:.8;">${tl("Aucune n'est cochée par défaut. Les statistiques et le registre comptent toutes les fiches de PJ qui ont un joueur : supprime ici celles qui ont servi aux tests.")}</p>
+            <div style="max-height:200px;overflow-y:auto;">${pjs.map(lignePj).join("") || `<em style="opacity:.7;">${tl("Aucune fiche de PJ.")}</em>`}</div>
+            <p style="margin:10px 0 4px;color:#c0392b;">${tl("<i class=\"fa-solid fa-triangle-exclamation\"></i> Action <strong>irréversible</strong>, pour tous les MJ. Tape <strong>RESET</strong> pour confirmer :")}</p>
+            <input type="text" class="scwm-reset-input" autocomplete="off" placeholder="RESET" style="width:100%;box-sizing:border-box;" />
+        </div>`;
+
+    let choix = null;
+    const res = await foundry.applications.api.DialogV2.wait({
+        window: { title: tl("Préparer l'ouverture du serveur"), icon: "fa-solid fa-broom" },
+        position: { width: 520 },
+        content,
+        rejectClose: false,
+        buttons: [
+            { action: "cancel", label: tl("Annuler"), icon: "fa-solid fa-xmark", default: true },
+            { action: "go", label: tl("Effacer"), icon: "fa-solid fa-trash-can",
+              callback: (e, b, dlg) => {
+                  const el = dlg.element;
+                  if ((el.querySelector(".scwm-reset-input")?.value || "").trim().toUpperCase() !== "RESET") return false;
+                  choix = {
+                      opts: new Set([...el.querySelectorAll('input[name="opt"]:checked')].map(i => i.value)),
+                      pjs: [...el.querySelectorAll('input[name="pj"]:checked')].map(i => i.value)
+                  };
+                  return true;
+              } }
+        ]
+    }).catch(() => "cancel");
+    if (res !== true || !choix) {
+        if (res === false) ui.notifications?.warn(tl("Réinitialisation annulée : le mot « RESET » n'a pas été saisi correctement."));
+        return;
+    }
+
+    const fait = [];
+    try {
+        // Fiches de test d'abord : inutile de nettoyer ce qui va disparaître.
+        if (choix.pjs.length) {
+            await Actor.implementation.deleteDocuments(choix.pjs);
+            fait.push(tl("{0} fiche(s) supprimée(s)", choix.pjs.length));
+        }
+        const restants = (game.actors ?? []).filter(a => a.type === "character");
+
+        for (const k of ["sessionDrafts", "sessionForumThreads", "sessionLog", "expeditionRevealedZones"]) {
+            if (!choix.opts.has(k)) continue;
+            const v = game.settings.get(MOD, k);
+            await game.settings.set(MOD, k, Array.isArray(v) ? [] : {});
+            fait.push(LIB_RESET[k]?.() ?? k);
+        }
+        if (choix.opts.has("expeditions")) {
+            const cibles = restants.filter(a => a.getFlag(MOD, "expeditions") != null);
+            for (const a of cibles) await a.unsetFlag(MOD, "expeditions");
+            fait.push(tl("historique des expéditions ({0} fiche(s))", cibles.length));
+        }
+        if (choix.opts.has("tm")) {
+            const cibles = restants.filter(a => a.getFlag(MOD, "tm") != null);
+            for (const a of cibles) await a.unsetFlag(MOD, "tm");
+            fait.push(tl("temps morts ({0} fiche(s))", cibles.length));
+        }
+        if (choix.opts.has("demandes")) {
+            for (const u of game.users ?? []) if (!u.isGM && u.getFlag(MOD, "charRequest")) await u.unsetFlag(MOD, "charRequest");
+            for (const a of restants) {
+                if (a.getFlag(MOD, "pendingLevelUp") != null) await a.unsetFlag(MOD, "pendingLevelUp");
+                if (a.getFlag(MOD, "levelUpGranted") != null) await a.unsetFlag(MOD, "levelUpGranted");
+            }
+            fait.push(tl("demandes en attente"));
+        }
+        ui.notifications?.info(tl("Ouverture du serveur — effacé : {0}.", fait.join(", ") || tl("rien")), { permanent: true });
+        journal.info(tl("[WestMarch] Préparer l'ouverture du serveur :"), fait);
+    } catch (err) {
+        journal.erreur(tl("[WestMarch] Préparer l'ouverture du serveur :"), err);
+        ui.notifications?.error(tl("Échec de la réinitialisation (voir console)."));
+    }
+    if (_casierApp?.rendered) _casierApp.render();
+    refreshCasierBadge();
+}
+
 
 let _casierApp = null;
 export function openCasier() {

@@ -218,6 +218,35 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
 
+v6.7.8 | 2026-11-09
+   - FunnyStats, corrections :
+     « Annulés » devient « Résistés » (dégâts réduits par résistances,
+     immunités, réductions). Ils étaient comptés à chaque APERÇU de la
+     carte « Appliquer les dégâts », sur chaque client : chiffre très
+     gonflé. Désormais seul le dernier calcul de l'acteur compte, une fois,
+     quand les dégâts sont vraiment appliqués (dnd5e.applyDamage, ou
+     dnd5e.damageActor sur le client qui a fait la mise à jour).
+     « Absorbés » devient « Abs. PV temp. » (dégâts encaissés par les PV
+     temporaires), pour ne plus le confondre avec la résistance.
+     Attaques touchées : avec Midi-QOL, lues à la fin du déroulé
+     (midi-qol.RollComplete) ; à AttackRollComplete, la liste des cibles
+     touchées pouvait être encore vide, tout comptait comme raté. Sans
+     Midi-QOL, les cibles sont lues aussi dans flags.dnd5e.targets.
+   - FunnyStats, nouvelles stats (onglet Combat) : « Max dgt / round »
+     (dégâts infligés en un seul round), « Moy. dgt / round » (dégâts
+     infligés ÷ rounds du combat), « Max soins / round »,
+     « Dgt bruts » (ce que les coups auraient fait sans résistances ni PV
+     temporaires : infligés + part résistée par les cibles, attribuée à
+     l'attaquant).
+   - FunnyStats : bouton « Historique des dés » : tous les jets du combat
+     round par round (combattant dont c'est le tour, lanceur, type de jet,
+     résultat, formule, détail des dés, dés écartés barrés, 20 et 1
+     naturels en couleur), filtres par combattant et par type de jet.
+     Enregistré par le MJ actif depuis les messages du chat (y compris les
+     jets ajoutés après coup aux cartes Midi-QOL) ; jets « aveugles »
+     exclus ; 1 500 jets au plus par combat.
+   Fichiers : modules/funnystats.js, modules/i18n-en.js.
+
 v6.7.7 | 2026-11-08
    - Réinitialisation du brouillard : l'outil « gomme » de la barre
      WestMarch est retiré. La réinitialisation (un personnage ou tout le

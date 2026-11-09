@@ -14,11 +14,21 @@
 // Sources :
 //   - PV : hooks dnd5e.damageActor / dnd5e.healActor (déclenchés sur tous les
 //     clients après une mise à jour des PV, quelle qu'en soit l'origine) ;
-//   - dégâts annulés : dnd5e.preCalculateDamage (brut) et dnd5e.calculateDamage
-//     (après résistances / immunités / réductions), sur le client qui applique
-//     les dégâts, envoyés au MJ ;
+//   - dégâts résistés : dnd5e.preCalculateDamage (brut) et dnd5e.calculateDamage
+//     (après résistances / immunités / réductions). Ces calculs tournent aussi
+//     pour l'aperçu de la carte « Appliquer les dégâts » (plusieurs fois, sur
+//     chaque client) : on ne retient que le DERNIER calcul de l'acteur, et on ne
+//     le compte qu'au moment où les dégâts sont vraiment appliqués
+//     (dnd5e.applyDamage, ou à défaut dnd5e.damageActor sur le client qui a fait
+//     la mise à jour), une seule fois ;
 //   - attaques et dés : messages dnd5e (attaque, dégâts, soins) ou, avec
-//     Midi-QOL, ses hooks d'attaque et de dégâts ;
+//     Midi-QOL, la fin de son déroulé (midi-qol.RollComplete : cibles touchées
+//     définitives) ;
+//   - historique des dés : chaque jet (Roll) des messages du chat, à leur
+//     création et quand une carte est complétée (Midi-QOL ajoute ses jets à la
+//     carte), avec le round et le combattant dont c'est le tour ;
+//   - par round : dégâts et soins de chaque round, pour le meilleur round et la
+//     moyenne de dégâts par round ;
 //   - auteur d'un dégât ou d'un soin : le dernier jet de dégâts / soins visant
 //     la cible (moins d'une minute), sinon le dernier jet tout court, sinon le
 //     combattant dont c'est le tour.
@@ -47,14 +57,18 @@ const voirActif = () => { try { return game.settings.get(MOD, K_FUN) === true; }
 // déplacement, actions, dés.
 const COLONNES = [
     ["inflige",     "Dégâts infligés",          "fa-hand-fist",          "Infligés"],
+    ["brut",        "Dégâts bruts : ce que les coups auraient fait sans résistances ni PV temporaires (infligés + résistés par les cibles)", "fa-explosion", "Dgt bruts"],
     ["recu",        "Dégâts reçus",             "fa-heart-crack",        "Reçus"],
-    ["annule",      "Dégâts annulés",           "fa-shield-halved",      "Annulés"],
-    ["bouclier",    "Absorbés (PV temp.)",      "fa-shield",             "Absorbés"],
+    ["annule",      "Dégâts résistés (résistances, immunités, réductions)", "fa-shield-halved", "Résistés"],
+    ["bouclier",    "Dégâts absorbés par des PV temporaires", "fa-shield", "Abs. PV temp."],
     ["soinsSoi",    "Soins sur soi",            "fa-heart-pulse",        "Soins soi"],
     ["soinsAutres", "Soins sur les autres",     "fa-hand-holding-heart", "Soins autres"],
     ["pvTemp",      "PV temporaires gagnés",    "fa-heart-circle-plus",  "PV temp."],
     ["kills",       "Éliminations",             "fa-skull",              "Kills"],
     ["ko",          "K.O. subis",               "fa-bed",                "K.O."],
+    ["maxTourDeg",  "Meilleur round : dégâts infligés en un seul round", "fa-burst", "Max dgt / round"],
+    ["moyTourDeg",  "Moyenne de dégâts infligés par round", "fa-chart-line", "Moy. dgt / round"],
+    ["maxTourSoin", "Meilleur round : soins donnés en un seul round", "fa-kit-medical", "Max soins / round"],
     ["distance",    "Distance parcourue",       "fa-shoe-prints",        "Distance",     "jeu"],
     ["actions",     "Actions utilisées",        "fa-circle",             "Actions",      "jeu"],
     ["bonus",       "Actions bonus utilisées",  "fa-play",               "Bonus",        "jeu"],
@@ -94,12 +108,21 @@ function ligne(combat, uuid) {
     }
     return e.lignes[uuid];
 }
+const PAR_ROUND = { inflige: "d", soinsSoi: "s", soinsAutres: "s" };
 function ajouter(uuid, cle, n = 1) {
     if (!uuid || !n) return;
     const combat = combatDe(uuid);
     if (!combat) return;
     const l = ligne(combat, uuid);
     l[cle] = Math.round(((l[cle] || 0) + n) * 10) / 10;
+    // Dégâts et soins de chaque round (meilleur round, moyenne).
+    const pr = PAR_ROUND[cle];
+    if (pr) {
+        const r = String(Math.max(1, combat.round || 1));
+        l.rounds ??= {};
+        l.rounds[r] ??= { d: 0, s: 0 };
+        l.rounds[r][pr] += n;
+    }
     planifierSauvegarde(combat);
 }
 function planifierSauvegarde(combat) {
@@ -131,7 +154,14 @@ function noterSource(type, source, cibles) {
 // ------------------------------------------------------------------ événements (MJ)
 function traiter(ev) {
     switch (ev?.type) {
-        case "annule": ajouter(ev.uuid, "annule", Math.max(0, Math.round(ev.valeur || 0))); break;
+        case "annule": {
+            const v = Math.max(0, Math.round(ev.valeur || 0));
+            ajouter(ev.uuid, "annule", v);
+            // Part résistée attribuée aussi à l'attaquant : ses dégâts bruts.
+            const src = auteur("damage", ev.uuid);
+            if (src && src !== ev.uuid) ajouter(src, "resisteInflige", v);
+            break;
+        }
         case "attaque": {
             const s = ev.source;
             // Une seule réussite critique par jet (un 20 naturel EST un critique).
@@ -151,6 +181,62 @@ function traiter(ev) {
         }
         case "source": noterSource(ev.soin ? "healing" : "damage", ev.source, ev.cibles); break;
     }
+}
+
+// ------------------------------------------------------------------ historique des dés (MJ)
+const MAX_JETS = 1500;
+const TYPES_JET = {
+    attack: "Attaque", damage: "Dégâts", healing: "Soins", save: "Sauvegarde", check: "Test",
+    ability: "Test", skill: "Compétence", tool: "Outil", death: "Sauvegarde contre la mort",
+    initiative: "Initiative", hitDie: "Dé de vie", concentration: "Concentration"
+};
+function typeJet(msg, roll) {
+    const D = CONFIG.Dice ?? {};
+    if (D.DamageRoll && roll instanceof D.DamageRoll) {
+        const t = roll.options?.type;
+        return (t && t in (CONFIG.DND5E?.healingTypes ?? {})) ? "healing" : "damage";
+    }
+    const f = msg.flags?.dnd5e?.roll?.type ?? msg.system?.roll?.type;
+    if (f) return f;
+    if (msg.flags?.core?.initiativeRoll) return "initiative";
+    if (D.D20Roll && roll instanceof D.D20Roll && (msg.flags?.["midi-qol"] || msg.flags?.dnd5e?.activity)) return "attack";
+    return roll?.dice?.some(d => d.faces === 20) ? "check" : "autre";
+}
+function detailDes(roll) {
+    return (roll?.dice ?? []).map(d => {
+        const res = (d.results ?? []).map(x => (x.active === false || x.discarded) ? `<s>${x.result}</s>` : String(x.result));
+        return `${d.number ?? ""}d${d.faces} : ${res.join(", ")}`;
+    }).join(" · ");
+}
+function enregistrerJets(msg) {
+    if (!msg?.rolls?.length || msg.blind) return;
+    const actor = ChatMessage.getSpeakerActor?.(msg.speaker) ?? null;
+    const uuid = actor?.uuid;
+    const combat = uuid ? combatDe(uuid) : (game.combats?.find(c => c.started && c.scene?.id === msg.speaker?.scene) ?? null);
+    if (!combat) return;
+    const e = etat(combat);
+    e.vus ??= {};
+    e.jets ??= [];
+    const deja = e.vus[msg.id] ?? 0;
+    if (msg.rolls.length <= deja) return;
+    for (const roll of msg.rolls.slice(deja)) {
+        const nat = naturel(roll);
+        e.jets.push({
+            r: combat.round || 0,
+            tour: combat.combatant?.name ?? "",
+            qui: actor?.name ?? msg.speaker?.alias ?? "?",
+            img: actor?.img ?? "",
+            type: typeJet(msg, roll),
+            formule: roll.formula ?? "",
+            total: roll.total ?? null,
+            des: detailDes(roll),
+            crit: !!roll.isCritical || nat === 20,
+            echec: !!roll.isFumble || nat === 1
+        });
+    }
+    e.vus[msg.id] = msg.rolls.length;
+    if (e.jets.length > MAX_JETS) e.jets.splice(0, e.jets.length - MAX_JETS);
+    planifierSauvegarde(combat);
 }
 async function envoyer(ev) {
     if (estMjActif()) return traiter(ev);
@@ -196,8 +282,9 @@ function surMessage(msg) {
     const actor = ChatMessage.getSpeakerActor?.(msg.speaker) ?? null;
     const source = actor?.uuid;
     if (!source) return;
-    const type = msg.type !== "base" ? msg.type : (msg.flags?.dnd5e?.roll?.type ?? null);
-    const cibles = (msg.system?.targets ?? msg.flags?.dnd5e?.targets ?? []).map(t => t.actor ?? t.uuid).filter(Boolean);
+    const type = msg.flags?.dnd5e?.roll?.type ?? msg.system?.roll?.type ?? (msg.type !== "base" ? msg.type : null);
+    const listeCibles = msg.system?.targets?.length ? msg.system.targets : (msg.flags?.dnd5e?.targets ?? []);
+    const cibles = listeCibles.map(t => t.actor ?? t.uuid).filter(Boolean);
     const midi = game.modules.get("midi-qol")?.active;
 
     if (type === "damage" || type === "healing") {
@@ -209,7 +296,7 @@ function surMessage(msg) {
         const nat = naturel(roll);
         const crit = !!roll?.isCritical;
         let touches = 0, ratees = 0;
-        for (const t of msg.system?.targets ?? []) {
+        for (const t of listeCibles) {
             if (t.ac == null) continue;
             const ok = !roll?.isFumble && (crit || (roll?.total ?? 0) >= t.ac);
             ok ? touches++ : ratees++;
@@ -250,11 +337,21 @@ async function publier(combat) {
     STATS.delete(combat.id);
     const lignes = Object.values(e?.lignes ?? {});
     if (!lignes.some(l => COLONNES.some(([k]) => l[k]))) return;
+    const rounds = Math.max(1, combat.round ?? 1);
+    for (const l of lignes) {
+        const parRound = Object.values(l.rounds ?? {});
+        l.maxTourDeg = Math.max(0, ...parRound.map(x => x.d || 0));
+        l.maxTourSoin = Math.max(0, ...parRound.map(x => x.s || 0));
+        l.moyTourDeg = Math.round((l.inflige || 0) / rounds * 10) / 10;
+        // Infligés (PV + PV temporaires perdus) + ce que les cibles ont résisté.
+        l.brut = Math.round(((l.inflige || 0) + (l.resisteInflige || 0)) * 10) / 10;
+        delete l.rounds;
+    }
     const scene = game.scenes.get(combat.scene?.id ?? combat._source?.scene);
     await game.settings.set(MOD, K_DERNIER, {
         id: foundry.utils.randomID(), date: new Date().toISOString(),
         titre: scene?.name ?? tl("Combat"), rounds: combat.round ?? 0, lignes,
-        unite: scene?.grid?.units ?? ""
+        unite: scene?.grid?.units ?? "", jets: e?.jets ?? []
     });
 }
 
@@ -309,6 +406,8 @@ export async function ouvrirTableau(data = null) {
         <div class="scwm-fun-onglets" style="display:flex;gap:6px;margin:8px 0 2px;">
             <button type="button" data-onglet="combat" class="active" style="flex:1;"><i class="fa-solid fa-hand-fist"></i> ${tl("Combat")}</button>
             <button type="button" data-onglet="jeu" style="flex:1;"><i class="fa-solid fa-shoe-prints"></i> ${tl("Déplacements, actions et dés")}</button>
+            <button type="button" class="scwm-fun-histo" style="flex:0 0 auto;width:auto;padding:0 10px;" ${data.jets?.length ? "" : "disabled"}
+                title="${esc(tl("Tous les jets de dés du combat, round par round"))}"><i class="fa-solid fa-scroll"></i> ${tl("Historique des dés")}${data.jets?.length ? ` (${data.jets.length})` : ""}</button>
         </div>
         ${["combat", "jeu"].map(o => `<div class="scwm-fun-page" data-page="${o}" style="${o === "combat" ? "" : "display:none;"}">
             ${tableau(tl("Héros"), lignes.filter(l => l.pj), "#5aa9e6", o)}
@@ -322,11 +421,71 @@ export async function ouvrirTableau(data = null) {
         rejectClose: false,
         render: (ev, dlg) => {
             const root = dlg?.element ?? document;
-            root.querySelectorAll(".scwm-fun-onglets button").forEach(b => b.addEventListener("click", (e) => {
+            root.querySelector(".scwm-fun-histo")?.addEventListener("click", (e) => { e.preventDefault(); ouvrirHistorique(data); });
+            root.querySelectorAll(".scwm-fun-onglets button[data-onglet]").forEach(b => b.addEventListener("click", (e) => {
                 e.preventDefault();
-                root.querySelectorAll(".scwm-fun-onglets button").forEach(x => x.classList.toggle("active", x === b));
+                root.querySelectorAll(".scwm-fun-onglets button[data-onglet]").forEach(x => x.classList.toggle("active", x === b));
                 root.querySelectorAll(".scwm-fun-page").forEach(p => { p.style.display = p.dataset.page === b.dataset.onglet ? "" : "none"; });
             }));
+        },
+        buttons: [{ action: "close", label: tl("Fermer"), icon: "fa-solid fa-xmark", default: true }]
+    }).catch(() => {});
+}
+
+// ------------------------------------------------------------------ historique (fenêtre)
+export async function ouvrirHistorique(data = null) {
+    data ??= game.settings.get(MOD, K_DERNIER);
+    const jets = data?.jets ?? [];
+    if (!jets.length) { ui.notifications?.info(tl("Aucun jet de dés enregistré pour ce combat.")); return; }
+    const noms = [...new Set(jets.map(j => j.qui))].sort();
+    const types = [...new Set(jets.map(j => j.type))];
+    const libType = (t) => tl(TYPES_JET[t] ?? "Autre");
+    const lignesHtml = () => {
+        let rPrec = null;
+        return jets.map((j, i) => {
+            const entete = j.r !== rPrec ? `<tr class="scwm-histo-round" data-r="${j.r}"><td colspan="5" style="padding:6px 4px 2px;font-weight:700;color:#f0c040;border-bottom:1px solid rgba(240,192,64,.4);">${j.r ? tl("Round {0}", j.r) : tl("Avant le premier round")}</td></tr>` : "";
+            rPrec = j.r;
+            const couleur = j.crit ? "color:#5ad17a;font-weight:700;" : j.echec ? "color:#e65a5a;font-weight:700;" : "";
+            return `${entete}<tr class="scwm-histo-jet" data-qui="${esc(j.qui)}" data-type="${esc(j.type)}" data-r="${j.r}" style="border-top:1px solid rgba(255,255,255,.06);">
+                <td style="padding:2px 4px;white-space:nowrap;opacity:.75;">${esc(j.tour)}</td>
+                <td style="padding:2px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${j.img ? `<img src="${esc(j.img)}" style="width:18px;height:18px;border:none;vertical-align:middle;object-fit:contain;margin-right:3px;">` : ""}${esc(j.qui)}</td>
+                <td style="padding:2px 4px;white-space:nowrap;">${esc(libType(j.type))}</td>
+                <td style="padding:2px 4px;text-align:center;${couleur}">${j.total ?? "—"}${j.crit ? " ✦" : j.echec ? " ✕" : ""}</td>
+                <td style="padding:2px 4px;font-size:11px;opacity:.85;">${esc(j.formule)}<br><span style="opacity:.8;">${j.des}</span></td></tr>`;
+        }).join("");
+    };
+    const content = `<div class="scwm-fun-histo-root">
+        <div style="display:flex;gap:6px;margin-bottom:6px;">
+            <select class="scwm-histo-qui" style="flex:1;"><option value="">${tl("Tous les combattants")}</option>${noms.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("")}</select>
+            <select class="scwm-histo-type" style="flex:1;"><option value="">${tl("Tous les jets")}</option>${types.map(t => `<option value="${esc(t)}">${esc(libType(t))}</option>`).join("")}</select>
+        </div>
+        <div style="max-height:60vh;overflow-y:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed;">
+            <thead><tr style="position:sticky;top:0;background:rgba(20,20,25,.95);">
+                <th style="text-align:left;width:120px;">${tl("Tour de")}</th><th style="text-align:left;width:150px;">${tl("Lanceur")}</th>
+                <th style="text-align:left;width:110px;">${tl("Jet")}</th><th style="width:70px;">${tl("Résultat")}</th><th style="text-align:left;">${tl("Formule et dés")}</th></tr></thead>
+            <tbody>${lignesHtml()}</tbody></table></div>
+        <p style="margin:6px 0 0;font-size:11px;opacity:.7;">${tl("✦ réussite critique (20 naturel) · ✕ échec critique (1 naturel) · dé barré : dé écarté (avantage, désavantage, relance).")}</p>
+    </div>`;
+    await foundry.applications.api.DialogV2.wait({
+        window: { title: tl("FunnyStats — historique des dés"), icon: "fa-solid fa-scroll" },
+        position: { width: Math.min(760, window.innerWidth - 40) },
+        content,
+        rejectClose: false,
+        render: (ev, dlg) => {
+            const root = dlg?.element ?? document;
+            const filtrer = () => {
+                const q = root.querySelector(".scwm-histo-qui")?.value ?? "";
+                const t = root.querySelector(".scwm-histo-type")?.value ?? "";
+                const visibles = new Set();
+                root.querySelectorAll(".scwm-histo-jet").forEach(tr => {
+                    const ok = (!q || tr.dataset.qui === q) && (!t || tr.dataset.type === t);
+                    tr.style.display = ok ? "" : "none";
+                    if (ok) visibles.add(tr.dataset.r);
+                });
+                root.querySelectorAll(".scwm-histo-round").forEach(tr => { tr.style.display = visibles.has(tr.dataset.r) ? "" : "none"; });
+            };
+            root.querySelectorAll(".scwm-histo-qui, .scwm-histo-type").forEach(s => s.addEventListener("change", filtrer));
         },
         buttons: [{ action: "close", label: tl("Fermer"), icon: "fa-solid fa-xmark", default: true }]
     }).catch(() => {});
@@ -349,11 +508,20 @@ export function FunnyStatsHooks() {
     // Événements envoyés par les clients des joueurs au MJ actif.
     CONFIG.queries[QUERY] = async (ev) => { if (estMjActif()) traiter(ev); return true; };
 
-    Hooks.on("dnd5e.damageActor", (actor, changes) => { if (estMjActif()) surDegatsPV(actor, changes, false); });
+    Hooks.on("dnd5e.damageActor", (actor, changes, update, userId) => {
+        // Dégâts appliqués sans passer par applyDamage (Midi-QOL…) : le client
+        // qui a fait la mise à jour compte la résistance de son dernier calcul.
+        if (userId === game.userId) compterResiste(actor);
+        if (estMjActif()) surDegatsPV(actor, changes, false);
+    });
     Hooks.on("dnd5e.healActor", (actor, changes) => { if (estMjActif()) surDegatsPV(actor, changes, true); });
 
-    // Dégâts annulés (résistances, immunités, réductions) : brut puis final.
+    // Dégâts résistés (résistances, immunités, réductions) : brut puis final.
+    // Le calcul tourne aussi pour chaque APERÇU de la carte d'application :
+    // on garde seulement le dernier calcul de chaque acteur, et on le compte
+    // une fois, quand les dégâts sont vraiment appliqués.
     const BRUT = new WeakMap();
+    const DERNIER_CALCUL = new Map();   // uuid acteur → { resiste, t }
     Hooks.on("dnd5e.preCalculateDamage", (actor, damages, options) => {
         const mult = options?.multiplier ?? 1;
         const brut = (damages ?? []).filter(d => !(d.type in (CONFIG.DND5E?.healingTypes ?? {})))
@@ -362,19 +530,40 @@ export function FunnyStatsHooks() {
     });
     Hooks.on("dnd5e.calculateDamage", (actor, damages) => {
         const brut = BRUT.get(damages);
-        if (brut == null || !actor?.uuid || !combatDe(actor.uuid)) return;
-        const annule = Math.trunc(brut) - Math.max(0, damages.amount ?? 0);
-        if (annule > 0) envoyer({ type: "annule", uuid: actor.uuid, valeur: annule });
+        if (brut == null || !actor?.uuid) return;
+        const final = (damages ?? []).filter(d => !(d.type in (CONFIG.DND5E?.healingTypes ?? {})))
+            .reduce((s, d) => s + Math.max(0, Number(d.value) || 0), 0);
+        DERNIER_CALCUL.set(actor.uuid, { resiste: Math.max(0, Math.trunc(brut) - Math.trunc(final)), t: Date.now() });
     });
+    const compterResiste = (actor) => {
+        const c = actor?.uuid ? DERNIER_CALCUL.get(actor.uuid) : null;
+        if (!c) return;
+        DERNIER_CALCUL.delete(actor.uuid);
+        if (Date.now() - c.t > 10_000 || !c.resiste || !combatDe(actor.uuid)) return;
+        envoyer({ type: "annule", uuid: actor.uuid, valeur: c.resiste });
+    };
+    Hooks.on("dnd5e.applyDamage", (actor) => compterResiste(actor));
 
     // Messages dnd5e : le MJ les reçoit tous.
-    Hooks.on("createChatMessage", (msg) => { if (estMjActif()) { try { surMessage(msg); } catch (e) { journal.avert(tl("[{0}] FunnyStats :", MOD), e); } } });
+    Hooks.on("createChatMessage", (msg) => {
+        if (!estMjActif()) return;
+        try { surMessage(msg); } catch (e) { journal.avert(tl("[{0}] FunnyStats :", MOD), e); }
+        try { enregistrerJets(msg); } catch (e) { journal.avert(tl("[{0}] FunnyStats :", MOD), e); }
+    });
+    // Cartes complétées après coup (Midi-QOL ajoute attaque et dégâts à sa carte).
+    Hooks.on("updateChatMessage", (msg, changes) => {
+        if (!estMjActif() || !("rolls" in (changes ?? {}))) return;
+        try { enregistrerJets(msg); } catch (e) { journal.avert(tl("[{0}] FunnyStats :", MOD), e); }
+    });
 
     // Midi-QOL : attaques et auteur des dégâts depuis son déroulé (client qui
     // lance l'action), envoyés au MJ.
-    Hooks.on("midi-qol.AttackRollComplete", (w) => {
+    // Résultat d'attaque : à la FIN du déroulé (midi-qol.RollComplete), quand
+    // les cibles touchées sont définitives. Au moment de AttackRollComplete,
+    // hitTargets peut encore être vide : tout comptait comme raté.
+    Hooks.on("midi-qol.RollComplete", (w) => {
         try {
-            const source = w?.actor?.uuid; if (!source) return;
+            const source = w?.actor?.uuid; if (!source || !w.attackRoll) return;
             const cibles = w.targets?.size ?? 0, touches = w.hitTargets?.size ?? 0;
             envoyer({ type: "attaque", source, nat: Number(w.diceRoll) || naturel(w.attackRoll), crit: !!w.isCritical,
                       fumble: !!w.isFumble, touches, ratees: Math.max(0, cibles - touches) });

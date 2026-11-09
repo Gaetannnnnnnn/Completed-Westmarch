@@ -218,6 +218,14 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
 
+v6.7.9 | 2026-11-09
+   - FunnyStats : une attaque qui atteignait la CA pouvait être comptée comme
+     ratée avec Midi-QOL (sa liste de cibles touchées peut être vidée avant
+     la fin du déroulé). Une cible compte maintenant comme touchée si Midi
+     l'a marquée touchée OU si le total d'attaque atteint sa CA ; critique :
+     touchée ; échec critique : ratée.
+   Fichiers : modules/funnystats.js.
+
 v6.7.8 | 2026-11-09
    - FunnyStats, corrections :
      « Annulés » devient « Résistés » (dégâts réduits par résistances,

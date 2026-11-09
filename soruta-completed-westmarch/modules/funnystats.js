@@ -564,9 +564,22 @@ export function FunnyStatsHooks() {
     Hooks.on("midi-qol.RollComplete", (w) => {
         try {
             const source = w?.actor?.uuid; if (!source || !w.attackRoll) return;
-            const cibles = w.targets?.size ?? 0, touches = w.hitTargets?.size ?? 0;
-            envoyer({ type: "attaque", source, nat: Number(w.diceRoll) || naturel(w.attackRoll), crit: !!w.isCritical,
-                      fumble: !!w.isFumble, touches, ratees: Math.max(0, cibles - touches) });
+            // Une cible compte comme touchée si Midi-QOL l'a mise dans ses cibles
+            // touchées OU si le total atteint sa CA (critique : touchée,
+            // échec critique : ratée). La liste de Midi seule ne suffit pas :
+            // selon le déroulé, elle peut être vidée avant la fin.
+            const uuidDe = (t) => (t?.actor ?? t?.document?.actor)?.uuid;
+            const touchees = new Set([...(w.hitTargets ?? [])].map(uuidDe).filter(Boolean));
+            const total = Number(w.attackTotal ?? w.attackRoll?.total);
+            const crit = !!w.isCritical, fumble = !!w.isFumble;
+            let touches = 0, ratees = 0;
+            for (const t of w.targets ?? []) {
+                const a = t?.actor ?? t?.document?.actor;
+                const ca = Number(a?.system?.attributes?.ac?.value);
+                const ok = !fumble && (crit || touchees.has(a?.uuid) || (Number.isFinite(total) && Number.isFinite(ca) && total >= ca));
+                ok ? touches++ : ratees++;
+            }
+            envoyer({ type: "attaque", source, nat: Number(w.diceRoll) || naturel(w.attackRoll), crit, fumble, touches, ratees });
         } catch { /* */ }
     });
     Hooks.on("midi-qol.DamageRollComplete", (w) => {

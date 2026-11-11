@@ -5,7 +5,7 @@
 // idées d'ergonomie popularisées par des modules d'UI, orientées
 // ACCESSIBILITÉ — notamment pour les joueurs daltoniens.
 //
-// Tous les réglages sont "client" (par utilisateur) : chaque joueur
+// Tous les réglages sont « user » (par COMPTE, pas par navigateur) : chaque joueur
 // choisit ses propres options via une fenêtre « Accessibilité »
 // accessible à tout le monde (restricted:false).
 //
@@ -58,40 +58,40 @@ const _get = (k) => { try { return game.settings.get(MOD, k); } catch { return u
 // ── Réglages ────────────────────────────────────────────────
 function registerA11ySettings() {
     game.settings.register(MOD, K_DALTON, {
-        name: tl("Mode daltonisme"), scope: "client", config: false,
+        name: tl("Mode daltonisme"), scope: "user", config: false,
         type: String, choices: DALTON_CHOICES, default: "none",
         onChange: applyAccessibility
     });
     game.settings.register(MOD, K_CONTRAST, {
-        name: tl("Fort contraste"), scope: "client", config: false,
+        name: tl("Fort contraste"), scope: "user", config: false,
         type: Boolean, default: false, onChange: applyAccessibility
     });
     game.settings.register(MOD, K_CONTRASTCOL, {
-        name: tl("Couleur des contours (fort contraste)"), scope: "client", config: false,
+        name: tl("Couleur des contours (fort contraste)"), scope: "user", config: false,
         type: String, default: DEFAULT_BORDER, onChange: applyAccessibility
     });
     game.settings.register(MOD, K_AVATARS, {
-        name: tl("Avatars dans la liste des joueurs"), scope: "client", config: false,
+        name: tl("Avatars dans la liste des joueurs"), scope: "user", config: false,
         type: Boolean, default: true, onChange: () => { applyAccessibility(); try { ui.players?.render(); } catch {} }
     });
     game.settings.register(MOD, K_AUTOHIDE, {
-        name: tl("Auto-masquage de l'interface"), scope: "client", config: false,
+        name: tl("Auto-masquage de l'interface"), scope: "user", config: false,
         type: Boolean, default: true, onChange: applyAccessibility
     });
     game.settings.register(MOD, K_GERE, {
-        name: tl("Indicateur « géré par le module »"), scope: "client", config: false,
+        name: tl("Indicateur « géré par le module »"), scope: "user", config: false,
         type: Boolean, default: true, onChange: () => rafraichirFiches()
     });
     game.settings.register(MOD, K_HEALTH, {
-        name: tl("Afficher l'état de santé estimé (Health Estimate)"), scope: "client", config: false,
+        name: tl("Afficher l'état de santé estimé (Health Estimate)"), scope: "user", config: false,
         type: Boolean, default: true, onChange: () => applyHealthEstimate()
     });
     game.settings.register(MOD, K_PCLOCK, {
-        name: tl("Afficher l'horloge de la party"), scope: "client", config: false,
+        name: tl("Afficher l'horloge de la party"), scope: "user", config: false,
         type: Boolean, default: true
     });
     game.settings.register(MOD, K_COMPACT, {
-        name: tl("Contrôles de gauche compacts"), scope: "client", config: false,
+        name: tl("Contrôles de gauche compacts"), scope: "user", config: false,
         type: Boolean, default: true, onChange: applyAccessibility
     });
 }

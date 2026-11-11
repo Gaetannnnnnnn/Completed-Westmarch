@@ -494,7 +494,7 @@ export async function ouvrirHistorique(data = null) {
 // ------------------------------------------------------------------ hooks
 export function registerFunnyStatsSettings() {
     game.settings.register(MOD, K_FUN, {
-        name: tl("FunnyStats — tableau de fin de combat"), scope: "client", config: false,
+        name: tl("FunnyStats — tableau de fin de combat"), scope: "user", config: false,
         type: Boolean, default: false
     });
     game.settings.register(MOD, K_DERNIER, {

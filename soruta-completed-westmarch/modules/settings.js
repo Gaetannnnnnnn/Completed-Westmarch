@@ -435,12 +435,12 @@ export function registerSettings() {
         tl("Rappel avantage / désavantage"),
         tl("Au jet d'attaque, signale les sources d'avantage/désavantage selon l'état de la cible (à terre + CaC…) et les effets de statut du PJ."),
         false));
-    // Opt-out PAR JOUEUR (réglage client, visible et modifiable par chacun) :
+    // Opt-out PAR JOUEUR (réglage du compte, visible et modifiable par chacun) :
     // coupe les pop-ups/chuchotements de rappels de combat sur SON écran.
     game.settings.register(MOD, "combatRemindersOff", {
         name: tl("Désactiver mes rappels de combat"),
         hint: tl("Coché = tu ne reçois plus les pop-ups et chuchotements de rappels de combat (réactions, châtiments/smite, avantage/désavantage, maîtrises). N'affecte que TON écran, pas les autres joueurs ni le MJ."),
-        scope: "client", config: true, type: Boolean, default: false
+        scope: "user", config: true, type: Boolean, default: false
     });
     game.settings.register(MOD, "hidePlayerStarTab", B(
         tl("Masquer l'onglet « étoile » aux joueurs"),
@@ -711,7 +711,7 @@ export function registerSettings() {
     });
     // Couleur de fond des cartes de chat — PAR JOUEUR (défaut : blanc crème).
     game.settings.register(MOD, "chatCardColor", {
-        scope: "client", config: false, type: String, default: "#f4ecd8",
+        scope: "user", config: false, type: String, default: "#f4ecd8",
         onChange: () => applyChatCardPrefs()
     });
     game.settings.register(MOD, "enableTemplateSnap", B(
@@ -897,7 +897,7 @@ export function registerSettings() {
         tl("Si activé, la fenêtre d'accueil s'affiche à chaque connexion (sauf « Ne plus afficher »)."),
         false));
     game.settings.register(MOD, "hideWelcome", {
-        scope: "client", config: false, type: Boolean, default: false
+        scope: "user", config: false, type: Boolean, default: false
     });
 
     // ============================================================

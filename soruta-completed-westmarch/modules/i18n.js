@@ -78,9 +78,21 @@ export const nomsPossibles = (fr) => (EN[fr] && EN[fr] !== fr ? [fr, EN[fr]] : [
 export function registerLangueSetting() {
     game.settings.register(MOD_ID, CLE_CHOIX, {
         name: "Module language / Langue du module",
-        hint: "Language of Soruta — Completed Westmarch for you only. Automatic = the Foundry language. — Langue du module pour toi seulement. Automatique = la langue de Foundry.",
-        scope: "client", config: true, type: String, requiresReload: true,
+        hint: "Language of Soruta — Completed Westmarch for your account only. Automatic = your Foundry language. — Langue du module pour ton compte seulement. Automatique = ta langue de Foundry.",
+        scope: "user", config: true, type: String, requiresReload: true,
         choices: { auto: "Automatic / Automatique", en: "English", fr: "Français" },
-        default: "auto"
+        default: "auto",
+        // Copie locale : lue au tout début du chargement, avant que les
+        // réglages du compte soient disponibles.
+        onChange: (v) => { try { globalThis.localStorage?.setItem(`${MOD_ID}.${CLE_CHOIX}`, JSON.stringify(v)); } catch { /* */ } }
+    });
+    // Au chargement, la copie locale reprend le choix du compte connecté
+    // (plusieurs comptes peuvent utiliser le même navigateur).
+    Hooks.once("ready", () => {
+        try {
+            const v = game.settings.get(MOD_ID, CLE_CHOIX) ?? "auto";
+            const k = `${MOD_ID}.${CLE_CHOIX}`;
+            if (globalThis.localStorage?.getItem(k) !== JSON.stringify(v)) globalThis.localStorage?.setItem(k, JSON.stringify(v));
+        } catch { /* */ }
     });
 }

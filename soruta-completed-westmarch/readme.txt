@@ -218,6 +218,28 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
 
+v6.8.0 | 2026-11-11
+   - Casier, onglet Monde : corbeille sur chaque fiche (PNJ, lieu,
+     organisation). Confirmation, puis suppression de l'entrée (monde ou
+     compendium déverrouillé) et nettoyage de ce qui la désignait :
+     relations Monk's des autres fiches, lien « fichePage » des acteurs et
+     scènes. Options : retirer ses épingles sur les cartes (coché par
+     défaut), supprimer aussi l'acteur lié d'un PNJ (décoché par défaut).
+   - Réglages personnels enregistrés par COMPTE (portée « user ») et non
+     plus par navigateur (« client ») : deux comptes ouverts sur le même
+     ordinateur (MJ et joueur) ne les partagent plus, et un joueur les
+     retrouve depuis un autre appareil. Concerne : Langue du module (avec
+     une copie locale pour le tout début du chargement), Accessibilité
+     (daltonisme, contraste et couleur des contours, avatars,
+     auto-masquage, contrôles compacts, indicateur « géré », Health
+     Estimate, horloge de party), FunnyStats, couleur des cartes de chat,
+     « Désactiver mes rappels de combat », « Ne plus afficher » l'accueil.
+     Restent par navigateur : mode verbeux, statistiques de connexion,
+     repli de la liste des joueurs. Les choix déjà faits avec l'ancienne
+     version sont à refaire une fois.
+   Fichiers : modules/monde.js, modules/i18n.js, modules/accessibility.js,
+   modules/settings.js, modules/funnystats.js, modules/i18n-en.js.
+
 v6.7.9 | 2026-11-09
    - FunnyStats : une attaque qui atteignait la CA pouvait être comptée comme
      ratée avec Midi-QOL (sa liste de cibles touchées peut être vidée avant

@@ -1240,6 +1240,7 @@ async function contenuMondeHtml(etat = {}) {
                 ${lien}
                 <a class="scwm-monde-rediger" data-uuid="${f.entry.uuid}" title="${tl("Rédiger la fiche")}"><i class="fa-solid fa-pen"></i></a>
                 ${iconeVisibilite(f, visible)}
+                <a class="scwm-monde-supprimer" data-uuid="${f.entry.uuid}" title="${tl("Supprimer la fiche")}" style="margin-left:4px;color:#e58f8f;"><i class="fa-solid fa-trash"></i></a>
             </td>
         </tr>`;
     }).join("");
@@ -1322,8 +1323,75 @@ export async function cablerOngletMonde(root, rerendre, etat = {}) {
         else if (a.classList.contains("scwm-monde-acteur-ouvrir")) game.actors.get(a.dataset.actor)?.sheet?.render(true);
         else if (a.classList.contains("scwm-monde-scene-ouvrir")) game.scenes.get(a.dataset.scene)?.view();
         else if (a.classList.contains("scwm-monde-epingle")) voirSurLaCarte(entry);
+        else if (a.classList.contains("scwm-monde-supprimer")) { if (await supprimerFiche(entry)) rerendre(); }
     });
     appliquer();
+}
+
+// ============================================================
+// Suppression d'une fiche (onglet Monde du Casier, MJ)
+// ============================================================
+// Supprime l'entrée de journal (monde ou compendium) et nettoie ce qui la
+// désignait : relations Monk's des autres fiches, lien « fichePage » des
+// acteurs et scènes, épingles sur les cartes (option), acteur lié (option).
+export async function supprimerFiche(entry) {
+    if (!game.user.isGM || !entry) return false;
+    const type = typeDe(entry);
+    if (!type) return false;
+    if (entry.pack) {
+        try { verifierDeverrouille(game.packs.get(entry.pack)); }
+        catch (e) { ui.notifications?.error(e.message); return false; }
+    }
+    const page = pageDe(entry);
+    const acteur = type === "person" ? acteurDe(page) : null;
+    const pins = epinglesDe(entry);
+    const uid = `scwm-suppr-${foundry.utils.randomID()}`;
+    const ok = await foundry.applications.api.DialogV2.confirm({
+        window: { title: tl("Supprimer « {0} »", entry.name), icon: "fa-solid fa-trash" },
+        content: `<div id="${uid}">
+            <p>${tl("La fiche <strong>{0}</strong> ({1}) sera supprimée définitivement{2}.", esc(entry.name), TYPES[type].label, entry.pack ? tl(" du compendium") : "")}</p>
+            <p style="font-size:.9em;opacity:.85;">${tl("Les liens qui la désignaient sont retirés : relations des autres fiches dans Monk's, lien vers la fiche sur les acteurs et les scènes.")}</p>
+            ${pins.length ? `<label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" name="pins" checked> ${tl("Retirer aussi ses {0} épingle(s) sur les cartes", pins.length)}</label>` : ""}
+            ${acteur ? `<label style="display:flex;gap:6px;align-items:center;"><input type="checkbox" name="acteur"> ${tl("Supprimer aussi l'acteur lié « {0} »", esc(acteur.name))}</label>` : ""}
+        </div>`,
+        yes: { label: tl("Supprimer"), icon: "fa-solid fa-trash", callback: () => {
+            const r = document.getElementById(uid);
+            return { pins: !!r?.querySelector("[name=pins]")?.checked, acteur: !!r?.querySelector("[name=acteur]")?.checked };
+        } },
+        no: { label: tl("Annuler"), default: true },
+        rejectClose: false
+    }).catch(() => null);
+    if (!ok) return false;
+    const opts = typeof ok === "object" ? ok : { pins: true, acteur: false };
+    try {
+        // Relations Monk's des autres fiches vers celle-ci.
+        for (const f of await chargerFiches()) {
+            if (f.entry.id === entry.id || !f.page) continue;
+            const rel = f.page.getFlag(MEJ, "relationships");
+            if (!rel || Array.isArray(rel) || !rel[entry.id]) continue;
+            if (f.entry.pack && game.packs.get(f.entry.pack)?.locked) continue;
+            await f.page.unsetFlag(MEJ, `relationships.${entry.id}`).catch(() => {});
+        }
+        // Liens « fichePage » des acteurs et des scènes.
+        for (const doc of [...game.actors, ...game.scenes]) {
+            if (doc.getFlag?.(MOD, "fichePage") === entry.uuid) await doc.unsetFlag(MOD, "fichePage");
+        }
+        // Épingles sur les cartes.
+        if (opts.pins) {
+            for (const scene of new Set(pins.map(p => p.scene))) {
+                const ids = pins.filter(p => p.scene === scene).map(p => p.note.id);
+                await scene.deleteEmbeddedDocuments("Note", ids);
+            }
+        }
+        if (opts.acteur && acteur) await acteur.delete();
+        await entry.delete();
+        ui.notifications?.info(tl("Fiche « {0} » supprimée.", entry.name));
+        return true;
+    } catch (e) {
+        journal.erreur(tl("[{0}] suppression de la fiche", MOD), e);
+        ui.notifications?.error(e.message);
+        return false;
+    }
 }
 
 // ============================================================

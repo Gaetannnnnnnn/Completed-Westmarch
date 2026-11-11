@@ -2,6 +2,16 @@
 // Généré à partir des textes du code ; une entrée absente reste en français.
 // © 2026 Soruta.
 export default {
+ "Supprimer la fiche": "Delete the sheet",
+ "Supprimer « {0} »": "Delete “{0}”",
+ "La fiche <strong>{0}</strong> ({1}) sera supprimée définitivement{2}.": "The sheet <strong>{0}</strong> ({1}) will be permanently deleted{2}.",
+ " du compendium": " from the compendium",
+ "Les liens qui la désignaient sont retirés : relations des autres fiches dans Monk's, lien vers la fiche sur les acteurs et les scènes.": "Links pointing to it are removed: relationships of other sheets in Monk's, link to the sheet on actors and scenes.",
+ "Retirer aussi ses {0} épingle(s) sur les cartes": "Also remove its {0} pin(s) on the maps",
+ "Supprimer aussi l'acteur lié « {0} »": "Also delete the linked actor “{0}”",
+ "Supprimer": "Delete",
+ "Fiche « {0} » supprimée.": "Sheet “{0}” deleted.",
+ "[{0}] suppression de la fiche": "[{0}] deleting the sheet",
  "Dégâts bruts : ce que les coups auraient fait sans résistances ni PV temporaires (infligés + résistés par les cibles)": "Raw damage: what the hits would have done without resistances or temporary HP (dealt + resisted by the targets)",
  "Dgt bruts": "Raw dmg",
  "Dégâts résistés (résistances, immunités, réductions)": "Damage resisted (resistances, immunities, reductions)",

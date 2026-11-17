@@ -2,6 +2,23 @@
 // Généré à partir des textes du code ; une entrée absente reste en français.
 // © 2026 Soruta.
 export default {
+ "[{0}] Lecture de la playlist :": "[{0}] Reading the playlist:",
+ "Playlist introuvable dans le compendium.": "Playlist not found in the compendium.",
+ "Écouter (chez vous seulement)": "Listen (only on your side)",
+ "{0} piste(s). L'écoute est un aperçu chez vous seulement : les joueurs n'entendent rien.": "{0} track(s). Listening is a preview on your side only: players hear nothing.",
+ "Aucune piste.": "No tracks.",
+ "Pistes — {0}": "Tracks — {0}",
+ "[{0}] Aperçu audio :": "[{0}] Audio preview:",
+ "Impossible de lire « {0} » (fichier manquant ?).": "Can't play “{0}” (missing file?).",
+ "Importer dans le monde": "Import into the world",
+ "Playlist « {0} » importée dans le monde.": "Playlist “{0}” imported into the world.",
+ "[{0}] Import de la playlist :": "[{0}] Playlist import:",
+ "Import impossible (voir console).": "Import failed (see console).",
+ "Voir les pistes": "View tracks",
+ "[{0}] Bouton des pistes (compendium) :": "[{0}] Tracks button (compendium):",
+ "Playlists en compendium — voir et écouter les pistes": "Playlists in compendiums — view and listen to tracks",
+ "Dans un compendium de playlists, un bouton (et le clic droit) « Voir les pistes » liste les morceaux d'une playlist, avec un aperçu ▶ chez le MJ seulement et l'import dans le monde. Rien n'est chargé à l'avance. MJ uniquement.": "In a playlist compendium, a button (and the right-click) “View tracks” lists a playlist's tracks, with a ▶ preview for the GM only and import into the world. Nothing is loaded in advance. GM only.",
+ "Musique": "Music",
  "Correctif Monk's Enhanced Journal — envoi vers les compendiums": "Monk's Enhanced Journal fix — sending to compendiums",
  "Avec MEJ actif, plus rien ne pouvait être déposé dans un compendium (playlists, acteurs, objets…) : un bug de MEJ faisait échouer l'envoi sans message. Ce correctif le rétablit sans rien changer d'autre à MEJ.": "With MEJ active, nothing could be dropped into a compendium anymore (playlists, actors, items…): an MEJ bug made the transfer fail silently. This fix restores it without changing anything else in MEJ.",
  "[{0}] Correctif Monk's Enhanced Journal : envoi vers les compendiums rétabli.": "[{0}] Monk's Enhanced Journal fix: sending to compendiums restored.",

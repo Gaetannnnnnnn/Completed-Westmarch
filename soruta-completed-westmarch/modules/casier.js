@@ -355,10 +355,15 @@ async function measureWorld() {
         for (const cd of (c.cards ?? [])) for (const f of (cd.faces ?? [])) srcs.push(f.img);
         jobs.push(addDoc(tl("Cartes"), c, srcs));
     }
+    // Playlists : la playlist (données seules) + CHAQUE musique comme un élément
+    // à part, rangée sous le nom de sa playlist (colonne Dossier) : les morceaux
+    // lourds apparaissent eux-mêmes dans « Éléments les plus lourds ».
     for (const pl of (game.playlists ?? [])) {
-        const srcs = [];
-        for (const snd of (pl.sounds ?? [])) srcs.push(snd.path);
-        jobs.push(addDoc("Playlist", pl, srcs));   // médias = fichiers audio (souvent les plus lourds)
+        jobs.push(addDoc("Playlist", pl, []));
+        for (const snd of (pl.sounds ?? [])) {
+            const nomPl = pl.name ?? "";
+            jobs.push(addDoc(tl("Musique"), { name: snd.name, folder: { name: nomPl }, toObject: () => snd.toObject() }, [snd.path], snd.path));
+        }
     }
     for (const m of (game.macros ?? []))
         jobs.push(addDoc("Macro", m, [m.img]));
@@ -396,7 +401,8 @@ async function measureWorld() {
 function celluleFormats(m) {
     const autres = (m.formats ?? []).filter(e => e !== m.princ);
     if (!m.princ && !autres.length) return "—";
-    const lib = m.type === tl("Scène") ? tl("Fond de la scène") : tl("Image principale");
+    const lib = m.type === tl("Scène") ? tl("Fond de la scène")
+        : m.type === tl("Musique") ? tl("Fichier audio") : tl("Image principale");
     const bulle = [m.princ ? `${lib} : .${m.princ}` : null,
                    autres.length ? tl("Autres médias : {0}", autres.map(e => "." + e).join(" ")) : null].filter(Boolean).join(" — ");
     const tete = m.princ ? `<strong>.${esc(m.princ)}</strong>` : "";

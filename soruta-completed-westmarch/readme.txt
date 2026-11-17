@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 6.8.4
+Version : 6.8.5
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -217,6 +217,20 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v6.8.5 | 2026-11-17
+   - Nouveau : voir les pistes d'une playlist rangée en compendium (Foundry
+     ne les montre pas). Bouton 🎵 sur chaque playlist du compendium, ou
+     clic droit → « Voir les pistes » : liste des morceaux, aperçu ▶ chez
+     le MJ seulement (rien n'est diffusé aux joueurs), import dans le
+     monde. Seule la playlist ouverte est lue (quelques Ko de texte) ; un
+     fichier audio ne se charge qu'au clic sur ▶ et s'arrête à la
+     fermeture. MJ uniquement. Réglage : Toolkit → Playlists en compendium.
+     Fichier : modules/playlistpack.js (nouveau).
+   - Poids du monde : chaque musique apparaît comme un élément à part
+     (type « Musique », sa playlist dans la colonne Dossier) ; la playlist
+     ne compte plus que ses données. Les morceaux lourds remontent donc
+     dans « Éléments les plus lourds ». Fichier : modules/casier.js.
 
 v6.8.4 | 2026-11-17
    - Poids du monde, colonne « Format » : affiche en gras le format du

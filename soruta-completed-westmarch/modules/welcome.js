@@ -147,30 +147,62 @@ export function showTutorialHub() {
 /**
  * Affiche la fenêtre de bienvenue (appelable depuis le bouton toolbar).
  */
+// Textes de la fenêtre de bienvenue (réglages du MJ). Mise en forme minimale et
+// sûre : le texte est échappé, puis **mot** → gras et retour à la ligne → <br>.
+const TEXTES_BIENVENUE = ["welcomeWindowTitle", "serverName", "welcomeText", "welcomeWarning", "welcomeStartLabel"];
+function texteBienvenue(key) {
+    try { return String(game.settings.get(MODULE, key) ?? ""); } catch { return ""; }
+}
+function miseEnForme(texte) {
+    return foundry.utils.escapeHTML(texte.trim())
+        .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+        .replace(/\r?\n/g, "<br>");
+}
+
+/**
+ * Fige les textes de bienvenue : tant qu'un texte n'a jamais été enregistré,
+ * Foundry affiche sa valeur par défaut, traduite dans la langue de CHAQUE
+ * utilisateur. Au premier chargement par le MJ actif, on enregistre la valeur
+ * affichée : elle devient le texte du serveur, identique pour tous et
+ * indépendant de la langue, modifiable dans Réglages → Tutoriel.
+ */
+export async function figerTextesBienvenue() {
+    if (!game.user?.isGM || game.users?.activeGM?.id !== game.user.id) return;
+    const monde = game.settings.storage?.get?.("world");
+    for (const key of TEXTES_BIENVENUE) {
+        const id = `${MODULE}.${key}`;
+        const deja = monde?.getSetting?.(id) ?? monde?.find?.(x => x.key === id);
+        if (deja) continue;
+        try { await game.settings.set(MODULE, key, texteBienvenue(key)); } catch { /* droits */ }
+    }
+}
+
 export function showWelcome() {
-    const serverName = game.settings.get(MODULE, "serverName");
+    const titre   = texteBienvenue("serverName").trim();
+    const texte   = texteBienvenue("welcomeText");
+    const avert   = texteBienvenue("welcomeWarning");
+    const fenetre = texteBienvenue("welcomeWindowTitle").trim() || tl("Bienvenue");
+    const bouton  = texteBienvenue("welcomeStartLabel").trim() || tl("Commencer");
 
     const content = `
     <div class="tuto-welcome-body">
         <div class="tuto-welcome-icon">
             <i class="fa-solid fa-scroll"></i>
         </div>
-        <h2 class="tuto-welcome-title">${serverName}</h2>
-        <p class="tuto-welcome-text">
-            ${tl("Des fonctionnalités spéciales sont disponibles sur ce serveur.<br>\n            On commence par <strong>l'essentiel</strong> (court), puis un <strong>menu</strong>\n            vous laisse explorer le reste à votre rythme.")}
-        </p>
-        <p class="tuto-welcome-warn" style="margin-top:8px;color:#e0a13a;font-size:12px;">
-            ${tl("<i class=\"fa-solid fa-triangle-exclamation\"></i>\n            Fermez toutes les fiches et fenêtres ouvertes avant de commencer, pour le bon déroulement du guide.")}
-        </p>
+        ${titre ? `<h2 class="tuto-welcome-title">${foundry.utils.escapeHTML(titre)}</h2>` : ""}
+        ${texte.trim() ? `<p class="tuto-welcome-text">${miseEnForme(texte)}</p>` : ""}
+        ${avert.trim() ? `<p class="tuto-welcome-warn" style="margin-top:8px;color:#e0a13a;font-size:12px;">
+            <i class="fa-solid fa-triangle-exclamation"></i> ${miseEnForme(avert)}
+        </p>` : ""}
     </div>`;
 
     new Dialog({
-        title:   tl("Bienvenue"),
+        title:   foundry.utils.escapeHTML(fenetre),
         content,
         buttons: {
             start: {
                 icon:     '<i class="fa-solid fa-play"></i>',
-                label:    tl("Commencer (l'essentiel puis le menu)"),
+                label:    foundry.utils.escapeHTML(bouton),
                 callback: () => startEssentialsThenHub()
             }
         },

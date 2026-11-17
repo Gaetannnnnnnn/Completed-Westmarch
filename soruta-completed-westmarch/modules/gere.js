@@ -6,7 +6,8 @@ import { tl } from "./i18n.js";
 // Sur la fiche d'un personnage, une petite icône d'engrenages dorée
 // apparaît à côté des aptitudes / dons dont le module automatise une règle
 // (Healer, Alert, Large Form, Giant's Havoc, Form of the Beast). Au survol :
-// ce que fait le module. Seulement si la modification correspondante est
+// « Géré par <nom du module> : » puis ce que fait le module.
+// Seulement si la modification correspondante est
 // activée (Modifications ciblées), et désactivable par chaque joueur dans
 // « Accessibilité » (réglage client a11yManagedBadge).
 // © 2026 Soruta.
@@ -19,18 +20,21 @@ const ident = (i) => String(i?.system?.identifier ?? "").toLowerCase();
 // Aptitudes gérées : test sur l'objet, réglage qui l'active, explication.
 const GERES = [
     { test: (i) => i.type === "feat" && (ident(i) === "healer" || /^(healer|gu[ée]risseur)$/i.test(nom(i))), cle: "enableHealerReroll",
-      texte: tl("Géré par le module : les dés de soins de vos sorts (et du Battle Medic) relancent automatiquement les 1.") },
+      texte: tl("les dés de soins de vos sorts (et du Battle Medic) relancent automatiquement les 1.") },
     { test: (i) => i.type === "feat" && (ident(i) === "alert" || /^(alert|vigilant)$/i.test(nom(i))), cle: "enableAlertSwap",
-      texte: tl("Géré par le module : après l'initiative, le MJ peut échanger la vôtre avec celle d'un autre joueur (bouton dans le suivi de combat).") },
+      texte: tl("après l'initiative, le MJ peut échanger la vôtre avec celle d'un autre joueur (bouton dans le suivi de combat).") },
     { test: (i) => /large form/i.test(nom(i)), cle: "enableLargeForm",
-      texte: tl("Géré par le module : utiliser cette aptitude fait passer votre jeton en taille Large, et inversement.") },
+      texte: tl("utiliser cette aptitude fait passer votre jeton en taille Large, et inversement.") },
     { test: (i) => /giant.?s havoc/i.test(nom(i)), cle: "enableRageSize",
-      texte: tl("Géré par le module : pendant la Rage, votre jeton passe en taille Large.") },
+      texte: tl("pendant la Rage, votre jeton passe en taille Large.") },
     { test: (i) => i.type === "feat" && ident(i) === "form-of-the-beast", cle: "enableFormOfTheBeast",
-      texte: tl("Géré par le module : les armes naturelles (Morsure, Griffes, Queue) sont créées automatiquement.") }
+      texte: tl("les armes naturelles (Morsure, Griffes, Queue) sont créées automatiquement.") }
 ];
 
 export const badgeActif = () => lire("a11yManagedBadge", true) !== false;
+
+// Nom du module tel qu'affiché par Foundry (module.json → title).
+const nomModule = () => game.modules?.get?.(MOD)?.title || "Soruta — Completed Westmarch";
 
 function ajouterBadges(app, html) {
     try {
@@ -50,8 +54,9 @@ function ajouterBadges(app, html) {
                 const cible = ligne.querySelector(".item-name .title, .item-name h4, .item-name, .name .title, .name, h4, .title") ?? ligne;
                 const i = document.createElement("i");
                 i.className = "fa-solid fa-gears scwm-gere";
-                i.dataset.tooltip = g.texte;
-                i.setAttribute("aria-label", g.texte);
+                const bulle = `${tl("Géré par {0} :", nomModule())} ${g.texte}`;
+                i.dataset.tooltip = bulle;
+                i.setAttribute("aria-label", bulle);
                 i.style.cssText = "color:#c9a227;font-size:.8em;margin-left:5px;opacity:.85;cursor:help;";
                 cible.appendChild(i);
             });

@@ -18,7 +18,7 @@ import { openCasier } from "./casier.js";
 import { openSceneCues } from "./sceneaudio.js";
 import { openPlayerHub } from "./charvalidation.js";
 import { openA11yDialog } from "./accessibility.js";
-import { openConfigHub } from "./settings.js";
+import { openConfigHub, FROZEN_SETTINGS } from "./settings.js";
 import { tl } from "./i18n.js";
 const MODULE = MOD;
 
@@ -64,12 +64,15 @@ export const SECTION_LABELS = {
     bestiary:        tl("Bestiaire"),
     relations:       tl("Relations"),
     carnet:          tl("Carnet & Expéditions"),
+    horloge:         tl("Horloge & calendrier"),
     casier:          tl("Casier du MJ"),
+    monde:           tl("Registre du monde"),
     carteExpedition: tl("Carte des expéditions"),
     cues:            tl("Cues audio (mise en scène)"),
     boutiques:       tl("Boutiques (MEJ)"),
     tempsMorts:      tl("Temps morts"),
     apparenceTokens: tl("Apparence des tokens"),
+    hudToken:        tl("HUD du token"),
     outilsGm:        tl("Outils GM"),
     echange:         tl("Échange entre joueurs"),
     transformation:  tl("Transformations"),
@@ -86,12 +89,15 @@ export const SECTION_ICONS = {
     bestiary:        "fa-dragon",
     relations:       "fa-users",
     carnet:          "fa-book-open",
+    horloge:         "fa-clock",
     casier:          "fa-box-archive",
+    monde:           "fa-book-atlas",
     carteExpedition: "fa-map-location-dot",
     cues:            "fa-clapperboard",
     boutiques:       "fa-store",
     tempsMorts:      "fa-hourglass-half",
     apparenceTokens: "fa-masks-theater",
+    hudToken:        "fa-crosshairs",
     outilsGm:        "fa-shield-halved",
     echange:         "fa-right-left",
     transformation:  "fa-paw",
@@ -107,13 +113,16 @@ export const SETTING_KEYS = {
     bestiary:        "tutoBestiary",
     relations:       "tutoRelations",
     carnet:          "tutoCarnet",
+    horloge:         "tutoHorloge",
     noteGm:          "tutoNoteGm",
     casier:          "tutoCasier",
+    monde:           "tutoMonde",
     carteExpedition: "tutoCarteExpedition",
     cues:            "tutoCues",
     boutiques:       "tutoBoutiques",
     tempsMorts:      "tutoTempsMorts",
     apparenceTokens: "tutoApparenceTokens",
+    hudToken:        "tutoHudToken",
     outilsGm:        "tutoOutilsGm",
     accessibilite:   "tutoAccessibilite",
     echange:         "tutoEchange",
@@ -137,12 +146,15 @@ export const SECTION_FEATURE_SETTING = {
     bestiary:        "bestiaryEnabled",
     relations:       "relationsEnabled",
     carnet:          "carnetEnabled",
-    casier:          null,               // outil MJ intégré (gmOnly)
+    horloge:         null,               // étapes reliées à l'horloge de party
+    casier:          "enableCasierGm",   // Casier du MJ (gmOnly)
+    monde:           "mondeEnabled",     // + Monk's Enhanced Journal (isSectionAvailable)
     carteExpedition: "enableExpeditionMap",
     cues:            "enableSceneCues",
     boutiques:       null,               // dépendance externe (MEJ) gérée à part
-    tempsMorts:      null,               // fonctionnalité intégrée
-    apparenceTokens: null,               // fonctionnalité intégrée
+    tempsMorts:      "tmEnabled",        // Temps morts
+    apparenceTokens: null,               // étapes filtrées une à une (apparence figée)
+    hudToken:        null,               // HUD natif + boutons du module
     outilsGm:        null,               // fonctionnalité intégrée (gmOnly géré à part)
     echange:         "enableTrade",
     transformation:  "enablePolymorph",
@@ -151,7 +163,7 @@ export const SECTION_FEATURE_SETTING = {
 };
 
 // Sections réservées au GM (toutes leurs étapes sont gmOnly)
-export const SECTION_GM_ONLY = new Set(["casier", "carteExpedition", "cues", "noteGm", "boutiques", "outilsGm", "compagnons"]);
+export const SECTION_GM_ONLY = new Set(["casier", "monde", "carteExpedition", "cues", "noteGm", "boutiques", "outilsGm", "compagnons"]);
 
 // Sections réservées aux JOUEURS (étapes playerOnly) : cachées aux GM, pour qui
 // elles seraient vides (déclaration de temps morts, gestion de ses personnages).
@@ -181,14 +193,43 @@ export const SECTION_ESSENTIAL = new Set([
  *   - "boutiques" nécessite le module externe Monk's Enhanced Journal
  *   - la section n'est pas GM-only si l'utilisateur est joueur
  */
+// Réglage(s) d'une fonctionnalité : actif seulement si coché ET pas gelé par le
+// module (FROZEN_SETTINGS, ex. apparence des tokens, TGCM).
+function reglageActif(key) {
+    if (FROZEN_SETTINGS?.has?.(key)) return false;
+    try { return game.settings.get(MOD, key) === true; } catch { return false; }
+}
+// `feature` d'une étape : ["a", "b"] = toutes requises ; { any: [...] } = au moins une.
+function fonctionActive(feature) {
+    if (!feature) return true;
+    if (Array.isArray(feature)) return feature.every(reglageActif);
+    if (Array.isArray(feature.any)) return feature.any.some(reglageActif);
+    return reglageActif(feature);
+}
+// Une étape est-elle montrée à cet utilisateur ?
+function etapeVisible(s, experienced = false) {
+    if (s.disabled) return false;                      // fonctionnalité gelée
+    if (!fonctionActive(s.feature)) return false;      // désactivée sur ce serveur
+    if (s.gmOnly     && !game.user.isGM) return false;
+    if (s.playerOnly &&  game.user.isGM) return false;
+    if (experienced  && s.native) return false;        // étape native isolée
+    return true;
+}
+
 export function isSectionAvailable(sectionKey) {
     if (SECTION_GM_ONLY.has(sectionKey) && !game.user?.isGM) return false;
     if (SECTION_PLAYER_ONLY.has(sectionKey) && game.user?.isGM) return false;
     if (sectionKey === "boutiques")
         return !!game.modules.get("monks-enhanced-journal")?.active;
+    if (sectionKey === "monde" && !game.modules.get("monks-enhanced-journal")?.active) return false;
+    // Section décochée dans les réglages du tutoriel : jamais proposée
+    // (ni dans le parcours, ni dans le menu du guide).
+    const tuto = SETTING_KEYS[sectionKey];
+    if (tuto) { try { if (game.settings.get(MOD, tuto) === false) return false; } catch { /* non enregistré */ } }
     const setting = SECTION_FEATURE_SETTING[sectionKey];
-    if (!setting) return true;
-    return !!game.settings.get(MOD, setting);
+    if (setting && !reglageActif(setting)) return false;
+    // Section vide une fois retirées les étapes des fonctions désactivées : cachée.
+    return (STEPS_BY_FEATURE[sectionKey] ?? []).some(s => etapeVisible(s));
 }
 
 // ================================================================
@@ -259,6 +300,34 @@ async function _openCarnetNoteExpanded() {
 // ── Tour d'accessibilité : navigation Settings → config module → dialogue ──
 const _sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
+// Déplie un dossier de la barre latérale ET tous ses dossiers parents, puis
+// re-dessine le répertoire. Deux voies, car le balisage a changé selon les
+// versions : (1) l'état « déplié » mémorisé par Foundry (game.folders._expanded,
+// clé uuid en v13+, id avant) ; (2) repli DOM : clic sur l'en-tête d'un dossier
+// encore fermé (classe « collapsed » en v12, absence de « expanded » en v13+).
+async function _deplierDossiers(folder, app) {
+    const chaine = [];
+    for (let f = folder; f; f = f.folder) chaine.unshift(f);
+    if (!chaine.length) return;
+    const memo = game.folders?._expanded;
+    if (memo && typeof memo === "object") for (const f of chaine) { memo[f.uuid] = true; memo[f.id] = true; }
+    try { await app?.render?.(false); } catch {}
+    await _sleep(300);
+    const el = app?.element;
+    const root = (el instanceof HTMLElement) ? el : el?.[0];
+    if (!root) return;
+    const v13 = (game.release?.generation ?? 0) >= 13;
+    for (const f of chaine) {
+        const li = root.querySelector(`.folder[data-folder-id="${f.id}"], .folder[data-uuid="${f.uuid}"]`);
+        if (!li) continue;
+        const ferme = li.classList.contains("collapsed") || (v13 && !li.classList.contains("expanded"));
+        if (ferme) {
+            li.querySelector(":scope > header, :scope > .folder-header")?.click();
+            await _sleep(150);
+        }
+    }
+}
+
 async function _openSidebarSettingsTab() {
     try { ui.sidebar?.expand?.(); } catch {}
     try { ui.sidebar?.activateTab?.("settings"); } catch {}
@@ -311,15 +380,133 @@ async function _openPantheonFolder() {
     try { ui.journal?.render?.(false); } catch {}
     await _sleep(250);
     document.querySelectorAll(".tuto-a11y-highlight").forEach(e => e.classList.remove("tuto-a11y-highlight"));
+    // Le BON dossier : celui du journal des Dieux créé par le module (marqué
+    // « pantheon »), sinon un dossier de journaux nommé « Panthéons ».
+    // (Avant : recherche par texte dans la barre latérale, qui pouvait tomber
+    // sur un dossier PARENT, dont le texte contient celui de ses sous-dossiers.)
+    const norm = (t) => String(t ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+    const jDieux = game.journal?.find(j => j.getFlag(MODULE, "pantheon") === true && j.folder);
+    const dossier = jDieux?.folder
+        ?? game.folders?.find(f => f.type === "JournalEntry" && /^pantheons?$/.test(norm(f.name)));
+    if (!dossier) return;
+    await _deplierDossiers(dossier, ui.journal);
     const el = ui.journal?.element;
     const root = (el instanceof HTMLElement) ? el : (el?.[0] ?? document.getElementById("journal"));
-    const folderLi = [...(root?.querySelectorAll("li.folder, .directory-item.folder") ?? [])]
-        .find(li => /panth[eé]on/i.test(li.querySelector(".folder-name, header, .directory-item-name")?.textContent ?? li.textContent ?? ""));
-    if (folderLi) {
-        if (folderLi.classList.contains("collapsed")) folderLi.querySelector(":scope > header, :scope > .folder-header")?.click();
-        folderLi.classList.add("tuto-a11y-highlight");
-        try { folderLi.scrollIntoView({ block: "center", behavior: "instant" }); } catch {}
+    const li = root?.querySelector(`.folder[data-folder-id="${dossier.id}"], .folder[data-uuid="${dossier.uuid}"]`);
+    if (li) {
+        li.classList.add("tuto-a11y-highlight");
+        try { li.scrollIntoView({ block: "center", behavior: "instant" }); } catch {}
     }
+}
+
+// ── Carte des expéditions : AFFICHER (sans l'activer) la première carte
+//    configurée — la scène principale, sinon la première carte ajoutée.
+//    scene.view() ne change que la vue du MJ : les joueurs restent où ils sont.
+async function _viewFirstExpeditionMap() {
+    let id = null;
+    try { id = game.settings.get(MODULE, "expeditionMapSceneId") || null; } catch {}
+    if (!id || !game.scenes?.get(id)) {
+        let extra = [];
+        try { extra = game.settings.get(MODULE, "expeditionMapSceneIds"); } catch {}
+        id = (Array.isArray(extra) ? extra : []).find(x => x && game.scenes?.get(x)) ?? null;
+    }
+    const scene = id ? game.scenes.get(id) : null;
+    if (!scene || canvas?.scene?.id === scene.id) return;
+    try { await scene.view(); } catch (e) { journal.avert("[Tutoriel] Affichage de la carte des expéditions :", e); return; }
+    await _sleep(600);
+}
+
+// ── Carte des expéditions : ouvrir l'onglet Acteurs, déplier le dossier du
+//    token de groupe modèle (« Token à copier et rennomer ») et le surligner ──
+async function _openGroupTokenFolder() {
+    _closeTradeDemo();
+    const modele = game.actors?.find(a => a.type === "group" && a.getFlag(MODULE, "templateGroupToken") === true);
+    try { ui.sidebar?.expand?.(); } catch {}
+    try { ui.sidebar?.activateTab?.("actors"); } catch {}
+    try { ui.sidebar?.changeTab?.("actors", "primary"); } catch {}
+    try { document.querySelector('#sidebar [data-tab="actors"], #sidebar-tabs [data-tab="actors"], nav.tabs [data-tab="actors"], [data-action="tab"][data-tab="actors"]')?.click(); } catch {}
+    await _sleep(300);
+    try { ui.actors?.render?.(false); } catch {}
+    await _sleep(250);
+    document.querySelectorAll(".tuto-a11y-highlight").forEach(e => e.classList.remove("tuto-a11y-highlight"));
+    if (!modele) return;
+    const el = ui.actors?.element;
+    const root = (el instanceof HTMLElement) ? el : (el?.[0] ?? document.getElementById("actors"));
+    if (!root) return;
+    await _deplierDossiers(modele.folder, ui.actors);
+    const root2 = _actorsRoot() ?? root;
+    const cible = root2.querySelector(`[data-entry-id="${modele.id}"], [data-document-id="${modele.id}"]`)
+        ?? (modele.folder ? root2.querySelector(`.folder[data-folder-id="${modele.folder.id}"]`) : null);
+    if (cible) {
+        cible.classList.add("tuto-a11y-highlight");
+        try { cible.scrollIntoView({ block: "center", behavior: "instant" }); } catch {}
+    }
+}
+
+
+// ── HUD du token : fenêtre explicative (aucun token requis) ──
+// Liste fixe des boutons du HUD (clic droit sur un token) : ceux de Foundry,
+// puis ceux du module — seulement si leur fonction est active (et pas gelée),
+// et ceux réservés au MJ seulement pour le MJ.
+function _closeHudLegend() { document.getElementById("scwm-hud-legende")?.remove(); }
+
+function _boutonsHud() {
+    const mj = !!game.user?.isGM;
+    const natifs = [
+        { icon: "fa-solid fa-eye-slash", mj: true, texte: tl("Cacher ou montrer le token aux joueurs (MJ). Actif : le token est invisible pour eux.") },
+        { icon: "fa-solid fa-swords",    texte: tl("Ajouter le token au combat en cours, ou l'en retirer.") },
+        { icon: "fa-solid fa-bullseye",  texte: tl("Cibler ce token (comme la touche T) : vos attaques et sorts visent vos cibles.") },
+        { icon: "fa-solid fa-person-rays", texte: tl("Ouvrir la liste des états (à terre, empoisonné…) : clic pour l'appliquer ou le retirer.") },
+        { icon: "fa-solid fa-person-walking", texte: tl("Choisir le mode de déplacement : marcher, voler, nager, escalader…") },
+        { chiffre: "0", texte: tl("Case chiffrée à gauche : l'élévation (hauteur) du token. Tapez une valeur puis Entrée.") },
+        { chiffre: "±", texte: tl("Cases chiffrées en haut et en bas : les barres du token (PV…). Tapez -5 ou +3 puis Entrée pour retirer ou ajouter.") }
+    ];
+    const module = [
+        { cle: "portrait",  feature: ["enableTokenPortraitButton"], icon: "fa-solid fa-image",       texte: tl("Voir le portrait du personnage en grand. Sur un token qui n'est pas à vous, c'est le seul bouton affiché.") },
+        { cle: "cycle",     feature: ["enableTokenAppearance"],     icon: "fa-solid fa-chevron-right", texte: tl("Passer à l'apparence suivante du token (cycle d'apparences).") },
+        { cle: "wildshape", feature: ["enablePolymorph"],           icon: "fa-solid fa-paw",          texte: tl("Forme sauvage : choisir une bête parmi les formes autorisées.") },
+        { cle: "polymorph", feature: ["enablePolymorph"],           icon: "fa-solid fa-hat-wizard",   texte: tl("Polymorphie : choisir une forme parmi celles autorisées.") },
+        { cle: "revert",    feature: ["enablePolymorph"],           icon: "fa-solid fa-user",         texte: tl("Reprendre la forme normale (fin de la transformation).") },
+        { cle: "harvest",   feature: ["enableHarvest"],             icon: "fa-solid fa-hand-holding-droplet", texte: tl("Récolter la créature que vous ciblez, si elle est à 0 PV.") },
+        { cle: "accroche",  feature: ["enableTokenAccroche"], mj: true, icon: "fa-solid fa-link",
+          texte: tl("<strong>Accrocher</strong> ce token (PNJ, objet, monture, autre PJ…) à un PJ : quand le joueur déplace son PJ, le token suit tout seul, sans droits pour le joueur. <strong>Porter</strong> : posé sur le PJ, même trajet. <strong>Mener</strong> : suit derrière, à la distance de départ, par les cases où le PJ est passé (jamais à travers un mur). Pour <strong>décrocher</strong> : le même bouton (<i class='fa-solid fa-link-slash'></i>), ou déplacer le token à la main. MJ.") },
+        { cle: "cues",      feature: ["enableSceneCues"],     mj: true, icon: "fa-solid fa-clapperboard", texte: tl("Cues audio liés à ce token : clic pour en jouer un, ou ouvrir le gestionnaire. MJ.") },
+        { cle: "tgcm",      feature: ["enableTgcm"],          mj: true, icon: "fa-solid fa-shield-alt",   texte: tl("Protection TGCM : le token ne peut pas tomber sous 1 PV. MJ.") }
+    ];
+    const garder = (b) => (!b.mj || mj) && fonctionActive(b.feature);
+    return { natifs: natifs.filter(garder), module: module.filter(garder) };
+}
+
+async function _openHudLegend(surligner = null) {
+    _closeTradeDemo(); _closeHudLegend();
+    const { natifs, module } = _boutonsHud();
+    const ligne = (b) => `<div ${b.cle ? `data-hud="${b.cle}"` : ""} style="display:flex;align-items:center;gap:10px;padding:4px 6px;border-bottom:1px solid rgba(201,162,39,.15);border-radius:4px;${b.cle && b.cle === surligner ? "background:rgba(201,162,39,.22);outline:1px solid #c9a227;" : ""}">
+            <span style="flex:0 0 32px;height:32px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(201,162,39,.45);border-radius:6px;background:rgba(0,0,0,.35);font-size:15px;font-weight:700;">${b.icon ? `<i class="${b.icon}"></i>` : b.chiffre}</span>
+            <span style="flex:1;">${b.texte}</span></div>`;
+    const titre = (t) => `<div style="margin:8px 0 2px;font-weight:700;color:#c9a227;font-size:12px;text-transform:uppercase;letter-spacing:.04em;">${t}</div>`;
+    const nomMod = foundry.utils.escapeHTML(game.modules.get(MODULE)?.title ?? "Completed Westmarch");
+    const el = document.createElement("div");
+    el.id = "scwm-hud-legende";
+    el.style.cssText = "position:fixed;top:10%;left:84px;z-index:60;width:400px;max-width:46vw;max-height:76vh;overflow:auto;"
+        + "background:#1b1a17;border:1px solid #c9a227;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,.6);color:#e8dcc0;font-size:13px;";
+    el.innerHTML = `<div style="background:linear-gradient(180deg,rgba(201,162,39,.25),rgba(0,0,0,.2));padding:8px 12px;font-weight:700;border-bottom:1px solid rgba(201,162,39,.4);">
+            <i class="fa-solid fa-crosshairs" style="color:#c9a227;"></i> ${tl("Boutons du HUD")}</div>
+        <div style="padding:2px 12px 10px;">
+            ${titre(tl("Foundry"))}${natifs.map(ligne).join("")}
+            ${module.length ? titre(nomMod) + module.map(ligne).join("") : ""}
+            <p style="margin:8px 0 0;font-size:11px;opacity:.7;">${tl("Selon la version de Foundry et vos droits, certains boutons peuvent manquer ou avoir un symbole un peu différent. Survolez un bouton du HUD pour voir son nom.")}</p>
+        </div>`;
+    document.body.appendChild(el);
+    if (surligner) try { el.querySelector(`[data-hud="${surligner}"]`)?.scrollIntoView({ block: "center", behavior: "instant" }); } catch {}
+    await _sleep(150);
+}
+
+
+// ── Registre du monde : Casier ouvert sur l'onglet Monde, contenu chargé ──
+async function _openMonde() {
+    _closeTradeDemo(); _closeHudLegend();
+    await _openCasier("monde");
+    for (let i = 0; i < 30 && !document.querySelector(".scwm-monde .scwm-monde-nouveau"); i++) await _sleep(100);
 }
 
 // ── Échange : fenêtre FICTIVE de démonstration (pas un vrai échange) ──
@@ -555,20 +742,10 @@ async function _showPcStatus() {
 
     const actor = _tutorialActor();
 
-    // Déplier le dossier contenant le perso démo (le <li> n'existe pas si replié).
-    try {
-        const root = _actorsRoot();
-        const fid = actor?.folder?.id ?? actor?.folder;
-        if (fid && root) {
-            const folderLi = root.querySelector(`li.folder[data-folder-id="${fid}"]`);
-            if (folderLi && folderLi.classList.contains("collapsed")) {
-                folderLi.querySelector(":scope > header, :scope > .folder-header")?.click();
-                await new Promise(r => setTimeout(r, 200));
-            }
-        }
-    } catch {}
-    try { ui.actors?.render(false); } catch {}
-    await new Promise(r => setTimeout(r, 450));
+    // Déplier le dossier contenant le perso démo (« Tutoriel ») et ses parents :
+    // la ligne du perso n'existe pas dans le DOM tant que le dossier est replié.
+    await _deplierDossiers(actor?.folder, ui.actors);
+    await _sleep(150);
 
     // Marqueur temporaire sur le badge (cible du spotlight). Si le badge n'existe
     // pas (option PC status désactivée), on marque la LIGNE du perso à défaut,
@@ -1044,6 +1221,7 @@ const STEPS_BY_FEATURE = {
         {
             beforeShow: _expandWestmarch,
             target:     "[data-tool='carnetDate']",
+            feature:  ["enableExpeditionDate"],
             title:      tl("Bouton Date Expédition"),
             text:       `${tl("Ce bouton enregistre la <strong>date de début d'une nouvelle expédition</strong> pour toute la party en un seul clic, en utilisant la date du calendrier du monde. Recliquez-le en fin de session pour enregistrer la <strong>date de fin</strong> et clôturer l'expédition.")}`,
             position:   "right",
@@ -1053,6 +1231,7 @@ const STEPS_BY_FEATURE = {
         {
             beforeShow: _showPcStatus,
             target:     ".tuto-status-highlight, #actors .scwm-pc-status, .scwm-pc-status",
+            feature:  ["enablePcStatus"],
             title:      tl("Statut de disponibilité"),
             text:       `${tl("Dans le répertoire des <strong>Acteurs</strong>, un badge à droite de chaque personnage indique s'il est <strong>Disponible</strong> ou <strong>En expédition</strong>. Le statut est automatique : dès qu'une expédition est ouverte (date de début sans date de fin), le PJ passe « En expédition » ; sa clôture le repasse « Disponible ». Pratique pour voir d'un coup d'œil qui est déjà parti.")}`,
             position:   "right"
@@ -1061,6 +1240,7 @@ const STEPS_BY_FEATURE = {
         {
             beforeShow: async () => { ui.players?.render?.(); await new Promise(r => setTimeout(r, 300)); },
             target:     ".westmarch-close-session",
+            feature:  ["enableParty", "enableSessionLog"],
             title:      tl("Clore la session"),
             textGM:     `${tl("Sous la liste des joueurs, le bouton <i class='fa-solid fa-book'></i> <strong>Clore la session</strong> ouvre la fenêtre de clôture. On y trouve : l'attribution d'<strong>XP</strong> à la party (champ « pour tous » + un champ par PJ) — ou un sélecteur d'<strong>étoiles</strong> (de 1 au maximum réglé, 3 par défaut) si le système d'étoiles est actif ; une case pour <strong>n'attribuer qu'une fois le rapport envoyé</strong> (pratique si vous hésitez : ajustable ensuite dans le Casier) ; le choix des <strong>intrigues liées</strong> (tags partagés ou vos intrigues perso, créables à la volée) ; un champ de <strong>notes</strong> ; et deux issues — <strong>Clôturer &amp; envoyer</strong> sur Discord, ou <strong>Enregistrer pour plus tard</strong> dans votre Casier. C'est ce Casier qu'on va voir maintenant.")}`,
             position:   "top",
@@ -1089,6 +1269,7 @@ const STEPS_BY_FEATURE = {
         {
             beforeShow: () => _openCasier("reports"),
             target:     ".scwm-casier-tab[data-tab='reports']",
+            feature:  ["enableParty", "enableSessionLog"],
             title:      tl("Rapports à finaliser"),
             textGM:     `${tl("Les rapports <strong>enregistrés pour plus tard</strong> à la clôture arrivent ici. Sélectionnez-en un pour compléter ses notes, ajuster les <strong>intrigues</strong> et l'attribution en attente, puis <strong>Clôturer &amp; envoyer sur Discord</strong>. Une pastille sur le bouton Casier et un message à la connexion vous rappellent les rapports en attente.")}`,
             position:   "right"
@@ -1103,6 +1284,7 @@ const STEPS_BY_FEATURE = {
         {
             beforeShow: () => _openCasier("downtime"),
             target:     ".scwm-casier-tab[data-tab='downtime'], .scwm-casier-downtime",
+            feature:  ["tmEnabled"],
             title:      tl("Temps morts (dans le Casier)"),
             textGM:     `${tl("L'onglet <strong>Temps morts</strong> affiche directement toutes les déclarations des joueurs (gains de compétence et artisanat). Vous les modifiez/refusez au besoin, puis <strong>Appliquer les gains</strong> applique tout en un clic — l'objet fabriqué est ajouté automatiquement depuis le compendium configuré.")}`,
             position:   "right"
@@ -1110,18 +1292,12 @@ const STEPS_BY_FEATURE = {
         {
             beforeShow: () => _openCasier("validation"),
             target:     ".scwm-casier-tab[data-tab='validation'], .scwm-casier-validation",
+            feature:  ["enableCharValidation"],
             title:      tl("Validation des personnages"),
             textGM:     `${tl("L'onglet <strong>Validation</strong> regroupe les <strong>demandes de création</strong> (Créer &amp; assigner), les <strong>fiches à valider</strong> (Valider &amp; verrouiller) et les <strong>montées de niveau</strong> à autoriser. C'est ici que vous gérez tout le cycle de vie des personnages joueurs.")}`,
             position:   "right"
         },
-        // Groupe « Statistiques » : Intrigues, Suivi des GM, Registre, Statistiques, Disponibilités, Assiduité, Poids du monde.
-        {
-            beforeShow: () => _openCasier("intrigues"),
-            target:     ".scwm-casier-tab[data-tab='intrigues'], .scwm-intrigue",
-            title:      tl("Intrigues"),
-            textGM:     `${tl("L'onglet <strong>Intrigues</strong> regroupe vos rapports par <strong>trame narrative</strong> (les intrigues cochées à la clôture). Pour chaque intrigue : les <strong>MJ impliqués</strong>, les <strong>joueurs liés</strong> et la liste des sessions. Parfait pour préparer une <strong>récompense finale</strong>, retrouver les joueurs d'une même trame ou recruter. La liste d'intrigues partagées se règle dans les paramètres (Système de Party) ; chaque MJ a aussi ses <strong>intrigues perso</strong>.")}`,
-            position:   "left"
-        },
+        // Groupe « Statistiques » : Suivi des GM, Registre, Statistiques, Disponibilités, Assiduité, Poids du monde.
         {
             beforeShow: () => _openCasier("gms"),
             target:     ".scwm-casier-tab[data-tab='gms']",
@@ -1166,9 +1342,197 @@ const STEPS_BY_FEATURE = {
         },
     ],
 
+
+
+    // ---- Horloge de party : barre du temps (tous) ----
+    horloge: [
+        {
+            feature:    ["enableParty", "enablePartyTime", "partyTimeShowClock"],
+            target:     "#scwm-time-bar .scwm-tb-info, #scwm-time-bar, #scwm-party-clock",
+            title:      tl("La barre du temps"),
+            text:       `${tl("En haut de l'écran, la <strong>barre du temps</strong> donne l'heure de <strong>votre party</strong> (avec les secondes), la date et un <i class='fa-solid fa-sun'></i> soleil ou une <i class='fa-solid fa-moon'></i> lune selon l'heure.<br><br>")}`
+                      + `${tl("<strong>Party</strong> : pendant une expédition, votre groupe a sa propre date, qui avance sans toucher aux autres groupes. <strong>Monde</strong> : hors expédition, c'est le calendrier du serveur. <i class='fa-solid fa-pause'></i> : le temps est arrêté (pause ou combat).")}`,
+            position:   "bottom"
+        },
+        {
+            feature:    ["enableParty", "enablePartyTime", "partyTimeShowClock"],
+            target:     "#scwm-time-bar .scwm-tb-cal",
+            title:      tl("Le calendrier"),
+            text:       `${tl("Le bouton <i class='fa-solid fa-calendar-days'></i> ouvre le <strong>calendrier</strong> du mois en cours : le jour actuel est mis en avant, les <strong>fêtes</strong> du calendrier du serveur sont soulignées en or (leur nom au survol), et les flèches passent d'un mois à l'autre.")}`,
+            position:   "bottom"
+        },
+        {
+            feature:    ["enableParty", "enablePartyTime", "partyTimeShowClock"],
+            gmOnly:     true,
+            target:     "#scwm-time-bar .scwm-tb-jour, #scwm-time-bar",
+            title:      tl("Jour suivant (MJ)"),
+            text:       `${tl("À gauche, <i class='fa-solid fa-forward-step'></i> <strong>Jour suivant</strong> avance d'un jour la date de votre party : chaque PJ consomme sa ration (sauf ceux cochés « nourris autrement » dans la fenêtre du sablier). Hors expédition, il avance le calendrier du monde.")}`,
+            position:   "bottom"
+        },
+        {
+            feature:    ["enableParty", "enablePartyTime", "partyTimeShowClock"],
+            gmOnly:     true,
+            target:     "#scwm-time-bar .scwm-tb-avance, #scwm-time-bar",
+            title:      tl("Avancer le temps (MJ)"),
+            text:       `${tl("Le <strong>curseur</strong> choisit une durée de 0 à 12 h, par 10 minutes ; elle s'affiche à côté. Rien ne bouge tant que vous ne cliquez pas sur <i class='fa-solid fa-check'></i>. Pour plus de choix (plusieurs jours, repos long, qui est nourri autrement), le bouton <i class='fa-solid fa-hourglass-half'></i> de la barre WestMarch ouvre la fenêtre complète.")}`,
+            position:   "bottom"
+        },
+        {
+            feature:    ["enableParty", "enablePartyTime", "partyTimeShowClock"],
+            target:     null,
+            title:      tl("Pendant un combat"),
+            text:       `${tl("En combat, le haut de l'écran est pris par le suivi du combat : l'horloge descend alors dans un petit cadre <strong>à droite de la liste des joueurs</strong>, puis remonte à la fin du combat.<br><br>")}`
+                      + `${tl("Vous pouvez masquer l'horloge pour vous seul dans <strong>Accessibilité</strong>.")}`,
+            position:   "center"
+        }
+    ],
+
+    // ---- HUD du token (fenêtre explicative, sans token) ----
+    hudToken: [
+        {
+            beforeShow: () => _openHudLegend(),
+            target:     "#scwm-hud-legende",
+            title:      tl("Le HUD du token"),
+            text:       `${tl("Un <strong>clic droit</strong> sur un token ouvre son <strong>HUD</strong> : une couronne de boutons autour de lui. Ce que vous y voyez dépend de vos droits : sur <strong>vos</strong> tokens, tous les boutons ; sur ceux des autres, seulement le portrait.<br><br>")}`
+                      + `${tl("La fenêtre à gauche reprend <strong>chaque symbole</strong> et explique son rôle : d'abord ceux de Foundry, puis ceux du module.")}`,
+            position:   "right"
+        },
+    ],
+
+
+    // ---- Registre du monde (onglet Monde du Casier, MJ) ----
+    monde: [
+        {
+            beforeShow: _openMonde,
+            target:     null,
+            title:      tl("Le registre du monde — pourquoi"),
+            text:       `${tl("En West Marches, plusieurs MJ font vivre <strong>le même monde</strong>. Le registre est votre <strong>mémoire commune</strong> : chaque PNJ, lieu et organisation y a <strong>une seule fiche</strong>, rédigée sur le <strong>même modèle</strong> par tous les MJ.<br><br>")}`
+                      + `${tl("Avant une session, vous y retrouvez qui est qui, où il se trouve, ce qu'il veut et ce qui a changé. Après, vous mettez à jour ce que vos joueurs ont modifié. Les autres MJ le verront.<br><br>")}`
+                      + `${tl("Les fiches sont des fiches de <strong>Monk's Enhanced Journal</strong> (PNJ, lieu, organisation) : le module ne remplace pas Monk's, il ajoute le modèle commun, les liens et cet onglet pour tout retrouver.")}`,
+            position:   "center"
+        },
+        {
+            beforeShow: _openMonde,
+            target:     ".scwm-casier-tab[data-tab='monde']",
+            title:      tl("L'onglet Monde"),
+            text:       `${tl("Tout se passe dans l'onglet <strong>Monde</strong> du Casier : la liste de toutes les fiches, avec les boutons pour en créer, les retrouver et les tenir à jour.")}`,
+            position:   "left"
+        },
+        {
+            beforeShow: _openMonde,
+            target:     ".scwm-monde .scwm-monde-nouveau",
+            title:      tl("Créer une fiche"),
+            text:       `${tl("<strong>+ PNJ</strong>, <strong>+ Lieu</strong> et <strong>+ Organisation</strong> créent une fiche vide et ouvrent aussitôt la fenêtre <strong>Rédiger la fiche</strong>.<br><br>")}`
+                      + `${tl("Autres portes d'entrée, pratiques en jeu : le bouton <i class='fa-solid fa-book-atlas'></i> dans l'en-tête d'une <strong>fiche de PNJ</strong> ; le clic droit sur un <strong>acteur</strong> → « Fiche du monde » ; le clic droit sur une <strong>scène</strong> → « Fiche du lieu » ; le clic droit sur un <strong>journal</strong> Monk's → « Rédiger la fiche ». Si la fiche existe déjà, elle s'ouvre au lieu d'être recréée.")}`,
+            position:   "bottom"
+        },
+        {
+            beforeShow: _openMonde,
+            target:     null,
+            title:      tl("Où les fiches sont rangées"),
+            text:       `${tl("<strong>PNJ</strong> et <strong>organisations</strong> vont dans des <strong>compendiums</strong> (« Registre — PNJ », « Registre — Organisations ») : ils ne sont chargés qu'à la demande et n'alourdissent pas la connexion des joueurs. Un compendium verrouillé bloque la création : déverrouillez-le.<br><br>")}`
+                      + `${tl("Les <strong>lieux</strong> restent dans le monde, dans le dossier de journaux « Lieux » : une épingle de carte ne peut pas pointer vers un compendium.<br><br>")}`
+                      + `${tl("Compendiums, dossiers et rubriques se règlent dans <strong>Réglages → Registre du monde</strong>.")}`,
+            position:   "center"
+        },
+        {
+            beforeShow: _openMonde,
+            target:     null,
+            title:      tl("Rédiger la fiche : les rubriques"),
+            text:       `${tl("La fenêtre <strong>Rédiger la fiche</strong> présente des <strong>rubriques courtes</strong>, les mêmes pour tous les MJ. Par défaut :<br>")}`
+                      + `${tl("• <strong>PNJ</strong> : En une phrase, Rôle, Où le trouver, puis en secret : Ce qu'il veut, Ce qu'il sait, Accroches, État actuel.<br>• <strong>Lieu</strong> : En une phrase, Ambiance, Qui s'y trouve, Ce qu'on y fait, puis en secret : Dangers, Secrets, État actuel.<br>• <strong>Organisation</strong> : En une phrase, Objectifs, Membres clés, Où les trouver, puis en secret : Secrets, État actuel.<br><br>")}`
+                      + `${tl("Les rubriques marquées <i class='fa-solid fa-lock'></i> <strong>secret MJ</strong> deviennent des blocs secrets de Foundry : les joueurs ne les voient <strong>jamais</strong>, même si la fiche leur est montrée.<br><br>")}`
+                      + `${tl("Saisie : phrases courtes ; ligne vide = nouveau paragraphe ; « - » en début de ligne = liste ; glisser un acteur, un journal ou une scène dans une rubrique y insère un lien.")}`,
+            position:   "center"
+        },
+        {
+            beforeShow: _openMonde,
+            target:     null,
+            title:      tl("Ne pas écrire directement dans Monk's"),
+            text:       `${tl("Le texte de la page Monk's est <strong>généré</strong> à partir des rubriques. Modifiez toujours une fiche par <strong>Rédiger</strong>, jamais en tapant dans la page Monk's : sinon votre texte serait perdu à la prochaine mise à jour.<br><br>")}`
+                      + `${tl("Le module ne l'écrase pourtant jamais en silence : une page modifiée à la main porte l'icône <i class='fa-solid fa-pen-to-square'></i> dans la liste, « Actualiser » la laisse telle quelle, et « Rédiger » vous prévient en proposant de garder l'ancien texte dans la rubrique <strong>Notes</strong>.")}`,
+            position:   "center"
+        },
+        {
+            beforeShow: _openMonde,
+            target:     null,
+            title:      tl("Fiche de PNJ : acteur et lieu"),
+            text:       `${tl("<strong>Acteur lié</strong> : glissez l'acteur du PNJ dans la zone prévue, ou cliquez <i class='fa-solid fa-user-plus'></i> <strong>Créer l'acteur</strong> pour en créer un à son nom (rangé dans le dossier des PNJ). L'acteur et la fiche s'ouvrent alors l'un depuis l'autre.<br><br>")}`
+                      + `${tl("<strong>Lieu principal</strong> : choisissez la fiche du lieu où il vit ; le lien apparaît dans les relations Monk's des deux fiches.<br><br>")}`
+                      + `${tl("Les <strong>relations des PJ</strong> envers ce PNJ (onglet Relations de leurs fiches) sont recopiées sur sa fiche, en secret MJ : vous savez qui l'apprécie ou le déteste.")}`,
+            position:   "center"
+        },
+        {
+            beforeShow: _openMonde,
+            target:     null,
+            title:      tl("Fiche de lieu : épingle et cartes"),
+            text:       `${tl("<strong>Épingle</strong> : un lieu se repère par une épingle sur la carte du monde (les scènes de la Carte des expéditions). <strong>Placer sur la carte</strong> vous laisse cliquer à l'endroit voulu ; <strong>Voir</strong> centre la carte sur l'épingle.<br><br>")}`
+                      + `${tl("<strong>Cartes locales</strong> : choisissez les scènes du lieu (intérieurs, donjons… Ctrl + clic pour plusieurs). Les PNJ posés sur ces cartes sont automatiquement reliés au lieu.")}`,
+            position:   "center"
+        },
+        {
+            beforeShow: _openMonde,
+            target:     null,
+            title:      tl("Ce que voient les joueurs"),
+            text:       `${tl("<strong>PNJ et organisations</strong> : rangés en compendium, ils sont <strong>réservés aux MJ</strong> (les joueurs ne voient pas ces compendiums). Une fiche restée dans le monde peut être montrée en cochant « Visible par les joueurs » : ils la lisent <strong>sans les secrets</strong>.<br><br>")}`
+                      + `${tl("<strong>Lieux</strong>, si la découverte est active, trois modes :<br>• <i class='fa-solid fa-binoculars'></i> <strong>Auto</strong> : le lieu devient lisible pour un joueur dès qu'un de ses personnages a exploré la case de l'épingle (ou si c'est une zone toujours éclairée) ; l'épingle apparaît sur sa carte, avec une bannière dorée et un message privé selon les réglages ;<br>• <i class='fa-solid fa-eye'></i> <strong>Visible par tous</strong> ;<br>• <i class='fa-solid fa-eye-slash'></i> <strong>Toujours caché</strong>.<br>Les secrets MJ restent cachés dans tous les cas.")}`,
+            position:   "center"
+        },
+        {
+            beforeShow: _openMonde,
+            target:     ".scwm-monde .scwm-reg-table",
+            title:      tl("La liste des fiches"),
+            text:       `${tl("Chaque ligne : le type, le <strong>nom</strong> (clic = ouvrir la fiche Monk's) et sa première rubrique en résumé, puis <strong>la date et le MJ</strong> de la dernière modification. Un point <i class='fa-solid fa-circle' style='color:#e67e22;'></i> orange signale une fiche modifiée depuis votre dernière session.<br><br>")}`
+                      + `${tl("À droite : <i class='fa-solid fa-user'></i> ouvrir l'acteur ; <i class='fa-solid fa-location-dot'></i> voir l'épingle (grisée : pas d'épingle) ; <i class='fa-solid fa-map'></i> ouvrir la carte locale ; <i class='fa-solid fa-pen'></i> <strong>Rédiger</strong> ; l'œil (ou les jumelles pour un lieu) change la visibilité d'un clic ; <i class='fa-solid fa-trash'></i> supprimer.")}`,
+            position:   "left"
+        },
+        {
+            beforeShow: _openMonde,
+            target:     ".scwm-monde .scwm-monde-recherche",
+            title:      tl("Retrouver une fiche, rattraper les autres MJ"),
+            text:       `${tl("La <strong>recherche</strong> fouille le nom <strong>et le contenu</strong> des rubriques : tapez « auberge » ou « culte » pour tout ce qui en parle. Les boutons Tous / PNJ / Lieux / Organisations filtrent par type.<br><br>")}`
+                      + `${tl("<strong>Modifiées depuis ma dernière session</strong> ne garde que les fiches changées depuis votre dernière session clôturée : le bon réflexe avant de préparer, pour voir ce que les autres MJ ont fait évoluer.")}`,
+            position:   "bottom"
+        },
+        {
+            beforeShow: _openMonde,
+            target:     ".scwm-monde .scwm-monde-actualiser",
+            title:      tl("Actualiser"),
+            text:       `${tl("<strong>Actualiser</strong> recalcule toutes les fiches : relations des PJ recopiées, PNJ posés sur les cartes locales reliés à leur lieu, découverte des lieux. Les fiches modifiées à la main dans Monk's sont laissées telles quelles. À lancer après une session riche, ou si une fiche semble en retard.")}`,
+            position:   "bottom"
+        },
+        {
+            beforeShow: _openMonde,
+            target:     ".scwm-monde .scwm-monde-ranger, .scwm-monde .scwm-reg-toolbar",
+            title:      tl("Ranger dans les compendiums"),
+            text:       `${tl("Si des fiches de PNJ ou d'organisations sont encore dans le monde (créées avant le registre, ou à la main), un bandeau propose de les <strong>ranger dans les compendiums</strong>. Les liens sont conservés (acteurs, relations Monk's, liens dans les textes). Attention : une fiche épinglée sur une carte perd son épingle, d'où l'avertissement avant de confirmer.")}`,
+            position:   "bottom"
+        },
+        {
+            beforeShow: _openMonde,
+            target:     null,
+            title:      tl("Supprimer une fiche"),
+            text:       `${tl("La corbeille <i class='fa-solid fa-trash'></i> demande confirmation, puis supprime la fiche et <strong>nettoie ce qui la désignait</strong> : relations Monk's des autres fiches, lien vers la fiche sur les acteurs et les scènes. Deux options : retirer aussi ses épingles (coché par défaut) et, pour un PNJ, supprimer aussi son acteur (décoché par défaut).")}`,
+            position:   "center"
+        },
+        {
+            beforeShow: _openMonde,
+            target:     null,
+            title:      tl("Les règles d'or entre MJ"),
+            text:       `${tl("1. <strong>Une seule fiche par PNJ, lieu ou organisation</strong> : cherchez avant de créer.<br>")}`
+                      + `${tl("2. <strong>« En une phrase » d'abord</strong> : c'est le résumé que tous les MJ lisent dans la liste.<br>")}`
+                      + `${tl("3. <strong>Après chaque session, mettez à jour « État actuel »</strong> des fiches touchées : mort, déménagé, fâché avec la party…<br>")}`
+                      + `${tl("4. <strong>Ce que les joueurs ne doivent pas lire va dans les rubriques secrètes</strong>, jamais dans les autres.<br>")}`
+                      + `${tl("5. <strong>Toujours passer par Rédiger</strong>, jamais par la page Monk's.<br>")}`
+                      + `${tl("6. <strong>Avant de préparer, cochez « Modifiées depuis ma dernière session »</strong> pour voir ce qui a bougé.")}`,
+            position:   "center"
+        }
+    ],
+
     // ---- Carte des expéditions (brouillard maison, GM) ----
     carteExpedition: [
         {
+            beforeShow: _viewFirstExpeditionMap,
             target:   null,
             title:    tl("Carte des expéditions — le principe"),
             text:     `${tl("Cette carte du monde a un <strong>brouillard « maison »</strong>, géré par le module (pas celui de Foundry). Son intérêt : le brouillard est <strong>propre à CHAQUE personnage</strong>. Chaque PJ ne voit sur la carte que les zones que <em>lui</em> a découvertes — deux personnages d'un même joueur ont chacun leur exploration.<br><br>")}`
@@ -1186,14 +1550,15 @@ const STEPS_BY_FEATURE = {
             gmOnly:   true
         },
         {
-            target:   null,
+            beforeShow: _openGroupTokenFolder,
+            target:   ".tuto-a11y-highlight",
             title:    tl("Le token de groupe (qui explore)"),
             text:     `${tl("L'exploration se fait via un <strong>token de groupe</strong>. Le module crée un acteur modèle <strong>« Token à copier et rennomer »</strong> dans le dossier configuré.<br><br>")}`
                     + `${tl("<strong>1.</strong> Duplique cet acteur : une petite fenêtre s'ouvre pour le <strong>renommer</strong> (le nom s'applique à la fiche et au prototype token).<br>")}`
                     + `${tl("<strong>2.</strong> Ouvre la fiche du groupe et ajoute comme <strong>Membres</strong> les personnages de l'expédition (leurs PJ assignés).<br>")}`
                     + `${tl("<strong>3.</strong> Pose son token sur la carte.<br><br>")}`
                     + `${tl("Ce sont les <strong>membres</strong> du groupe qui recevront la révélation quand tu déplaces ce token.")}`,
-            position: "center",
+            position: "left",
             gmOnly:   true
         },
         {
@@ -1256,6 +1621,7 @@ const STEPS_BY_FEATURE = {
     boutiques: [
         {
             target:   null,
+            feature:  ["enableMejShopFix"],
             title:    tl("Boutiques — Afficher aux joueurs"),
             text:     `${tl("Les boutiques fonctionnent via <strong>Monk's Enhanced Journal</strong>. Ouvrez un journal de type Boutique, ajoutez vos articles, puis cliquez <strong>Afficher aux joueurs</strong> pour ouvrir la boutique à votre groupe. Les joueurs peuvent y acheter directement, même sans accès à la fiche de la party.")}`,
             position: "center",
@@ -1263,6 +1629,7 @@ const STEPS_BY_FEATURE = {
         },
         {
             target:   null,
+            feature:  ["enableMejRestock"],
             title:    tl("Réapprovisionnement automatique"),
             text:     `${tl("Quand un article tombe à 0, il se remet à 1 automatiquement après un délai. Les délais par rareté (Commun, Peu commun, Rare, Très rare, Légendaire) sont configurables dans les <strong>paramètres du module Toolkit</strong>.")}`,
             position: "center",
@@ -1323,6 +1690,7 @@ const STEPS_BY_FEATURE = {
         // ── Portrait HUD ─────────────────────────────────────────
         {
             target:   null,
+            feature:  ["enableTokenPortraitButton"],
             title:    tl("Voir le portrait"),
             text:     `${tl("<strong>Clic droit</strong> sur un token → HUD → bouton portrait <i class='fa-solid fa-image'></i> : affiche en grand l'image de la fiche du personnage.")}`,
             position: "center",
@@ -1337,6 +1705,7 @@ const STEPS_BY_FEATURE = {
                 await new Promise(r => setTimeout(r, 600));
             },
             target:   '[data-action="openTokenConfig"]',
+            feature:  { any: ["enableTokenAppearance", "enablePolymorph"] },
             title:    tl("Ouvrir le Prototype Token"),
             text:     `${tl("Ce bouton dans l'en-tête de la fiche ouvre la configuration du <strong>Prototype Token</strong> — le token tel qu'il apparaît par défaut sur la carte. L'onglet <strong>Apparence</strong> donne accès à deux fonctions avancées : le <em>Cycle d'apparences</em> et le <em>Wild Shape / Polymorph</em>. Cliquez <strong>Suivant</strong> pour l'ouvrir automatiquement.")}`,
             position: "bottom",
@@ -1348,6 +1717,7 @@ const STEPS_BY_FEATURE = {
             beforeShow: _openProtoTokenAppearance,
             target:     ".tuto-proto-token",
             disabled:   true,   // changement d'apparence temporairement désactivé (token.js)
+            feature:  ["enableTokenAppearance"],
             title:      tl("Cycle d'apparences"),
             text:       `${tl("La fenêtre ouverte est le <strong>Prototype Token</strong>, onglet <strong>Apparence</strong>. La section <strong>Cycle d'apparences</strong> permet d'ajouter plusieurs images alternatives pour le token. En jeu, le bouton <i class='fa-solid fa-images'></i> dans le HUD (clic droit sur le token) bascule entre ces images — utile pour les tenues, les états visuels ou les formes mineures.")}`,
             position:   "left",
@@ -1357,6 +1727,7 @@ const STEPS_BY_FEATURE = {
         {
             beforeShow: _openProtoTokenAppearance,
             target:     ".tuto-proto-token",
+            feature:  ["enablePolymorph"],
             title:      tl("Wild Shape / Polymorph"),
             text:       `${tl("La section <strong>Wild Shape / Polymorph</strong> du même onglet configure des formes de transformation complètes. Le bouton <i class='fa-solid fa-dragon'></i> dans le HUD (clic droit sur le token) applique la transformation en un clic — et la rétablit en re-cliquant. Accessible au GM et aux propriétaires du token.")}`,
             position:   "left",
@@ -1369,6 +1740,7 @@ const STEPS_BY_FEATURE = {
         {
             beforeShow: _expandWestmarch,
             target:     "[data-tool='fakeWarning']",
+            feature:  ["enableFakeWarning"],
             title:      tl("Faux message de maintenance"),
             text:       `${tl("Ce bouton <i class='fa-solid fa-triangle-exclamation'></i> envoie une fausse notification jaune à un joueur précis — pour lui faire croire qu'un problème technique a été résolu. Vous pouvez le <strong>retirer complètement</strong> en décochant « Faux message de maintenance » dans <em>Réglages → Serveur</em>.")}`,
             position:   "right",
@@ -1377,6 +1749,7 @@ const STEPS_BY_FEATURE = {
         {
             beforeShow: _openChatTab,
             target:     "[data-wm-action='clearParty']",
+            feature:  ["enableChatTools"],
             title:      tl("Vider les messages de ma party"),
             text:       `${tl("Ce bouton <i class='fa-solid fa-users-slash'></i> supprime uniquement les messages du chat dont l'auteur appartient à <strong>votre party</strong>. Les messages des autres GMs et de leurs joueurs ne sont pas touchés. Une confirmation est demandée avant la suppression.")}`,
             position:   "top",
@@ -1385,6 +1758,7 @@ const STEPS_BY_FEATURE = {
         {
             beforeShow: _openChatTab,
             target:     "[data-wm-action='importParty']",
+            feature:  ["enableChatTools"],
             title:      tl("Importer des messages de chat"),
             text:       `${tl("Ce bouton <i class='fa-solid fa-file-import'></i> permet de réimporter un export de chat Foundry (<code>.txt</code>) ou JSON. Les messages sont recréés dans le chat en conservant leur timestamp d'origine — ils apparaîtront dans le bon ordre chronologique. Pratique pour restaurer un historique après un clear accidentel.")}`,
             position:   "top",
@@ -1393,6 +1767,7 @@ const STEPS_BY_FEATURE = {
         {
             target:   null,
             disabled: true,     // TGCM temporairement désactivé (tgcm.js)
+            feature:  ["enableTgcm"],
             title:    tl("Protection TGCM"),
             text:     `${tl("Le bouton <i class='fa-solid fa-shield-halved'></i> dans le HUD d'un token (GM uniquement) le protège de la mort. Un token TGCM ne peut jamais tomber à 0 PV — tout dégât fatal le laisse à 1 PV.")}`,
             position: "center",
@@ -1400,6 +1775,7 @@ const STEPS_BY_FEATURE = {
         },
         {
             target:   null,
+            feature:  ["enableXpBlock"],
             title:    tl("Blocage XP et Level Up"),
             text:     `${tl("Activez le <strong>blocage XP</strong> dans les paramètres de <em>Serveur</em> pour empêcher les joueurs de modifier leur XP ou monter de niveau eux-mêmes. Seul le GM peut le faire.")}`,
             position: "center",
@@ -1407,6 +1783,7 @@ const STEPS_BY_FEATURE = {
         },
         {
             target:   null,
+            feature:  ["enableDiscordLog"],
             title:    tl("Logs Discord"),
             text:     `${tl("Configurez des URLs <strong>webhook</strong> dans les paramètres de <em>Serveur</em> pour recevoir des notifications automatiques sur Discord : modifications d'objets, changements de date de jeu, et résultats des temps morts.")}`,
             position: "center",
@@ -1414,6 +1791,7 @@ const STEPS_BY_FEATURE = {
         },
         {
             target:   null,
+            feature:  ["enableExportDialog"],
             title:    tl("Exporter un personnage"),
             text:     `${tl("Faites un <strong>clic droit</strong> sur n'importe quel acteur dans la sidebar et choisissez <strong>Exporter</strong>. Une fenêtre vous propose deux formats : <br><br><i class='fa-solid fa-layer-group'></i> <strong>Fiche actuelle</strong> — export complet avec toutes les données (expéditions, relations, bestiaire, flags modules). À réimporter uniquement sur un serveur avec les mêmes modules.<br><br><i class='fa-solid fa-dice-d20'></i> <strong>Fiche originale dnd5e</strong> — réinitialise la fiche au format dnd5e standard et supprime toutes les données propres au serveur. Compatible partout.")}`,
             position: "center",
@@ -1517,7 +1895,7 @@ const STEPS_BY_FEATURE = {
     pantheon: [
         {
             beforeShow: _openPantheonFolder,
-            target:     ".tuto-a11y-highlight, #journal .folder, .journal .directory-item.folder",
+            target:     ".tuto-a11y-highlight",
             title:      tl("Le dossier Panthéons"),
             text:       `${tl("Dans l'onglet <strong>Journaux</strong>, le module ajoute un dossier <strong>Panthéons</strong> contenant un compendium complet des <strong>Dieux de Faerûn</strong> (tous les panthéons). Il est <strong>visible par tout le monde</strong> : cliquez le journal pour consulter les divinités, leurs domaines et symboles.")}`,
             textGM:     `${tl("Dans l'onglet <strong>Journaux</strong>, le module crée au premier lancement un dossier <strong>Panthéons</strong> (Dieux de Faerûn, tous les panthéons), <strong>visible par tous les joueurs</strong>. Vous pouvez le consulter, le déplacer ou le supprimer ; il ne sera pas recréé. L'option se coupe dans <strong>Réglages → Serveur</strong> si vous n'en voulez pas.")}`,
@@ -1579,13 +1957,7 @@ export async function startTutorial(selectedSections = null, onComplete = null) 
             : game.settings.get(MODULE, settingKey);
         if (!include) continue;
 
-        const sectionSteps = (STEPS_BY_FEATURE[section] ?? []).filter(s => {
-            if (s.disabled) return false;                   // fonctionnalité gelée
-            if (s.gmOnly     && !game.user.isGM) return false;
-            if (s.playerOnly &&  game.user.isGM) return false;
-            if (experienced  && s.native) return false;   // étape native isolée
-            return true;
-        });
+        const sectionSteps = (STEPS_BY_FEATURE[section] ?? []).filter(s => etapeVisible(s, experienced));
         _steps.push(...sectionSteps.map(st => ({ ...st, _section: section })));
     }
 
@@ -1619,6 +1991,8 @@ export function closeTutorial() {
 function _endTutorial(completed = false) {
     revokeTutorialAccess();
     _closeTradeDemo();   // retire la fenêtre d'échange de démonstration si présente
+    _closeHudLegend();
+    document.querySelectorAll(".tuto-a11y-highlight, .tuto-status-highlight").forEach(e => e.classList.remove("tuto-a11y-highlight", "tuto-status-highlight"));
     closeTutorial();
     // Mode « menu » : on rouvre le menu après chaque section, quelle que soit la
     // façon de terminer (fin, croix, Échap). C'est la croix du MENU qui arrête.
@@ -1689,6 +2063,10 @@ async function _showStep(idx) {
     if (!_wrapEl) return;
     const step = _steps[idx];
     if (!step) return;
+
+    _closeHudLegend();
+    // Retire le surlignage laissé par l'étape précédente (dossier, ligne de réglage…).
+    document.querySelectorAll(".tuto-a11y-highlight, .tuto-status-highlight").forEach(e => e.classList.remove("tuto-a11y-highlight", "tuto-status-highlight"));
 
     // Navigation préalable (ouvrir fiche/onglet si nécessaire)
     if (step.beforeShow) {

@@ -55,6 +55,8 @@ export function coinPour(doc, c) {
     return { x: Math.round(c.x - w / 2), y: Math.round(c.y - h / 2) };
 }
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+// Distance « en cases » (règle dnd5e : une diagonale compte comme une case).
+const distCases = (a, b) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
 
 // Ajoute des centres à une piste, longueur bornée. Un trajet de Foundry ne
 // donne que les angles du chemin : chaque segment est découpé en pas d'une case
@@ -65,9 +67,10 @@ export function prolongerPiste(piste, points, pas = 100) {
     for (const p of points) {
         const der = piste[piste.length - 1];
         if (!der) { piste.push({ x: p.x, y: p.y }); continue; }
-        const d = dist(der, p);
-        if (d <= 0.5) continue;
-        const n = Math.max(1, Math.ceil(d / pas - 1e-6));
+        if (dist(der, p) <= 0.5) continue;
+        // Pas d'une case au plus, comptés en cases (diagonale = 1) : une
+        // diagonale n'est plus coupée en demi-cases.
+        const n = Math.max(1, Math.ceil(distCases(der, p) / pas - 1e-6));
         for (let k = 1; k <= n; k++) piste.push({ x: der.x + (p.x - der.x) * k / n, y: der.y + (p.y - der.y) * k / n });
     }
     if (piste.length > PISTE_MAX) piste.splice(0, piste.length - PISTE_MAX);
@@ -75,12 +78,12 @@ export function prolongerPiste(piste, points, pas = 100) {
 }
 
 // « Mener » : à partir de la fin de la piste (position du porteur), recule
-// d'au moins `distance` en suivant la piste. Renvoie l'indice du point où
+// d'au moins `distance` (en cases, diagonale = 1) en suivant la piste. Renvoie l'indice du point où
 // s'arrête le token mené (toujours un point réellement visité par le porteur).
 export function indiceDerriere(piste, distance) {
     let cumul = 0;
     for (let i = piste.length - 1; i > 0; i--) {
-        cumul += dist(piste[i], piste[i - 1]);
+        cumul += distCases(piste[i], piste[i - 1]);
         if (cumul >= distance - 0.5) return i - 1;
     }
     return 0;
@@ -118,7 +121,16 @@ function portePar(cible, doc) {
 // Pistes de « mener », par porteur (client du MJ uniquement).
 const PISTES = new Map();
 // Tokens que le module est en train de déplacer (pour ne pas les décrocher).
-const EN_COURS = new Set();
+// Compteur par token : deux déplacements rapprochés ne se « libèrent » pas
+// l'un l'autre (avec un simple ensemble, la fin du 1er retirait la marque
+// pendant le 2e, et le token se décrochait tout seul).
+const EN_COURS = new Map();
+const marquer   = (id) => EN_COURS.set(id, (EN_COURS.get(id) ?? 0) + 1);
+const demarquer = (id) => { const n = (EN_COURS.get(id) ?? 1) - 1; if (n > 0) EN_COURS.set(id, n); else EN_COURS.delete(id); };
+// File d'attente par porteur : les suivis d'un même porteur s'exécutent l'un
+// après l'autre (deux déplacements rapides ne lancent plus deux animations
+// concurrentes sur le même token accroché).
+const FILES = new Map();
 
 // ------------------------------------------------------------------ déplacement
 // Extrait le trajet (centres) d'un déplacement : la liste des points passés,
@@ -126,7 +138,7 @@ const EN_COURS = new Set();
 function trajetCentres(doc, changes, options) {
     const brut = [];
     const mv = options?.movement?.[doc.id];
-    const wps = mv?.waypoints ?? doc.movement?.passed?.waypoints ?? null;
+    const wps = mv?.passed?.waypoints ?? mv?.waypoints ?? doc.movement?.passed?.waypoints ?? null;
     if (Array.isArray(wps)) for (const w of wps) if (Number.isFinite(w?.x) && Number.isFinite(w?.y)) brut.push(w);
     const fin = { x: changes.x ?? doc.x, y: changes.y ?? doc.y };
     const der = brut[brut.length - 1];
@@ -134,13 +146,39 @@ function trajetCentres(doc, changes, options) {
     return brut.map(w => centre(doc, w.x, w.y));
 }
 
+// Point de départ du porteur (centre) pour ce déplacement, si Foundry le donne.
+function origineCentre(doc, options) {
+    const o = options?.movement?.[doc.id]?.origin ?? doc.movement?.origin ?? null;
+    return (o && Number.isFinite(o.x) && Number.isFinite(o.y)) ? centre(doc, o.x, o.y) : null;
+}
+
+// Cale un coin haut-gauche sur la grille (scènes avec grille), pour qu'un
+// token mené ne s'arrête jamais à cheval entre deux cases (les points
+// intermédiaires d'une diagonale tombaient sur des demi-cases).
+function caler(doc, pt) {
+    try {
+        const scene = doc.parent;
+        if (!scene || scene.grid?.type === CONST.GRID_TYPES.GRIDLESS) return pt;
+        const p = doc.object?.getSnappedPosition?.(pt)
+            ?? canvas?.grid?.getSnappedPoint?.(pt, { mode: CONST.GRID_SNAPPING_MODES.TOP_LEFT_VERTEX });
+        return (p && Number.isFinite(p.x) && Number.isFinite(p.y)) ? { x: Math.round(p.x), y: Math.round(p.y) } : pt;
+    } catch { return pt; }
+}
+
 // Déplace un token le long d'une suite de centres (animation sur le même
 // chemin). Passe par l'API de mouvement de Foundry si elle existe, sinon par
 // une mise à jour simple de la position finale.
 async function deplacer(doc, centres, elevation) {
     if (!centres.length) return;
-    const coins = centres.map(c => ({ ...coinPour(doc, c), ...(elevation != null ? { elevation } : {}) }));
-    EN_COURS.add(doc.id);
+    const coins = [];
+    for (const c of centres) {
+        const p = caler(doc, coinPour(doc, c));
+        const der = coins[coins.length - 1] ?? { x: doc.x, y: doc.y };
+        if (der.x === p.x && der.y === p.y) continue;           // pas de point en double
+        coins.push({ ...p, ...(elevation != null ? { elevation } : {}) });
+    }
+    if (!coins.length) return;
+    marquer(doc.id);
     try {
         if (typeof doc.move === "function") {
             await doc.move(coins, {
@@ -152,26 +190,47 @@ async function deplacer(doc, centres, elevation) {
             await doc.update(fin);
         }
     } finally {
-        setTimeout(() => EN_COURS.delete(doc.id), 1500);
+        setTimeout(() => demarquer(doc.id), 1500);
     }
 }
 
-async function suivre(porteur, changes, options) {
+// Fait suivre les accrochés d'un porteur, un déplacement à la fois.
+function suivre(porteur, changes, options) {
+    if (!accrochesDe(porteur).length) return Promise.resolve();
+    // Données du déplacement lues TOUT DE SUITE (le document changera ensuite).
+    const trajet = trajetCentres(porteur, changes, options);
+    const origine = origineCentre(porteur, options);
+    const elevation = changes.elevation ?? porteur.elevation;
+    const prec = FILES.get(porteur.id) ?? Promise.resolve();
+    const suite = prec.catch(() => {}).then(() => _suivre(porteur, trajet, origine, elevation));
+    FILES.set(porteur.id, suite);
+    suite.finally(() => { if (FILES.get(porteur.id) === suite) FILES.delete(porteur.id); }).catch(() => {});
+    return suite;
+}
+
+async function _suivre(porteur, trajet, origine, elevation) {
     const accroches = accrochesDe(porteur);
     if (!accroches.length) return;
-    const trajet = trajetCentres(porteur, changes, options);
-    const elevation = changes.elevation ?? porteur.elevation;
+    const g = taillePx(porteur).g;
 
-    // Piste de « mener » : on y ajoute le trajet du porteur.
+    // Piste de « mener » : on y ajoute le trajet du porteur. Si elle est vide
+    // (rechargement, changement de MJ) ou ne se raccorde pas au point de départ,
+    // on la fait partir du point de départ du porteur : sinon le token mené
+    // filait en ligne droite vers le 1er point du trajet, à travers les murs.
     const piste = PISTES.get(porteur.id) ?? [];
     PISTES.set(porteur.id, piste);
-    prolongerPiste(piste, trajet, taillePx(porteur).g);
+    const der = piste[piste.length - 1];
+    if (origine && (!der || dist(der, origine) > 0.5)) {
+        if (der && dist(der, origine) > 2 * g) piste.length = 0;   // piste périmée
+        prolongerPiste(piste, [origine], g);
+    }
+    prolongerPiste(piste, trajet, g);
 
     for (const t of accroches) {
         const a = lireAccroche(t);
         try {
             if (a.mode === "mener") {
-                const cible = indiceDerriere(piste, Number(a.distance) || taillePx(porteur).g);
+                const cible = indiceDerriere(piste, Number(a.distance) || g);
                 const chemin = cheminMene(piste, centre(t), cible);
                 await deplacer(t, chemin, elevation);
             } else {
@@ -191,11 +250,17 @@ export async function accrocher(doc, porteur, mode) {
         return;
     }
     const g = taillePx(porteur).g;
-    const distance = Math.max(g, dist(centre(doc), centre(porteur)));
+    const distance = Math.max(g, distCases(centre(doc), centre(porteur)));
     await doc.setFlag(MOD, FLAG, { porteur: porteur.id, mode, distance });
 
-    // Piste de départ : de la position du token mené vers le porteur.
-    PISTES.set(porteur.id, prolongerPiste(PISTES.get(porteur.id) ?? [], [centre(doc), centre(porteur)], g));
+    // Piste de départ (mener seulement) : de la position du token mené vers le
+    // porteur, si le porteur n'a pas encore de piste. On n'y ajoute JAMAIS la
+    // position d'un token accroché : la piste est commune à tous les accrochés
+    // du porteur (avant, accrocher un 2e token y insérait un détour que le 1er
+    // token mené suivait ensuite).
+    if (mode === "mener" && !(PISTES.get(porteur.id)?.length)) {
+        PISTES.set(porteur.id, prolongerPiste([], [centre(doc), centre(porteur)], g));
+    }
     if (mode === "porter") await deplacer(doc, [centre(porteur)], porteur.elevation);
     ui.notifications?.info(mode === "porter"
         ? tl("{0} porte maintenant {1}.", porteur.name, doc.name)
@@ -281,7 +346,15 @@ export function AccrocheHooks() {
     // et décroche un token accroché déplacé par quelqu'un d'autre que le module.
     Hooks.on("updateToken", (doc, changes, options) => {
         if (!actif() || !estMjActif()) return;
-        if (!("x" in changes) && !("y" in changes)) return;
+        if (!("x" in changes) && !("y" in changes)) {
+            // Changement d'élévation seul du porteur : ses accrochés suivent.
+            if ("elevation" in changes) for (const t of accrochesDe(doc)) {
+                if (t.elevation === doc.elevation) continue;
+                marquer(t.id);
+                t.update({ elevation: doc.elevation }).catch(() => {}).finally(() => setTimeout(() => demarquer(t.id), 1500));
+            }
+            return;
+        }
         const a = lireAccroche(doc);
         if (a && !EN_COURS.has(doc.id)) {
             decrocher(doc, tl("{0} a été déplacé à part : il est décroché de son porteur.", doc.name))
@@ -294,6 +367,7 @@ export function AccrocheHooks() {
     Hooks.on("deleteToken", (doc) => {
         if (!estMjActif()) return;
         PISTES.delete(doc.id);
+        FILES.delete(doc.id);
         for (const t of accrochesDe(doc)) decrocher(t).catch(() => {});
     });
 }

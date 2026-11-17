@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 6.7.4
+Version : 6.8.1
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -217,6 +217,124 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v6.8.1 | 2026-11-17
+   - Sorts d'enchantement d'arme (True Strike, Magic Weapon, Shillelagh…) :
+     au lancement, plus besoin de glisser l'arme dans la carte de chat.
+     Une seule arme équipée : elle est enchantée directement ; plusieurs :
+     une fenêtre liste les armes acceptées par le sort, la dernière choisie
+     est présélectionnée (« Plus tard » laisse la zone de dépôt du chat).
+     L'enchantement précédent du même sort sur les armes du personnage est
+     retiré avant (pas de « (True Strike) (True Strike) »). Durée,
+     concentration et fin de l'effet restent celles de dnd5e. Réglage :
+     Modifications ciblées → Sorts → Enchantements d'arme.
+   - Tutoriel : une section décochée dans « Sections du tutoriel » n'est
+     plus proposée nulle part (le menu du guide et le parcours des
+     essentiels l'affichaient quand même). La section Temps morts suit
+     aussi l'interrupteur des Temps morts, et la section Casier celui du
+     Casier du MJ.
+   - Tutoriel : étape « Intrigues » du Casier retirée (l'onglet n'existe
+     plus ; les intrigues restent présentées à la clôture de session et
+     dans les rapports en attente).
+   - Tutoriel, Carte des expéditions : la section commence par afficher la
+     première carte configurée (scène principale, sinon la première carte
+     ajoutée). Simple affichage pour le MJ : la scène n'est pas activée,
+     les joueurs ne sont pas déplacés.
+   - Tutoriel, Carte des expéditions, étape « Le token de groupe » : ouvre
+     l'onglet Acteurs, déplie le dossier du token modèle « Token à copier et
+     rennomer » et le surligne. Le surlignage d'une étape est retiré à
+     l'étape suivante et à la fermeture du tutoriel.
+   - Tutoriel, étape « Statut de disponibilité » : déplie bien le dossier
+     « Tutoriel » (et ses parents) pour montrer le badge sur le personnage
+     de démonstration. Le dépliage des dossiers du tutoriel est fiabilisé
+     pour Foundry v13+ (il ne marchait qu'avec l'ancien balisage) : vaut
+     aussi pour le dossier Panthéons et le token de groupe.
+   - Menu du guide et fenêtre de bienvenue : les boutons à libellé long
+     (« Ne plus afficher à la connexion »…) débordaient en haut et en bas.
+     Hauteur libre avec retour à la ligne ; le menu range ses 4 boutons en
+     grille 2 × 2. Fichier : styles/tutoriel.css.
+   - Fenêtre de bienvenue entièrement personnalisable par le MJ (Réglages
+     → Tutoriel) : titre de la fenêtre, titre principal, texte,
+     avertissement et texte du bouton. Texte et avertissement : zone
+     multi-ligne, Entrée pour aller à la ligne, **mot** pour le gras ;
+     laissés vides, ils ne s'affichent pas. Au premier chargement par le
+     MJ, les textes affichés sont enregistrés comme textes du serveur : ils
+     ne changent plus avec la langue de chacun.
+   - Tutoriel, Panthéons : surligne le bon dossier, celui du journal des
+     Dieux créé par le module (la recherche par texte pouvait tomber sur un
+     dossier parent, ou sur le premier dossier venu).
+   - Tutoriel : les étapes d'une fonctionnalité désactivée sur le serveur
+     ne sont plus montrées (Date d'expédition, statut de disponibilité,
+     clôture de session et rapports, Temps morts et Validation dans le
+     Casier, boutiques MEJ, portrait / apparence / polymorph des tokens,
+     faux message, outils de chat, TGCM, blocage XP, logs Discord, export).
+     Les fonctionnalités gelées par le module (apparence des tokens, TGCM)
+     comptent comme désactivées. Une section dont toutes les étapes sont
+     masquées disparaît du menu du guide.
+   - Indicateur « géré » sur les fiches (engrenages dorés) : la bulle
+     affiche le nom du module (« Géré par Soruta — Completed Westmarch : »)
+     au lieu de « Géré par le module ».
+   - Tutoriel : nouvelle section « HUD du token » (joueurs et MJ), sans
+     token requis : une fenêtre explicative « Boutons du HUD » montre
+     chaque symbole et son rôle — boutons de Foundry (visibilité, combat,
+     cible, états, mode de déplacement, élévation, barres), puis ceux du
+     module, seulement si leur fonction est active et non gelée (portrait,
+     forme sauvage / polymorphie, récolte ; MJ : accrocher, cues, TGCM).
+     Pour le MJ, la ligne « Accrocher » explique porter, mener et le
+     décrochage (fonction présentée nulle part ailleurs). Réglage :
+     Tutoriel → HUD du token.
+   - Accrocher un token (porter / mener) — corrections :
+     · Mener : le token mené s'arrêtait parfois à cheval entre deux cases
+       et trop près (diagonales coupées en demi-cases) ; distances comptées
+       en cases (diagonale = 1) et positions calées sur la grille.
+     · Accrocher un 2e token au même PJ ajoutait un détour dans la piste
+       commune : le token déjà mené le suivait ensuite.
+     · Après un rechargement ou un changement de MJ, le premier
+       déplacement du token mené filait en ligne droite (à travers les
+       murs) : la piste repart maintenant du point de départ du PJ.
+     · Deux déplacements rapprochés du PJ pouvaient décrocher le token tout
+       seul ou lancer deux animations concurrentes : déplacements traités
+       l'un après l'autre, marquage par compteur.
+     · Lecture du trajet adaptée au format de mouvement de Foundry v13+.
+     · Un changement d'élévation seul du PJ est suivi par ses accrochés.
+   - Horloge de party : hors combat, barre fine centrée en haut de l'écran
+     (soleil / lune, heure avec secondes, date, Party ou Monde, pause). À
+     droite, bouton qui ouvre le calendrier : vue du mois de la date de la
+     party (ou du monde), jour courant mis en avant, fêtes du calendrier du
+     serveur signalées, navigation de mois en mois. Pour le MJ : à gauche
+     « Jour suivant » (+1 jour, rations comprises), et un curseur (0 à 12 h,
+     par 10 min) avec un bouton de validation pour avancer le temps. Hors
+     expédition, ces boutons avancent le calendrier du monde. En combat,
+     l'horloge reprend sa place à droite de la liste des joueurs (le
+     carrousel de combat occupe le haut de l'écran).
+   - Tutoriel : nouvelle section « Horloge & calendrier » (barre du temps,
+     Party / Monde, calendrier ; MJ : jour suivant et curseur ; place de
+     l'horloge en combat). Montrée seulement si l'horloge de party et son
+     affichage sont actifs. Réglage : Tutoriel → Horloge de party.
+   - Tutoriel : nouvelle section MJ « Registre du monde » (15 étapes),
+     Casier ouvert sur l'onglet Monde : à quoi sert le registre entre MJ,
+     créer une fiche (et les autres portes d'entrée), où elles sont
+     rangées, les rubriques et les secrets MJ, ne pas écrire dans Monk's,
+     liens d'un PNJ (acteur, lieu, relations des PJ), épingle et cartes
+     locales d'un lieu, ce que voient les joueurs (découverte), la liste et
+     ses icônes, recherche et « Modifiées depuis ma dernière session »,
+     Actualiser, Ranger dans les compendiums, Supprimer, et les règles d'or
+     entre MJ. Montrée si le registre est actif et Monk's Enhanced Journal
+     installé. Réglage : Tutoriel → Registre du monde.
+   - Nouveau : anniversaires. Le jour de l'anniversaire d'un PJ, un message
+     de fête (🎂, portrait, âge si l'année de naissance est connue) apparaît
+     dans le chat. Date réglée avec le bouton gâteau de l'en-tête de la
+     fiche ou le clic droit sur l'acteur → « Date d'anniversaire » (le
+     joueur pour son PJ, le MJ pour tous). En expédition, la date de la
+     party fait foi ; sinon le calendrier du monde. Plusieurs jours avancés
+     d'un coup : chaque jour est vérifié. Option : les PNJ aussi.
+     Réglages : catégorie « Anniversaires ».
+   - « Forcer la reprise » quitte la barre WestMarch : c'est maintenant un
+     bouton « Débloquer la pause » dans les réglages du module (MJ). Même
+     effet : enlève la pause globale et toutes les pauses de party.
+   Fichiers : modules/enchantarme.js (nouveau), modules/anniversaire.js
+   (nouveau), modules/partytime.js, modules/caldate.js, modules/settings.js,
+   modules/i18n-en.js, modules/tutorial.js, modules/partypause.js, index.js.
 
 v6.8.0 | 2026-11-11
    - Casier, onglet Monde : corbeille sur chaque fiche (PNJ, lieu,

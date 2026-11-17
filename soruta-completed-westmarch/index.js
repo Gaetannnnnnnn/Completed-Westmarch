@@ -29,6 +29,8 @@ import { SceneAudioHooks }     from "./modules/sceneaudio.js";
 import { RageHooks }         from "./modules/rage.js";
 import { GoliathHooks }      from "./modules/goliath.js";
 import { HealerHooks }       from "./modules/healer.js";
+import { AnniversaireHooks } from "./modules/anniversaire.js";
+import { EnchantArmeHooks }  from "./modules/enchantarme.js";
 import { MonkHooks }         from "./modules/monk.js";
 import { InitiativeRecupHooks } from "./modules/initiative-recup.js";
 import { InspirationHooks }  from "./modules/inspiration.js";
@@ -94,7 +96,7 @@ import { AccessibilityHooks }    from "./modules/accessibility.js";
 import { CombatRemindersHooks }  from "./modules/combatreminders.js";
 import { RangeFixHooks }         from "./modules/range-fix.js";
 import { registerTutorielButton } from "./modules/toolbar.js";
-import { showWelcomeIfNeeded }    from "./modules/welcome.js";
+import { showWelcomeIfNeeded, figerTextesBienvenue } from "./modules/welcome.js";
 import { ensureTutorialActor }    from "./modules/demoactor.js";
 import { tl, registerLangueSetting } from "./modules/i18n.js";
 
@@ -183,6 +185,8 @@ Hooks.on("init", () => {
     RageHooks();
     GoliathHooks();
     HealerHooks();
+    AnniversaireHooks();
+    EnchantArmeHooks();
     MonkHooks();
     InitiativeRecupHooks();
     InspirationHooks();
@@ -280,7 +284,10 @@ Hooks.on("ready", () => {
     ensureTutorialActor();
 
     // Fenêtre de bienvenue — légère temporisation pour laisser l'UI se stabiliser.
-    setTimeout(() => showWelcomeIfNeeded(), 1000);
+    setTimeout(async () => {
+        try { await figerTextesBienvenue(); } catch { /* best-effort */ }
+        showWelcomeIfNeeded();
+    }, 1000);
 });
 
 // Migration automatique des données des anciens modules (une seule fois, au ready GM).

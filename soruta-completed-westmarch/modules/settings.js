@@ -345,7 +345,7 @@ export function registerSettings() {
         tl("Pendant un combat de la party, chaque nouveau round ajoute 6 secondes à son horloge (durée d'un round de D&D).")));
     game.settings.register(MOD, "partyTimeShowClock", B(
         tl("Afficher l'horloge de la party"),
-        tl("Horloge à droite de la liste des joueurs (avec les secondes) : chacun voit l'heure de SA party (ou du calendrier du monde hors expédition). Chaque joueur peut la masquer pour lui dans Accessibilité.")));
+        tl("Hors combat : barre fine en haut de l'écran (heure avec les secondes, date, bouton calendrier ; pour le MJ : jour suivant et curseur pour avancer le temps). En combat : à droite de la liste des joueurs. Chacun voit l'heure de SA party (ou du calendrier du monde hors expédition) et peut la masquer pour lui dans Accessibilité.")));
     game.settings.register(MOD, "partyTimeRations", B(
         tl("Consommation des rations"),
         tl("Chaque jour franchi retire 1 ration par PJ, sauf ceux cochés « Nourri autrement » dans la fenêtre d'avance du temps.")));
@@ -614,6 +614,16 @@ export function registerSettings() {
     game.settings.register(MOD, "enableHealerReroll", B(
         tl("Healer (Guérisseur) — relance des 1 sur les soins"),
         tl("Personnages qui ont le don Healer : à chaque jet de soins d'un sort (ou du Battle Medic du don), les dés qui font 1 sont relancés une fois (« r1 » ajouté à la formule). Les PV temporaires ne sont pas concernés.")));
+    game.settings.register(MOD, "enableBirthday", B(
+        tl("Anniversaires des PJ"),
+        tl("Le jour de l'anniversaire d'un PJ, un message de fête apparaît dans le chat (avec son âge si l'année de naissance est connue). La date se règle avec le bouton gâteau de la fiche ou le clic droit sur l'acteur ; le joueur peut régler celle de son PJ. En expédition, c'est la date de la party qui compte, sinon celle du monde.")));
+    game.settings.register(MOD, "birthdayNpc", B(
+        tl("Anniversaires des PNJ aussi"),
+        tl("Fête aussi les PNJ qui ont une date d'anniversaire (réglée par le MJ), selon le calendrier du monde."),
+        false));
+    game.settings.register(MOD, "enableWeaponEnchantPicker", B(
+        tl("Sorts d'enchantement d'arme — choix de l'arme au lancement"),
+        tl("True Strike, Magic Weapon, Shillelagh… : au lancement, plus besoin de glisser l'arme dans la carte de chat. Une seule arme équipée : elle est enchantée directement ; plusieurs : une fenêtre propose les armes acceptées (la dernière choisie est présélectionnée). Durée, concentration et fin de l'effet restent gérées par dnd5e ; la zone de dépôt du chat reste disponible.")));
     game.settings.register(MOD, "enableAlertSwap", B(
         tl("Alert (Vigilant) — échange d'initiative"),
         tl("Pour les MJ : bouton « échanger » dans le suivi de combat sur la ligne des personnages qui ont le don Alert. Il échange leur initiative avec celle d'un autre joueur du combat (non neutralisé) et l'annonce dans le chat.")));
@@ -871,10 +881,29 @@ export function registerSettings() {
         tl("Tutoriel — Activer"),
         tl("Active le bouton tutoriel ('?') dans la barre WestMarch et la fenêtre de bienvenue. Nécessite un rechargement."),
         true, { requiresReload: true }));
+    // Fenêtre de bienvenue : TOUS les textes sont personnalisables par le MJ.
+    // Une fois enregistrés (au 1er chargement par le MJ, voir welcome.js →
+    // figerTextesBienvenue), ils ne dépendent plus de la langue du module.
+    game.settings.register(MOD, "welcomeWindowTitle", S(
+        tl("Bienvenue — Titre de la fenêtre"),
+        tl("Texte de la barre de titre de la fenêtre d'accueil. Vide : « Bienvenue »."),
+        tl("Bienvenue")));
     game.settings.register(MOD, "serverName", S(
-        tl("Tutoriel — Nom affiché dans le message de bienvenue"),
-        tl("Titre de la fenêtre d'accueil des joueurs."),
+        tl("Bienvenue — Titre principal"),
+        tl("Grand titre affiché en haut de la fenêtre d'accueil des joueurs (souvent le nom du serveur)."),
         tl("Bienvenue sur le serveur !")));
+    game.settings.register(MOD, "welcomeText", S(
+        tl("Bienvenue — Texte"),
+        tl("Texte d'accueil. Retour à la ligne : touche Entrée. Mise en gras : **mot**. Vide : pas de texte."),
+        tl("Des fonctionnalités spéciales sont disponibles sur ce serveur.\nOn commence par **l'essentiel** (court), puis un **menu** vous laisse explorer le reste à votre rythme.")));
+    game.settings.register(MOD, "welcomeWarning", S(
+        tl("Bienvenue — Avertissement"),
+        tl("Ligne d'avertissement (orange) sous le texte. Mêmes règles : Entrée pour aller à la ligne, **mot** pour le gras. Vide : pas d'avertissement."),
+        tl("Fermez toutes les fiches et fenêtres ouvertes avant de commencer, pour le bon déroulement du guide.")));
+    game.settings.register(MOD, "welcomeStartLabel", S(
+        tl("Bienvenue — Texte du bouton"),
+        tl("Libellé du bouton qui lance le guide. Vide : « Commencer »."),
+        tl("Commencer (l'essentiel puis le menu)")));
     // Suivi interne : la fiche démo du tutoriel a-t-elle déjà été créée ?
     // (évite de la recréer si le GM la supprime volontairement).
     game.settings.register(MOD, "tutorialActorCreated", {
@@ -1226,7 +1255,11 @@ const TWEAK_TREE = {
             "Ingénieux : Inspiration héroïque au repos long": { key: "enableResourcefulInspiration" }
         } }
     } },
-    "Sorts":       { icon: "fa-wand-magic-sparkles", children: {} },
+    "Sorts":       { icon: "fa-wand-magic-sparkles", children: {
+        "Enchantements d'arme (True Strike, Magic Weapon…)": { children: {
+            "Choisir l'arme au lancement, sans glisser-déposer": { key: "enableWeaponEnchantPicker" }
+        } }
+    } },
     "Features":    { icon: "fa-star",                children: {
         "Alert (Vigilant)": { children: {
             "Bouton d'échange d'initiative (suivi de combat, MJ)": { key: "enableAlertSwap" }
@@ -1310,6 +1343,9 @@ const CATEGORIES = [
     { firstKey: "enableHarvest", master: "enableHarvest", icon: "fa-hand-holding-droplet", title: tl("Récolte (harvest)"),
       desc: tl("Récolte de matériaux sur les créatures mortes. Le module utilise des RollTables que vous créez et associez aux créatures (bouton « Associations » dans l'onglet WestMarch). Butin partagé sur la dépouille, pourriture avec le temps, tache de sang une fois vidée."),
       keys: ["enableHarvest","harvestDcBase","harvestDcPerCr","harvestBaseDraws","harvestBloodImage"] },
+    { firstKey: "enableBirthday", master: "enableBirthday", icon: "fa-cake-candles", title: tl("Anniversaires"),
+      desc: tl("Message de fête dans le chat le jour de l'anniversaire d'un PJ, et en option d'un PNJ."),
+      keys: ["enableBirthday","birthdayNpc"] },
     { firstKey: "enableXpBlock",         icon: "fa-server",          title: tl("Serveur"),
       desc: tl("Personnalisations du serveur : blocage XP / Level Up, logs Discord, webhooks."),
       keys: ["enableXpBlock","enableFakeWarning","enableGmNotes","hidePlayerStarTab","createPantheonFolder","downtimeWebhookUrl","tmWebhookUrl"] },
@@ -1354,14 +1390,14 @@ const CATEGORIES = [
       keys: ["enableDiagnosticMenu","enableAdminMenu","enableSiteMessage","enableLegacyMigration","enableOwnershipScroll"] },
     { firstKey: "serverName", master: "tutoEnabled", icon: "fa-circle-question", title: tl("Tutoriel"),
       desc: tl("Fenêtre de bienvenue et guide interactif, configurable section par section."),
-      keys: ["tutoEnabled","serverName","tutoBarreWestmarch","tutoTourFiche","tutoNoteGm","tutoMonPerso","tutoBestiary","tutoRelations","tutoCarnet","tutoCasier","tutoCues","tutoBoutiques","tutoTempsMorts","tutoApparenceTokens","tutoOutilsGm","tutoAccessibilite","tutoEchange","tutoTransformation","tutoCompagnons","tutoPantheon","showWelcome"] },
+      keys: ["tutoEnabled","welcomeWindowTitle","serverName","welcomeText","welcomeWarning","welcomeStartLabel","tutoBarreWestmarch","tutoTourFiche","tutoNoteGm","tutoMonPerso","tutoBestiary","tutoRelations","tutoCarnet","tutoHorloge","tutoCasier","tutoMonde","tutoCues","tutoBoutiques","tutoTempsMorts","tutoApparenceTokens","tutoHudToken","tutoOutilsGm","tutoAccessibilite","tutoEchange","tutoTransformation","tutoCompagnons","tutoPantheon","showWelcome"] },
 ];
 
 const ACCENT = "#e67e22";
 
 // Réglages GELÉS : affichés grisés/désactivés dans la configuration (on ne peut
 // pas les modifier). Utilisé pour une fonctionnalité temporairement coupée.
-const FROZEN_SETTINGS = new Set(["enableTgcm", "enableTokenAppearance"]);
+export const FROZEN_SETTINGS = new Set(["enableTgcm", "enableTokenAppearance"]);
 
 // Schémas des tables de temps morts éditées en grille (champs structurés).
 const TM_TABLE_SCHEMAS = {
@@ -1821,6 +1857,10 @@ function settingControlHtml(key) {
         const ph = key === "sourceDeny" ? "Ex. : conjure-animals ; silvery-barbs ; UA" : "Ex. : XPHB ; TCE : sous-classe, don ; XGE : sort";
         control = `<textarea name="${key}" rows="4" placeholder="${ph}"
             style="width:100%;box-sizing:border-box;resize:vertical;min-height:70px;font-family:var(--font-mono,monospace);font-size:.9em;">${escapeAttr(val ?? "")}</textarea>`;
+    } else if (key === "welcomeText" || key === "welcomeWarning") {
+        // Textes de la fenêtre de bienvenue : zone multi-ligne.
+        control = `<textarea name="${key}" rows="${key === "welcomeText" ? 4 : 2}"
+            style="width:100%;box-sizing:border-box;resize:vertical;min-height:44px;">${escapeAttr(val ?? "")}</textarea>`;
     } else if (key === "gmAutoFolderParent") {
         // Nom de dossier saisi librement (PAS un sélecteur : le même nom sert
         // dans Acteurs, Journaux et Scènes).

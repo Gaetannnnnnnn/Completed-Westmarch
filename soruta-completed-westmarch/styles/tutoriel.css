@@ -19,6 +19,36 @@
     min-width: 130px;
 }
 
+/* Boutons à libellé long (« Ne plus afficher à la connexion », « Commencer
+   (l'essentiel puis le menu) ») : Foundry fixe la hauteur des boutons de
+   dialogue, le texte qui passe sur deux lignes débordait en haut et en bas.
+   Hauteur libre + retour à la ligne + texte centré. */
+.tuto-welcome-dialog .dialog-button,
+.tuto-hub-dialog .dialog-button {
+    height: auto;
+    min-height: 32px;
+    padding: 4px 8px;
+    line-height: 1.2;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+/* Menu du guide : 4 boutons → grille 2 × 2 pour qu'aucun ne soit trop étroit. */
+.tuto-hub-dialog .dialog-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+.tuto-hub-dialog .dialog-button {
+    margin: 0;
+    width: 100%;
+}
+
 .tuto-welcome-body {
     display: flex;
     flex-direction: column;

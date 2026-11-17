@@ -45,9 +45,14 @@
 //     l'heure atteinte (et traite les rations si minuit est passé).
 //   - Combat (option) : chaque nouveau round du combat de la party ajoute
 //     6 secondes (CONFIG.time.roundTime) à son horloge.
-//   - Affichage (option) : rectangle à droite de la liste des joueurs
-//     (heure avec les secondes), montrant l'heure de SA party (ou du calendrier global hors
-//     expédition). Chaque joueur peut la masquer dans Accessibilité.
+//   - Affichage (option) : l'heure de SA party (ou du calendrier global hors
+//     expédition), avec les secondes. Deux formes :
+//       · hors combat : barre fine centrée en haut de l'écran ; à droite un
+//         bouton qui ouvre le calendrier (vue du mois) ; pour le MJ, à
+//         gauche « Jour suivant » et un curseur pour avancer le temps ;
+//       · en combat : rectangle à droite de la liste des joueurs (le
+//         carrousel de combat occupe le haut de l'écran).
+//     Chaque joueur peut la masquer dans Accessibilité.
 //
 // État partagé : réglage de monde "partyClockState"
 //   { [partyId]: { time, anchor, fedOther: [actorId], hungry: { [actorId]: jours } } }
@@ -61,6 +66,7 @@
 import { MOD } from "./const.js";
 import { journal } from "./log.js";
 import { tl } from "./i18n.js";
+import { CALENDAR_SPECIAL_EVENTS } from "./caldate.js";
 
 // ── Réglages ───────────────────────────────────────────────────
 
@@ -390,6 +396,8 @@ async function _commitTime(partyId, target, { fedOtherIds, announce, run }) {
 
     await savePartyClock(partyId, clock);
     await applyPartyDarkness(partyId, after);
+    // Autres fonctions qui suivent les jours de la party (anniversaires…).
+    if (days > 0) { try { Hooks.callAll(`${MOD}.partyDaysCrossed`, partyId, before, after); } catch { /* */ } }
 
     // Message du GM de la party : le filtrage du chat (chat.js) le limite
     // aux membres de cette party. Résumé coupé → seules les alertes partent.
@@ -695,9 +703,36 @@ function isDaytime(time) {
     return h >= num("partyDarknessSunrise", 6) && h < num("partyDarknessSunset", 20);
 }
 
+// Party affichée sur ce client, et son état.
+function heureAffichee() {
+    const pid   = game.user.getFlag(MOD, "partyId") ?? null;
+    const clock = pid ? getPartyClock(pid) : null;
+    return { pid, clock, time: clock ? effectiveTime(clock) : game.time.worldTime };
+}
+// En combat : la party affichée (ou, sans party, le combat de la scène).
+function enCombat(pid) {
+    try { return pid ? isPartyInCombat(pid) : !!game.combat?.started; } catch { return false; }
+}
+
+// Aiguillage : barre du haut hors combat, rectangle près des joueurs en combat.
 function renderClockWidget() {
+    if (!widgetVisible()) {
+        document.getElementById(WIDGET_ID)?.remove();
+        document.getElementById(BAR_ID)?.remove();
+        return;
+    }
+    const { pid } = heureAffichee();
+    if (enCombat(pid)) {
+        document.getElementById(BAR_ID)?.remove();
+        renderCombatClock();
+    } else {
+        document.getElementById(WIDGET_ID)?.remove();
+        renderTimeBar();
+    }
+}
+
+function renderCombatClock() {
     let el = document.getElementById(WIDGET_ID);
-    if (!widgetVisible()) { el?.remove(); return; }
 
     if (!el) {
         el = document.createElement("div");
@@ -731,6 +766,188 @@ function renderClockWidget() {
     el.title = clock
         ? tl("Heure de votre party : {0}", formatClock(time))
         : tl("Calendrier du monde : {0}", formatClock(time));
+}
+
+
+// ── Barre du temps (hors combat), centrée en haut de l'écran ───
+const BAR_ID = "scwm-time-bar";
+
+// Durée lisible : 90 min → « 1 h 30 ».
+function dureeTexte(min) {
+    const h = Math.floor(min / 60), m = min % 60;
+    if (!h) return tl("{0} min", m);
+    return m ? tl("{0} h {1}", h, String(m).padStart(2, "0")) : tl("{0} h", h);
+}
+
+// Avance le temps affiché : celui de la party (expédition ouverte) ou le
+// calendrier du monde. MJ uniquement.
+async function avancerTempsAffiche(seconds) {
+    if (!game.user.isGM || !(seconds > 0)) return;
+    const { pid, clock } = heureAffichee();
+    try {
+        if (clock) await advancePartyTime(pid, seconds);
+        else await game.time.advance(seconds);
+    } catch (e) {
+        journal.erreur(tl("[Party] Erreur lors de l'avance du temps de la party"), e);
+        ui.notifications.error(tl("[Party] Erreur lors de l'avance du temps (voir console)."));
+    }
+}
+
+function construireBarre() {
+    const el = document.createElement("div");
+    el.id = BAR_ID;
+    el.setAttribute("role", "status");
+    const mj = game.user.isGM;
+    el.innerHTML = `
+        ${mj ? `<button type="button" class="scwm-tb-btn scwm-tb-jour" data-tooltip="${tl("Jour suivant (+1 jour, rations comprises)")}"><i class="fa-solid fa-forward-step"></i></button>` : ""}
+        <span class="scwm-tb-info">
+            <i class="fa-solid fa-sun scwm-tb-astre"></i>
+            <span class="scwm-tb-heure"></span>
+            <span class="scwm-tb-sep">·</span>
+            <span class="scwm-tb-date"></span>
+            <span class="scwm-tb-label"></span>
+        </span>
+        ${mj ? `<span class="scwm-tb-avance">
+            <input type="range" class="scwm-tb-curseur" min="0" max="720" step="10" value="0" aria-label="${tl("Avancer le temps")}">
+            <span class="scwm-tb-duree">+0 min</span>
+            <button type="button" class="scwm-tb-btn scwm-tb-ok" data-tooltip="${tl("Avancer le temps de cette durée")}" disabled><i class="fa-solid fa-check"></i></button>
+        </span>` : ""}
+        <button type="button" class="scwm-tb-btn scwm-tb-cal" data-tooltip="${tl("Ouvrir le calendrier")}"><i class="fa-solid fa-calendar-days"></i></button>`;
+
+    el.querySelector(".scwm-tb-cal")?.addEventListener("click", () => ouvrirCalendrier());
+    el.querySelector(".scwm-tb-jour")?.addEventListener("click", async (ev) => {
+        const b = ev.currentTarget; b.disabled = true;
+        try { await avancerTempsAffiche(secondsPerDay()); } finally { b.disabled = false; }
+    });
+    const curseur = el.querySelector(".scwm-tb-curseur");
+    const duree   = el.querySelector(".scwm-tb-duree");
+    const ok      = el.querySelector(".scwm-tb-ok");
+    curseur?.addEventListener("input", () => {
+        const v = Number(curseur.value) || 0;
+        duree.textContent = `+${dureeTexte(v)}`;
+        ok.disabled = v <= 0;
+    });
+    ok?.addEventListener("click", async () => {
+        const v = Number(curseur.value) || 0;
+        if (v <= 0) return;
+        ok.disabled = true;
+        await avancerTempsAffiche(v * 60);
+        curseur.value = "0"; duree.textContent = "+0 min";
+    });
+    return el;
+}
+
+function renderTimeBar() {
+    let el = document.getElementById(BAR_ID);
+    if (!el) { el = construireBarre(); document.body.appendChild(el); }
+    else if (!el.isConnected) document.body.appendChild(el);
+
+    const { clock, time } = heureAffichee();
+    const c = components(time);
+    if (!c) return;
+    const mName = game.i18n.localize(game.time.calendar?.months?.values?.[c.month]?.name ?? tl("Mois {0}", c.month + 1));
+    const hh = String(c.hour ?? 0).padStart(2, "0");
+    const mm = String(c.minute ?? 0).padStart(2, "0");
+    const ss = String(Math.floor(c.second ?? 0)).padStart(2, "0");
+    const jour = isDaytime(time);
+    const astre = el.querySelector(".scwm-tb-astre");
+    astre.classList.toggle("fa-sun", jour);
+    astre.classList.toggle("fa-moon", !jour);
+    el.querySelector(".scwm-tb-heure").innerHTML = `${hh}:${mm}<span class="scwm-tb-sec">:${ss}</span>`;
+    el.querySelector(".scwm-tb-date").textContent = `${c.dayOfMonth + 1} ${mName} ${c.year}`;
+    const frozen = clock && realTimeEnabled() && !clock.anchor;
+    const label = clock ? tl("Party") : tl("Monde");
+    const lab = el.querySelector(".scwm-tb-label");
+    const labHtml = `${label}${frozen ? ` <i class="fa-solid fa-pause" data-tooltip="${tl("Temps arrêté (pause ou combat)")}"></i>` : ""}`;
+    if (lab._html !== labHtml) { lab.innerHTML = labHtml; lab._html = labHtml; }
+    el.querySelector(".scwm-tb-info").dataset.tooltip = clock
+        ? tl("Heure de votre party : {0}", formatClock(time))
+        : tl("Calendrier du monde : {0}", formatClock(time));
+}
+
+// ── Calendrier : vue du mois (date de la party, ou du monde) ───
+const norm = (t) => String(t ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
+
+function evenementsDuMois(nomMois) {
+    const n = norm(nomMois);
+    const map = new Map();
+    for (const e of CALENDAR_SPECIAL_EVENTS) if (norm(e.month) === n) map.set(e.day, e.label);
+    return map;
+}
+
+// Début (minuit) du 1er jour du mois qui contient `time`.
+function debutDuMois(time) {
+    const c = components(time);
+    return dayStart(time) - (c?.dayOfMonth ?? 0) * secondsPerDay();
+}
+
+async function ouvrirCalendrier() {
+    const cal = game.time?.calendar;
+    if (!cal) { ui.notifications.warn(tl("Aucun calendrier configuré dans Foundry.")); return; }
+    const { clock, time: maintenant } = heureAffichee();
+    const aujourdhui = components(maintenant);
+    let debut = debutDuMois(maintenant);
+    const mois = Array.from(cal.months?.values ?? []);
+    const joursSemaine = Array.from(cal.days?.values ?? []);
+    const esc = foundry.utils.escapeHTML;
+
+    const rendu = () => {
+        const c0 = components(debut);
+        const m = mois[c0.month] ?? {};
+        const nbJours = Number(m.days) || 30;
+        const nomMois = game.i18n.localize(m.name ?? tl("Mois {0}", c0.month + 1));
+        const ev = evenementsDuMois(nomMois);
+        const nbCol = joursSemaine.length || 7;
+        const decalage = Number.isFinite(c0.dayOfWeek) ? c0.dayOfWeek : (Number.isFinite(c0.weekday) ? c0.weekday : 0);
+        const entetes = joursSemaine.length
+            ? joursSemaine.map(d => `<div class="scwm-cal-tete">${esc(game.i18n.localize(d.abbreviation || d.name || "").slice(0, 3))}</div>`).join("")
+            : "";
+        const cases = [];
+        for (let i = 0; i < decalage % nbCol; i++) cases.push(`<div></div>`);
+        for (let d = 1; d <= nbJours; d++) {
+            const estAuj = aujourdhui && aujourdhui.year === c0.year && aujourdhui.month === c0.month && aujourdhui.dayOfMonth + 1 === d;
+            const e = ev.get(d);
+            cases.push(`<div class="scwm-cal-jour${estAuj ? " auj" : ""}${e ? " evt" : ""}" ${e ? `data-tooltip="${esc(e)}"` : ""}>${d}</div>`);
+        }
+        const listeEv = [...ev.entries()].map(([d, l]) => `<li>${d} — ${esc(l)}</li>`).join("");
+        return `<div class="scwm-cal">
+            <div class="scwm-cal-nav">
+                <button type="button" data-cal="prec" data-tooltip="${tl("Mois précédent")}"><i class="fa-solid fa-chevron-left"></i></button>
+                <strong>${esc(nomMois)} ${c0.year}</strong>
+                <button type="button" data-cal="suiv" data-tooltip="${tl("Mois suivant")}"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+            <div class="scwm-cal-grille" style="grid-template-columns:repeat(${nbCol},1fr);">${entetes}${cases.join("")}</div>
+            <p class="scwm-cal-pied">${clock ? tl("Date de votre party : {0}", formatClock(maintenant)) : tl("Calendrier du monde : {0}", formatClock(maintenant))}</p>
+            ${listeEv ? `<ul class="scwm-cal-ev">${listeEv}</ul>` : ""}
+        </div>`;
+    };
+
+    const brancher = (racine) => {
+        racine.querySelectorAll("[data-cal]").forEach(b => b.addEventListener("click", () => {
+            const c0 = components(debut);
+            if (b.dataset.cal === "suiv") debut += (Number(mois[c0.month]?.days) || 30) * secondsPerDay();
+            else {
+                const precIdx = (c0.month - 1 + mois.length) % (mois.length || 1);
+                debut -= (Number(mois[precIdx]?.days) || 30) * secondsPerDay();
+            }
+            const zone = racine.querySelector(".scwm-cal");
+            zone.outerHTML = rendu();
+            brancher(racine);
+        }));
+    };
+
+    await foundry.applications.api.DialogV2.prompt({
+        window: { title: tl("Calendrier"), icon: "fa-solid fa-calendar-days" },
+        position: { width: 380 },
+        content: `<div class="scwm-cal-racine">${rendu()}</div>`,
+        ok: { label: tl("Fermer") },
+        rejectClose: false,
+        render: (_ev, app) => {
+            const el = app?.element ?? document;
+            const racine = el.querySelector?.(".scwm-cal-racine");
+            if (racine) brancher(racine);
+        }
+    }).catch(() => {});
 }
 
 // Rectangle collé à DROITE de la liste des joueurs, aligné sur son bas.
@@ -780,6 +997,43 @@ const WIDGET_CSS = `
 #${WIDGET_ID} .scwm-pc-sec   { font-size: 13px; opacity: 0.75; }
 #${WIDGET_ID} .scwm-pc-date  { opacity: 0.9; white-space: nowrap; }
 #${WIDGET_ID} .scwm-pc-label { opacity: 0.6; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+#scwm-time-bar {
+    position: fixed; z-index: 60; top: 6px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 8px;
+    height: 28px; padding: 0 6px;
+    border: 1px solid rgba(201,162,39,0.55); border-radius: 14px;
+    background: rgba(10,10,14,0.80); color: #e8dcb5;
+    font-size: 12px; line-height: 1; white-space: nowrap; pointer-events: auto;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.55);
+}
+#scwm-time-bar .scwm-tb-info  { display: flex; align-items: center; gap: 6px; padding: 0 4px; }
+#scwm-time-bar .fa-sun  { color: #f2c94c; }
+#scwm-time-bar .fa-moon { color: #9db4e0; }
+#scwm-time-bar .scwm-tb-heure { font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums; }
+#scwm-time-bar .scwm-tb-sec   { font-size: 11px; opacity: 0.7; }
+#scwm-time-bar .scwm-tb-sep   { opacity: 0.5; }
+#scwm-time-bar .scwm-tb-label { opacity: 0.6; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+#scwm-time-bar .scwm-tb-btn {
+    width: 22px; height: 22px; min-width: 22px; padding: 0; margin: 0; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid rgba(201,162,39,0.45); border-radius: 11px;
+    background: rgba(201,162,39,0.12); color: #e6be3c; font-size: 11px; cursor: pointer;
+}
+#scwm-time-bar .scwm-tb-btn:hover:not(:disabled) { background: rgba(201,162,39,0.28); }
+#scwm-time-bar .scwm-tb-btn:disabled { opacity: 0.35; cursor: default; }
+#scwm-time-bar .scwm-tb-avance { display: flex; align-items: center; gap: 5px; padding-left: 6px; border-left: 1px solid rgba(201,162,39,0.3); }
+#scwm-time-bar .scwm-tb-curseur { width: 110px; height: 14px; margin: 0; }
+#scwm-time-bar .scwm-tb-duree  { min-width: 52px; font-variant-numeric: tabular-nums; opacity: 0.85; }
+.scwm-cal-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.scwm-cal-nav button { width: 28px; flex: 0 0 auto; }
+.scwm-cal-grille { display: grid; gap: 3px; }
+.scwm-cal-tete { text-align: center; font-size: 11px; opacity: 0.7; padding: 2px 0; }
+.scwm-cal-jour { text-align: center; padding: 5px 0; border-radius: 4px; background: rgba(0,0,0,0.18); font-variant-numeric: tabular-nums; }
+.scwm-cal-jour.evt { box-shadow: inset 0 -2px 0 #c9a227; cursor: help; }
+.scwm-cal-jour.auj { background: rgba(201,162,39,0.35); font-weight: 700; outline: 1px solid #c9a227; }
+.scwm-cal-pied { margin: 8px 0 2px; font-size: 12px; opacity: 0.85; }
+.scwm-cal-ev { margin: 4px 0 0; padding-left: 18px; font-size: 12px; }
 `;
 
 function ensureWidgetCss() {

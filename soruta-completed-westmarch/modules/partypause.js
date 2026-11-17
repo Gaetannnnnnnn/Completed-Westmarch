@@ -168,21 +168,24 @@ export function PartyPauseHooks() {
 
     // Bouton de SECOURS (MJ) : force la reprise si Foundry reste bloqué en pause
     // globale au démarrage (le détournement de la pause de party empêche parfois
-    // de l'enlever normalement).
-    Hooks.on("getSceneControlButtons", (controls) => {
-        if (!game.user.isGM || !partyPauseEnabled()) return;
-        if (!controls.westmarch) {
-            controls.westmarch = { name: "westmarch", title: "WestMarch", icon: "fa-solid fa-hammer", layer: "tokens", tools: {} };
-        }
-        controls.westmarch.tools.scwmForceResume = {
-            name: "scwmForceResume",
-            title: tl("Forcer la reprise (débloquer une pause globale)"),
-            icon: "fa-solid fa-play",
-            button: true,
-            visible: true,
-            onChange: () => forceGlobalUnpause()
-        };
-    });
+    // de l'enlever normalement). Rangé dans les réglages du module (et non plus
+    // dans la barre WestMarch) : on n'en a besoin qu'en cas de blocage.
+    try {
+        game.settings.registerMenu(MOD, "menu-force-resume", {
+            name:  tl("Forcer la reprise"),
+            label: tl("Débloquer la pause"),
+            hint:  tl("Secours MJ : enlève la pause globale de Foundry et toutes les pauses de party. À utiliser si le jeu reste bloqué en pause (par exemple au démarrage)."),
+            icon:  "fas fa-play",
+            type:  class extends foundry.applications.api.ApplicationV2 {
+                static DEFAULT_OPTIONS = { id: "scwm-menu-force-resume", window: { title: tl("Forcer la reprise") } };
+                async render() { forceGlobalUnpause(); return this; }
+                async close()  { return this; }
+            },
+            restricted: true
+        });
+    } catch (e) {
+        journal.critique(tl("[{0}] registerMenu « Forcer la reprise » échec :", MOD), e);
+    }
 
     // Le banner natif #pause est re-rendu par le cœur (cssClass basé sur
     // game.paused, donc masqué). On ré-affirme notre état de party juste après.

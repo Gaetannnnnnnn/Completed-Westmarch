@@ -12,7 +12,7 @@ import { tl } from "./i18n.js";
 // Événements spéciaux du calendrier du serveur (équinoxes, solstices, festivals).
 // La comparaison est normalisée (sans accents, insensible à la casse) pour
 // absorber les variations de saisie ou de localisation du calendrier.
-const CALENDAR_SPECIAL_EVENTS = [
+export const CALENDAR_SPECIAL_EVENTS = [
     { month: "Blanche Brebis", day: 19, label: tl("🌸 Équinoxe de printemps") },
     { month: "Moisson Dorée",  day:  1, label: "🌿 Greengrass"            },
     { month: "Douce Vie",      day: 20, label: tl("☀️ Solstice d'été")        },

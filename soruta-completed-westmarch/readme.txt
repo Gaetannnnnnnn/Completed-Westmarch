@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 6.8.2
+Version : 6.8.3
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -217,6 +217,18 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v6.8.3 | 2026-11-17
+   - Casier, Poids du monde : colonne « Formats » (extensions des médias de
+     chaque élément, la plus lourde d'abord) et nouveau tableau « Par format
+     de fichier » (nombre de fichiers, poids et part du total pour .webp,
+     .png, .jpg, .ogg…, chaque fichier compté une fois). Repère d'un coup
+     les formats lourds à convertir. Fichiers : modules/casier.js,
+     modules/i18n-en.js.
+   - Menu du guide : le bouton « Ne plus afficher à la connexion » débordait
+     toujours. La correction de 6.8.1 visait une classe de bouton qui
+     n'existe pas dans ces fenêtres (DialogV2) ; elle vise maintenant leurs
+     vrais boutons. Fichier : styles/tutoriel.css.
 
 v6.8.2 | 2026-11-17
    - Fenêtre de bienvenue : le texte du bouton et le titre de la fenêtre

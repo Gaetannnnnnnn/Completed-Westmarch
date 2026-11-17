@@ -263,6 +263,14 @@ const isPlayerActive = (iso) => !!iso && (Date.now() - new Date(iso).getTime()) 
 // ============================================================
 const fmtBytes = (b) => b >= 1048576 ? (b / 1048576).toFixed(2) + tl(" Mo") : (b / 1024).toFixed(1) + tl(" Ko");
 
+// Extension d'un fichier (« webp », « png »…) à partir de son chemin ou URL,
+// sans paramètres ni ancre ; « ? » si le nom n'en a pas.
+function extension(src) {
+    const nom = String(src ?? "").split(/[?#]/)[0].split("/").pop() ?? "";
+    const i = nom.lastIndexOf(".");
+    return i > 0 && i < nom.length - 1 ? nom.slice(i + 1).toLowerCase() : "?";
+}
+
 async function measureWorld() {
     const size = (o) => new Blob([JSON.stringify(o ?? {})]).size;
     const cache = new Map(); let echecs = 0;
@@ -310,8 +318,13 @@ async function measureWorld() {
         let data = 0;
         try { data = size(doc.toObject()); } catch (e) {}
         const uniq = [...new Set((srcs ?? []).filter(s => typeof s === "string" && s && !s.startsWith("data:")))];
-        const media = (await Promise.all(uniq.map(fileSize))).reduce((a, b) => a + b, 0);
-        items.push({ type, nom: doc.name ?? tl("(sans nom)"), dossier: doc.folder?.name ?? "", data, media });
+        const tailles = await Promise.all(uniq.map(fileSize));
+        const media = tailles.reduce((a, b) => a + b, 0);
+        // Extensions des médias de ce document, avec leur poids (le plus lourd d'abord).
+        const parExt = new Map();
+        uniq.forEach((src, i) => { const e = extension(src); parExt.set(e, (parExt.get(e) ?? 0) + tailles[i]); });
+        const formats = [...parExt.entries()].sort((a, b) => b[1] - a[1]).map(([e]) => e);
+        items.push({ type, nom: doc.name ?? tl("(sans nom)"), dossier: doc.folder?.name ?? "", data, media, formats });
     };
     const imgsFromHtml = (html) => {
         const out = [];
@@ -360,7 +373,18 @@ async function measureWorld() {
         (b.data + b.media) - (a.data + a.media)
         || (a.type.localeCompare(b.type, "fr"))
         || (a.nom.localeCompare(b.nom, "fr")));
-    return { summary, items, echecs };
+
+    // Poids par format de fichier : chaque fichier compté UNE fois (même s'il
+    // sert à plusieurs documents).
+    const parFormat = new Map();
+    for (const [src, p] of cache) {
+        const taille = await p;
+        const e = extension(src);
+        if (!parFormat.has(e)) parFormat.set(e, { ext: e, count: 0, bytes: 0 });
+        const g = parFormat.get(e); g.count++; g.bytes += taille;
+    }
+    const formats = [...parFormat.values()].sort((a, b) => b.bytes - a.bytes || a.ext.localeCompare(b.ext));
+    return { summary, items, echecs, formats };
 }
 
 function worldSizeTablesHtml(res) {
@@ -383,9 +407,18 @@ function worldSizeTablesHtml(res) {
             <td>${esc(m.type)}</td>
             <td>${esc(m.nom)}</td>
             <td>${esc(m.dossier)}</td>
+            <td style="font-family:var(--font-mono,monospace);font-size:.9em;">${m.formats?.length ? m.formats.map(e => "." + esc(e)).join(" ") : "—"}</td>
             <td style="text-align:right;">${f(m.data)}</td>
             <td style="text-align:right;">${f(m.media)}</td>
             <td style="text-align:right;font-weight:700;">${f(m.data + m.media)}</td>
+        </tr>`).join("");
+    const totalFmt = (res.formats ?? []).reduce((s, x) => s + x.bytes, 0);
+    const fmtRows = (res.formats ?? []).map(x => `
+        <tr>
+            <td style="font-family:var(--font-mono,monospace);">.${esc(x.ext)}</td>
+            <td style="text-align:center;">${x.count}</td>
+            <td style="text-align:right;">${f(x.bytes)}</td>
+            <td style="text-align:right;">${totalFmt ? Math.round(x.bytes * 100 / totalFmt) : 0} %</td>
         </tr>`).join("");
     const warn = res.echecs
         ? `<p style="margin:6px 0 0;color:#e0a13a;font-size:12px;">${tl("<i class=\"fa-solid fa-triangle-exclamation\"></i> {0} média(s) non mesuré(s) (URL externe ou fichier manquant).", res.echecs)}</p>`
@@ -409,11 +442,19 @@ function worldSizeTablesHtml(res) {
                 </tr></tfoot>
             </table>
         </div>
+        <h3 style="margin:14px 0 4px;">${tl("Par format de fichier")}</h3>
+        <p style="margin:0 0 4px;font-size:12px;opacity:.7;">${tl("Chaque fichier n'est compté qu'une fois, même s'il sert à plusieurs documents.")}</p>
+        <div class="scwm-scenesize-scroll" style="max-height:24vh;overflow:auto;">
+            <table class="scwm-reg-table">
+                <thead><tr><th>${tl("Format")}</th><th>${tl("Fichiers")}</th><th>${tl("Poids")}</th><th>${tl("Part")}</th></tr></thead>
+                <tbody>${fmtRows || `<tr><td colspan="4" style="opacity:.6;">${tl("Aucun média.")}</td></tr>`}</tbody>
+            </table>
+        </div>
         <h3 style="margin:14px 0 4px;">${tl("Éléments les plus lourds")}</h3>
         <div class="scwm-scenesize-scroll" style="max-height:40vh;overflow:auto;">
             <table class="scwm-reg-table">
-                <thead><tr><th>${tl("Type")}</th><th>${tl("Nom")}</th><th>${tl("Dossier")}</th><th>${tl("Données")}</th><th>${tl("Médias")}</th><th>${tl("Total")}</th></tr></thead>
-                <tbody>${itemRows || `<tr><td colspan="6" style="opacity:.6;">${tl("Rien à afficher.")}</td></tr>`}</tbody>
+                <thead><tr><th>${tl("Type")}</th><th>${tl("Nom")}</th><th>${tl("Dossier")}</th><th>${tl("Formats")}</th><th>${tl("Données")}</th><th>${tl("Médias")}</th><th>${tl("Total")}</th></tr></thead>
+                <tbody>${itemRows || `<tr><td colspan="7" style="opacity:.6;">${tl("Rien à afficher.")}</td></tr>`}</tbody>
             </table>
         </div>
         ${capNote}${warn}`;

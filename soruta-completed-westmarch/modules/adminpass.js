@@ -5,7 +5,8 @@
 // (ou un clic malheureux) ne puisse pas les lancer :
 //   - « Préparer l'ouverture du serveur » (casier.js) ;
 //   - la réinitialisation du brouillard (map.js, uniquement depuis la fenêtre
-//     d'administration) et des zones révélées (bouton du Casier, onglet Expéditions).
+//     d'administration). Les zones révélées s'effacent par « Préparer
+//     l'ouverture » (les boutons « Réinitialiser » du Casier ont été retirés).
 //
 // Réglages du module → « Administration du module » (MJ) : créer ou changer
 // le mot de passe, et lancer ces actions. Si aucun mot de passe n'existe
@@ -155,9 +156,8 @@ async function ouvrirAdministration() {
         rejectClose: false,
         content: `<p style="margin:0 0 6px;">${tl("Actions protégées par le mot de passe admin du module :")}</p>
             <ul style="margin:0 0 8px 18px;padding:0;">
-                <li>${tl("<strong>Préparer l'ouverture du serveur</strong> : efface les données de test (rapports, journal des sessions, historique des expéditions, temps morts, fiches de test…).")}</li>
+                <li>${tl("<strong>Préparer l'ouverture du serveur</strong> : efface les données de test au choix (rapports en attente, fils Discord, journal des sessions et assiduité, zones révélées de la carte, historique des expéditions, temps morts, demandes en attente, fiches de test).")}</li>
                 <li>${tl("<strong>Réinitialisation du brouillard</strong> : brouillard exploré de la carte des expéditions, d'un personnage ou de tous.")}</li>
-                <li>${tl("<strong>Zones révélées</strong> de la carte : bouton de l'onglet Expéditions du Casier.")}</li>
             </ul>
             <p style="margin:0;font-size:12px;opacity:.8;"><i class="fa-solid fa-key"></i> ${etat}</p>`,
         buttons: [

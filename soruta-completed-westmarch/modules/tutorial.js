@@ -1819,11 +1819,13 @@ const STEPS_BY_FEATURE = {
     // ---- Échange entre joueurs (players + GM) ----
     echange: [
         {
-            beforeShow: async () => { _closeTradeDemo(); try { ui.players?.render?.(); } catch {} await _sleep(250); },
-            target:     "#players, #players-active, .players",
+            beforeShow: async () => { _closeTradeDemo(); await _sleep(100); },
+            target:     null,
             title:      tl("Échange entre joueurs"),
-            text:       `${tl("Ce serveur permet d'<strong>échanger objets et monnaie</strong> entre joueurs, façon Dofus. Pour lancer un échange : dans la <strong>liste des joueurs</strong>, survolez un joueur en ligne — un bouton <i class='fa-solid fa-right-left'></i> <strong>Échanger</strong> apparaît. (On ne peut pas échanger pendant une party ; en expédition, uniquement avec les membres de l'expédition ; sinon librement.)")}`,
-            position:   "right"
+            text:       `${tl("Ce serveur permet d'<strong>échanger objets et monnaie</strong> entre joueurs, façon Dofus.<br><br>")}`
+                      + `${tl("<strong>Où le trouver :</strong> dans la <strong>liste des joueurs</strong> (en bas à gauche de l'écran), une petite icône dorée <i class='fa-solid fa-right-left'></i> apparaît au bout du nom de chaque joueur <strong>connecté</strong> avec qui vous pouvez échanger. Cliquez-la pour lui proposer un échange.<br><br>")}`
+                      + `${tl("L'icône n'apparaît que si vous avez un personnage, que l'autre joueur en a un aussi, et que l'échange est permis : pas pendant une party ; en expédition, seulement avec les membres de l'expédition ; sinon librement.")}`,
+            position:   "center"
         },
         {
             beforeShow: _openTradeDemo,

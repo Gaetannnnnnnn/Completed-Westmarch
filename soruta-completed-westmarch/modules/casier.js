@@ -581,86 +581,14 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                     <div class="scwm-casier-tabs">${tabsHtml}</div>
                     <div class="scwm-casier-pages">${sideList}</div>
                 </aside>
-                <section class="scwm-casier-content">${detail}${this.#resetZoneFor(this.#tab)}</section>
+                <section class="scwm-casier-content">${detail}</section>
             </div>`;
     }
 
-    // ---- Réinitialisation (maintenance) : un bouton par catégorie, affiché
-    // sur sa page dédiée. Portée : TOUS les MJ (réglages monde). Double
-    // confirmation (saisie du mot « RESET ») avant d'agir.
-    #resetZoneFor(tab) {
-        const zones = {
-            reports: [
-                { key: "sessionDrafts",       label: tl("Réinitialiser les rapports en attente") },
-                { key: "sessionForumThreads", label: tl("Réinitialiser les fils Discord") },
-            ],
-            attendance: [
-                { key: "sessionLog", label: tl("Réinitialiser le journal des sessions (présence, assiduité)") },
-            ],
-            expeditions: [
-                { key: "expeditionRevealedZones", label: tl("Réinitialiser les zones révélées de la carte") },
-            ],
-        };
-        const list = zones[tab];
-        if (!list?.length) return "";
-        const btn = (b) => `<button type="button" class="scwm-casier-reset" data-reset="${b.key}"`
-            + ` style="background:rgba(192,57,43,0.12);border:1px solid rgba(192,57,43,0.5);color:#c0392b;`
-            + `border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px;">`
-            + `<i class="fa-solid fa-trash-can"></i> ${esc(b.label)}</button>`;
-        return `
-            <div class="scwm-casier-reset-zone" style="margin-top:18px;padding-top:12px;border-top:1px solid rgba(192,57,43,0.35);">
-                <div style="font-size:12px;opacity:.85;margin-bottom:6px;color:#c0392b;">
-                    ${tl("<i class=\"fa-solid fa-triangle-exclamation\"></i> Réinitialisation — tous les MJ, irréversible")}
-                </div>
-                <div style="display:flex;flex-wrap:wrap;gap:8px;">${list.map(btn).join("")}</div>
-            </div>`;
-    }
-
-    #resetDefs() {
-        return {
-            sessionDrafts:           { label: tl("les rapports en attente"),        empty: [] },
-            sessionForumThreads:     { label: tl("les fils Discord"),               empty: {} },
-            sessionLog:              { label: tl("le journal des sessions (présence, assiduité)"), empty: [] },
-            expeditionRevealedZones: { label: tl("les zones révélées de la carte"),  empty: {} },
-        };
-    }
-
-    async #confirmReset(key) {
-        const def = this.#resetDefs()[key];
-        if (!def) return;
-        if (key === "expeditionRevealedZones" && !(await verifierAdmin(tl("Réinitialiser les zones révélées de la carte")))) return;
-        const DV2 = foundry.applications.api.DialogV2;
-        const content = `
-            <p>${tl("Tu vas effacer <strong>{0}</strong> pour <strong>TOUS les MJ</strong>.", esc(def.label))}</p>
-            <p style="color:#c0392b;margin:.3em 0;">${tl("<i class=\"fa-solid fa-triangle-exclamation\"></i> Action <strong>irréversible</strong>.")}</p>
-            <p>${tl("Tape <strong>RESET</strong> ci-dessous pour confirmer :")}</p>
-            <input type="text" class="scwm-reset-input" autocomplete="off" placeholder="RESET" style="width:100%;box-sizing:border-box;" />`;
-        const ok = await DV2.wait({
-            window: { title: tl("Réinitialiser — confirmation"), icon: "fa-solid fa-trash-can" },
-            content,
-            rejectClose: false,
-            buttons: [
-                { action: "cancel", label: tl("Annuler"), icon: "fa-solid fa-xmark", default: true },
-                {
-                    action: "reset", label: tl("Réinitialiser"), icon: "fa-solid fa-trash-can",
-                    callback: (e, b, dlg) => ((dlg.element.querySelector(".scwm-reset-input")?.value || "").trim().toUpperCase() === "RESET")
-                },
-            ],
-        }).catch(() => "cancel");
-        if (ok !== true) {
-            if (ok === false) ui.notifications?.warn(tl("Réinitialisation annulée : le mot « RESET » n'a pas été saisi correctement."));
-            return;
-        }
-        try {
-            await game.settings.set(MOD, key, Array.isArray(def.empty) ? [] : {});
-            ui.notifications?.info(tl("Casier : {0} — réinitialisé.", def.label));
-        } catch (err) {
-            journal.erreur(tl("[WestMarch] Réinitialisation casier :"), err);
-            ui.notifications?.error(tl("Échec de la réinitialisation (voir console)."));
-        }
-        this.render();
-        refreshCasierBadge();
-    }
+    // (Les anciens boutons « Réinitialiser » des onglets Rapports, Assiduité et
+    // Expéditions ont été retirés : le ménage se fait uniquement par
+    // « Préparer l'ouverture du serveur », dans les réglages, protégé par le
+    // mot de passe admin — voir preparerOuverture plus bas.)
 
     // ---- Onglet Dashboard ----
     #dashboardDetail(drafts) {
@@ -1277,7 +1205,6 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
         root.querySelectorAll(".scwm-cv-openactor").forEach(b => b.addEventListener("click", () => game.actors.get(b.dataset.actor)?.sheet.render(true)));
 
         // ---- Boutons de réinitialisation (maintenance, par page) ----
-        root.querySelectorAll(".scwm-casier-reset").forEach(b => b.addEventListener("click", () => this.#confirmReset(b.dataset.reset)));
 
         // Onglet Temps morts embarqué : câblage + application des gains.
         if (this.#tab === "downtime") {

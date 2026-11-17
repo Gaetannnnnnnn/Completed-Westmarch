@@ -117,6 +117,14 @@ Hooks.on("init", () => {
                 { urls: ["modules/soruta-completed-westmarch/fonts/PerryGothic.ttf"], weight: "400", style: "normal" }
             ]
         };
+        // Police des notes du carnet (remplace Perry Gothic, gardée pour les
+        // textes qui l'utilisent déjà).
+        CONFIG.fontDefinitions["Immortal"] = {
+            editor: true,
+            fonts: [
+                { urls: ["modules/soruta-completed-westmarch/fonts/Immortal.ttf"], weight: "400", style: "normal" }
+            ]
+        };
     } catch (e) { journal.critique(tl("westmarch | Enregistrement des polices :"), e); }
 
     // Helpers Handlebars hérités de westmarch (utilisés par les templates de chat).

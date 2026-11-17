@@ -197,12 +197,12 @@ export function showWelcome() {
     </div>`;
 
     new Dialog({
-        title:   foundry.utils.escapeHTML(fenetre),
+        title:   fenetre,   // DialogV2 échappe lui-même le titre
         content,
         buttons: {
             start: {
                 icon:     '<i class="fa-solid fa-play"></i>',
-                label:    foundry.utils.escapeHTML(bouton),
+                label:    bouton,    // DialogV2 échappe lui-même le libellé
                 callback: () => startEssentialsThenHub()
             }
         },

@@ -2,6 +2,10 @@
 // Généré à partir des textes du code ; une entrée absente reste en français.
 // © 2026 Soruta.
 export default {
+ "<strong>Préparer l'ouverture du serveur</strong> : efface les données de test au choix (rapports en attente, fils Discord, journal des sessions et assiduité, zones révélées de la carte, historique des expéditions, temps morts, demandes en attente, fiches de test).": "<strong>Prepare the server opening</strong>: erases the test data of your choice (pending reports, Discord threads, session log and attendance, revealed map zones, expedition history, downtime, pending requests, test sheets).",
+ "Ce serveur permet d'<strong>échanger objets et monnaie</strong> entre joueurs, façon Dofus.<br><br>": "This server lets players <strong>trade items and currency</strong> with each other, Dofus-style.<br><br>",
+ "<strong>Où le trouver :</strong> dans la <strong>liste des joueurs</strong> (en bas à gauche de l'écran), une petite icône dorée <i class='fa-solid fa-right-left'></i> apparaît au bout du nom de chaque joueur <strong>connecté</strong> avec qui vous pouvez échanger. Cliquez-la pour lui proposer un échange.<br><br>": "<strong>Where to find it:</strong> in the <strong>player list</strong> (bottom left of the screen), a small gold <i class='fa-solid fa-right-left'></i> icon appears at the end of the name of each <strong>connected</strong> player you can trade with. Click it to offer them a trade.<br><br>",
+ "L'icône n'apparaît que si vous avez un personnage, que l'autre joueur en a un aussi, et que l'échange est permis : pas pendant une party ; en expédition, seulement avec les membres de l'expédition ; sinon librement.": "The icon only appears if you have a character, the other player has one too, and trading is allowed: not during a party; during an expedition, only with its members; otherwise freely.",
  "{0} fête aujourd'hui ses <strong>{1} ans</strong> !": "{0} turns <strong>{1}</strong> today!",
  "Joyeux anniversaire, {0} !": "Happy birthday, {0}!",
  "Anniversaire": "Birthday",

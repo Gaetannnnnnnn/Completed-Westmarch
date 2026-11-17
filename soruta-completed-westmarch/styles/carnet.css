@@ -708,17 +708,18 @@
     color: #b94a5a;
 }
 
-/* ── Police par défaut de l'éditeur de notes : Perry Gothic ──── */
-/* Le fichier est déposé dans modules/soruta-completed-westmarch/fonts/PerryGothic.ttf */
+/* ── Police par défaut de l'éditeur de notes : Immortal ──────── */
+/* Fichier : modules/soruta-completed-westmarch/fonts/Immortal.ttf
+   (© Graham Meade & Apostrophic Labs). Remplace Perry Gothic. */
 @font-face {
-    font-family: "Perry Gothic";
-    src: url("../fonts/PerryGothic.ttf") format("truetype");
+    font-family: "Immortal";
+    src: url("../fonts/Immortal.ttf") format("truetype");
     font-display: swap;
 }
 #carnet-note-editor,
 #carnet-note-editor .ProseMirror,
 .carnet-note-content {
-    font-family: "Perry Gothic", "Signika", sans-serif;
+    font-family: "Immortal", "Signika", sans-serif;
     font-size: 14px;
 }
 
@@ -740,7 +741,7 @@
 }
 .carnet-grimoire .window-header .window-title {
     color: #e8d9b5 !important;
-    font-family: "Perry Gothic", "Signika", serif;
+    font-family: "Immortal", "Signika", serif;
     letter-spacing: 0.03em;
 }
 
@@ -798,11 +799,11 @@
 .carnet-grimoire #carnet-note-editor h2 {
     color: #6e2617 !important;                 /* titre à l'encre rouge */
     border-bottom: 1px solid rgba(110,38,23,0.35) !important;
-    font-family: "Perry Gothic", "Signika", serif;
+    font-family: "Immortal", "Signika", serif;
 }
 .carnet-grimoire #carnet-note-editor h3 {
     color: #7a4a1c !important;                 /* sous-titre encre brune */
-    font-family: "Perry Gothic", "Signika", serif;
+    font-family: "Immortal", "Signika", serif;
 }
 .carnet-grimoire #carnet-note-editor a { color: #7a3410 !important; }
 .carnet-grimoire #carnet-note-editor hr {

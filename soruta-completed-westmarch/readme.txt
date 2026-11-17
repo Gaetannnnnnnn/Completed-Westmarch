@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 6.8.1
+Version : 6.8.2
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -217,6 +217,23 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v6.8.2 | 2026-11-17
+   - Fenêtre de bienvenue : le texte du bouton et le titre de la fenêtre
+     affichaient les apostrophes sous la forme « &#x27; » (échappés deux
+     fois). Fichier : modules/welcome.js.
+   - Casier : boutons « Réinitialiser » retirés des onglets Rapports,
+     Assiduité et Expéditions (ils faisaient doublon et permettaient à
+     n'importe quel MJ d'effacer les données de tous). Le ménage se fait
+     uniquement par « Préparer l'ouverture du serveur » (réglages,
+     Administration du module, mot de passe admin), qui couvre les mêmes
+     données case par case. Fichiers : modules/casier.js,
+     modules/adminpass.js (liste des actions protégées mise à jour).
+   - Carnet : nouvelle police des notes, « Immortal » (fonts/Immortal.ttf),
+     à la place de Perry Gothic (éditeur, titres et texte des notes).
+   - Tutoriel, Échange entre joueurs : la 1re étape ne cible plus la liste
+     des joueurs (le cadrage tombait mal) ; elle explique au centre de
+     l'écran où trouver l'icône d'échange et quand elle apparaît.
 
 v6.8.1 | 2026-11-17
    - Sorts d'enchantement d'arme (True Strike, Magic Weapon, Shillelagh…) :

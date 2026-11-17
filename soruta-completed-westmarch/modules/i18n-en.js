@@ -2,6 +2,13 @@
 // Généré à partir des textes du code ; une entrée absente reste en français.
 // © 2026 Soruta.
 export default {
+ "Correctif Monk's Enhanced Journal — envoi vers les compendiums": "Monk's Enhanced Journal fix — sending to compendiums",
+ "Avec MEJ actif, plus rien ne pouvait être déposé dans un compendium (playlists, acteurs, objets…) : un bug de MEJ faisait échouer l'envoi sans message. Ce correctif le rétablit sans rien changer d'autre à MEJ.": "With MEJ active, nothing could be dropped into a compendium anymore (playlists, actors, items…): an MEJ bug made the transfer fail silently. This fix restores it without changing anything else in MEJ.",
+ "[{0}] Correctif Monk's Enhanced Journal : envoi vers les compendiums rétabli.": "[{0}] Monk's Enhanced Journal fix: sending to compendiums restored.",
+ "[{0}] Correctif MEJ (compendiums) :": "[{0}] MEJ fix (compendiums):",
+ "Fond de la scène": "Scene background",
+ "Image principale": "Main image",
+ "Autres médias : {0}": "Other media: {0}",
  "Formats": "Formats",
  "Par format de fichier": "By file format",
  "Chaque fichier n'est compté qu'une fois, même s'il sert à plusieurs documents.": "Each file is counted only once, even if several documents use it.",

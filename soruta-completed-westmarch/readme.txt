@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 6.8.3
+Version : 6.8.4
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -217,6 +217,22 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v6.8.4 | 2026-11-17
+   - Poids du monde, colonne « Format » : affiche en gras le format du
+     fichier PRINCIPAL (fond d'une scène, image d'un acteur ou d'un objet),
+     et seulement le nombre des autres formats (tuiles, objets…) avec le
+     détail au survol. Avant, une scène listait pêle-mêle les formats de son
+     fond et de toutes ses tuiles. Fichier : modules/casier.js.
+   - Correctif Monk's Enhanced Journal : avec MEJ 14.x actif, plus rien ne
+     pouvait être envoyé dans un compendium (glisser-déposer d'une playlist,
+     d'un acteur, d'un objet… sans effet ; erreur « can't access property
+     "type", object is undefined » dans fixType). MEJ remplace
+     CompendiumCollection#importDocument et y appelle fixType(this.object),
+     propriété qui n'existe pas sur un compendium. Le module fait ignorer à
+     fixType un objet absent ; le reste de MEJ est inchangé. Réglage :
+     enableMejCompendiumFix (activé). Fichiers : modules/mejfix.js
+     (nouveau), modules/settings.js, index.js.
 
 v6.8.3 | 2026-11-17
    - Casier, Poids du monde : colonne « Formats » (extensions des médias de

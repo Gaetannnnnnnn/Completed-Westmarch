@@ -734,6 +734,9 @@ export function registerSettings() {
     game.settings.register(MOD, "enableMejShopFix", B(
         tl("Correctifs boutiques Monk's Enhanced Journal"),
         tl("Bouton 'Groupe uniquement' dans 'Show to Players' de MEJ, et fix des objets cachés visibles côté joueur.")));
+    game.settings.register(MOD, "enableMejCompendiumFix", B(
+        tl("Correctif Monk's Enhanced Journal — envoi vers les compendiums"),
+        tl("Avec MEJ actif, plus rien ne pouvait être déposé dans un compendium (playlists, acteurs, objets…) : un bug de MEJ faisait échouer l'envoi sans message. Ce correctif le rétablit sans rien changer d'autre à MEJ.")));
     game.settings.register(MOD, "enableMejRestock", B(
         tl("Réapprovisionnement automatique des boutiques"),
         tl("Active/désactive le système de réapprovisionnement des boutiques MEJ.")));
@@ -1366,7 +1369,7 @@ const CATEGORIES = [
       keys: ["tmEnabled","tmSkillBase","tmAddAbilityMod","tmBonusMaitrise","tmBonusExpertise","tmBonusTools","tmRollMinDays","tmReliableTalent","tmSkillFormula","tmCraftNonMagicCostDiv","tmCraftNonMagicDaysPerGp","tmCraftNonMagicCostFormula","tmCraftNonMagicDaysFormula","tmSingleUseFactor","tmScrollTable","tmMagicTable","tmRollTable"] },
     { firstKey: "enableTokenAppearance", icon: "fa-toolbox",         title: "Toolkit",
       desc: tl("Apparences de tokens, transformations, tailles Large, TGCM, utilitaires GM, templates AoE, boutiques MEJ et réapprovisionnement."),
-      keys: ["enableCasierGm","enableExpeditionDate","enableChatTools","enableExportDialog","enablePlayerListToggle","enableTokenAppearance","enableTokenPortraitButton","enableTokenAccroche","enableGmNotesNpc","enableTgcm","enableCompanions","enableFolderMove","enableToolAbilityFix","enableConnStats","enablePlayerListCompact","enableTemplateSnap","enableFollowTemplates","enableMejShopFix","enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
+      keys: ["enableCasierGm","enableExpeditionDate","enableChatTools","enableExportDialog","enablePlayerListToggle","enableTokenAppearance","enableTokenPortraitButton","enableTokenAccroche","enableGmNotesNpc","enableTgcm","enableCompanions","enableFolderMove","enableToolAbilityFix","enableConnStats","enablePlayerListCompact","enableTemplateSnap","enableFollowTemplates","enableMejShopFix","enableMejCompendiumFix","enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
     { firstKey: "relationsEnabled", master: "relationsEnabled",      icon: "fa-heart",           title: tl("Fiche PJ — Relations"),
       desc: tl("Onglet Relations : liens entre personnages, détection automatique des rencontres, anonymisation."),
       keys: ["relationsEnabled","relationsAnonymization","relationsLastSeen"] },

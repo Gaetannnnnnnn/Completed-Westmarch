@@ -30,6 +30,7 @@ import { RageHooks }         from "./modules/rage.js";
 import { GoliathHooks }      from "./modules/goliath.js";
 import { HealerHooks }       from "./modules/healer.js";
 import { AnniversaireHooks } from "./modules/anniversaire.js";
+import { MejFixHooks }       from "./modules/mejfix.js";
 import { EnchantArmeHooks }  from "./modules/enchantarme.js";
 import { MonkHooks }         from "./modules/monk.js";
 import { InitiativeRecupHooks } from "./modules/initiative-recup.js";
@@ -194,6 +195,7 @@ Hooks.on("init", () => {
     GoliathHooks();
     HealerHooks();
     AnniversaireHooks();
+    MejFixHooks();
     EnchantArmeHooks();
     MonkHooks();
     InitiativeRecupHooks();

@@ -314,7 +314,9 @@ async function measureWorld() {
     };
 
     const items = [];
-    const addDoc = async (type, doc, srcs) => {
+    // `principal` : le fichier qui « est » le document (fond d'une scène, image
+    // d'un acteur…), affiché à part des autres médias (tuiles, objets…).
+    const addDoc = async (type, doc, srcs, principal = null) => {
         let data = 0;
         try { data = size(doc.toObject()); } catch (e) {}
         const uniq = [...new Set((srcs ?? []).filter(s => typeof s === "string" && s && !s.startsWith("data:")))];
@@ -323,8 +325,9 @@ async function measureWorld() {
         // Extensions des médias de ce document, avec leur poids (le plus lourd d'abord).
         const parExt = new Map();
         uniq.forEach((src, i) => { const e = extension(src); parExt.set(e, (parExt.get(e) ?? 0) + tailles[i]); });
+        const princ = (typeof principal === "string" && principal && !principal.startsWith("data:")) ? extension(principal) : null;
         const formats = [...parExt.entries()].sort((a, b) => b[1] - a[1]).map(([e]) => e);
-        items.push({ type, nom: doc.name ?? tl("(sans nom)"), dossier: doc.folder?.name ?? "", data, media, formats });
+        items.push({ type, nom: doc.name ?? tl("(sans nom)"), dossier: doc.folder?.name ?? "", data, media, formats, princ });
     };
     const imgsFromHtml = (html) => {
         const out = [];
@@ -335,11 +338,11 @@ async function measureWorld() {
 
     const jobs = [];
     for (const s of (game.scenes ?? []))
-        jobs.push(addDoc(tl("Scène"), s, [s.background?.src, ...(s.tiles ?? []).map(t => t.texture?.src)]));
+        jobs.push(addDoc(tl("Scène"), s, [s.background?.src, ...(s.tiles ?? []).map(t => t.texture?.src)], s.background?.src));
     for (const a of (game.actors ?? []))
-        jobs.push(addDoc(tl("Acteur"), a, [a.img, a.prototypeToken?.texture?.src, ...(a.items?.map(i => i.img) ?? [])]));
+        jobs.push(addDoc(tl("Acteur"), a, [a.img, a.prototypeToken?.texture?.src, ...(a.items?.map(i => i.img) ?? [])], a.img));
     for (const it of (game.items ?? []))
-        jobs.push(addDoc(tl("Objet"), it, [it.img]));
+        jobs.push(addDoc(tl("Objet"), it, [it.img], it.img));
     for (const j of (game.journal ?? [])) {
         const srcs = [];
         for (const p of (j.pages ?? [])) { if (p.src) srcs.push(p.src); srcs.push(...imgsFromHtml(p.text?.content)); }
@@ -387,6 +390,20 @@ async function measureWorld() {
     return { summary, items, echecs, formats };
 }
 
+// Cellule « Format » : le format du fichier principal en gras (fond de la
+// scène, image de l'acteur…), puis, en petit, les formats des autres médias
+// (tuiles d'une scène, objets d'un acteur…) au survol.
+function celluleFormats(m) {
+    const autres = (m.formats ?? []).filter(e => e !== m.princ);
+    if (!m.princ && !autres.length) return "—";
+    const lib = m.type === tl("Scène") ? tl("Fond de la scène") : tl("Image principale");
+    const bulle = [m.princ ? `${lib} : .${m.princ}` : null,
+                   autres.length ? tl("Autres médias : {0}", autres.map(e => "." + e).join(" ")) : null].filter(Boolean).join(" — ");
+    const tete = m.princ ? `<strong>.${esc(m.princ)}</strong>` : "";
+    const queue = autres.length ? ` <span style="opacity:.55;font-size:.85em;">+${autres.length}</span>` : "";
+    return `<span data-tooltip="${esc(bulle)}">${tete || `<span style="opacity:.75;">${autres.map(e => "." + esc(e)).join(" ")}</span>`}${tete ? queue : ""}</span>`;
+}
+
 function worldSizeTablesHtml(res) {
     const f = fmtBytes;
     const CAP = 250;
@@ -407,7 +424,7 @@ function worldSizeTablesHtml(res) {
             <td>${esc(m.type)}</td>
             <td>${esc(m.nom)}</td>
             <td>${esc(m.dossier)}</td>
-            <td style="font-family:var(--font-mono,monospace);font-size:.9em;">${m.formats?.length ? m.formats.map(e => "." + esc(e)).join(" ") : "—"}</td>
+            <td style="font-family:var(--font-mono,monospace);font-size:.9em;white-space:nowrap;">${celluleFormats(m)}</td>
             <td style="text-align:right;">${f(m.data)}</td>
             <td style="text-align:right;">${f(m.media)}</td>
             <td style="text-align:right;font-weight:700;">${f(m.data + m.media)}</td>
@@ -453,7 +470,7 @@ function worldSizeTablesHtml(res) {
         <h3 style="margin:14px 0 4px;">${tl("Éléments les plus lourds")}</h3>
         <div class="scwm-scenesize-scroll" style="max-height:40vh;overflow:auto;">
             <table class="scwm-reg-table">
-                <thead><tr><th>${tl("Type")}</th><th>${tl("Nom")}</th><th>${tl("Dossier")}</th><th>${tl("Formats")}</th><th>${tl("Données")}</th><th>${tl("Médias")}</th><th>${tl("Total")}</th></tr></thead>
+                <thead><tr><th>${tl("Type")}</th><th>${tl("Nom")}</th><th>${tl("Dossier")}</th><th>${tl("Format")}</th><th>${tl("Données")}</th><th>${tl("Médias")}</th><th>${tl("Total")}</th></tr></thead>
                 <tbody>${itemRows || `<tr><td colspan="7" style="opacity:.6;">${tl("Rien à afficher.")}</td></tr>`}</tbody>
             </table>
         </div>

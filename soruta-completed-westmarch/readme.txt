@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 6.8.6
+Version : 6.8.7
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -217,6 +217,26 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v6.8.7 | 2026-11-19
+   - Playlists en compendium : le dossier où vont les musiques envoyées
+     depuis le PC se choisit maintenant dans les réglages du module
+     (Toolkit → « dossier des musiques envoyées depuis le PC », avec
+     bouton Parcourir en mode dossier ; par défaut « musique »), et non
+     plus dans la fenêtre « Voir les pistes », qui l'affiche seulement.
+     Nouveau réglage « un sous-dossier par playlist » (activé par défaut :
+     musique/la-taverne ; décoché : tout dans le dossier choisi).
+     Fichiers : modules/playlistpack.js, modules/settings.js.
+   - Playlists en compendium : les pistes cochées (ou une seule avec +)
+     peuvent être envoyées vers N'IMPORTE QUELLE autre playlist : du monde
+     ou d'un compendium de playlists (liste « Vers » groupée par
+     compendium, 🔒 = verrouillé), ou vers une nouvelle playlist dans le
+     monde ou dans ce compendium. Case « Déplacer » : les pistes quittent
+     la playlist ouverte (sinon elles sont copiées). Pas de doublon (même
+     fichier). Les compendiums verrouillés sont déverrouillés le temps de
+     l'opération après confirmation, puis reverrouillés. Seuls les index
+     des compendiums sont lus pour la liste ; la playlist de destination
+     n'est chargée qu'à l'envoi. Fichier : modules/playlistpack.js.
 
 v6.8.6 | 2026-11-19
    - Playlists en compendium : ajouter de NOUVELLES musiques depuis son PC

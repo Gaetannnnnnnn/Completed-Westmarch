@@ -10,8 +10,9 @@ import { tl } from "./i18n.js";
 // clic droit) qui ouvre une fenêtre :
 //   - liste des pistes (nom, fichier) ;
 //   - ▶ Écouter : aperçu LOCAL (chez le MJ seulement, rien n'est diffusé) ;
-//   - ajouter des pistes (cochées, ou une seule avec +) à une playlist du
-//     monde existante ou nouvelle, sans importer toute la playlist ;
+//   - envoyer des pistes (cochées, ou une seule avec +) vers une autre
+//     playlist, du monde ou d'un compendium, existante ou nouvelle, en
+//     copie ou en déplacement ;
 //   - importer toute la playlist dans le monde ;
 //   - ajouter de NOUVELLES musiques depuis le PC du MJ (bouton ou
 //     glisser-déposer) : fichiers téléversés sur le serveur puis ajoutés à
@@ -43,50 +44,120 @@ async function jouerApercu(snd) {
     return _apercu;
 }
 
-// Dernière playlist du monde choisie comme destination (mémoire de ce navigateur).
+// Destinations possibles pour les pistes cochées (valeur de la liste) :
+//   m|<id>            playlist du monde
+//   c|<compendium>|<id> playlist d'un compendium de playlists
+//   nm                nouvelle playlist dans le monde
+//   nc|<compendium>   nouvelle playlist dans le compendium ouvert
+// La dernière destination est retenue (mémoire de ce navigateur).
 const CLE_CIBLE = `${MOD}.playlistPack.cible`;
-const NOUVELLE = "__nouvelle__";
 function lireCible() { try { return localStorage.getItem(CLE_CIBLE); } catch { return null; } }
-function ecrireCible(id) { try { localStorage.setItem(CLE_CIBLE, id); } catch { /* navigateur privé */ } }
+function ecrireCible(v) { try { localStorage.setItem(CLE_CIBLE, v); } catch { /* navigateur privé */ } }
+const estNouvelle = (v) => v === "nm" || String(v).startsWith("nc|");
+const triNom = (a, b) => String(a.name).localeCompare(String(b.name), game.i18n?.lang || "fr");
 
-// Options de la liste « Ajouter à » : playlists du monde, puis « Nouvelle playlist ».
-function optionsCibles(choix) {
-    const pls = [...game.playlists].sort((a, b) => a.name.localeCompare(b.name, game.i18n?.lang || "fr"));
-    const sel = pls.some(p => p.id === choix) ? choix : (pls[0]?.id ?? NOUVELLE);
-    return pls.map(p => `<option value="${esc(p.id)}" ${p.id === sel ? "selected" : ""}>${esc(p.name)}</option>`).join("")
-        + `<option value="${NOUVELLE}" ${sel === NOUVELLE ? "selected" : ""}>${tl("➕ Nouvelle playlist…")}</option>`;
+// Liste groupée : monde, puis chaque compendium de playlists (sans la playlist
+// ouverte elle-même). Les compendiums ne sont lus que par leur index (noms).
+function optionsCibles(choix, pack, idOuverte) {
+    const groupes = [];
+    const monde = [...game.playlists].sort(triNom).map(p => ({ v: `m|${p.id}`, t: p.name }));
+    monde.push({ v: "nm", t: tl("➕ Nouvelle playlist dans le monde…") });
+    groupes.push({ t: tl("Playlists du monde"), o: monde });
+    const packs = [...game.packs].filter(p => p.documentName === "Playlist")
+        .sort((a, b) => (b === pack) - (a === pack) || String(a.metadata?.label).localeCompare(String(b.metadata?.label)));
+    for (const p of packs) {
+        const o = [...(p.index?.contents ?? p.index ?? [])]
+            .filter(e => !(p === pack && e._id === idOuverte)).sort(triNom)
+            .map(e => ({ v: `c|${p.collection}|${e._id}`, t: e.name }));
+        if (p === pack) o.push({ v: `nc|${p.collection}`, t: tl("➕ Nouvelle playlist dans ce compendium…") });
+        if (!o.length) continue;
+        groupes.push({ t: tl("Compendium : {0}{1}", p.metadata?.label ?? p.collection, p.locked ? " 🔒" : ""), o });
+    }
+    const toutes = groupes.flatMap(g => g.o.map(x => x.v));
+    // ancienne mémoire (simple id d'une playlist du monde)
+    if (choix && !choix.includes("|") && choix !== "nm" && game.playlists.get(choix)) choix = `m|${choix}`;
+    const sel = toutes.includes(choix) ? choix : (toutes.find(v => v.startsWith("m|")) ?? "nm");
+    return groupes.map(g => `<optgroup label="${esc(g.t)}">${g.o.map(x =>
+        `<option value="${esc(x.v)}" ${x.v === sel ? "selected" : ""}>${esc(x.t)}</option>`).join("")}</optgroup>`).join("");
 }
 
-// Copie des pistes choisies dans une playlist du monde. Les pistes déjà
-// présentes (même fichier) ne sont pas dupliquées. Renvoie la playlist cible.
-async function ajouterPistes(sons, cibleId, nomNouvelle, source) {
+// Ouvre (ou crée) la playlist de destination. Renvoie { doc, pack, valeur }.
+async function resoudreCible(valeur, nomNouvelle, source) {
+    const [genre, a, b] = String(valeur).split("|");
+    const donneesNouvelle = () => ({
+        name: String(nomNouvelle ?? "").trim() || source.name,
+        mode: source.mode, fade: source.fade, channel: source.channel, description: source.description ?? ""
+    });
+    if (genre === "m") {
+        const doc = game.playlists.get(a);
+        return doc ? { doc, pack: null, valeur } : null;
+    }
+    if (genre === "nm") {
+        const doc = await Playlist.implementation.create(donneesNouvelle());
+        return doc ? { doc, pack: null, valeur: `m|${doc.id}` } : null;
+    }
+    const pack = game.packs.get(a);
+    if (!pack) return null;
+    if (genre === "c") {
+        const doc = await pack.getDocument(b);
+        return doc ? { doc, pack, valeur } : null;
+    }
+    if (genre === "nc") {
+        const doc = await Playlist.implementation.create(donneesNouvelle(), { pack: pack.collection });
+        return doc ? { doc, pack, valeur: `c|${pack.collection}|${doc.id}` } : null;
+    }
+    return null;
+}
+
+// Copie (ou déplace) des pistes vers la destination choisie. Les pistes déjà
+// présentes dans la destination (même fichier) ne sont pas dupliquées.
+// Un compendium verrouillé est déverrouillé le temps de l'opération (après
+// confirmation), puis reverrouillé. Renvoie { valeur, modifieSource } ou null.
+async function ajouterPistes(sons, valeur, nomNouvelle, source, sourcePack, deplacer) {
     if (!sons.length) { ui.notifications?.warn(tl("Cochez au moins une piste.")); return null; }
-    let cible = cibleId !== NOUVELLE ? game.playlists.get(cibleId) : null;
-    if (!cible) {
-        const nom = String(nomNouvelle ?? "").trim() || source.name;
-        cible = await Playlist.implementation.create({
-            name: nom, mode: source.mode, fade: source.fade, channel: source.channel,
-            description: source.description ?? ""
-        });
-        if (!cible) return null;
+    const [genre, coll] = String(valeur).split("|");
+    const packCible = (genre === "c" || genre === "nc") ? game.packs.get(coll) : null;
+    const aOuvrir = [...new Set([packCible, deplacer ? sourcePack : null].filter(Boolean))];
+    const reverrouiller = [];
+    try {
+        for (const p of aOuvrir) {
+            const v = await deverrouiller(p);
+            if (!v.ok) return null;
+            if (v.reverrouiller) reverrouiller.push(p);
+        }
+        const cible = await resoudreCible(valeur, nomNouvelle, source);
+        if (!cible) { ui.notifications?.warn(tl("Playlist de destination introuvable.")); return null; }
+        const doc = cible.doc;
+        const deja = new Set(doc.sounds.map(s => s.path));
+        const aCreer = [];
+        let doublons = 0;
+        let tri = Math.max(0, ...[...doc.sounds].map(s => s.sort ?? 0));
+        for (const s of sons) {
+            if (deja.has(s.path)) { doublons++; continue; }
+            const d = s.toObject();
+            delete d._id; delete d._stats;
+            d.playing = false; d.pausedTime = null;
+            tri += 100; d.sort = tri;
+            aCreer.push(d);
+            deja.add(s.path);
+        }
+        if (aCreer.length) await doc.createEmbeddedDocuments("PlaylistSound", aCreer);
+        // Déplacer : retirer de la playlist ouverte (sauf si la destination est elle-même).
+        let retirees = 0;
+        if (deplacer && doc.uuid !== source.uuid) {
+            const ids = sons.map(s => s.id).filter(id => source.sounds.get(id));
+            if (ids.length) { await source.deleteEmbeddedDocuments("PlaylistSound", ids); retirees = ids.length; }
+        }
+        ecrireCible(cible.valeur);
+        const msg = (deplacer
+                ? tl("{0} piste(s) déplacée(s) vers « {1} ».", retirees, doc.name)
+                : tl("{0} piste(s) ajoutée(s) à « {1} ».", aCreer.length, doc.name))
+            + (doublons ? " " + tl("{0} déjà présente(s), ignorée(s).", doublons) : "");
+        ((aCreer.length || retirees) ? ui.notifications?.info : ui.notifications?.warn)?.call(ui.notifications, msg);
+        return { valeur: cible.valeur, modifieSource: retirees > 0 || (cible.pack === sourcePack && doc.uuid === source.uuid) };
+    } finally {
+        for (const p of reverrouiller) { try { await p.configure({ locked: true }); } catch { /* */ } }
     }
-    const deja = new Set(cible.sounds.map(s => s.path));
-    const aCreer = [];
-    let doublons = 0;
-    for (const s of sons) {
-        if (deja.has(s.path)) { doublons++; continue; }
-        const d = s.toObject();
-        delete d._id; delete d._stats; delete d.sort;
-        d.playing = false; d.pausedTime = null;
-        aCreer.push(d);
-        deja.add(s.path);
-    }
-    if (aCreer.length) await cible.createEmbeddedDocuments("PlaylistSound", aCreer);
-    ecrireCible(cible.id);
-    const msg = tl("{0} piste(s) ajoutée(s) à « {1} ».", aCreer.length, cible.name)
-        + (doublons ? " " + tl("{0} déjà présente(s), ignorée(s).", doublons) : "");
-    (aCreer.length ? ui.notifications?.info : ui.notifications?.warn)?.call(ui.notifications, msg);
-    return cible;
 }
 
 // ------------------------------------------------------------------
@@ -101,15 +172,15 @@ function sourceEnvoi() {
     try { if (typeof ForgeVTT !== "undefined" && ForgeVTT?.usingTheForge) return "forgevtt"; } catch { /* */ }
     return "data";
 }
-const CLE_DOSSIERS = `${MOD}.playlistPack.dossiers`;
-function lireDossier(pl) {
-    try { const m = JSON.parse(localStorage.getItem(CLE_DOSSIERS) || "{}"); if (m[pl.uuid]) return m[pl.uuid]; } catch { /* */ }
-    const slug = String(pl.name ?? "playlist").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-        .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "playlist";
-    return `musique/${slug}`;
-}
-function ecrireDossier(pl, dossier) {
-    try { const m = JSON.parse(localStorage.getItem(CLE_DOSSIERS) || "{}"); m[pl.uuid] = dossier; localStorage.setItem(CLE_DOSSIERS, JSON.stringify(m)); } catch { /* */ }
+// Dossier d'envoi : choisi dans les réglages du module (Toolkit), avec en
+// option un sous-dossier par playlist (nom de la playlist simplifié).
+const slugPlaylist = (nom) => String(nom ?? "playlist").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "playlist";
+function dossierEnvoi(pl) {
+    let base = "musique", sous = true;
+    try { base = nettoyerDossier(game.settings.get(MOD, "playlistUploadDossier")) || "musique"; } catch { /* */ }
+    try { sous = game.settings.get(MOD, "playlistUploadSousDossier") !== false; } catch { /* */ }
+    return sous ? `${base}/${slugPlaylist(pl.name)}` : base;
 }
 const nettoyerDossier = (d) => String(d ?? "").trim().replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
 
@@ -161,7 +232,7 @@ async function deverrouiller(pack) {
     return { ok: true, reverrouiller: true };
 }
 
-async function envoyerDepuisPc(pack, pl, fichiers, dossierSaisi, statut) {
+async function envoyerDepuisPc(pack, pl, fichiers, statut) {
     const audios = [...fichiers].filter(estAudio);
     const refuses = fichiers.length - audios.length;
     if (refuses) ui.notifications?.warn(tl("{0} fichier(s) ignoré(s) : ce ne sont pas des fichiers audio.", refuses));
@@ -171,8 +242,7 @@ async function envoyerDepuisPc(pack, pl, fichiers, dossierSaisi, statut) {
     const verrou = await deverrouiller(pack);
     if (!verrou.ok) return 0;
     const source = sourceEnvoi();
-    const dossier = nettoyerDossier(dossierSaisi) || lireDossier(pl);
-    ecrireDossier(pl, dossier);
+    const dossier = dossierEnvoi(pl);
     let ajoutees = 0;
     try {
         await creerDossier(source, dossier);
@@ -223,27 +293,29 @@ export async function voirPistes(pack, id) {
                 <div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(s.name)}</div>
                 <div style="font-size:11px;opacity:.65;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" data-tooltip="${esc(s.path)}">${esc(fichier(s.path))}</div>
             </div>
-            <button type="button" class="scwm-pp-plus" data-son="${esc(s.id)}" data-tooltip="${tl("Ajouter cette piste à la playlist choisie")}"
+            <button type="button" class="scwm-pp-plus" data-son="${esc(s.id)}" data-tooltip="${tl("Envoyer cette piste vers la playlist choisie")}"
                 style="flex:0 0 28px;width:28px;height:26px;padding:0;margin:0;"><i class="fa-solid fa-plus"></i></button>
         </div>`).join("");
 
     const barre = sons.length ? `
         <div class="scwm-pp-barre" style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 6px;padding:6px;border:1px solid rgba(201,162,39,.3);border-radius:4px;">
             <label style="display:flex;align-items:center;gap:4px;flex:0 0 auto;white-space:nowrap;"><input type="checkbox" class="scwm-pp-tout" style="margin:0;"> ${tl("Tout")}</label>
-            <span style="flex:0 0 auto;opacity:.8;">${tl("Ajouter à")}</span>
-            <select class="scwm-pp-cible" style="flex:1 1 140px;min-width:0;">${optionsCibles(lireCible())}</select>
+            <span style="flex:0 0 auto;opacity:.8;">${tl("Vers")}</span>
+            <select class="scwm-pp-cible" style="flex:1 1 160px;min-width:0;">${optionsCibles(lireCible(), pack, id)}</select>
             <input type="text" class="scwm-pp-nom" value="${esc(pl.name)}" placeholder="${tl("Nom de la nouvelle playlist")}" style="flex:1 1 140px;min-width:0;display:none;">
+            <label style="display:flex;align-items:center;gap:4px;flex:0 0 auto;white-space:nowrap;"
+                data-tooltip="${tl("Coché : les pistes quittent cette playlist. Décoché : elles sont copiées.")}">
+                <input type="checkbox" class="scwm-pp-deplacer" style="margin:0;"> ${tl("Déplacer")}</label>
             <button type="button" class="scwm-pp-ajouter" disabled style="flex:0 0 auto;width:auto;margin:0;white-space:nowrap;">
-                <i class="fa-solid fa-plus"></i> <span>${tl("Ajouter la sélection")}</span></button>
+                <i class="fa-solid fa-share"></i> <span>${tl("Envoyer la sélection")}</span></button>
         </div>` : "";
 
     const blocPc = `
         <div class="scwm-pp-pc" style="margin:0 0 6px;padding:6px;border:1px dashed rgba(201,162,39,.5);border-radius:4px;">
             <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;">
-                <span style="flex:0 0 auto;opacity:.8;">${tl("Dossier")}</span>
-                <input type="text" class="scwm-pp-dossier" value="${esc(lireDossier(pl))}" style="flex:1 1 160px;min-width:0;"
-                    data-tooltip="${tl("Dossier du serveur où les fichiers sont rangés (créé s'il n'existe pas).")}">
-                <button type="button" class="scwm-pp-parcourir" data-tooltip="${tl("Choisir un dossier")}" style="flex:0 0 32px;width:32px;margin:0;"><i class="fa-solid fa-folder-open"></i></button>
+                <span style="flex:1 1 160px;min-width:0;font-size:12px;opacity:.8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+                    data-tooltip="${tl("Dossier choisi dans les réglages du module (Toolkit → Playlists en compendium).")}">
+                    <i class="fa-solid fa-folder"></i> ${esc(dossierEnvoi(pl))}</span>
                 <button type="button" class="scwm-pp-envoyer" style="flex:0 0 auto;width:auto;margin:0;white-space:nowrap;">
                     <i class="fa-solid fa-upload"></i> ${tl("Ajouter depuis mon PC")}</button>
                 <input type="file" class="scwm-pp-fichiers" accept="audio/*,.mp3,.ogg,.oga,.opus,.wav,.flac,.m4a,.aac,.webm" multiple hidden>
@@ -285,7 +357,6 @@ export async function voirPistes(pack, id) {
             }));
 
             // ---- ajout de musiques depuis le PC (dans CETTE playlist du compendium)
-            const champDossier = root.querySelector(".scwm-pp-dossier");
             const entree = root.querySelector(".scwm-pp-fichiers");
             const statutEl = root.querySelector(".scwm-pp-statut");
             const texteStatut = statutEl?.textContent ?? "";
@@ -295,7 +366,7 @@ export async function voirPistes(pack, id) {
                 if (envoiEnCours || !fichiers?.length) return;
                 envoiEnCours = true;
                 try {
-                    const n = await envoyerDepuisPc(pack, pl, fichiers, champDossier?.value, statut);
+                    const n = await envoyerDepuisPc(pack, pl, fichiers, statut);
                     if (n) { await arreterApercu(); await app.close(); voirPistes(pack, id); }   // liste à jour
                 } catch (e) {
                     journal.erreur(tl("[{0}] Ajout de musiques depuis le PC :", MOD), e);
@@ -304,10 +375,6 @@ export async function voirPistes(pack, id) {
             };
             root.querySelector(".scwm-pp-envoyer")?.addEventListener("click", () => entree?.click());
             entree?.addEventListener("change", () => { const f = [...entree.files]; entree.value = ""; envoyer(f); });
-            root.querySelector(".scwm-pp-parcourir")?.addEventListener("click", () => {
-                new (FP())({ type: "folder", current: champDossier.value, callback: (p) => { champDossier.value = nettoyerDossier(p); } }).render(true);
-            });
-            champDossier?.addEventListener("keydown", (ev) => { if (ev.key === "Enter") ev.preventDefault(); });
             const zone = root.querySelector(".scwm-pp-pc");
             root.addEventListener("dragover", (ev) => {
                 if (![...(ev.dataTransfer?.types ?? [])].includes("Files")) return;
@@ -321,8 +388,9 @@ export async function voirPistes(pack, id) {
                 envoyer([...ev.dataTransfer.files]);
             });
 
-            // ---- ajout dans une playlist du monde
+            // ---- envoi vers une autre playlist (monde ou compendium)
             const cible = root.querySelector(".scwm-pp-cible");
+            const deplacer = root.querySelector(".scwm-pp-deplacer");
             const nom = root.querySelector(".scwm-pp-nom");
             const tout = root.querySelector(".scwm-pp-tout");
             const btn = root.querySelector(".scwm-pp-ajouter");
@@ -331,11 +399,11 @@ export async function voirPistes(pack, id) {
             const majBouton = () => {
                 const n = coches().filter(c => c.checked).length;
                 btn.disabled = n === 0;
-                btn.querySelector("span").textContent = n ? tl("Ajouter la sélection ({0})", n) : tl("Ajouter la sélection");
+                btn.querySelector("span").textContent = n ? tl("Envoyer la sélection ({0})", n) : tl("Envoyer la sélection");
                 tout.checked = n > 0 && n === coches().length;
                 tout.indeterminate = n > 0 && n < coches().length;
             };
-            const majNom = () => { nom.style.display = cible.value === NOUVELLE ? "" : "none"; };
+            const majNom = () => { nom.style.display = estNouvelle(cible.value) ? "" : "none"; };
             majNom();
             cible.addEventListener("change", majNom);
             nom.addEventListener("keydown", (ev) => { if (ev.key === "Enter") { ev.preventDefault(); btn.click(); } });
@@ -348,15 +416,18 @@ export async function voirPistes(pack, id) {
                 occupe = true; btn.disabled = true;
                 try {
                     const choix = sons.filter(s => ids.includes(s.id));
-                    const res = await ajouterPistes(choix, cible.value, nom.value, pl);
+                    const res = await ajouterPistes(choix, cible.value, nom.value, pl, pack, !!deplacer?.checked);
+                    if (res?.modifieSource) {          // pistes retirées d'ici : liste à jour
+                        await arreterApercu(); await app.close(); voirPistes(pack, id); return;
+                    }
                     if (res) {
                         // une playlist créée apparaît dans la liste et reste choisie
-                        cible.innerHTML = optionsCibles(res.id);
+                        cible.innerHTML = optionsCibles(res.valeur, pack, id);
                         majNom();
                         coches().forEach(c => { c.checked = false; });
                     }
                 } catch (e) {
-                    journal.erreur(tl("[{0}] Ajout de pistes à une playlist :", MOD), e);
+                    journal.erreur(tl("[{0}] Envoi de pistes vers une playlist :", MOD), e);
                     ui.notifications?.error(tl("Ajout impossible (voir console)."));
                 } finally { occupe = false; majBouton(); }
             };

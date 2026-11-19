@@ -739,7 +739,14 @@ export function registerSettings() {
         tl("Avec MEJ actif, plus rien ne pouvait être déposé dans un compendium (playlists, acteurs, objets…) : un bug de MEJ faisait échouer l'envoi sans message. Ce correctif le rétablit sans rien changer d'autre à MEJ.")));
     game.settings.register(MOD, "enablePlaylistPackViewer", B(
         tl("Playlists en compendium — voir, écouter et ajouter les pistes"),
-        tl("Dans un compendium de playlists, un bouton (et le clic droit) « Voir les pistes » liste les morceaux d'une playlist, avec un aperçu ▶ chez le MJ seulement, l'ajout de musiques depuis le PC, l'ajout de morceaux choisis à une playlist du monde et l'import de toute la playlist. Rien n'est chargé à l'avance. MJ uniquement.")));
+        tl("Dans un compendium de playlists, un bouton (et le clic droit) « Voir les pistes » liste les morceaux d'une playlist, avec un aperçu ▶ chez le MJ seulement, l'ajout de musiques depuis le PC, l'envoi de morceaux choisis vers une autre playlist (monde ou compendium, en copie ou en déplacement) et l'import de toute la playlist. Rien n'est chargé à l'avance. MJ uniquement.")));
+    game.settings.register(MOD, "playlistUploadDossier", S(
+        tl("Playlists en compendium — dossier des musiques envoyées depuis le PC"),
+        tl("Dossier du serveur (données de Foundry) où sont rangés les fichiers audio ajoutés avec « Ajouter depuis mon PC ». Créé s'il n'existe pas."),
+        "musique"));
+    game.settings.register(MOD, "playlistUploadSousDossier", B(
+        tl("Playlists en compendium — un sous-dossier par playlist"),
+        tl("Range les musiques de chaque playlist dans son propre sous-dossier (ex. musique/la-taverne). Décoché : tout va directement dans le dossier choisi.")));
     game.settings.register(MOD, "enableMejRestock", B(
         tl("Réapprovisionnement automatique des boutiques"),
         tl("Active/désactive le système de réapprovisionnement des boutiques MEJ.")));
@@ -1372,7 +1379,7 @@ const CATEGORIES = [
       keys: ["tmEnabled","tmSkillBase","tmAddAbilityMod","tmBonusMaitrise","tmBonusExpertise","tmBonusTools","tmRollMinDays","tmReliableTalent","tmSkillFormula","tmCraftNonMagicCostDiv","tmCraftNonMagicDaysPerGp","tmCraftNonMagicCostFormula","tmCraftNonMagicDaysFormula","tmSingleUseFactor","tmScrollTable","tmMagicTable","tmRollTable"] },
     { firstKey: "enableTokenAppearance", icon: "fa-toolbox",         title: "Toolkit",
       desc: tl("Apparences de tokens, transformations, tailles Large, TGCM, utilitaires GM, templates AoE, boutiques MEJ et réapprovisionnement."),
-      keys: ["enableCasierGm","enableExpeditionDate","enableChatTools","enableExportDialog","enablePlayerListToggle","enableTokenAppearance","enableTokenPortraitButton","enableTokenAccroche","enableGmNotesNpc","enableTgcm","enableCompanions","enableFolderMove","enableToolAbilityFix","enableConnStats","enablePlayerListCompact","enableTemplateSnap","enableFollowTemplates","enableMejShopFix","enableMejCompendiumFix","enablePlaylistPackViewer","enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
+      keys: ["enableCasierGm","enableExpeditionDate","enableChatTools","enableExportDialog","enablePlayerListToggle","enableTokenAppearance","enableTokenPortraitButton","enableTokenAccroche","enableGmNotesNpc","enableTgcm","enableCompanions","enableFolderMove","enableToolAbilityFix","enableConnStats","enablePlayerListCompact","enableTemplateSnap","enableFollowTemplates","enableMejShopFix","enableMejCompendiumFix","enablePlaylistPackViewer","playlistUploadDossier","playlistUploadSousDossier","enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
     { firstKey: "relationsEnabled", master: "relationsEnabled",      icon: "fa-heart",           title: tl("Fiche PJ — Relations"),
       desc: tl("Onglet Relations : liens entre personnages, détection automatique des rencontres, anonymisation."),
       keys: ["relationsEnabled","relationsAnonymization","relationsLastSeen"] },
@@ -1923,6 +1930,12 @@ function settingControlHtml(key) {
             <input type="text" name="${key}" value="${escapeAttr(val ?? "")}" placeholder="${tl("Aucun son")}" style="flex:1 1 auto;min-width:0;">
             <button type="button" class="scwm-filepicker" data-target="${key}" data-fptype="audio" title="${tl("Parcourir")}" style="flex:0 0 auto;width:34px;"><i class="fa-solid fa-file-audio"></i></button>
             ${key === "mondeBanniereSon" ? `<button type="button" class="scwm-test-banniere" data-target="${key}" title="${tl("Tester la bannière (sur ton écran)")}" style="flex:0 0 auto;width:34px;"><i class="fa-solid fa-play"></i></button>` : ""}
+        </div>`;
+    } else if (key.endsWith("Dossier")) {
+        // Chemin de dossier avec « Parcourir » (FilePicker en mode dossier).
+        control = `<div style="display:flex;gap:4px;">
+            <input type="text" name="${key}" value="${escapeAttr(val ?? "")}" style="flex:1 1 auto;min-width:0;">
+            <button type="button" class="scwm-filepicker" data-target="${key}" data-fptype="folder" title="${tl("Parcourir")}" style="flex:0 0 auto;width:34px;"><i class="fa-solid fa-folder-open"></i></button>
         </div>`;
     } else if (key.endsWith("Image")) {
         // Chemin d'image avec bouton « Parcourir » (FilePicker).

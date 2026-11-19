@@ -738,8 +738,8 @@ export function registerSettings() {
         tl("Correctif Monk's Enhanced Journal — envoi vers les compendiums"),
         tl("Avec MEJ actif, plus rien ne pouvait être déposé dans un compendium (playlists, acteurs, objets…) : un bug de MEJ faisait échouer l'envoi sans message. Ce correctif le rétablit sans rien changer d'autre à MEJ.")));
     game.settings.register(MOD, "enablePlaylistPackViewer", B(
-        tl("Playlists en compendium — voir et écouter les pistes"),
-        tl("Dans un compendium de playlists, un bouton (et le clic droit) « Voir les pistes » liste les morceaux d'une playlist, avec un aperçu ▶ chez le MJ seulement et l'import dans le monde. Rien n'est chargé à l'avance. MJ uniquement.")));
+        tl("Playlists en compendium — voir, écouter et ajouter les pistes"),
+        tl("Dans un compendium de playlists, un bouton (et le clic droit) « Voir les pistes » liste les morceaux d'une playlist, avec un aperçu ▶ chez le MJ seulement, l'ajout de musiques depuis le PC, l'ajout de morceaux choisis à une playlist du monde et l'import de toute la playlist. Rien n'est chargé à l'avance. MJ uniquement.")));
     game.settings.register(MOD, "enableMejRestock", B(
         tl("Réapprovisionnement automatique des boutiques"),
         tl("Active/désactive le système de réapprovisionnement des boutiques MEJ.")));

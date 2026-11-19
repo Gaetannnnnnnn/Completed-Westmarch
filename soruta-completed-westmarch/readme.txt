@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 6.8.5
+Version : 6.8.6
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -217,6 +217,29 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v6.8.6 | 2026-11-19
+   - Playlists en compendium : ajouter de NOUVELLES musiques depuis son PC
+     directement dans une playlist du compendium. Dans « Voir les pistes » :
+     bouton « Ajouter depuis mon PC » ou glisser-déposer de fichiers audio
+     sur la fenêtre. Les fichiers sont téléversés sur le serveur dans le
+     dossier indiqué (par défaut musique/<nom-de-la-playlist>, créé au
+     besoin, modifiable avec 📁 et retenu par playlist), sans jamais
+     écraser un fichier existant (suffixe -2, -3…), puis ajoutés comme
+     pistes (nom tiré du fichier, volume 0,5). Un compendium verrouillé est
+     déverrouillé le temps de l'ajout, après confirmation, puis
+     reverrouillé. La liste se rafraîchit seule. Compatible The Forge.
+     Fichier : modules/playlistpack.js.
+   - Playlists en compendium : on peut maintenant AJOUTER des musiques du
+     compendium à une playlist du monde, sans importer toute la playlist.
+     Dans la fenêtre « Voir les pistes » : cocher des pistes (ou « Tout »),
+     choisir la playlist de destination (existante, ou « Nouvelle
+     playlist… » avec son nom), puis « Ajouter la sélection » ; ou le
+     bouton + d'une piste pour l'ajouter seule. La fenêtre reste ouverte
+     pour enchaîner. Une piste déjà présente (même fichier) n'est pas
+     dupliquée. La dernière destination est retenue. Le bouton du bas
+     devient « Importer toute la playlist ». Réglage inchangé : Toolkit →
+     Playlists en compendium. Fichier : modules/playlistpack.js.
 
 v6.8.5 | 2026-11-17
    - Nouveau : voir les pistes d'une playlist rangée en compendium (Foundry

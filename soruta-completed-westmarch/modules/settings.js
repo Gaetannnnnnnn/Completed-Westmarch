@@ -1413,7 +1413,7 @@ const ACCENT = "#e67e22";
 
 // Réglages GELÉS : affichés grisés/désactivés dans la configuration (on ne peut
 // pas les modifier). Utilisé pour une fonctionnalité temporairement coupée.
-export const FROZEN_SETTINGS = new Set(["enableTgcm", "enableTokenAppearance"]);
+export const FROZEN_SETTINGS = new Set(["enableTgcm", "enableTokenAppearance", "enableChatCards"]);
 
 // Schémas des tables de temps morts éditées en grille (champs structurés).
 const TM_TABLE_SCHEMAS = {

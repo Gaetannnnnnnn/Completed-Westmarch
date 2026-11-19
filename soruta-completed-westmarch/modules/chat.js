@@ -158,12 +158,18 @@ body.scwm-chat-bigbtn ${SCOPE} .message .scwm-btn-row button.icon { width: 100% 
    foncé, illisible). Le thème ne colore que le texte de la CARTE (ci-dessus). */
 `;
 
+// Habillage des cartes de chat temporairement DÉSACTIVÉ (en attente d'une
+// décision). Le réglage est grisé dans la configuration. Pour réactiver :
+// repasser à false et retirer "enableChatCards" de FROZEN_SETTINGS (settings.js).
+const CARTES_DISABLED = true;
+const cartesActives = () => { if (CARTES_DISABLED) return false; try { return !!game.settings.get(MOD, "enableChatCards"); } catch { return false; } };
+
 export function applyChatCardPrefs() {
     const body = document.body;
     if (!body) return;
     const get = (k, d) => { try { const v = game.settings.get(MOD, k); return v === undefined ? d : v; } catch { return d; } };
 
-    const master = !!get("enableChatCards", true);
+    const master = !CARTES_DISABLED && !!get("enableChatCards", true);
     const theme  = master && get("chatCardsTheme", true) !== false;
     const bigBtn = master && get("chatCardsBigButtons", true) !== false;
 
@@ -306,7 +312,7 @@ function observeChatLog(logEl) {
         if (!targets.size) return;
         requestAnimationFrame(() => {
             try {
-                if (!game.settings.get(MOD, "enableChatCards")) return;
+                if (!cartesActives()) return;
                 targets.forEach(n => reskinChatCard(n.closest?.(".chat-message") ?? n));
             } catch (e) {}
         });
@@ -394,7 +400,7 @@ function renderChatMessageHTML(message, html, messageData) {
     // Reskin 5.3.x sur le DOM 6.0 (l'observateur du ChatLog assure le suivi des
     // re-renders après clic sur un bouton ; ici on traite le rendu initial).
     try {
-        if (game.settings.get(MOD, "enableChatCards")) {
+        if (cartesActives()) {
             const root = html instanceof HTMLElement ? html : html?.[0];
             if (root) { reskinChatCard(root); requestAnimationFrame(() => reskinChatCard(root)); }
         }
@@ -433,7 +439,7 @@ async function renderChatLog(log, html, data) {
     // Catch-all reskin + observateur : rebalaie tout le log au (re)rendu de la
     // sidebar, puis surveille les nouvelles cartes et les re-renders en place.
     try {
-        if (game.settings.get(MOD, "enableChatCards")) {
+        if (cartesActives()) {
             const root = html instanceof HTMLElement ? html : html?.[0];
             reskinChatCard(root);
             observeChatLog(root);

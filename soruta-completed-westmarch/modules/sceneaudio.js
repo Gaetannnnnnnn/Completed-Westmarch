@@ -464,6 +464,9 @@ async function _collectPlaylistSounds() {
     return groups;
 }
 
+// Texte simplifié pour la recherche : minuscules, sans accents.
+const _cle = (t) => String(t ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
 export async function _openPlaylistBrowser(onPick) {
     const groups = await _collectPlaylistSounds();
     if (!groups.length) {
@@ -474,7 +477,7 @@ export async function _openPlaylistBrowser(onPick) {
     const groupsHtml = groups.map(g => {
         const rows = g.sounds.map(s => {
             const idx = flat.push(s) - 1;
-            return `<div class="scwm-pl-row">
+            return `<div class="scwm-pl-row" data-cherche="${esc(_cle(`${s.name} ${g.label} ${g.source}`))}">
                 <span class="scwm-pl-name">${esc(s.name)}</span>
                 <span class="scwm-pl-row-actions">
                     <button type="button" class="scwm-pl-play" data-idx="${idx}" title="${tl("Écouter (moi uniquement)")}"><i class="fa-solid fa-play"></i></button>
@@ -490,8 +493,14 @@ export async function _openPlaylistBrowser(onPick) {
 
     const content = `
         <div class="scwm-pl-browser">
+            <div class="scwm-pl-recherche">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="search" class="scwm-pl-search" placeholder="${tl("Rechercher une musique ou une playlist…")}" autocomplete="off">
+                <span class="scwm-pl-compte"></span>
+            </div>
+            <p class="scwm-pl-vide" hidden>${tl("Aucune musique ne correspond.")}</p>
             <div class="scwm-pl-toolbar">
-                <span class="notes">${tl("Écoute locale (les joueurs n'entendent rien). « Choisir » remplit le fichier du cue.")}</span>
+                <span class="notes">${tl("Écoute locale (les joueurs n'entendent rien). « Choisir » remplit le champ du fichier.")}</span>
                 <button type="button" class="scwm-pl-stop">${tl("<i class=\"fa-solid fa-stop\"></i> Stop")}</button>
             </div>
             ${groupsHtml}
@@ -507,6 +516,30 @@ export async function _openPlaylistBrowser(onPick) {
         render: (html) => {
             const root = html[0] ?? html;
             root.querySelector(".scwm-pl-stop")?.addEventListener("click", () => stopAllCuesLocal(150));
+            // Recherche : sans accents ni majuscules, sur le nom du morceau, de
+            // sa playlist et de sa source ; chaque mot doit être trouvé.
+            const champ = root.querySelector(".scwm-pl-search");
+            const compte = root.querySelector(".scwm-pl-compte");
+            const vide = root.querySelector(".scwm-pl-vide");
+            const filtrer = () => {
+                const mots = _cle(champ?.value).split(/\s+/).filter(Boolean);
+                let n = 0;
+                root.querySelectorAll(".scwm-pl-group").forEach(g => {
+                    let visibles = 0;
+                    g.querySelectorAll(".scwm-pl-row").forEach(r => {
+                        const ok = mots.every(m => r.dataset.cherche.includes(m));
+                        r.style.display = ok ? "" : "none";
+                        if (ok) visibles++;
+                    });
+                    g.style.display = visibles ? "" : "none";
+                    n += visibles;
+                });
+                if (compte) compte.textContent = mots.length ? tl("{0} résultat(s)", n) : "";
+                if (vide) vide.hidden = n > 0;
+            };
+            champ?.addEventListener("input", filtrer);
+            champ?.addEventListener("keydown", (ev) => { if (ev.key === "Enter") ev.preventDefault(); });
+            setTimeout(() => champ?.focus(), 50);
             root.querySelectorAll(".scwm-pl-play").forEach(b => b.addEventListener("click", () => {
                 const s = flat[Number(b.dataset.idx)];
                 if (s) playCueLocal({ path: s.path, volume: 0.7 });

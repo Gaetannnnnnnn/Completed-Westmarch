@@ -2,6 +2,18 @@
 // Généré à partir des textes du code ; une entrée absente reste en français.
 // © 2026 Soruta.
 export default {
+ "Arrêtée": "Stopped",
+ "Coupe la musique chez tout le monde sur cette scène, sans perdre le réglage. Aussi faisable depuis l'onglet Playlists (« Musiques de scène »).": "Stops the music for everyone on this scene, without losing the setting. Also available from the Playlists tab (“Scene music”).",
+ "Relancer la musique": "Restart the music",
+ "Arrêter la musique": "Stop the music",
+ "arrêtée": "stopped",
+ "Musiques de scène": "Scene music",
+ "(chez les groupes)": "(for the groups)",
+ "[{0}] Musique de scène (onglet Playlists) :": "[{0}] Scene music (Playlists tab):",
+ "Rechercher une musique ou une playlist…": "Search for a track or a playlist…",
+ "Aucune musique ne correspond.": "No matching track.",
+ "{0} résultat(s)": "{0} result(s)",
+ "Écoute locale (les joueurs n'entendent rien). « Choisir » remplit le champ du fichier.": "Local listening (players hear nothing). “Choose” fills in the file field.",
  "[{0}] Musique de scène : lecture impossible ({1}).": "[{0}] Scene music: playback failed ({1}).",
  "Musique de la scène (pour le groupe)": "Scene music (for the group)",
  "Jouée chez chaque personne qui a cette scène à l'écran (le groupe qui y est), même si la scène n'est pas active. Elle s'arrête en quittant la scène, et continue sans coupure si la scène suivante a la même musique.": "Played for everyone who has this scene on screen (the group that is there), even if the scene is not active. It stops when leaving the scene, and keeps playing seamlessly if the next scene has the same music.",

@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 6.8.8
+Version : 6.8.9
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -217,6 +217,29 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v6.8.9 | 2026-11-19
+   - Cartes de chat personnalisées TEMPORAIREMENT DÉSACTIVÉES par le module
+     (comme TGCM et l'apparence des tokens) : les cartes de chat dnd5e
+     s'affichent au naturel, quel que soit le réglage. Le réglage « Cartes
+     de chat » est grisé avec la mention « ⏸ temporairement désactivé ».
+     Pour réactiver : CARTES_DISABLED = false dans modules/chat.js et
+     retirer "enableChatCards" de FROZEN_SETTINGS (modules/settings.js).
+   - Musique de scène : le MJ peut maintenant l'arrêter. Elle n'est pas une
+     playlist Foundry (elle est jouée chez chaque client), donc invisible
+     jusqu'ici dans l'onglet Playlists. Nouveau : en haut de l'onglet
+     Playlists (MJ), section « Musiques de scène » : une ligne par scène
+     réglée où quelqu'un se trouve (nom, morceau, boucle, nombre de
+     personnes présentes au survol), bouton ⏹ / ▶ pour arrêter ou
+     relancer, curseur de volume. Tout le monde sur la scène suit
+     aussitôt. Nouveau réglage « Arrêtée » dans la configuration de la
+     scène (onglet Autres), le même interrupteur.
+     Fichier : modules/scenemusic.js.
+   - Choix d'une musique dans les playlists (musique de scène et cues
+     audio) : barre de recherche en haut de la fenêtre, sans accents ni
+     majuscules, sur le nom du morceau, de sa playlist et du compendium ;
+     plusieurs mots possibles ; nombre de résultats affiché.
+     Fichiers : modules/sceneaudio.js, styles/sceneaudio.css.
 
 v6.8.8 | 2026-11-19
    - Nouveau : musique de scène POUR LE GROUPE. Dans la configuration d'une

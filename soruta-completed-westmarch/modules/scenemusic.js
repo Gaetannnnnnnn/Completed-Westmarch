@@ -20,14 +20,17 @@ import { _openPlaylistBrowser } from "./sceneaudio.js";
 // réseau, aucun document Playlist n'est modifié.
 //
 // Réglages par scène (flag sceneMusic) : fichier, volume, boucle, fondu,
-// jouer aussi chez le MJ. Réglage du module : enableSceneMusic (Toolkit).
+// arrêtée, jouer aussi chez le MJ. Réglage du module : enableSceneMusic.
+//
+// Le MJ la pilote depuis l'onglet Playlists : section « Musiques de scène »
+// (scènes réglées où se trouve quelqu'un) avec arrêt / relance et volume.
 // © 2026 Soruta.
 // ============================================================
 
 const FLAG = "sceneMusic";
 const actif = () => { try { return game.settings.get(MOD, "enableSceneMusic") !== false; } catch { return false; } };
 const esc = (s) => foundry.utils.escapeHTML(String(s ?? ""));
-const DEFAUT = { path: "", volume: 0.5, loop: true, fade: 2, gm: true };
+const DEFAUT = { path: "", volume: 0.5, loop: true, fade: 2, gm: true, stopped: false };
 
 function lireCfg(scene) {
     const f = scene?.getFlag?.(MOD, FLAG);
@@ -51,7 +54,7 @@ async function arreter(fadeS = 1) {
 async function appliquer(scene) {
     const mon = ++_jeton;
     const cfg = lireCfg(scene);
-    const veut = actif() && !!scene && !!cfg.path && (!game.user.isGM || cfg.gm !== false);
+    const veut = actif() && !!scene && !!cfg.path && !cfg.stopped && (!game.user.isGM || cfg.gm !== false);
     const vol = Math.min(1, Math.max(0, Number(cfg.volume) || 0));
 
     // Même musique que la scène précédente : on continue, réglages mis à jour.
@@ -112,6 +115,11 @@ function blocConfig(scene) {
             <div class="form-fields"><input type="number" name="${n("fade")}" min="0" max="20" step="0.5" value="${Number(c.fade)}"></div>
         </div>
         <div class="form-group">
+            <label>${tl("Arrêtée")}</label>
+            <div class="form-fields"><input type="checkbox" name="${n("stopped")}" ${c.stopped ? "checked" : ""}></div>
+            <p class="hint">${tl("Coupe la musique chez tout le monde sur cette scène, sans perdre le réglage. Aussi faisable depuis l'onglet Playlists (« Musiques de scène »).")}</p>
+        </div>
+        <div class="form-group">
             <label>${tl("Jouer aussi chez le MJ")}</label>
             <div class="form-fields"><input type="checkbox" name="${n("gm")}" ${c.gm !== false ? "checked" : ""}></div>
             <p class="hint">${tl("Décoché : seuls les joueurs l'entendent (pratique quand le MJ passe d'une scène à l'autre).")}</p>
@@ -165,6 +173,76 @@ function injecter(app, html) {
 }
 
 // ------------------------------------------------------------------
+// ONGLET PLAYLISTS (MJ) : « Musiques de scène »
+// Les musiques de scène ne sont pas des playlists Foundry (elles sont jouées
+// séparément chez chaque client). Cette section les rend visibles et
+// pilotables : une ligne par scène réglée où quelqu'un se trouve, avec
+// arrêt / relance et volume. Agir modifie le réglage de la scène : tous les
+// clients qui la regardent suivent aussitôt.
+// ------------------------------------------------------------------
+const nomFichier = (p) => { try { return decodeURIComponent(String(p).split("/").pop()).replace(/\.[^.]+$/, ""); } catch { return String(p); } };
+
+function scenesAvecMusique() {
+    return game.scenes.filter(s => lireCfg(s).path)
+        .map(s => ({ s, cfg: lireCfg(s), ici: game.users.filter(u => u.active && u.viewedScene === s.id) }))
+        .filter(x => x.ici.length)
+        .sort((a, b) => b.ici.length - a.ici.length || a.s.name.localeCompare(b.s.name));
+}
+
+function sectionPlaylists(app, html) {
+    if (!actif() || !game.user.isGM) return;
+    const root = (html instanceof HTMLElement) ? html : (html?.[0] ?? app?.element);
+    if (!root) return;
+    root.querySelector(".scwm-sm-sidebar")?.remove();
+    const liste = scenesAvecMusique();
+    if (!liste.length) return;
+
+    const lignes = liste.map(({ s, cfg, ici }) => {
+        const noms = ici.map(u => u.name).join(", ");
+        return `<li class="scwm-sm-ligne" data-scene="${esc(s.id)}" style="display:flex;flex-direction:column;gap:2px;padding:4px 6px;border-bottom:1px solid rgba(255,255,255,.08);${cfg.stopped ? "opacity:.6;" : ""}">
+            <div style="display:flex;align-items:center;gap:6px;">
+                <button type="button" class="scwm-sm-basculer" data-tooltip="${cfg.stopped ? tl("Relancer la musique") : tl("Arrêter la musique")}"
+                    style="flex:0 0 26px;width:26px;height:24px;padding:0;margin:0;line-height:1;"><i class="fa-solid ${cfg.stopped ? "fa-play" : "fa-stop"}"></i></button>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(s.name)}</div>
+                    <div style="font-size:11px;opacity:.75;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" data-tooltip="${esc(cfg.path)}">
+                        <i class="fa-solid fa-music"></i> ${esc(nomFichier(cfg.path))}${cfg.loop ? ` <i class="fa-solid fa-repeat" data-tooltip="${tl("En boucle")}"></i>` : ""}${cfg.stopped ? ` — ${tl("arrêtée")}` : ""}</div>
+                </div>
+                <span style="flex:0 0 auto;font-size:11px;opacity:.8;" data-tooltip="${esc(noms)}"><i class="fa-solid fa-users"></i> ${ici.length}</span>
+            </div>
+            <input type="range" class="scwm-sm-volume" min="0" max="1" step="0.05" value="${Number(cfg.volume)}" data-tooltip="${tl("Volume")}" style="width:100%;margin:0;">
+        </li>`;
+    }).join("");
+
+    const sec = document.createElement("section");
+    sec.className = "scwm-sm-sidebar";
+    sec.style.cssText = "margin:4px 6px 6px;border:1px solid rgba(201,162,39,.45);border-radius:5px;background:rgba(0,0,0,.2);";
+    sec.innerHTML = `<header style="display:flex;align-items:center;gap:6px;padding:4px 6px;font-weight:600;border-bottom:1px solid rgba(201,162,39,.3);">
+            <i class="fa-solid fa-map"></i> ${tl("Musiques de scène")}
+            <span style="font-weight:400;font-size:11px;opacity:.7;">${tl("(chez les groupes)")}</span></header>
+        <ol style="list-style:none;margin:0;padding:0;">${lignes}</ol>`;
+
+    sec.querySelectorAll(".scwm-sm-ligne").forEach(li => {
+        const scene = game.scenes.get(li.dataset.scene);
+        if (!scene) return;
+        li.querySelector(".scwm-sm-basculer")?.addEventListener("click", async (ev) => {
+            ev.preventDefault();
+            await scene.setFlag(MOD, `${FLAG}.stopped`, !lireCfg(scene).stopped);
+        });
+        li.querySelector(".scwm-sm-volume")?.addEventListener("change", async (ev) => {
+            await scene.setFlag(MOD, `${FLAG}.volume`, Number(ev.currentTarget.value));
+        });
+    });
+
+    const repere = root.querySelector(".directory-list");
+    if (repere) repere.insertAdjacentElement("beforebegin", sec);
+    else root.prepend(sec);
+}
+const rafraichirPlaylists = foundry.utils.debounce(() => {
+    if (game.user?.isGM && ui.playlists?.rendered) ui.playlists.render();
+}, 250);
+
+// ------------------------------------------------------------------
 export function SceneMusicHooks() {
     Hooks.on("renderSceneConfig", (app, html) => {
         try { injecter(app, html); } catch (e) { journal.avert(tl("[{0}] Musique de scène (configuration) :", MOD), e); }
@@ -173,10 +251,23 @@ export function SceneMusicHooks() {
 
     Hooks.on("canvasReady", (canvas) => { appliquer(canvas?.scene ?? null); });
     Hooks.on("updateScene", (scene, changes) => {
-        if (scene.id !== canvas?.scene?.id) return;
-        if (!foundry.utils.hasProperty(changes, `flags.${MOD}.${FLAG}`)) return;
+        const musique = foundry.utils.hasProperty(changes, `flags.${MOD}.${FLAG}`);
+        if (musique || "name" in changes) rafraichirPlaylists();
+        if (!musique || scene.id !== canvas?.scene?.id) return;
         appliquer(scene);
     });
+
+    // Onglet Playlists du MJ : section « Musiques de scène », tenue à jour
+    // quand un joueur change de scène, se connecte ou se déconnecte.
+    Hooks.on("renderPlaylistDirectory", (app, html) => {
+        try { sectionPlaylists(app, html); } catch (e) { journal.avert(tl("[{0}] Musique de scène (onglet Playlists) :", MOD), e); }
+    });
+    Hooks.on("updateUser", (user, changes) => { if ("viewedScene" in changes || "active" in changes) rafraichirPlaylists(); });
+    Hooks.on("userConnected", () => rafraichirPlaylists());
+    // La barre des scènes se redessine quand un joueur change de scène (ses
+    // pastilles de joueurs) : bon signal pour remettre la section à jour.
+    Hooks.on("renderSceneNavigation", () => rafraichirPlaylists());
+    Hooks.on("deleteScene", () => rafraichirPlaylists());
     // Réglage du module désactivé/réactivé : on applique tout de suite.
     Hooks.on("updateSetting", (setting) => {
         if (setting?.key === `${MOD}.enableSceneMusic`) appliquer(canvas?.scene ?? null);

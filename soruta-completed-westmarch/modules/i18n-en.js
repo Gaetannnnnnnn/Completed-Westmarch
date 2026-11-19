@@ -2,6 +2,21 @@
 // Généré à partir des textes du code ; une entrée absente reste en français.
 // © 2026 Soruta.
 export default {
+ "[{0}] Musique de scène : lecture impossible ({1}).": "[{0}] Scene music: playback failed ({1}).",
+ "Musique de la scène (pour le groupe)": "Scene music (for the group)",
+ "Jouée chez chaque personne qui a cette scène à l'écran (le groupe qui y est), même si la scène n'est pas active. Elle s'arrête en quittant la scène, et continue sans coupure si la scène suivante a la même musique.": "Played for everyone who has this scene on screen (the group that is there), even if the scene is not active. It stops when leaving the scene, and keeps playing seamlessly if the next scene has the same music.",
+ "Choisir dans les playlists": "Pick from playlists",
+ "Laisser vide : pas de musique.": "Leave empty: no music.",
+ "En boucle": "Loop",
+ "Recommence au début à la fin du morceau, tant que la scène est à l'écran.": "Starts over at the end of the track, as long as the scene is on screen.",
+ "Fondu (secondes)": "Fade (seconds)",
+ "Jouer aussi chez le MJ": "Also play for the GM",
+ "Décoché : seuls les joueurs l'entendent (pratique quand le MJ passe d'une scène à l'autre).": "Unticked: only players hear it (handy when the GM hops between scenes).",
+ "[{0}] Musique de scène : écoute impossible.": "[{0}] Scene music: preview failed.",
+ "Impossible de lire ce fichier.": "Can't play this file.",
+ "[{0}] Musique de scène (configuration) :": "[{0}] Scene music (configuration):",
+ "Musique de scène pour le groupe": "Scene music for the group",
+ "Dans la configuration d'une scène (onglet « Autres »), une musique jouée chez chaque personne qui a la scène à l'écran, même si elle n'est pas active : volume, boucle, fondu, jouée ou non chez le MJ. Elle s'arrête en quittant la scène.": "In a scene's configuration (“Other” tab), music played for everyone who has the scene on screen, even if it isn't active: volume, loop, fade, played or not for the GM. It stops when leaving the scene.",
  "➕ Nouvelle playlist dans le monde…": "➕ New playlist in the world…",
  "Playlists du monde": "World playlists",
  "➕ Nouvelle playlist dans ce compendium…": "➕ New playlist in this compendium…",

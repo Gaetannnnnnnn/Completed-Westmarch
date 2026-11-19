@@ -32,6 +32,7 @@ import { HealerHooks }       from "./modules/healer.js";
 import { AnniversaireHooks } from "./modules/anniversaire.js";
 import { MejFixHooks }       from "./modules/mejfix.js";
 import { PlaylistPackHooks } from "./modules/playlistpack.js";
+import { SceneMusicHooks }   from "./modules/scenemusic.js";
 import { EnchantArmeHooks }  from "./modules/enchantarme.js";
 import { MonkHooks }         from "./modules/monk.js";
 import { InitiativeRecupHooks } from "./modules/initiative-recup.js";
@@ -198,6 +199,7 @@ Hooks.on("init", () => {
     AnniversaireHooks();
     MejFixHooks();
     PlaylistPackHooks();
+    SceneMusicHooks();
     EnchantArmeHooks();
     MonkHooks();
     InitiativeRecupHooks();

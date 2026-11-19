@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 6.8.7
+Version : 6.8.8
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -217,6 +217,22 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v6.8.8 | 2026-11-19
+   - Nouveau : musique de scène POUR LE GROUPE. Dans la configuration d'une
+     scène, onglet « Autres » (v14 ; « Ambiance » en v13), bloc « Musique
+     de la scène » : fichier (sélecteur, ou choix dans les playlists du
+     monde et des compendiums), volume, en boucle, fondu, jouer aussi chez
+     le MJ, et bouton ▶ pour écouter chez soi. La musique est jouée chez
+     chaque personne qui a la scène à l'écran, même si elle n'est pas
+     active (Foundry ne joue la musique d'une scène qu'à son activation,
+     pour tous). Elle s'arrête en fondu quand on quitte la scène ; si la
+     scène suivante a la même musique, elle continue sans coupure.
+     Lecture locale dans le canal « Musique » (le curseur de volume
+     Musique de chaque joueur s'applique), aucune diffusion réseau.
+     Réglage : Toolkit → Musique de scène pour le groupe.
+     Fichiers : modules/scenemusic.js (nouveau), sceneaudio.js (navigateur
+     de playlists exporté), settings.js, index.js.
 
 v6.8.7 | 2026-11-19
    - Playlists en compendium : le dossier où vont les musiques envoyées

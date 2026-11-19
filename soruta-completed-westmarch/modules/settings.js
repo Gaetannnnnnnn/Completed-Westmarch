@@ -747,6 +747,9 @@ export function registerSettings() {
     game.settings.register(MOD, "playlistUploadSousDossier", B(
         tl("Playlists en compendium — un sous-dossier par playlist"),
         tl("Range les musiques de chaque playlist dans son propre sous-dossier (ex. musique/la-taverne). Décoché : tout va directement dans le dossier choisi.")));
+    game.settings.register(MOD, "enableSceneMusic", B(
+        tl("Musique de scène pour le groupe"),
+        tl("Dans la configuration d'une scène (onglet « Autres »), une musique jouée chez chaque personne qui a la scène à l'écran, même si elle n'est pas active : volume, boucle, fondu, jouée ou non chez le MJ. Elle s'arrête en quittant la scène.")));
     game.settings.register(MOD, "enableMejRestock", B(
         tl("Réapprovisionnement automatique des boutiques"),
         tl("Active/désactive le système de réapprovisionnement des boutiques MEJ.")));
@@ -1379,7 +1382,7 @@ const CATEGORIES = [
       keys: ["tmEnabled","tmSkillBase","tmAddAbilityMod","tmBonusMaitrise","tmBonusExpertise","tmBonusTools","tmRollMinDays","tmReliableTalent","tmSkillFormula","tmCraftNonMagicCostDiv","tmCraftNonMagicDaysPerGp","tmCraftNonMagicCostFormula","tmCraftNonMagicDaysFormula","tmSingleUseFactor","tmScrollTable","tmMagicTable","tmRollTable"] },
     { firstKey: "enableTokenAppearance", icon: "fa-toolbox",         title: "Toolkit",
       desc: tl("Apparences de tokens, transformations, tailles Large, TGCM, utilitaires GM, templates AoE, boutiques MEJ et réapprovisionnement."),
-      keys: ["enableCasierGm","enableExpeditionDate","enableChatTools","enableExportDialog","enablePlayerListToggle","enableTokenAppearance","enableTokenPortraitButton","enableTokenAccroche","enableGmNotesNpc","enableTgcm","enableCompanions","enableFolderMove","enableToolAbilityFix","enableConnStats","enablePlayerListCompact","enableTemplateSnap","enableFollowTemplates","enableMejShopFix","enableMejCompendiumFix","enablePlaylistPackViewer","playlistUploadDossier","playlistUploadSousDossier","enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
+      keys: ["enableCasierGm","enableExpeditionDate","enableChatTools","enableExportDialog","enablePlayerListToggle","enableTokenAppearance","enableTokenPortraitButton","enableTokenAccroche","enableGmNotesNpc","enableTgcm","enableCompanions","enableFolderMove","enableToolAbilityFix","enableConnStats","enablePlayerListCompact","enableTemplateSnap","enableFollowTemplates","enableMejShopFix","enableMejCompendiumFix","enablePlaylistPackViewer","playlistUploadDossier","playlistUploadSousDossier","enableSceneMusic","enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
     { firstKey: "relationsEnabled", master: "relationsEnabled",      icon: "fa-heart",           title: tl("Fiche PJ — Relations"),
       desc: tl("Onglet Relations : liens entre personnages, détection automatique des rencontres, anonymisation."),
       keys: ["relationsEnabled","relationsAnonymization","relationsLastSeen"] },

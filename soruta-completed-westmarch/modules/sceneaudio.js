@@ -464,7 +464,7 @@ async function _collectPlaylistSounds() {
     return groups;
 }
 
-async function _openPlaylistBrowser(onPick) {
+export async function _openPlaylistBrowser(onPick) {
     const groups = await _collectPlaylistSounds();
     if (!groups.length) {
         ui.notifications?.warn(tl("Aucun son trouvé dans les playlists (monde ou compendiums)."));

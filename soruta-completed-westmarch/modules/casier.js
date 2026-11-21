@@ -1513,19 +1513,52 @@ export function refreshCasierBadge() {
 }
 
 // Fenêtre (lecture seule) des présentations des MJ — accessible aux joueurs.
+// Chaque présentation est REPLIÉE : on voit le nom du MJ et le début du texte ;
+// un clic déplie le texte complet (élément <details> natif du navigateur).
 export function openGmPresentations() {
     const gms = (game.users ?? []).filter(u => u.isGM);
+    const apercu = (t) => {
+        const ligne = String(t).split(/\n+/).map(x => x.trim()).find(Boolean) ?? "";
+        return ligne.length > 90 ? ligne.slice(0, 90).trimEnd() + "…" : ligne;
+    };
     const cards = gms.map(gm => {
         const pres = getPresentation(gm.id);
-        return `<div style="border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:8px 10px;margin:0 0 8px;">
-            <div style="font-weight:700;margin-bottom:4px;"><i class="fa-solid fa-user-shield"></i> ${esc(gm.name)}</div>
-            <div style="font-size:.92em;opacity:.9;">${pres ? esc(pres).replace(/\n/g, "<br>") : `${tl("<em>Aucune présentation.</em>")}`}</div>
-        </div>`;
+        if (!pres) {
+            return `<div class="scwm-gmp-carte scwm-gmp-vide">
+                <span class="scwm-gmp-nom"><i class="fa-solid fa-user-shield"></i> ${esc(gm.name)}</span>
+                <em>${tl("Aucune présentation.")}</em></div>`;
+        }
+        return `<details class="scwm-gmp-carte">
+            <summary>
+                <i class="fa-solid fa-chevron-right scwm-gmp-chevron"></i>
+                <span class="scwm-gmp-tete">
+                    <span class="scwm-gmp-nom"><i class="fa-solid fa-user-shield"></i> ${esc(gm.name)}</span>
+                    <span class="scwm-gmp-apercu">${esc(apercu(pres))}</span>
+                </span>
+            </summary>
+            <div class="scwm-gmp-texte">${esc(pres).replace(/\n/g, "<br>")}</div>
+        </details>`;
     }).join("") || `<p>${tl("Aucun MJ.")}</p>`;
+    const style = `<style>
+        .scwm-gmp-carte { border:1px solid rgba(255,255,255,.12); border-radius:8px; margin:0 0 8px; }
+        .scwm-gmp-vide { display:flex; flex-wrap:wrap; gap:4px 10px; align-items:baseline; padding:8px 10px; }
+        .scwm-gmp-vide em { opacity:.7; font-size:.92em; }
+        .scwm-gmp-carte > summary { display:flex; align-items:flex-start; gap:8px; padding:8px 10px; cursor:pointer; list-style:none; }
+        .scwm-gmp-carte > summary::-webkit-details-marker { display:none; }
+        .scwm-gmp-carte > summary:hover { background:rgba(255,255,255,.05); border-radius:8px; }
+        .scwm-gmp-chevron { margin-top:3px; font-size:.8em; opacity:.7; transition:transform .15s; }
+        .scwm-gmp-carte[open] .scwm-gmp-chevron { transform:rotate(90deg); }
+        .scwm-gmp-tete { display:flex; flex-direction:column; min-width:0; flex:1; }
+        .scwm-gmp-nom { font-weight:700; }
+        .scwm-gmp-apercu { font-size:.85em; opacity:.65; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .scwm-gmp-carte[open] .scwm-gmp-apercu { display:none; }
+        .scwm-gmp-texte { padding:0 10px 10px 28px; font-size:.92em; opacity:.9; line-height:1.45; }
+    </style>`;
     foundry.applications.api.DialogV2.wait({
         window:   { title: tl("Présentations des MJ"), icon: "fa-solid fa-user-shield" },
         position: { width: 480 },
-        content:  `<div style="max-height:60vh;overflow:auto;">${cards}</div>`,
+        content:  `${style}<p style="margin:0 0 6px;font-size:.85em;opacity:.7;">${tl("Cliquez sur un MJ pour lire sa présentation.")}</p>
+            <div style="max-height:60vh;overflow:auto;">${cards}</div>`,
         rejectClose: false,
         buttons: [{ action: "close", label: tl("Fermer"), icon: "fa-solid fa-xmark", default: true }]
     }).catch(() => {});

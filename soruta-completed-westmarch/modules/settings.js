@@ -285,6 +285,10 @@ export function registerSettings() {
         tl("Notifier le MJ des montées de niveau"),
         tl("Quand les montées de niveau sont libres, poste quand même au MJ un récapitulatif des changements (niveau, classe, aptitudes, sorts ajoutés/retirés) — pour information, sans rien bloquer."),
         true));
+    game.settings.register(MOD, "charValidationWebhookUrl", S(
+        tl("Validation — Webhook Discord"),
+        tl("URL d'un webhook Discord (salon staff/MJ) qui reçoit les demandes de création, les fiches soumises pour validation et les montées de niveau, en plus des messages chuchotés aux MJ. Laisser vide pour désactiver."),
+        ""));
     game.settings.register(MOD, "charValidationFolder", S(
         tl("Validation — Dossier des personnages"),
         tl("Nom du dossier d'acteurs où sont créés les personnages validés."),
@@ -1349,7 +1353,7 @@ const CATEGORIES = [
       keys: ["mondeEnabled","mondeDecouverte","mondeDecouverteMessage","mondeBanniere","mondeBanniereSon","mondeEpinglesPartout","mondeTailleEpingle","mondePackPerson","mondePackPersonFolder","mondePackOrg","mondePackOrgFolder","mondeFolderPlace","mondeRubriques"] },
     { firstKey: "enableCharValidation", master: "enableCharValidation", icon: "fa-id-card", title: tl("Création de personnages"),
       desc: tl("Les joueurs demandent la création d'un personnage ; un GM valide depuis le Casier, puis le joueur construit et soumet sa fiche ; à la validation elle est verrouillée. Le dossier de destination se règle dans « Dossiers & Compendiums »."),
-      keys: ["enableCharValidation","charMaxTotal","charMaxActive","charFreeLevelUp","charNotifyLevelUp","blockPlayerPlutonium"] },
+      keys: ["enableCharValidation","charMaxTotal","charMaxActive","charFreeLevelUp","charNotifyLevelUp","charValidationWebhookUrl","blockPlayerPlutonium"] },
     { firstKey: "disableElectrum", icon: "fa-coins", title: tl("Monnaie"),
       desc: tl("Règles de bourse. ⚠️ Pour que les modules qui lisent la richesse sur la fiche (ex. Temps morts) fonctionnent correctement, forcez les pièces à rester sur la fiche (option « Pièces dans les contenants »)."),
       keys: ["disableElectrum","currencyContainerBlock"] },

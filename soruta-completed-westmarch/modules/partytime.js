@@ -799,7 +799,9 @@ function construireBarre() {
     el.setAttribute("role", "status");
     const mj = game.user.isGM;
     el.innerHTML = `
-        ${mj ? `<button type="button" class="scwm-tb-btn scwm-tb-jour" data-tooltip="${tl("Jour suivant (+1 jour, rations comprises)")}"><i class="fa-solid fa-forward-step"></i></button>` : ""}
+        ${mj ? `<button type="button" class="scwm-tb-btn scwm-tb-jour" data-tooltip="${tl("Jour suivant (+1 jour, rations comprises)")}"><i class="fa-solid fa-forward-step"></i></button>
+        <button type="button" class="scwm-tb-btn scwm-tb-repos" data-heures="1" data-tooltip="${tl("Repos court : avancer le temps d'1 heure")}"><i class="fa-solid fa-mug-hot"></i><span>1h</span></button>
+        <button type="button" class="scwm-tb-btn scwm-tb-repos" data-heures="8" data-tooltip="${tl("Repos long : avancer le temps de 8 heures")}"><i class="fa-solid fa-bed"></i><span>8h</span></button>` : ""}
         <span class="scwm-tb-info">
             <i class="fa-solid fa-sun scwm-tb-astre"></i>
             <span class="scwm-tb-heure"></span>
@@ -819,6 +821,12 @@ function construireBarre() {
         const b = ev.currentTarget; b.disabled = true;
         try { await avancerTempsAffiche(secondsPerDay()); } finally { b.disabled = false; }
     });
+    // Repos court (+1 h) / repos long (+8 h) : avancent seulement le temps
+    // (horloge de la party si elle en a une, sinon le monde).
+    el.querySelectorAll(".scwm-tb-repos").forEach(btn => btn.addEventListener("click", async (ev) => {
+        const b = ev.currentTarget; b.disabled = true;
+        try { await avancerTempsAffiche((Number(b.dataset.heures) || 0) * 3600); } finally { b.disabled = false; }
+    }));
     const curseur = el.querySelector(".scwm-tb-curseur");
     const duree   = el.querySelector(".scwm-tb-duree");
     const ok      = el.querySelector(".scwm-tb-ok");
@@ -1022,6 +1030,8 @@ const WIDGET_CSS = `
 }
 #scwm-time-bar .scwm-tb-btn:hover:not(:disabled) { background: rgba(201,162,39,0.28); }
 #scwm-time-bar .scwm-tb-btn:disabled { opacity: 0.35; cursor: default; }
+#scwm-time-bar .scwm-tb-repos { width: auto; padding: 0 7px; gap: 4px; font-weight: 600; }
+#scwm-time-bar .scwm-tb-repos span { font-size: 10px; }
 #scwm-time-bar .scwm-tb-avance { display: flex; align-items: center; gap: 5px; padding-left: 6px; border-left: 1px solid rgba(201,162,39,0.3); }
 #scwm-time-bar .scwm-tb-curseur { width: 110px; height: 14px; margin: 0; }
 #scwm-time-bar .scwm-tb-duree  { min-width: 52px; font-variant-numeric: tabular-nums; opacity: 0.85; }

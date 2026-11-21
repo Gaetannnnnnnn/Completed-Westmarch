@@ -25,6 +25,7 @@ import { journal } from "./log.js";
 import { Dialog } from "./compat.js";
 import { commonFolderNewChars, commonFolderPJ } from "./settings.js";
 import { tl, memeNom } from "./i18n.js";
+import { starXpEnabled, progressFor } from "./starxp.js";
 
 // ---- Frontière construction / jeu -------------------------------------------
 // Chemins d'acteur relevant de la CONSTRUCTION (verrouillés).
@@ -48,6 +49,34 @@ const enabled = () => game.settings.get(MOD, "enableCharValidation");
 const freeLevelUp = () => { try { return game.settings.get(MOD, "charFreeLevelUp") === true; } catch { return false; } };
 const notifyLevelUp = () => { try { return game.settings.get(MOD, "charNotifyLevelUp") === true; } catch { return false; } };
 const isLocked = (actor) => actor?.getFlag(MOD, "locked") === true;
+
+// ---- Webhook Discord des validations ----------------------------------------
+// Copie des notifications « Validation » (habituellement chuchotées aux MJ)
+// vers un salon Discord : demandes de création, fiches soumises, montées de
+// niveau. Envoyé par le client qui fait l'action (un seul client : pas de
+// doublon). Les mentions (@everyone, @rôle…) sont neutralisées.
+// Réglage : charValidationWebhookUrl (vide = désactivé).
+const WEBHOOK_RE = /^https:\/\/(canary\.|ptb\.)?discord(app)?\.com\/api\/webhooks\//;
+const md = (t) => String(t ?? "").replace(/([\\*_~`|>])/g, "\\$1");   // échappe la mise en forme Discord
+function notifierDiscord(lignes) {
+    try {
+        if (!enabled()) return;
+        const url = String(game.settings.get(MOD, "charValidationWebhookUrl") ?? "").trim();
+        if (!url || !WEBHOOK_RE.test(url)) return;
+        const texte = (Array.isArray(lignes) ? lignes : [lignes]).filter(Boolean).join("\n").slice(0, 1900);
+        fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ content: texte, username: "WestMarch — Validation", allowed_mentions: { parse: [] } })
+        }).catch(e => journal.erreurLocale?.(tl("[{0}] Webhook des validations :", MOD), e));
+    } catch (e) { journal.avert(tl("[{0}] Webhook des validations :", MOD), e); }
+}
+// Liste à puces pour Discord, limitée pour rester sous la taille d'un message.
+function listeDiscord(items, max = 15) {
+    const l = items.slice(0, max).map(x => `• ${md(x)}`);
+    if (items.length > max) l.push(tl("… et {0} autre(s)", items.length - max));
+    return l;
+}
 
 // ============================================================
 // DONNÉES / ÉTAT
@@ -74,6 +103,20 @@ export function getPendingActors() {
 const maxTotal  = () => Number(game.settings.get(MOD, "charMaxTotal"))  || 0;   // 0 = illimité
 const maxActive = () => Math.max(1, Number(game.settings.get(MOD, "charMaxActive")) || 2);
 const isStock   = (a) => a?.getFlag?.(MOD, "stock") === true;
+
+// Le personnage est-il EN CONSTRUCTION ? (création pas encore soumise, ou
+// montée de niveau en cours). Même logique que le statut « 🛠️ » du hub :
+// pas verrouillé, pas en attente de validation, pas en stock, et pris dans
+// le circuit de validation. Sert au log Discord : pas de ⚠️ pendant la
+// construction, c'est normal que le joueur modifie sa fiche.
+export function estEnConstruction(actor) {
+    try {
+        if (!enabled() || !actor || actor.type !== "character") return false;
+        const f = (k) => actor.getFlag(MOD, k);
+        if (f("locked") === true || f("pendingValidation") === true || isStock(actor)) return false;
+        return !!(f("createdFor") || f("validated") === true || f("levelUpGranted") === true);
+    } catch { return false; }
+}
 
 // Le PJ a-t-il atteint le seuil d'XP pour monter de niveau ? (XP dnd5e :
 // value = XP actuelle, max = XP requise pour le niveau suivant.)
@@ -383,6 +426,7 @@ function _queueLuNote(actor, line) {
             speaker: { alias: tl("Montée de niveau (libre)") },
             content: `${tl("⬆️ <strong>{0}</strong> a modifié sa construction :{1}", esc(e.actor.name), body)}`
         });
+        notifierDiscord([tl("⬆️ **{0}** a modifié sa construction :", md(e.actor.name)), ...listeDiscord(lines)]);
     }, 2500);
 }
 
@@ -446,6 +490,7 @@ function promptNewCharRequest() {
                     if (!name) { ui.notifications?.warn(tl("Indiquez un nom.")); return; }
                     await game.user.setFlag(MOD, "charRequest", { name, dateISO: new Date().toISOString() });
                     ChatMessage.create({ whisper: gmIds(), speaker: { alias: tl("Validation") }, content: `${tl("📝 <strong>{0}</strong> demande la création d'un personnage : « {1} ».", esc(game.user.name), esc(name))}` });
+                    notifierDiscord(tl("📝 **{0}** demande la création d'un personnage : « {1} ».", md(game.user.name), md(name)));
                     ui.notifications?.info(tl("Demande envoyée."));
                 }
             },
@@ -465,76 +510,174 @@ export function openPlayerHub() {
     const atActiveLimit = nbActive >= limActive;
     const atTotalLimit = limTotal > 0 && actors.length >= limTotal;
 
-    // Liste des personnages du joueur, avec statut et actions.
-    const rows = actors.map(a => {
+    // Bouton d'action (icône + texte).
+    const bouton = (act, id, icone, texte, extra = "", cls = "") =>
+        `<button type="button" class="scwm-cv-act ${cls}" data-act="${act}" data-id="${id ?? ""}" ${extra}><i class="fa-solid ${icone}"></i> ${texte}</button>`;
+
+    // Richesse totale convertie en po (pp, po, pe, pa, pc), avec le détail.
+    // Taux pris dans CONFIG.DND5E.currencies (conversion = combien de cette
+    // pièce font 1 po), repli sur les taux standard.
+    const richesse = (cur) => {
+        const taux = { pp: 0.1, gp: 1, ep: 2, sp: 10, cp: 100 };
+        const cfg = CONFIG?.DND5E?.currencies ?? {};
+        let total = 0; const detail = [];
+        for (const k of ["pp", "gp", "ep", "sp", "cp"]) {
+            const n = Number(cur?.[k]) || 0;
+            if (!n) continue;
+            const conv = Number(cfg[k]?.conversion) || taux[k];
+            total += n / conv;
+            detail.push(`${n} ${cfg[k]?.abbreviation ? game.i18n.localize(cfg[k].abbreviation) : k}`);
+        }
+        return { po: cur ? Math.round(total * 100) / 100 : null, poDetail: detail.join(", ") };
+    };
+
+    // Infos de jeu lues sur la fiche dnd5e (tout est facultatif : une fiche
+    // vide en début de construction ne doit rien casser).
+    const infos = (a) => {
+        const sys = a.system ?? {};
+        const num = (v) => Number.isFinite(Number(v)) ? Number(v) : null;
+        let classes = [];
+        try {
+            classes = Object.values(a.classes ?? {}).sort((x, y) => (y.system?.levels ?? 0) - (x.system?.levels ?? 0))
+                .map(c => `${c.name} ${c.system?.levels ?? ""}`.trim() + (c.subclass?.name ? ` (${c.subclass.name})` : ""));
+        } catch { /* */ }
+        const espece = sys.details?.race?.name ?? (typeof sys.details?.race === "string" ? sys.details.race : "");
+        const histo = sys.details?.background?.name ?? (typeof sys.details?.background === "string" ? sys.details.background : "");
+        const xp = sys.details?.xp ?? {};
+        const xpMax = num(xp.max), xpVal = num(xp.value) ?? 0, xpMin = num(xp.min) ?? 0;
+        const pct = num(xp.pct) ?? (xpMax ? Math.round(((xpVal - xpMin) / Math.max(1, xpMax - xpMin)) * 100) : null);
+        return {
+            niveau: num(sys.details?.level) ?? 0,
+            classes, espece, histo,
+            pv: num(sys.attributes?.hp?.value), pvMax: num(sys.attributes?.hp?.max),
+            ca: num(sys.attributes?.ac?.value),
+            ...richesse(sys.currency),
+            xpVal, xpMax, pct: pct == null ? null : Math.max(0, Math.min(100, pct))
+        };
+    };
+
+    // Statut → pastille colorée + boutons d'action principaux.
+    const statutDe = (a) => {
+        const id = a.id;
         const stock      = isStock(a);
         const locked     = a.getFlag(MOD, "locked");
         const pending    = a.getFlag(MOD, "pendingValidation");
         const lvlPending = a.getFlag(MOD, "pendingLevelUp");
-        let status, btns = "";
-
-        const inFlow    = a.getFlag(MOD, "createdFor") === game.user.id;
-        const validated = a.getFlag(MOD, "validated");
+        const inFlow     = a.getFlag(MOD, "createdFor") === game.user.id;
+        const validated  = a.getFlag(MOD, "validated");
+        const btnStock = bouton("stock", id, "fa-box-archive", tl("Stock"), `data-tooltip="${tl("Mettre en stock : le personnage n'est plus jouable mais libère une place active.")}"`, "scwm-cvh-discret");
         if (stock) {
-            status = tl("🔒 en stock (non jouable)");
-            const dis = atActiveLimit ? tl("disabled title=\"Limite de personnages actifs atteinte — mettez-en un en stock d'abord\"") : "";
-            btns = `<button type="button" class="scwm-cv-act" data-act="activate" data-id="${a.id}" ${dis}>${tl("<i class=\"fa-solid fa-lock-open\"></i> Activer")}</button>`;
-        } else if (validated && freeLevelUp()) {
-            // MODE CONFIANCE : montées de niveau SANS validation MJ, mais via le
-            // bouton dédié (déverrouille → avancement → « Terminer » re-verrouille).
-            // Forcer directement sur la fiche verrouillée est bloqué (cf. gardes).
-            if (a.getFlag(MOD, "levelUpGranted") === true) {
-                status = tl("🛠️ montée de niveau en cours");
-                btns = `<button type="button" class="scwm-cv-act" data-act="finishFree" data-id="${a.id}">${tl("<i class=\"fa-solid fa-lock\"></i> Terminer")}</button>`;
-            } else {
-                status = tl("🎭 jouable (montées libres)");
-                btns = `<button type="button" class="scwm-cv-act" data-act="levelup" data-id="${a.id}">${tl("<i class=\"fa-solid fa-arrow-up-1-9\"></i> Monter de niveau")}</button>`;
-            }
-            btns += `<button type="button" class="scwm-cv-act" data-act="stock" data-id="${a.id}" title="Mettre en stock"><i class="fa-solid fa-box-archive"></i></button>`;
-        } else {
-            if (locked && lvlPending)      status = tl("verrouillé · ⬆️ montée en attente");
-            else if (locked)             {
-                status = tl("🔒 validé & verrouillé");
-                // Bouton de montée de niveau uniquement si le PJ a atteint le seuil d'XP.
-                if (canLevelUp(a)) btns = `<button type="button" class="scwm-cv-act" data-act="levelup" data-id="${a.id}">${tl("<i class=\"fa-solid fa-arrow-up-1-9\"></i> Monter de niveau")}</button>`;
-            }
-            else if (pending)              status = tl("⏳ en attente de validation");
-            else if (inFlow || validated) { status = tl("🛠️ en construction"); btns = `<button type="button" class="scwm-cv-act" data-act="submit" data-id="${a.id}">${tl("<i class=\"fa-solid fa-paper-plane\"></i> Soumettre")}</button>`; }
-            else                         { status = "🎭 jouable"; btns = `<button type="button" class="scwm-cv-act" data-act="submit" data-id="${a.id}" title="${tl("Soumettre pour validation & verrouillage")}">${tl("<i class=\"fa-solid fa-paper-plane\"></i> Soumettre")}</button>`; }
-            btns += `<button type="button" class="scwm-cv-act" data-act="stock" data-id="${a.id}" title="Mettre en stock"><i class="fa-solid fa-box-archive"></i></button>`;
+            const dis = atActiveLimit ? `disabled data-tooltip="${tl("Limite de personnages actifs atteinte — mettez-en un en stock d'abord")}"` : "";
+            return { cle: "stock", icone: "fa-box-archive", texte: tl("En stock"), aide: tl("Rangé : pas jouable pour l'instant."),
+                     btns: bouton("activate", id, "fa-lock-open", tl("Activer"), dis) };
         }
+        if (validated && freeLevelUp()) {
+            if (a.getFlag(MOD, "levelUpGranted") === true)
+                return { cle: "construction", icone: "fa-hammer", texte: tl("Montée de niveau en cours"), aide: tl("Faites votre avancement, puis cliquez « Terminer »."),
+                         btns: bouton("finishFree", id, "fa-lock", tl("Terminer")) + btnStock };
+            return { cle: "jouable", icone: "fa-dice-d20", texte: tl("Jouable"), aide: tl("Montées de niveau libres."),
+                     btns: bouton("levelup", id, "fa-circle-up", tl("Monter de niveau")) + btnStock };
+        }
+        if (locked && lvlPending)
+            return { cle: "attente", icone: "fa-hourglass-half", texte: tl("Montée en attente"), aide: tl("Le MJ doit autoriser la montée de niveau."), btns: btnStock };
+        if (locked)
+            return { cle: "valide", icone: "fa-shield-halved", texte: tl("Validé"), aide: tl("Fiche validée par un MJ : prête à jouer."),
+                     btns: (canLevelUp(a) ? bouton("levelup", id, "fa-circle-up", tl("Monter de niveau"), "", "scwm-cvh-brille") : "") + btnStock };
+        if (pending)
+            return { cle: "attente", icone: "fa-hourglass-half", texte: tl("En attente de validation"), aide: tl("Un MJ va relire votre fiche."), btns: btnStock };
+        if (inFlow || validated)
+            return { cle: "construction", icone: "fa-hammer", texte: tl("En construction"), aide: tl("Construisez votre fiche, puis soumettez-la à un MJ."),
+                     btns: bouton("submit", id, "fa-paper-plane", tl("Soumettre")) + btnStock };
+        return { cle: "jouable", icone: "fa-dice-d20", texte: tl("Jouable"), aide: tl("Pas encore passé en validation."),
+                 btns: bouton("submit", id, "fa-paper-plane", tl("Soumettre"), `data-tooltip="${tl("Soumettre pour validation & verrouillage")}"`) + btnStock };
+    };
 
-        return `<div class="scwm-cv-charrow${stock ? " scwm-cv-stocked" : ""}">
-            <div class="scwm-cv-charinfo"><strong>${esc(a.name)}</strong><br><span class="scwm-cv-charstatus">${status}</span></div>
-            <div class="scwm-cv-charactions">
-                <button type="button" class="scwm-cv-act" data-act="open" data-id="${a.id}" title="Ouvrir la fiche"><i class="fa-solid fa-user"></i></button>
-                ${btns}
+    const rows = actors.map(a => {
+        const st = statutDe(a);
+        const i = infos(a);
+        const ligne2 = [i.niveau ? tl("Niveau {0}", i.niveau) : "", i.espece, i.classes.join(" / ")].filter(Boolean).map(esc).join(" · ");
+        const puces = [
+            i.pvMax ? `<span class="scwm-cvh-puce" data-tooltip="${tl("Points de vie (actuels / maximum)")}"><i class="fa-solid fa-heart"></i> ${tl("PV")} <b>${i.pv ?? "?"}/${i.pvMax}</b></span>` : "",
+            i.ca ? `<span class="scwm-cvh-puce" data-tooltip="${tl("Classe d'armure")}"><i class="fa-solid fa-shield"></i> ${tl("CA")} <b>${i.ca}</b></span>` : "",
+            i.po != null ? `<span class="scwm-cvh-puce" data-tooltip="${esc(tl("Fortune totale convertie en pièces d'or{0}", i.poDetail ? ` (${i.poDetail})` : ""))}"><i class="fa-solid fa-coins"></i> <b>${i.po.toLocaleString(game.i18n?.lang || "fr")}</b> ${tl("po")}</span>` : ""
+        ].join("");
+        let xp = "";
+        if (starXpEnabled()) {
+            // Système d'étoiles : l'XP dnd5e ne sert qu'à piloter le bouton de
+            // montée de niveau (0 ou max) ; on affiche donc les ÉTOILES.
+            const p = progressFor(a);
+            if (p.max) {
+                xp = `<div class="scwm-cvh-xp scwm-cvh-etoiles"><small><i class="fa-solid fa-crown"></i> ${tl("Niveau maximum atteint")}</small></div>`;
+            } else {
+                const pct = Math.round(100 * Math.min(p.stars, p.threshold) / Math.max(1, p.threshold));
+                xp = `<div class="scwm-cvh-xp scwm-cvh-etoiles${p.ready ? " scwm-cvh-xp-pret" : ""}" data-tooltip="${tl("Étoiles vers le niveau {0} : {1} / {2}", p.level + 1, p.stars, p.threshold)}">
+                    <div class="scwm-cvh-xp-barre"><span style="width:${pct}%"></span></div>
+                    <small><i class="fa-solid fa-star"></i> ${p.ready ? tl("✨ Prêt à monter au niveau {0} !", p.level + 1) : tl("{0} / {1} étoiles vers le niveau {2}", p.stars, p.threshold, p.level + 1)}</small>
+                </div>`;
+            }
+        } else if (i.xpMax && i.pct != null) {
+            const pret = canLevelUp(a);
+            xp = `<div class="scwm-cvh-xp${pret ? " scwm-cvh-xp-pret" : ""}" data-tooltip="${tl("Expérience : {0} / {1}", i.xpVal, i.xpMax)}">
+                <div class="scwm-cvh-xp-barre"><span style="width:${i.pct}%"></span></div>
+                <small>${pret ? tl("✨ Niveau supérieur disponible !") : tl("XP {0} / {1}", i.xpVal, i.xpMax)}</small>
+            </div>`;
+        }
+        return `<article class="scwm-cvh-carte scwm-cvh-${st.cle}">
+            <button type="button" class="scwm-cv-act scwm-cvh-portrait" data-act="open" data-id="${a.id}" data-tooltip="${tl("Ouvrir la fiche")}">
+                <img src="${esc(a.img)}" alt="">
+            </button>
+            <div class="scwm-cvh-corps">
+                <div class="scwm-cvh-tete">
+                    <h4>${esc(a.name)}</h4>
+                    <span class="scwm-cvh-statut" data-tooltip="${esc(st.aide)}"><i class="fa-solid ${st.icone}"></i> ${st.texte}</span>
+                </div>
+                ${ligne2 ? `<p class="scwm-cvh-sous">${ligne2}</p>` : ""}
+                ${i.histo ? `<p class="scwm-cvh-histo"><i class="fa-solid fa-scroll"></i> ${esc(i.histo)}</p>` : ""}
+                ${puces ? `<div class="scwm-cvh-puces">${puces}</div>` : ""}
+                ${xp}
+                <div class="scwm-cvh-actions">
+                    ${bouton("open", a.id, "fa-id-card", tl("Fiche"), "", "scwm-cvh-discret")}
+                    ${st.btns}
+                </div>
             </div>
-        </div>`;
-    }).join("") || `<p class="scwm-cv-empty">${tl("Vous n'avez pas encore de personnage.")}</p>`;
+        </article>`;
+    }).join("") || `<div class="scwm-cvh-vide"><i class="fa-solid fa-feather-pointed"></i><p>${tl("Vous n'avez pas encore de personnage. Demandez-en un pour commencer l'aventure !")}</p></div>`;
 
-    const counters = `<p class="scwm-cv-counters">${tl("Actifs : <strong>{0}/{1}</strong>{2}", nbActive, limActive, limTotal > 0 ? ` ${tl("· Total : <strong>{0}/{1}</strong>", actors.length, limTotal)}` : "")}</p>`;
+    const jauge = (n, max) => Array.from({ length: max }, (_, k) => `<span class="${k < n ? "plein" : ""}"></span>`).join("");
+    const counters = `<div class="scwm-cvh-compteurs">
+        <span class="scwm-cvh-compteur" data-tooltip="${tl("Personnages jouables en même temps")}">${tl("Actifs")} <b>${nbActive}/${limActive}</b> <span class="scwm-cvh-jauge">${limActive <= 10 ? jauge(nbActive, limActive) : ""}</span></span>
+        ${limTotal > 0 ? `<span class="scwm-cvh-compteur" data-tooltip="${tl("Personnages au total (actifs + en stock)")}">${tl("Total")} <b>${actors.length}/${limTotal}</b> <span class="scwm-cvh-jauge">${limTotal <= 10 ? jauge(actors.length, limTotal) : ""}</span></span>` : ""}
+    </div>`;
 
     let createBlock;
     if (req) {
-        createBlock = `<p>${tl("📝 Votre demande de création (« {0} ») est en attente de validation.", esc(req.name))}</p>
-           <div class="scwm-cv-actions"><button type="button" class="scwm-cv-act" data-act="cancel">${tl("<i class=\"fa-solid fa-times\"></i> Annuler la demande")}</button></div>`;
+        createBlock = `<div class="scwm-cvh-demande">
+            <i class="fa-solid fa-envelope-open-text"></i>
+            <div><b>${tl("Demande en attente")}</b><br><small>${tl("« {0} » attend l'accord d'un MJ.", esc(req.name))}</small></div>
+            ${bouton("cancel", "", "fa-times", tl("Annuler"), "", "scwm-cvh-discret")}
+        </div>`;
     } else if (atTotalLimit) {
-        createBlock = `<p class="scwm-cv-empty">${tl("Nombre maximum de personnages atteint ({0}).", limTotal)}</p>`;
+        createBlock = `<p class="scwm-cvh-limite"><i class="fa-solid fa-circle-info"></i> ${tl("Nombre maximum de personnages atteint ({0}).", limTotal)}</p>`;
     } else {
-        createBlock = `<div class="scwm-cv-actions"><button type="button" class="scwm-cv-act" data-act="newreq">${tl("<i class=\"fa-solid fa-plus\"></i> Demander un nouveau personnage")}</button></div>`;
+        createBlock = `<button type="button" class="scwm-cv-act scwm-cvh-nouveau" data-act="newreq"><i class="fa-solid fa-plus"></i> ${tl("Demander un nouveau personnage")}</button>`;
     }
 
-    const content = `<div class="scwm-cv-hub">
-        <h3 style="margin-top:0;">${tl("Mes personnages")}</h3>
+    const content = `<div class="scwm-cv-hub scwm-cvh">
+        <header class="scwm-cvh-entete">
+            <img class="scwm-cvh-avatar" src="${esc(game.user.avatar)}" alt="">
+            <div>
+                <h3>${tl("Mes personnages")}</h3>
+                <small>${tl("Le casier de {0}", esc(game.user.name))}</small>
+            </div>
+        </header>
         ${counters}
-        <div class="scwm-cv-charlist">${rows}</div>
-        <hr>
+        <div class="scwm-cvh-liste">${rows}</div>
         ${createBlock}
     </div>`;
 
     const dlg = new Dialog({
-        title: tl("Mes personnages — validation"),
+        title: tl("Mon casier"),
+        icon: "fa-solid fa-id-card",
         content,
         buttons: { close: { icon: '<i class="fa-solid fa-times"></i>', label: tl("Fermer") } },
         render: (html) => {
@@ -559,12 +702,18 @@ export function openPlayerHub() {
                 else if (a === "submit" && ac) {
                     await ac.setFlag(MOD, "pendingValidation", true);
                     ChatMessage.create({ whisper: gmIds(), speaker: { alias: tl("Validation") }, content: `${tl("📩 <strong>{0}</strong> soumet <strong>{1}</strong> pour validation.", esc(game.user.name), esc(ac.name))}` });
+                    if (!ac.getFlag(MOD, "levelUpSnapshot"))
+                        notifierDiscord(tl("📩 **{0}** soumet **{1}** pour validation.", md(game.user.name), md(ac.name)));
                     // Si c'est une re-soumission après montée de niveau : liste des modifs
                     // (chuchotée au MJ + stockée pour le dépliant du Casier).
                     const snap = ac.getFlag(MOD, "levelUpSnapshot");
                     if (snap) {
                         const changes = buildDiff(snap, buildSnapshot(ac));
                         postLevelUpDiff(ac, changes);
+                        notifierDiscord([
+                            tl("📩 **{0}** re-soumet **{1}** après une montée de niveau :", md(game.user.name), md(ac.name)),
+                            ...(changes.length ? listeDiscord(changes) : [tl("_Aucune modification de construction détectée._")])
+                        ]);
                         await ac.setFlag(MOD, "levelUpChanges", changes);
                     }
                     ui.notifications?.info(tl("Fiche soumise pour validation."));
@@ -582,6 +731,7 @@ export function openPlayerHub() {
                         ui.notifications?.info(tl("Fiche déverrouillée : faites votre avancement (bouton de montée de niveau dnd5e/Plutonium), puis cliquez « Terminer »."));
                     } else {
                         ChatMessage.create({ whisper: gmIds(), speaker: { alias: tl("Validation") }, content: `${tl("⬆️ <strong>{0}</strong> effectue une <strong>montée de niveau</strong> pour <strong>{1}</strong> (déverrouillage auto ; les modifications seront listées à la re-soumission).", esc(game.user.name), esc(ac.name))}` });
+                        notifierDiscord(tl("⬆️ **{0}** commence une montée de niveau pour **{1}** (les modifications seront listées à la re-soumission).", md(game.user.name), md(ac.name)));
                         ui.notifications?.info(tl("Fiche déverrouillée pour la montée de niveau. Effectuez-la, puis re-soumettez-la pour re-verrouiller."));
                     }
                 } else if (a === "finishFree" && ac) {
@@ -596,7 +746,14 @@ export function openPlayerHub() {
                         [`flags.${MOD}.-=levelUpChanges`]: null
                     });
                     if (snap && notifyLevelUp()) {
-                        try { postLevelUpDiff(ac, buildDiff(snap, buildSnapshot(ac))); } catch (e) {}
+                        try {
+                            const changes = buildDiff(snap, buildSnapshot(ac));
+                            postLevelUpDiff(ac, changes);
+                            notifierDiscord([
+                                tl("⬆️ **{0}** a terminé une montée de niveau libre pour **{1}** :", md(game.user.name), md(ac.name)),
+                                ...(changes.length ? listeDiscord(changes) : [tl("_Aucune modification de construction détectée._")])
+                            ]);
+                        } catch (e) {}
                     }
                     ui.notifications?.info(tl("Montée de niveau terminée — fiche re-verrouillée."));
                 }
@@ -604,7 +761,7 @@ export function openPlayerHub() {
             };
             root.querySelectorAll(".scwm-cv-act").forEach(b => b.addEventListener("click", () => run(b.dataset.act, b.dataset.id)));
         }
-    });
+    }, { width: 560, classes: ["scwm-cvh-fenetre"] });
     dlg.render(true);
 }
 

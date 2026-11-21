@@ -1,6 +1,7 @@
 import { MOD } from "./const.js";
 import { journal, definirRelais, INVITATION } from "./log.js";
 import { tl } from "./i18n.js";
+import { estEnConstruction } from "./charvalidation.js";
 // ============================================================
 // discordlog.js — Log des modifications vers un salon Discord
 // Envoie un message via webhook Discord pour : ajout/suppression
@@ -151,10 +152,12 @@ function sendToDiscordDirect(content, theme) {
 // Tag d'auteur pour affichage dans le log : ajoute un ⚠️ quand l'action
 // vient d'un joueur (et non d'un GM), pour repérer en un coup d'œil les
 // modifications faites par les joueurs eux-mêmes.
-function authorTag(userId) {
+// Exception : sur une fiche EN CONSTRUCTION (création ou montée de niveau en
+// cours, cf. charvalidation.js), le joueur est censé la modifier : pas de ⚠️.
+function authorTag(userId, actor = null) {
     const user = game.users.get(userId);
     const name = user?.name ?? tl("Inconnu");
-    if (user && !user.isGM) {
+    if (user && !user.isGM && !(actor && estEnConstruction(actor))) {
         return tl("⚠️ *(par {0} — joueur)*", name);
     }
     return tl("*(par {0})*", name);
@@ -265,10 +268,10 @@ export function DiscordLogHooks() {
         if (INVENTORY_TYPES.includes(item.type)) {
             if (!_log("logInventory")) return;
             const qty = item.system?.quantity?.value;
-            sendToDiscord(`📦 **${actor.name}** a obtenu **${item.name}**${qty > 1 ? ` x${qty}` : ""}. ${authorTag(userId)}`, "inventaire");
+            sendToDiscord(`📦 **${actor.name}** a obtenu **${item.name}**${qty > 1 ? ` x${qty}` : ""}. ${authorTag(userId, actor)}`, "inventaire");
         } else if (ELEMENT_TYPES.includes(item.type)) {
             if (!_log("logLevelsElements")) return;
-            sendToDiscord(tl("➕ **{0}** a ajouté **{1}** ({2}). {3}", actor.name, item.name, ELEMENT_LABELS[item.type] ?? item.type, authorTag(userId)), "elements");
+            sendToDiscord(tl("➕ **{0}** a ajouté **{1}** ({2}). {3}", actor.name, item.name, ELEMENT_LABELS[item.type] ?? item.type, authorTag(userId, actor)), "elements");
         }
     });
 
@@ -278,10 +281,10 @@ export function DiscordLogHooks() {
 
         if (INVENTORY_TYPES.includes(item.type)) {
             if (!_log("logInventory")) return;
-            sendToDiscord(`🗑️ **${actor.name}** a perdu **${item.name}**. ${authorTag(userId)}`, "inventaire");
+            sendToDiscord(`🗑️ **${actor.name}** a perdu **${item.name}**. ${authorTag(userId, actor)}`, "inventaire");
         } else if (ELEMENT_TYPES.includes(item.type)) {
             if (!_log("logLevelsElements")) return;
-            sendToDiscord(tl("➖ **{0}** a retiré **{1}** ({2}). {3}", actor.name, item.name, ELEMENT_LABELS[item.type] ?? item.type, authorTag(userId)), "elements");
+            sendToDiscord(tl("➖ **{0}** a retiré **{1}** ({2}). {3}", actor.name, item.name, ELEMENT_LABELS[item.type] ?? item.type, authorTag(userId, actor)), "elements");
         }
     });
 
@@ -307,7 +310,7 @@ export function DiscordLogHooks() {
                 : (item.system.quantity?.value ?? 0);
             const after = quantityChange;
             if (before !== after) {
-                sendToDiscordDirect(tl("🔄 **{0}** : quantité de **{1}** {2} → {3}. {4}", actor.name, item.name, before, after, authorTag(userId)), "inventaire");
+                sendToDiscordDirect(tl("🔄 **{0}** : quantité de **{1}** {2} → {3}. {4}", actor.name, item.name, before, after, authorTag(userId, actor)), "inventaire");
             }
         }
 
@@ -317,7 +320,7 @@ export function DiscordLogHooks() {
             if (mods.length) {
                 const lib = decrire(mods, LIBELLES_ITEM);
                 const nom = mods.find(m => m.cle === "name") ? `**${item.name}** → **${changes.name}**` : `**${item.name}**`;
-                sendToDiscordDirect(tl("✏️ **{0}** a modifié {1} ({2}) : {3}. {4}", actor.name, nom, ITEM_LABEL_TYPE[item.type] ?? item.type, lib.join(", "), authorTag(userId)), "modifs");
+                sendToDiscordDirect(tl("✏️ **{0}** a modifié {1} ({2}) : {3}. {4}", actor.name, nom, ITEM_LABEL_TYPE[item.type] ?? item.type, lib.join(", "), authorTag(userId, actor)), "modifs");
             }
         }
 
@@ -326,7 +329,7 @@ export function DiscordLogHooks() {
             const before = item.system.levels ?? 0;
             const after = changes.system.levels;
             if (before !== after) {
-                sendToDiscordDirect(tl("⬆️ **{0}** : niveau de **{1}** {2} → {3}. {4}", actor.name, item.name, before, after, authorTag(userId)), "progression");
+                sendToDiscordDirect(tl("⬆️ **{0}** : niveau de **{1}** {2} → {3}. {4}", actor.name, item.name, before, after, authorTag(userId, actor)), "progression");
             }
         }
     });
@@ -341,7 +344,7 @@ export function DiscordLogHooks() {
         // ---- Modification de la fiche elle-même ----
         if (_log("logSheetEdits")) {
             const mods = clesModifiees(actor, changes, IGNORE_ACTOR);
-            if (mods.length) sendToDiscordDirect(tl("✏️ **{0}** : fiche modifiée — {1}. {2}", actor.name, decrire(mods, LIBELLES_ACTOR).join(", "), authorTag(userId)), "modifs");
+            if (mods.length) sendToDiscordDirect(tl("✏️ **{0}** : fiche modifiée — {1}. {2}", actor.name, decrire(mods, LIBELLES_ACTOR).join(", "), authorTag(userId, actor)), "modifs");
         }
 
         // ---- XP ----
@@ -349,7 +352,7 @@ export function DiscordLogHooks() {
             const before = actor.system.details?.xp?.value ?? 0;
             const after = changes.system.details.xp.value;
             if (before !== after) {
-                sendToDiscordDirect(`✨ **${actor.name}** : XP ${before} → ${after}. ${authorTag(userId)}`, "progression");
+                sendToDiscordDirect(`✨ **${actor.name}** : XP ${before} → ${after}. ${authorTag(userId, actor)}`, "progression");
             }
         }
 
@@ -367,7 +370,7 @@ export function DiscordLogHooks() {
                 }
             }
             if (diffs.length > 0) {
-                sendToDiscordDirect(`💰 **${actor.name}** : ${diffs.join(", ")}. ${authorTag(userId)}`, "monnaie");
+                sendToDiscordDirect(`💰 **${actor.name}** : ${diffs.join(", ")}. ${authorTag(userId, actor)}`, "monnaie");
             }
         }
     });
@@ -378,13 +381,13 @@ export function DiscordLogHooks() {
     Hooks.on("createActor", (actor, options, userId) => {
         if (!_log("logActors") || !_actorLogged(actor)) return;
         const kind = actor.type === "npc" ? tl("PNJ") : tl("Personnage");
-        sendToDiscord(tl("🆕 {0} créé : **{1}**. {2}", kind, actor.name, authorTag(userId)), "fiches");
+        sendToDiscord(tl("🆕 {0} créé : **{1}**. {2}", kind, actor.name, authorTag(userId, actor)), "fiches");
     });
 
     Hooks.on("deleteActor", (actor, options, userId) => {
         if (!_log("logActors") || !_actorLogged(actor)) return;
         const kind = actor.type === "npc" ? tl("PNJ") : tl("Personnage");
-        sendToDiscord(tl("❌ {0} supprimé : **{1}**. {2}", kind, actor.name, authorTag(userId)), "fiches");
+        sendToDiscord(tl("❌ {0} supprimé : **{1}**. {2}", kind, actor.name, authorTag(userId, actor)), "fiches");
     });
 
     // ============================================================

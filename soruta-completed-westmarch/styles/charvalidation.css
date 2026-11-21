@@ -106,3 +106,132 @@
 .scwm-cv-tag-levelup  { color: #b9d9ff; background: rgba(52,120,201,0.22); border-color: rgba(52,120,201,0.6); }
 .scwm-casier-cv-row .scwm-cv-row-actions { flex: 0 0 auto; display: flex; gap: 4px; }
 .scwm-casier-cv-row .scwm-cv-row-actions button { white-space: nowrap; }
+
+/* =====================================================================
+   Hub joueur « Mes personnages » — version illustrée (.scwm-cvh)
+   Carte par personnage : portrait, statut coloré, infos de jeu, XP.
+   ===================================================================== */
+.scwm-cvh {
+    --cvh-or: #c9a227;
+    --cvh-statut: #c9a227;
+    display: flex; flex-direction: column; gap: 10px;
+}
+.scwm-cvh-entete { display: flex; align-items: center; gap: 10px; }
+.scwm-cvh-avatar {
+    width: 42px; height: 42px; flex: 0 0 auto;
+    border-radius: 50%; object-fit: cover;
+    border: 2px solid var(--cvh-or);
+    box-shadow: 0 0 8px rgba(201, 162, 39, .35);
+}
+.scwm-cvh-entete h3 { margin: 0; border: 0; font-size: 1.35em; line-height: 1.1; }
+.scwm-cvh-entete small { opacity: .7; }
+
+.scwm-cvh-compteurs { display: flex; flex-wrap: wrap; gap: 6px; }
+.scwm-cvh-compteur {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 10px; border-radius: 999px;
+    background: rgba(201, 162, 39, .1); border: 1px solid rgba(201, 162, 39, .35);
+    font-size: 12px;
+}
+.scwm-cvh-jauge { display: inline-flex; gap: 3px; }
+.scwm-cvh-jauge span { width: 7px; height: 7px; border-radius: 50%; border: 1px solid var(--cvh-or); }
+.scwm-cvh-jauge span.plein { background: var(--cvh-or); }
+
+.scwm-cvh-liste { display: flex; flex-direction: column; gap: 8px; }
+
+/* Carte d'un personnage */
+.scwm-cvh-carte {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 10px;
+    border: 1px solid rgba(255, 255, 255, .1);
+    border-left: 4px solid var(--cvh-statut);
+    border-radius: 8px;
+    background: linear-gradient(100deg, color-mix(in srgb, var(--cvh-statut) 12%, transparent), rgba(0, 0, 0, .15) 60%);
+    transition: transform .15s, box-shadow .15s;
+}
+.scwm-cvh-carte:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0, 0, 0, .35); }
+.scwm-cvh-construction { --cvh-statut: #e0913a; }
+.scwm-cvh-attente      { --cvh-statut: #e6c34a; }
+.scwm-cvh-valide       { --cvh-statut: #5fbf77; }
+.scwm-cvh-jouable      { --cvh-statut: #6aa8e8; }
+.scwm-cvh-stock        { --cvh-statut: #8a8f98; }
+.scwm-cvh-stock .scwm-cvh-portrait img { filter: grayscale(.85) brightness(.75); }
+.scwm-cvh-stock .scwm-cvh-corps > :not(.scwm-cvh-actions):not(.scwm-cvh-tete) { opacity: .6; }
+
+.scwm-cvh .scwm-cvh-portrait {
+    flex: 0 0 auto; width: 76px; height: 76px; padding: 0; margin: 0;
+    border-radius: 8px; overflow: hidden; cursor: pointer;
+    border: 2px solid var(--cvh-statut); background: rgba(0, 0, 0, .3);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--cvh-statut) 35%, transparent);
+}
+.scwm-cvh-portrait img { width: 100%; height: 100%; object-fit: cover; object-position: top; border: 0; display: block; transition: transform .2s; }
+.scwm-cvh-portrait:hover img { transform: scale(1.06); }
+
+.scwm-cvh-corps { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.scwm-cvh-tete { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.scwm-cvh-tete h4 { margin: 0; font-size: 1.15em; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scwm-cvh-statut {
+    flex: 0 0 auto; display: inline-flex; align-items: center; gap: 5px;
+    padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 600;
+    color: var(--cvh-statut);
+    background: color-mix(in srgb, var(--cvh-statut) 16%, transparent);
+    border: 1px solid color-mix(in srgb, var(--cvh-statut) 55%, transparent);
+}
+.scwm-cvh-sous { margin: 0; font-size: 12px; opacity: .85; }
+.scwm-cvh-histo { margin: 0; font-size: 11px; font-style: italic; opacity: .65; }
+.scwm-cvh-puces { display: flex; flex-wrap: wrap; gap: 5px; }
+.scwm-cvh-puce {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 1px 7px; border-radius: 4px; font-size: 11px;
+    background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .1);
+}
+.scwm-cvh-puce .fa-heart { color: #e0605a; }
+.scwm-cvh-puce .fa-shield { color: #8fb3d9; }
+.scwm-cvh-puce .fa-coins { color: var(--cvh-or); }
+
+.scwm-cvh-xp { display: flex; flex-direction: column; gap: 2px; }
+.scwm-cvh-xp-barre { height: 5px; border-radius: 3px; background: rgba(255, 255, 255, .1); overflow: hidden; }
+.scwm-cvh-xp-barre span { display: block; height: 100%; background: linear-gradient(90deg, #8a6d1a, var(--cvh-or)); }
+.scwm-cvh-xp small { font-size: 10px; opacity: .65; }
+.scwm-cvh-xp-pret small { color: #ffe08a; opacity: 1; font-weight: 600; }
+.scwm-cvh-xp-pret .scwm-cvh-xp-barre span { animation: scwm-cvh-lueur 1.6s ease-in-out infinite; }
+@keyframes scwm-cvh-lueur { 50% { filter: brightness(1.6); } }
+
+.scwm-cvh-actions { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+.scwm-cvh .scwm-cvh-actions button {
+    flex: 0 0 auto; width: auto; margin: 0; padding: 2px 10px;
+    min-height: 26px; line-height: 1.2; white-space: nowrap; font-size: 12px;
+}
+.scwm-cvh .scwm-cvh-discret { background: transparent; }
+.scwm-cvh .scwm-cvh-brille { border-color: #ffe08a; box-shadow: 0 0 8px rgba(255, 224, 138, .45); }
+
+/* Demande en attente, limite, nouveau personnage, liste vide */
+.scwm-cvh-demande {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 8px;
+    border: 1px dashed rgba(230, 195, 74, .6); background: rgba(230, 195, 74, .08);
+}
+.scwm-cvh-demande > i { font-size: 1.4em; color: #e6c34a; }
+.scwm-cvh-demande > div { flex: 1; min-width: 0; }
+.scwm-cvh-demande small { opacity: .75; }
+.scwm-cvh .scwm-cvh-demande button { flex: 0 0 auto; width: auto; margin: 0; }
+.scwm-cvh-limite { margin: 0; text-align: center; opacity: .75; font-size: 12px; }
+.scwm-cvh .scwm-cvh-nouveau {
+    width: 100%; margin: 0; padding: 10px; min-height: 40px;
+    border: 1px dashed rgba(201, 162, 39, .6); border-radius: 8px;
+    background: rgba(201, 162, 39, .06); font-weight: 600;
+}
+.scwm-cvh .scwm-cvh-nouveau:hover { background: rgba(201, 162, 39, .16); box-shadow: 0 0 10px rgba(201, 162, 39, .3); }
+.scwm-cvh-vide { text-align: center; padding: 14px 8px; opacity: .8; }
+.scwm-cvh-vide i { font-size: 2em; color: var(--cvh-or); }
+.scwm-cvh-vide p { margin: 6px 0 0; }
+
+@media (prefers-reduced-motion: reduce) {
+    .scwm-cvh-carte, .scwm-cvh-portrait img { transition: none; }
+    .scwm-cvh-xp-pret .scwm-cvh-xp-barre span { animation: none; }
+}
+
+/* Système d'étoiles dans le casier joueur */
+.scwm-cvh-etoiles small .fa-star { color: var(--cvh-or); }
+.scwm-cvh-puce b { font-weight: 700; }
+.scwm-cvh-actions button i { margin-right: 3px; }

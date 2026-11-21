@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 6.8.9
+Version : 6.9.0
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -217,6 +217,52 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v6.9.0 | 2026-11-21
+   - Présentations des MJ (côté joueur) : chaque présentation est
+     maintenant REPLIÉE. On voit le nom du MJ et le début de son texte ;
+     un clic déplie la présentation complète, un autre la replie. Les
+     longues présentations ne noient plus les autres.
+     Fichier : modules/casier.js.
+   - Validation des personnages : webhook Discord. Nouveau réglage
+     « Validation — Webhook Discord » (catégorie Création de personnages).
+     Le salon reçoit, en plus des messages chuchotés aux MJ : les demandes
+     de création (joueur + nom), les fiches soumises pour validation, les
+     re-soumissions après montée de niveau avec la liste des
+     modifications, le début d'une montée de niveau, et en mode « montées
+     libres » le récapitulatif des changements. Envoi par le client qui
+     agit (pas de doublon), mentions @ neutralisées, mise en forme
+     Discord échappée dans les noms. Vide = désactivé.
+     Fichiers : modules/charvalidation.js, modules/settings.js.
+   - Log Discord : plus de ⚠️ « par … — joueur » quand le joueur modifie un
+     personnage EN CONSTRUCTION (création pas encore soumise, ou montée de
+     niveau en cours) : c'est normal qu'il touche à sa fiche. Le ⚠️ reste
+     pour toute modification par un joueur d'une fiche hors construction
+     (validée/verrouillée, en attente de validation, en stock, ou hors du
+     circuit de validation). Fichiers : modules/discordlog.js,
+     modules/charvalidation.js (estEnConstruction).
+   - Fenêtre joueur « Mes personnages » (son casier) refaite, plus vivante :
+     en-tête avec l'avatar du joueur, compteurs Actifs / Total avec
+     jauges ; une CARTE par personnage avec son portrait (clic = ouvrir la
+     fiche), pastille de statut colorée (En construction, En attente,
+     Validé, Jouable, En stock — avec explication au survol), niveau,
+     espèce, classes et sous-classes, historique, PV, CA, pièces d'or,
+     barre d'XP (qui brille quand le niveau supérieur est disponible).
+     Boutons avec texte : Fiche, Soumettre / Monter de niveau / Terminer /
+     Activer, et « Stock » à côté de la boîte. Personnage en stock : portrait
+     grisé. Demande en attente et « Demander un nouveau personnage » en
+     cartes dédiées. Puces libellées « PV 12/12 », « CA 16 », « 15 po ».
+     Les « po » sont la fortune TOTALE convertie en pièces d'or (pp, po,
+     pe, pa, pc, taux dnd5e), avec le détail des pièces au survol.
+     Compatible avec le système d'étoiles : s'il est actif, la barre
+     affiche la progression en ÉTOILES vers le niveau suivant (« 1 / 3
+     étoiles vers le niveau 2 »), « Prêt à monter au niveau N ! » quand le
+     seuil est atteint, « Niveau maximum atteint » au plafond du serveur.
+     Fichiers : modules/charvalidation.js, styles/charvalidation.css.
+   - Barre de l'horloge (MJ) : deux boutons à côté de « Jour suivant » :
+     ☕ 1h (repos court) et 🛏 8h (repos long). Ils avancent le temps de
+     la party (ou du monde) d'une ou huit heures. Fichier :
+     modules/partytime.js.
 
 v6.8.9 | 2026-11-19
    - Cartes de chat personnalisées TEMPORAIREMENT DÉSACTIVÉES par le module

@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 6.9.3
+Version : 6.9.4
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -217,6 +217,27 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v6.9.4 | 2026-11-21
+   - Casier MJ, Registre des personnages : colonne « Multi » retirée ;
+     les classes et les SOUS-CLASSES ont chacune leur colonne ; nouvelle
+     colonne « État » (🎲 Joué / 🗃 En stock) ; nouvelle colonne « Validé
+     par » = dernier MJ qui a validé la fiche (date au survol). La
+     validation enregistre désormais qui a validé et quand (flag
+     validatedBy) ; pour les fiches validées avant, le MJ est retrouvé
+     dans le chat (message « … est validé et verrouillé ») s'il y est
+     encore, sinon « ? ». Toutes les colonnes se trient, se filtrent et
+     partent dans l'export CSV. Fichiers : modules/casier.js,
+     modules/charvalidation.js, styles/casier.css.
+   - Casier MJ, Statistiques : colonne de POURCENTAGE à côté de chaque
+     nombre (part des personnages concernés ; un multiclassé compte dans
+     chacune de ses classes, donc le total d'une table de classes peut
+     dépasser 100 %).
+   - Le PJ du tutoriel (fiche de démonstration) n'est plus compté nulle
+     part dans le Casier : ni dans l'Assiduité (ses expéditions
+     improvisées disparaissent des compteurs, des barres et du tableau),
+     ni dans les dates d'activité, ni dans le Registre ni les
+     Statistiques. Fichier : modules/casier.js.
 
 v6.9.3 | 2026-11-21
    - Présentations des MJ : une longue présentation défile maintenant dans

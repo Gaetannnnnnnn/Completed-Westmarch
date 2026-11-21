@@ -418,3 +418,8 @@
 }
 .scwm-gmp-vide { margin: 4px 0; text-align: center; opacity: .65; font-style: italic; }
 @media (prefers-reduced-motion: reduce) { .scwm-gmp-chevron { transition: none; } }
+
+/* Registre : colonne État (joué / en stock) */
+.scwm-reg-etat { display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 999px; font-size: 11px; white-space: nowrap; }
+.scwm-reg-joue  { color: #9fd9a8; background: rgba(95, 191, 119, .14); border: 1px solid rgba(95, 191, 119, .45); }
+.scwm-reg-stock { color: #b9bec6; background: rgba(138, 143, 152, .14); border: 1px solid rgba(138, 143, 152, .45); }

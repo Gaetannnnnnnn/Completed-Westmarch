@@ -52,7 +52,7 @@ function gmExpeditions(gmId = game.user.id) {
 
     const groups = new Map();
     for (const actor of game.actors ?? []) {
-        if (actor.type !== "character") continue;
+        if (actor.type !== "character" || estDemo(actor)) continue;
         for (const e of getExpeditions(actor)) {
             if (!e.startDate || e.endDate) continue;
             // Uniquement les expéditions dont CE GM est le MJ (tag gmId).
@@ -150,15 +150,47 @@ function charRace(actor) {
 function rosterRows() {
     const rows = [];
     for (const a of game.actors ?? []) {
-        if (a.type !== "character" || !a.hasPlayerOwner) continue;
+        if (a.type !== "character" || !a.hasPlayerOwner || estDemo(a)) continue;
         const classes = charClassList(a);
         const total = a.system?.details?.level ?? classes.reduce((s, c) => s + (c.lvl || 0), 0);
         rows.push({
             id: a.id, joueur: playerOf(a), perso: a.name,
-            classes, multi: classes.length > 1, race: charRace(a), total
+            classes, multi: classes.length > 1, race: charRace(a), total,
+            stock: a.getFlag(MOD, "stock") === true,
+            validePar: validePar(a)
         });
     }
     return rows;
+}
+
+// Dernier MJ qui a validé la fiche : enregistré à la validation (flag
+// validatedBy, depuis la 6.9.4). Pour les fiches validées avant, on le
+// retrouve si possible dans le chat : le message « … est validé et
+// verrouillé » est envoyé par le MJ qui valide. Sinon « ? ».
+function validePar(actor) {
+    const v = actor.getFlag(MOD, "validatedBy");
+    if (v?.name || v?.id) return { nom: game.users.get(v.id)?.name ?? v.name ?? "?", date: v.date ?? null };
+    if (actor.getFlag(MOD, "validated") !== true) return null;
+    try {
+        const cle = tl("🔒 <strong>{0}</strong> est validé et verrouillé. Vous pouvez jouer normalement ; les changements de construction passeront par le MJ.", actor.name).slice(0, 40 + actor.name.length);
+        const msgs = [...(game.messages ?? [])];
+        for (let i = msgs.length - 1; i >= 0; i--) {
+            const m = msgs[i];
+            if (!String(m.content ?? "").includes(cle)) continue;
+            const auteur = m.author ?? m.user;
+            if (auteur?.isGM) return { nom: auteur.name, date: m.timestamp ? new Date(m.timestamp).toISOString() : null };
+        }
+    } catch { /* */ }
+    return { nom: "?", date: null };
+}
+
+// Libellé « Fighter 3 / Wizard 2 » (sans les sous-classes, qui ont leur colonne).
+function classesSeules(classes) {
+    return classes.length ? classes.map(c => `${c.name} ${c.lvl}`).join(" / ") : "—";
+}
+function sousClasses(classes) {
+    const l = classes.map(c => c.sub).filter(Boolean);
+    return l.length ? l.join(" / ") : "—";
 }
 
 // Libellé « Fighter (Eldritch Knight) 3 / Wizard (Evocation) 2 ».
@@ -483,12 +515,16 @@ function worldSizeTablesHtml(res) {
         ${capNote}${warn}`;
 }
 
+// Fiche de démonstration du tutoriel : jamais comptée (assiduité, registre,
+// statistiques). Elle a ses propres expéditions improvisées.
+const estDemo = (actor) => actor?.getFlag?.(MOD, "tutorialDemo") === true;
+
 // Expéditions CLÔTURÉES distinctes (regroupées par nom + début + MJ), avec les
 // PJ participants. Base de l'assiduité (jamais les connexions).
 function closedExpeditions() {
     const map = new Map();
     for (const actor of game.actors ?? []) {
-        if (actor.type !== "character") continue;
+        if (actor.type !== "character" || estDemo(actor)) continue;
         for (const e of getExpeditions(actor)) {
             if (!e.startDate || !e.endDate) continue;   // seulement clôturées
             const key = `${e.name || "?"}|${JSON.stringify(e.startDate)}|${e.gmId || ""}`;
@@ -535,7 +571,7 @@ function gmTracking() {
     // Regroupe les expéditions ouvertes par GM puis par expédition (nom+date).
     const byGm = new Map();
     for (const actor of game.actors ?? []) {
-        if (actor.type !== "character") continue;
+        if (actor.type !== "character" || estDemo(actor)) continue;
         for (const e of getExpeditions(actor)) {
             if (!e.startDate || e.endDate || !e.gmId) continue;
             if (!byGm.has(e.gmId)) byGm.set(e.gmId, new Map());
@@ -808,6 +844,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             keepMax(sessGmLast, gmName, s.dateISO);
             for (const p of (s.players ?? [])) {
                 const a = game.actors.get(p.actorId);
+                if (estDemo(a)) continue;   // PJ du tutoriel : ignoré
                 keepMax(sessPlayerLast, a ? playerOf(a) : (p.name ?? "?"), s.dateISO);
             }
         }
@@ -1043,17 +1080,21 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                 data-total="${r.total}">
                 <td>${esc(r.joueur)}${inactive ? ' <i class="fa-solid fa-moon" title="Inactif ce trimestre"></i>' : ""}</td>
                 <td>${esc(r.perso)}</td>
-                <td>${esc(classesLabel(r.classes))}</td>
+                <td>${esc(classesSeules(r.classes))}</td>
+                <td>${esc(sousClasses(r.classes))}</td>
                 <td>${esc(r.race)}</td>
                 <td style="text-align:center;">${r.total}</td>
-                <td style="text-align:center;">${r.multi ? "✔" : ""}</td>
+                <td style="text-align:center;">${r.stock
+                    ? `<span class="scwm-reg-etat scwm-reg-stock"><i class="fa-solid fa-box-archive"></i> ${tl("En stock")}</span>`
+                    : `<span class="scwm-reg-etat scwm-reg-joue"><i class="fa-solid fa-dice-d20"></i> ${tl("Joué")}</span>`}</td>
+                <td${r.validePar?.date ? ` title="${esc(tl("Validé le {0}", new Date(r.validePar.date).toLocaleDateString(locale())))}"` : ""}>${r.validePar ? esc(r.validePar.nom) : `<span style="opacity:.55;">${tl("non validé")}</span>`}</td>
             </tr>`;
         }).join("");
         return `
             <div class="scwm-casier-detail">
                 <h2>${tl("<i class=\"fa-solid fa-address-book\"></i> Registre des personnages")}</h2>
                 <div class="scwm-reg-toolbar">
-                    <input type="text" class="scwm-reg-filter" placeholder="${tl("Filtrer (joueur, perso, classe, espèce)…")}">
+                    <input type="text" class="scwm-reg-filter" placeholder="${tl("Filtrer (joueur, perso, classe, sous-classe, espèce, état, MJ)…")}">
                     <span class="scwm-reg-count">${rows.length} PJ</span>
                     <button type="button" class="scwm-reg-csv">${tl("<i class=\"fa-solid fa-file-csv\"></i> Export CSV")}</button>
                 </div>
@@ -1063,11 +1104,13 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                         <th class="scwm-reg-sort" data-col="0" data-type="txt">${tl("Joueur")}</th>
                         <th class="scwm-reg-sort" data-col="1" data-type="txt">${tl("Perso")}</th>
                         <th class="scwm-reg-sort" data-col="2" data-type="txt">${tl("Classe(s)")}</th>
-                        <th class="scwm-reg-sort" data-col="3" data-type="txt">${tl("Espèce")}</th>
-                        <th class="scwm-reg-sort" data-col="4" data-type="num">${tl("Niv")}</th>
-                        <th>${tl("Multi")}</th>
+                        <th class="scwm-reg-sort" data-col="3" data-type="txt">${tl("Sous-classe(s)")}</th>
+                        <th class="scwm-reg-sort" data-col="4" data-type="txt">${tl("Espèce")}</th>
+                        <th class="scwm-reg-sort" data-col="5" data-type="num">${tl("Niv")}</th>
+                        <th class="scwm-reg-sort" data-col="6" data-type="txt">${tl("État")}</th>
+                        <th class="scwm-reg-sort" data-col="7" data-type="txt" title="${tl("Dernier MJ qui a validé la fiche")}">${tl("Validé par")}</th>
                     </tr></thead>
-                    <tbody>${body || `<tr><td colspan="6" style="opacity:.6;">${tl("Aucun PJ.")}</td></tr>`}</tbody>
+                    <tbody>${body || `<tr><td colspan="8" style="opacity:.6;">${tl("Aucun PJ.")}</td></tr>`}</tbody>
                 </table>
             </div>`;
     }
@@ -1075,6 +1118,13 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
     // ---- Onglet Statistiques ----
     #statsDetail() {
         const st = rosterStats(rosterRows());
+        // Pourcentage = part des personnages concernés (un multiclassé compte
+        // dans chacune de ses classes : la colonne peut dépasser 100 % au total).
+        const pct = (v) => {
+            if (!st.nbPerso) return "—";
+            const p = 100 * v / st.nbPerso;
+            return `${p < 10 && p % 1 ? p.toFixed(1).replace(".", locale().startsWith("fr") ? "," : ".") : Math.round(p)} %`;
+        };
         const countTable = (title, obj, numericKey = false) => {
             const entries = Object.entries(obj);
             entries.sort((a, b) => numericKey ? (Number(a[0]) - Number(b[0]))
@@ -1086,7 +1136,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                 <h3>${title}</h3>
                 <div class="scwm-stat-scroll"${scroll}>
                     <table class="scwm-reg-table"><tbody>
-                        ${entries.map(([k, v]) => `<tr><td>${esc(String(k))}</td><td style="text-align:right;">${v}</td></tr>`).join("")
+                        ${entries.map(([k, v]) => `<tr><td>${esc(String(k))}</td><td style="text-align:right;">${v}</td><td style="text-align:right;width:4.5em;opacity:.75;">${pct(v)}</td></tr>`).join("")
                             || `<tr><td style="opacity:.6;">—</td></tr>`}
                     </tbody></table>
                 </div>
@@ -1242,13 +1292,13 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
 
             // Export CSV (lignes visibles, dans l'ordre courant).
             root.querySelector(".scwm-reg-csv")?.addEventListener("click", () => {
-                const header = [tl("Joueur"), tl("Perso"), tl("Classe(s)"), tl("Espèce"), tl("Niveau total"), tl("Multiclasse")];
+                const header = [tl("Joueur"), tl("Perso"), tl("Classe(s)"), tl("Sous-classe(s)"), tl("Espèce"), tl("Niveau total"), tl("État"), tl("Validé par")];
                 const esc = (s) => `"${String(s).replace(/"/g, '""')}"`;
                 const lines = [header.map(esc).join(";")];
                 for (const tr of allRows()) {
                     if (tr.style.display === "none") continue;
                     const c = tr.children;
-                    lines.push([c[0], c[1], c[2], c[3], c[4], c[5]]
+                    lines.push([c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7]]
                         .map(td => esc(td?.textContent.trim() ?? "")).join(";"));
                 }
                 const blob = new Blob(["﻿" + lines.join("\r\n")], { type: "text/csv;charset=utf-8;" });

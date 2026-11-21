@@ -2,6 +2,14 @@
 // Généré à partir des textes du code ; une entrée absente reste en français.
 // © 2026 Soruta.
 export default {
+ "Sous-classe(s)": "Subclass(es)",
+ "État": "Status",
+ "Validé par": "Approved by",
+ "Dernier MJ qui a validé la fiche": "Last GM who approved the sheet",
+ "Joué": "Played",
+ "non validé": "not approved",
+ "Validé le {0}": "Approved on {0}",
+ "Filtrer (joueur, perso, classe, sous-classe, espèce, état, MJ)…": "Filter (player, character, class, subclass, species, status, GM)…",
  "Arts martiaux — Moine niv. {0}, règles {1}, sans armure ni bouclier": "Martial Arts — Monk level {0}, {1} rules, no armor or shield",
  "Dextérité utilisable à la place de la Force, pour l'attaque et les dégâts (le module prend la meilleure des deux)": "Dexterity usable instead of Strength for attack and damage (the module uses the better of the two)",
  "dé de dégâts remplacé par le dé d'Arts martiaux d{0}{1}": "damage die replaced by the Martial Arts die d{0}{1}",

@@ -338,6 +338,8 @@ export async function validateActor(actorId) {
         [`flags.${MOD}.pendingValidation`]: false,
         [`flags.${MOD}.pendingLevelUp`]: false,
         [`flags.${MOD}.levelUpGranted`]: false,
+        // Qui a validé, et quand (affiché dans le registre du Casier).
+        [`flags.${MOD}.validatedBy`]: { id: game.user.id, name: game.user.name, date: new Date().toISOString() },
         [`flags.${MOD}.-=levelUpSnapshot`]: null,   // nettoie l'instantané de level-up
         [`flags.${MOD}.-=levelUpChanges`]: null     // nettoie la liste des modifs
     });

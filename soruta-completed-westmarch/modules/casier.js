@@ -302,10 +302,40 @@ function extension(src) {
     const i = nom.lastIndexOf(".");
     return i > 0 && i < nom.length - 1 ? nom.slice(i + 1).toLowerCase() : "?";
 }
+// Type MIME renvoyé par le serveur → extension (pour les fichiers sans
+// extension dans leur nom : URL de CDN, Forge, liens « ?token=… »).
+const MIME_EXT = {
+    "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "image/gif": "gif",
+    "image/svg+xml": "svg", "image/avif": "avif", "image/bmp": "bmp", "image/x-icon": "ico",
+    "video/webm": "webm", "video/mp4": "mp4", "video/ogg": "ogv",
+    "audio/mpeg": "mp3", "audio/ogg": "ogg", "audio/wav": "wav", "audio/x-wav": "wav",
+    "audio/webm": "webm", "audio/flac": "flac", "audio/mp4": "m4a", "audio/aac": "aac", "audio/opus": "opus"
+};
+// Libellés spéciaux (préfixe ~) quand le format reste inconnu.
+const FMT_EXTERNE = "~externe", FMT_INTROUVABLE = "~introuvable", FMT_SANS = "~sans extension";
+const fmtAffiche = (e) => e?.startsWith?.("~")
+    ? `<em>${esc(e === FMT_EXTERNE ? tl("lien externe") : e === FMT_INTROUVABLE ? tl("fichier introuvable") : tl("sans extension"))}</em>`
+    : `.${esc(e)}`;
+const fmtTexte = (e) => e?.startsWith?.("~")
+    ? (e === FMT_EXTERNE ? tl("lien externe") : e === FMT_INTROUVABLE ? tl("fichier introuvable") : tl("sans extension"))
+    : `.${e}`;
 
 async function measureWorld() {
     const size = (o) => new Blob([JSON.stringify(o ?? {})]).size;
     const cache = new Map(); let echecs = 0;
+    const infos = new Map();   // src -> { mime, ok, status } (réponse du serveur)
+    // Format d'un fichier : extension du nom ; sinon type renvoyé par le
+    // serveur ; sinon « lien externe », « fichier introuvable » ou « sans extension ».
+    const formatDe = (src) => {
+        const e = extension(src);
+        if (e !== "?") return e;
+        const inf = infos.get(src);
+        if (inf?.mime && MIME_EXT[inf.mime]) return MIME_EXT[inf.mime];
+        if (inf?.mime?.includes("/")) return inf.mime.split("/")[1].replace(/^x-/, "").replace(/\+.*$/, "");
+        if (inf && !inf.ok) return FMT_INTROUVABLE;
+        try { if (/^https?:/i.test(src) && new URL(src).origin !== window.location.origin) return FMT_EXTERNE; } catch { /* */ }
+        return FMT_SANS;
+    };
 
     // File d'attente à concurrence limitée : lancer TOUTES les requêtes HEAD en
     // même temps sature le serveur, qui en laisse tomber quelques-unes au hasard
@@ -330,6 +360,7 @@ async function measureWorld() {
         const t = setTimeout(() => ctrl.abort(), 8000);
         try {
             const r = await fetch(src, { method: "HEAD", signal: ctrl.signal });
+            infos.set(src, { mime: String(r.headers.get("content-type") ?? "").split(";")[0].trim().toLowerCase(), ok: r.ok, status: r.status });
             return Number(r.headers.get("content-length")) || 0;
         } finally { clearTimeout(t); }
     };
@@ -346,6 +377,14 @@ async function measureWorld() {
     };
 
     const items = [];
+    // Chemin complet du dossier : « Parent / Sous-dossier / Dossier ».
+    const cheminDossier = (f) => {
+        if (!f) return "";
+        try {
+            const anc = [...(f.ancestors ?? [])].reverse().map(x => x.name);
+            return [...anc, f.name].filter(Boolean).join(" / ");
+        } catch { return f.name ?? ""; }
+    };
     // `principal` : le fichier qui « est » le document (fond d'une scène, image
     // d'un acteur…), affiché à part des autres médias (tuiles, objets…).
     const addDoc = async (type, doc, srcs, principal = null) => {
@@ -356,10 +395,10 @@ async function measureWorld() {
         const media = tailles.reduce((a, b) => a + b, 0);
         // Extensions des médias de ce document, avec leur poids (le plus lourd d'abord).
         const parExt = new Map();
-        uniq.forEach((src, i) => { const e = extension(src); parExt.set(e, (parExt.get(e) ?? 0) + tailles[i]); });
-        const princ = (typeof principal === "string" && principal && !principal.startsWith("data:")) ? extension(principal) : null;
+        uniq.forEach((src, i) => { const e = formatDe(src); parExt.set(e, (parExt.get(e) ?? 0) + tailles[i]); });
+        const princ = (typeof principal === "string" && principal && !principal.startsWith("data:")) ? formatDe(principal) : null;
         const formats = [...parExt.entries()].sort((a, b) => b[1] - a[1]).map(([e]) => e);
-        items.push({ type, nom: doc.name ?? tl("(sans nom)"), dossier: doc.folder?.name ?? "", data, media, formats, princ });
+        items.push({ type, nom: doc.name ?? tl("(sans nom)"), dossier: doc.chemin ?? cheminDossier(doc.folder), data, media, formats, princ });
     };
     const imgsFromHtml = (html) => {
         const out = [];
@@ -387,14 +426,16 @@ async function measureWorld() {
         for (const cd of (c.cards ?? [])) for (const f of (cd.faces ?? [])) srcs.push(f.img);
         jobs.push(addDoc(tl("Cartes"), c, srcs));
     }
-    // Playlists : la playlist (données seules) + CHAQUE musique comme un élément
-    // à part, rangée sous le nom de sa playlist (colonne Dossier) : les morceaux
-    // lourds apparaissent eux-mêmes dans « Éléments les plus lourds ».
+    // Playlists : la playlist compte pour ELLE-MÊME + toutes ses musiques
+    // (données + fichiers audio) ; CHAQUE musique apparaît aussi à part, avec
+    // pour chemin celui de sa playlist. Dans le résumé par type, seules les
+    // musiques comptent (sinon l'audio serait compté deux fois).
     for (const pl of (game.playlists ?? [])) {
-        jobs.push(addDoc("Playlist", pl, []));
-        for (const snd of (pl.sounds ?? [])) {
-            const nomPl = pl.name ?? "";
-            jobs.push(addDoc(tl("Musique"), { name: snd.name, folder: { name: nomPl }, toObject: () => snd.toObject() }, [snd.path], snd.path));
+        const sons = [...(pl.sounds ?? [])];
+        jobs.push(addDoc("Playlist", pl, sons.map(snd => snd.path)));
+        const cheminPl = [cheminDossier(pl.folder), pl.name ?? ""].filter(Boolean).join(" / ");
+        for (const snd of sons) {
+            jobs.push(addDoc(tl("Musique"), { name: snd.name, chemin: cheminPl, toObject: () => snd.toObject() }, [snd.path], snd.path));
         }
     }
     for (const m of (game.macros ?? []))
@@ -404,6 +445,7 @@ async function measureWorld() {
 
     const byType = new Map();
     for (const it of items) {
+        if (it.type === "Playlist") continue;   // déjà comptée via ses musiques
         if (!byType.has(it.type)) byType.set(it.type, { type: it.type, count: 0, data: 0, media: 0 });
         const g = byType.get(it.type); g.count++; g.data += it.data; g.media += it.media;
     }
@@ -419,9 +461,10 @@ async function measureWorld() {
     const parFormat = new Map();
     for (const [src, p] of cache) {
         const taille = await p;
-        const e = extension(src);
-        if (!parFormat.has(e)) parFormat.set(e, { ext: e, count: 0, bytes: 0 });
+        const e = formatDe(src);
+        if (!parFormat.has(e)) parFormat.set(e, { ext: e, count: 0, bytes: 0, exemples: [] });
         const g = parFormat.get(e); g.count++; g.bytes += taille;
+        if (g.exemples.length < 8) g.exemples.push(src);
     }
     const formats = [...parFormat.values()].sort((a, b) => b.bytes - a.bytes || a.ext.localeCompare(b.ext));
     return { summary, items, echecs, formats };
@@ -435,11 +478,11 @@ function celluleFormats(m) {
     if (!m.princ && !autres.length) return "—";
     const lib = m.type === tl("Scène") ? tl("Fond de la scène")
         : m.type === tl("Musique") ? tl("Fichier audio") : tl("Image principale");
-    const bulle = [m.princ ? `${lib} : .${m.princ}` : null,
-                   autres.length ? tl("Autres médias : {0}", autres.map(e => "." + e).join(" ")) : null].filter(Boolean).join(" — ");
-    const tete = m.princ ? `<strong>.${esc(m.princ)}</strong>` : "";
+    const bulle = [m.princ ? `${lib} : ${fmtTexte(m.princ)}` : null,
+                   autres.length ? tl("Autres médias : {0}", autres.map(fmtTexte).join(" ")) : null].filter(Boolean).join(" — ");
+    const tete = m.princ ? `<strong>${fmtAffiche(m.princ)}</strong>` : "";
     const queue = autres.length ? ` <span style="opacity:.55;font-size:.85em;">+${autres.length}</span>` : "";
-    return `<span data-tooltip="${esc(bulle)}">${tete || `<span style="opacity:.75;">${autres.map(e => "." + esc(e)).join(" ")}</span>`}${tete ? queue : ""}</span>`;
+    return `<span data-tooltip="${esc(bulle)}">${tete || `<span style="opacity:.75;">${autres.map(fmtAffiche).join(" ")}</span>`}${tete ? queue : ""}</span>`;
 }
 
 function worldSizeTablesHtml(res) {
@@ -461,7 +504,7 @@ function worldSizeTablesHtml(res) {
         <tr>
             <td>${esc(m.type)}</td>
             <td>${esc(m.nom)}</td>
-            <td>${esc(m.dossier)}</td>
+            <td style="font-size:.9em;opacity:.85;">${esc(m.dossier) || "—"}</td>
             <td style="font-family:var(--font-mono,monospace);font-size:.9em;white-space:nowrap;">${celluleFormats(m)}</td>
             <td style="text-align:right;">${f(m.data)}</td>
             <td style="text-align:right;">${f(m.media)}</td>
@@ -470,7 +513,7 @@ function worldSizeTablesHtml(res) {
     const totalFmt = (res.formats ?? []).reduce((s, x) => s + x.bytes, 0);
     const fmtRows = (res.formats ?? []).map(x => `
         <tr>
-            <td style="font-family:var(--font-mono,monospace);">.${esc(x.ext)}</td>
+            <td style="font-family:var(--font-mono,monospace);" data-tooltip-html="${esc(`<strong>${esc(tl("Exemples :"))}</strong><br>` + x.exemples.map(esc).join("<br>") + (x.count > x.exemples.length ? `<br>${esc(tl("… et {0} autre(s)", x.count - x.exemples.length))}` : ""))}">${fmtAffiche(x.ext)}</td>
             <td style="text-align:center;">${x.count}</td>
             <td style="text-align:right;">${f(x.bytes)}</td>
             <td style="text-align:right;">${totalFmt ? Math.round(x.bytes * 100 / totalFmt) : 0} %</td>
@@ -490,7 +533,7 @@ function worldSizeTablesHtml(res) {
                 <tbody>${sumRows || `<tr><td colspan="5" style="opacity:.6;">${tl("Rien à mesurer.")}</td></tr>`}</tbody>
                 <tfoot><tr style="border-top:2px solid rgba(201,162,39,0.4);">
                     <td style="font-weight:700;">${tl("Total")}</td>
-                    <td style="text-align:center;">${res.items.length}</td>
+                    <td style="text-align:center;">${res.summary.reduce((s, t) => s + t.count, 0)}</td>
                     <td style="text-align:right;">${f(grandData)}</td>
                     <td style="text-align:right;">${f(grandMedia)}</td>
                     <td style="text-align:right;font-weight:700;">${f(grandData + grandMedia)}</td>
@@ -508,7 +551,7 @@ function worldSizeTablesHtml(res) {
         <h3 style="margin:14px 0 4px;">${tl("Éléments les plus lourds")}</h3>
         <div class="scwm-scenesize-scroll" style="max-height:40vh;overflow:auto;">
             <table class="scwm-reg-table">
-                <thead><tr><th>${tl("Type")}</th><th>${tl("Nom")}</th><th>${tl("Dossier")}</th><th>${tl("Format")}</th><th>${tl("Données")}</th><th>${tl("Médias")}</th><th>${tl("Total")}</th></tr></thead>
+                <thead><tr><th>${tl("Type")}</th><th>${tl("Nom")}</th><th>${tl("Chemin")}</th><th>${tl("Format")}</th><th>${tl("Données")}</th><th>${tl("Médias")}</th><th>${tl("Total")}</th></tr></thead>
                 <tbody>${itemRows || `<tr><td colspan="7" style="opacity:.6;">${tl("Rien à afficher.")}</td></tr>`}</tbody>
             </table>
         </div>
@@ -1118,15 +1161,16 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
     // ---- Onglet Statistiques ----
     #statsDetail() {
         const st = rosterStats(rosterRows());
-        // Pourcentage = part des personnages concernés (un multiclassé compte
-        // dans chacune de ses classes : la colonne peut dépasser 100 % au total).
-        const pct = (v) => {
-            if (!st.nbPerso) return "—";
-            const p = 100 * v / st.nbPerso;
+        // Pourcentage = part dans le TOTAL DE LA CATÉGORIE (somme de la table) :
+        // chaque table fait 100 %.
+        const pct = (v, total) => {
+            if (!total) return "—";
+            const p = 100 * v / total;
             return `${p < 10 && p % 1 ? p.toFixed(1).replace(".", locale().startsWith("fr") ? "," : ".") : Math.round(p)} %`;
         };
         const countTable = (title, obj, numericKey = false) => {
             const entries = Object.entries(obj);
+            const total = entries.reduce((n, [, v]) => n + (Number(v) || 0), 0);
             entries.sort((a, b) => numericKey ? (Number(a[0]) - Number(b[0]))
                                               : (b[1] - a[1] || a[0].localeCompare(b[0], "fr", { sensitivity: "base" })));
             // ~10 lignes visibles au maximum, le reste défile.
@@ -1136,7 +1180,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                 <h3>${title}</h3>
                 <div class="scwm-stat-scroll"${scroll}>
                     <table class="scwm-reg-table"><tbody>
-                        ${entries.map(([k, v]) => `<tr><td>${esc(String(k))}</td><td style="text-align:right;">${v}</td><td style="text-align:right;width:4.5em;opacity:.75;">${pct(v)}</td></tr>`).join("")
+                        ${entries.map(([k, v]) => `<tr><td>${esc(String(k))}</td><td style="text-align:right;">${v}</td><td style="text-align:right;width:4.5em;opacity:.75;">${pct(v, total)}</td></tr>`).join("")
                             || `<tr><td style="opacity:.6;">—</td></tr>`}
                     </tbody></table>
                 </div>

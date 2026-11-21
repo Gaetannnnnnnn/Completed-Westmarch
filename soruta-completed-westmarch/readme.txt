@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 6.9.6
+Version : 6.9.7
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -217,6 +217,28 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v6.9.7 | 2026-11-21
+   - Statistiques : le pourcentage est maintenant calculé par rapport au
+     TOTAL DE SA CATÉGORIE (somme de la table : toutes les classes, toutes
+     les sous-classes, toutes les espèces…) ; chaque table fait 100 %.
+     Fichier : modules/casier.js.
+   - Poids du monde : une PLAYLIST pèse désormais pour elle-même + toutes
+     ses musiques (données et fichiers audio) dans « Éléments les plus
+     lourds » ; chaque musique y reste aussi listée à part. Les playlists
+     sont retirées du « Résumé par type » (l'audio y est compté via
+     « Musique », pas deux fois). La colonne « Dossier » devient
+     « Chemin » : chemin complet du dossier (« Parent / Sous-dossier /
+     Dossier ») ; pour une musique, chemin de sa playlist suivi du nom de
+     la playlist. Fichier : modules/casier.js.
+   - Poids du monde : fini les formats « .? ». Pour un fichier sans
+     extension dans son nom, le format est déduit du type renvoyé par le
+     serveur (image/webp → .webp, audio/mpeg → .mp3…). Sinon, le libellé
+     dit pourquoi : « lien externe » (fichier hébergé ailleurs),
+     « fichier introuvable » (le serveur répond une erreur, ex. 404) ou
+     « sans extension ». Au survol d'un format dans « Par format de
+     fichier » : jusqu'à 8 chemins de fichiers d'exemple, pour les
+     retrouver. Fichier : modules/casier.js.
 
 v6.9.6 | 2026-11-21
    - Fenêtre « Playlists — écouter & choisir » : on ne pouvait pas faire

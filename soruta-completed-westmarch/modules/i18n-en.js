@@ -2,6 +2,11 @@
 // Généré à partir des textes du code ; une entrée absente reste en français.
 // © 2026 Soruta.
 export default {
+ "lien externe": "external link",
+ "fichier introuvable": "file not found",
+ "sans extension": "no extension",
+ "Exemples :": "Examples:",
+ "Chemin": "Path",
  "(chez tout le monde)": "(for everyone)",
  "Musique du groupe": "Group music",
  "Jouée pour TOUS ceux qui ont cette scène à l'écran, même si elle n'est pas active. Elle s'arrête en quittant la scène, et continue sans coupure si la scène suivante a la même musique. Le MJ d'un groupe peut la mettre en pause ou la remplacer pour son groupe seulement, depuis l'onglet Playlists (« Musique du groupe »).": "Played for EVERYONE who has this scene on screen, even if it isn't active. It stops when leaving the scene, and keeps playing seamlessly if the next scene has the same music. A group's GM can pause or replace it for their group only, from the Playlists tab (“Group music”).",

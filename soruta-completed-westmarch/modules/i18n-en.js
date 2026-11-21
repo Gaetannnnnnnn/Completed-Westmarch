@@ -2,6 +2,14 @@
 // Généré à partir des textes du code ; une entrée absente reste en français.
 // © 2026 Soruta.
 export default {
+ "(chez tout le monde)": "(for everyone)",
+ "Musique du groupe": "Group music",
+ "Jouée pour TOUS ceux qui ont cette scène à l'écran, même si elle n'est pas active. Elle s'arrête en quittant la scène, et continue sans coupure si la scène suivante a la même musique. Le MJ d'un groupe peut la mettre en pause ou la remplacer pour son groupe seulement, depuis l'onglet Playlists (« Musique du groupe »).": "Played for EVERYONE who has this scene on screen, even if it isn't active. It stops when leaving the scene, and keeps playing seamlessly if the next scene has the same music. A group's GM can pause or replace it for their group only, from the Playlists tab (“Group music”).",
+ "Musique de la scène": "Scene music",
+ "Jouée pour TOUS ceux qui ont cette scène à l'écran, même si elle n'est pas active. Elle s'arrête en quittant la scène, et continue sans coupure si la scène suivante a la même musique. Un groupe peut ensuite être réglé à part depuis l'onglet Playlists (« Musique par groupe »).": "Played for EVERYONE who has this scene on screen, even if it isn't active. It stops when leaving the scene, and keeps playing seamlessly if the next scene has the same music. A group can then be set separately from the Playlists tab (“Music per group”).",
+ "(pour tous ceux sur la scène)": "(for everyone on the scene)",
+ "En boucle : cliquer pour jouer une seule fois": "Looping: click to play once",
+ "Une seule fois : cliquer pour jouer en boucle": "Plays once: click to loop",
  "arrêtée pour ce groupe": "stopped for this group",
  "musique du groupe": "group music",
  "arrêtée (scène)": "stopped (scene)",

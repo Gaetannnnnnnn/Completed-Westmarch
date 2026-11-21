@@ -211,3 +211,11 @@
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 .scwm-cue-pick-actions button { white-space: nowrap; }
+
+/* Fenêtre « Playlists — écouter & choisir » : hauteur fixe (redimensionnable),
+   donc le contenu DÉFILE dans la fenêtre ; la barre de recherche reste
+   collée en haut pendant le défilement. Les boutons du bas restent visibles. */
+.scwm-pl-fenetre .window-content { display: flex; flex-direction: column; overflow: hidden; }
+.scwm-pl-fenetre .window-content > :not(.form-footer):not(footer) { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.scwm-pl-fenetre .scwm-pl-browser { overflow: visible; }
+.scwm-pl-browser .scwm-pl-recherche { background: var(--color-cool-5, #1e1e24); box-shadow: 0 4px 6px -4px rgba(0, 0, 0, .6); }

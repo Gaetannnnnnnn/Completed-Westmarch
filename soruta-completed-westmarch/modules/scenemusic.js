@@ -24,8 +24,9 @@ import { _openPlaylistBrowser } from "./sceneaudio.js";
 //
 // Le MJ la pilote depuis l'onglet Playlists : section « Musiques de scène »
 // (scènes réglées où se trouve quelqu'un) avec arrêt / relance et volume
-// POUR TOUT LE MONDE, et section « Musique par groupe » : arrêt, autre
-// musique ou volume pour UN groupe seulement (voir partyMusic plus bas).
+// POUR TOUT LE MONDE, et section « Musique du groupe » (le groupe du MJ qui
+// regarde, lui seul) : pause, autre musique, boucle ou volume pour ce
+// groupe seulement (voir partyMusic plus bas).
 // © 2026 Soruta.
 // ============================================================
 
@@ -88,7 +89,7 @@ function musiqueVoulue(scene) {
     }
     if (!cfg.path || cfg.stopped) return null;
     if (game.user.isGM && cfg.gm === false) return null;
-    return { path: cfg.path, volume: pm?.volume ?? cfg.volume, loop: cfg.loop, fade };
+    return { path: cfg.path, volume: pm?.volume ?? cfg.volume, loop: pm?.loop ?? cfg.loop, fade };
 }
 
 async function appliquer(scene) {
@@ -131,8 +132,8 @@ function blocConfig(scene) {
     const n = (k) => `flags.${MOD}.${FLAG}.${k}`;
     return `
     <fieldset class="scwm-scene-music">
-        <legend><i class="fa-solid fa-music"></i> ${tl("Musique de la scène (pour le groupe)")}</legend>
-        <p class="hint">${tl("Jouée chez chaque personne qui a cette scène à l'écran (le groupe qui y est), même si la scène n'est pas active. Elle s'arrête en quittant la scène, et continue sans coupure si la scène suivante a la même musique.")}</p>
+        <legend><i class="fa-solid fa-music"></i> ${tl("Musique de la scène")}</legend>
+        <p class="hint">${tl("Jouée pour TOUS ceux qui ont cette scène à l'écran, même si elle n'est pas active. Elle s'arrête en quittant la scène, et continue sans coupure si la scène suivante a la même musique. Le MJ d'un groupe peut la mettre en pause ou la remplacer pour son groupe seulement, depuis l'onglet Playlists (« Musique du groupe »).")}</p>
         <div class="form-group">
             <label>${tl("Musique")}</label>
             <div class="form-fields">
@@ -224,7 +225,7 @@ function injecter(app, html) {
 const nomFichier = (p) => { try { return decodeURIComponent(String(p).split("/").pop()).replace(/\.[^.]+$/, ""); } catch { return String(p); } };
 
 function scenesAvecMusique() {
-    return game.scenes.filter(s => lireCfg(s).path)
+    return game.scenes.filter(s => String(lireCfg(s).path ?? "").trim())
         .map(s => ({ s, cfg: lireCfg(s), ici: game.users.filter(u => u.active && u.viewedScene === s.id) }))
         .filter(x => x.ici.length)
         .sort((a, b) => b.ici.length - a.ici.length || a.s.name.localeCompare(b.s.name));
@@ -247,8 +248,10 @@ function sectionPlaylists(app, html) {
                 <div style="flex:1;min-width:0;">
                     <div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(s.name)}</div>
                     <div style="font-size:11px;opacity:.75;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" data-tooltip="${esc(cfg.path)}">
-                        <i class="fa-solid fa-music"></i> ${esc(nomFichier(cfg.path))}${cfg.loop ? ` <i class="fa-solid fa-repeat" data-tooltip="${tl("En boucle")}"></i>` : ""}${cfg.stopped ? ` — ${tl("arrêtée")}` : ""}</div>
+                        <i class="fa-solid fa-music"></i> ${esc(nomFichier(cfg.path))}${cfg.stopped ? ` — ${tl("arrêtée")}` : ""}</div>
                 </div>
+                <button type="button" class="scwm-sm-boucle${cfg.loop ? " scwm-actif" : ""}" data-tooltip="${cfg.loop ? tl("En boucle : cliquer pour jouer une seule fois") : tl("Une seule fois : cliquer pour jouer en boucle")}"
+                    style="flex:0 0 26px;width:26px;height:24px;padding:0;margin:0;${cfg.loop ? "color:#c9a227;border-color:#c9a227;" : "opacity:.6;"}"><i class="fa-solid fa-repeat"></i></button>
                 <span style="flex:0 0 auto;font-size:11px;opacity:.8;" data-tooltip="${esc(noms)}"><i class="fa-solid fa-users"></i> ${ici.length}</span>
             </div>
             <input type="range" class="scwm-sm-volume" min="0" max="1" step="0.05" value="${Number(cfg.volume)}" data-tooltip="${tl("Volume")}" style="width:100%;margin:0;">
@@ -260,7 +263,7 @@ function sectionPlaylists(app, html) {
     sec.style.cssText = "margin:4px 6px 6px;border:1px solid rgba(201,162,39,.45);border-radius:5px;background:rgba(0,0,0,.2);";
     sec.innerHTML = `<header style="display:flex;align-items:center;gap:6px;padding:4px 6px;font-weight:600;border-bottom:1px solid rgba(201,162,39,.3);">
             <i class="fa-solid fa-map"></i> ${tl("Musiques de scène")}
-            <span style="font-weight:400;font-size:11px;opacity:.7;">${tl("(chez les groupes)")}</span></header>
+            <span style="font-weight:400;font-size:11px;opacity:.7;">${tl("(chez tout le monde)")}</span></header>
         <ol style="list-style:none;margin:0;padding:0;">${lignes}</ol>`;
 
     sec.querySelectorAll(".scwm-sm-ligne").forEach(li => {
@@ -272,6 +275,10 @@ function sectionPlaylists(app, html) {
         });
         li.querySelector(".scwm-sm-volume")?.addEventListener("change", async (ev) => {
             await scene.setFlag(MOD, `${FLAG}.volume`, Number(ev.currentTarget.value));
+        });
+        li.querySelector(".scwm-sm-boucle")?.addEventListener("click", async (ev) => {
+            ev.preventDefault();
+            await scene.setFlag(MOD, `${FLAG}.loop`, !lireCfg(scene).loop);
         });
     });
 
@@ -291,7 +298,13 @@ function groupes() {
 
 function sectionGroupes(root) {
     root.querySelector(".scwm-smg-sidebar")?.remove();
-    const liste = groupes();
+    // Groupe concerné : sur une scène qui a une musique configurée, ou avec
+    // une musique à lui.
+    const sceneDe = (g) => game.scenes.get([g.chef, ...g.membres].find(u => u.active && u.viewedScene)?.viewedScene);
+    // Seulement le groupe DU MJ qui regarde (celui dont il fait partie).
+    const monGroupe = game.user.getFlag(MOD, "partyId");
+    const liste = groupes().filter(g => g.chef.id === monGroupe)
+        .filter(g => g.etat?.mode === "custom" || String(lireCfg(sceneDe(g)).path ?? "").trim());
     if (!liste.length) return;
     const lignes = liste.map(({ chef, membres, etat }) => {
         const enLigne = [chef, ...membres].filter(u => u.active);
@@ -305,6 +318,7 @@ function sectionGroupes(root) {
         else if (cfgScene?.path) quoi = `<i class="fa-solid fa-map"></i> ${esc(nomFichier(cfgScene.path))}${cfgScene.stopped ? ` — ${tl("arrêtée (scène)")}` : ""}`;
         else quoi = `<i class="fa-solid fa-map"></i> <em>${tl("pas de musique sur la scène")}</em>`;
         const vol = Number(etat?.volume ?? (mode === "custom" ? 0.5 : cfgScene?.volume ?? 0.5));
+        const boucle = mode === "custom" ? etat?.loop !== false : (etat?.loop ?? cfgScene?.loop ?? true);
         return `<li class="scwm-smg-ligne" data-chef="${esc(chef.id)}" style="display:flex;flex-direction:column;gap:3px;padding:4px 6px;border-bottom:1px solid rgba(255,255,255,.08);${mode === "stopped" ? "opacity:.65;" : ""}">
             <div style="display:flex;align-items:center;gap:6px;">
                 <div style="flex:1;min-width:0;">
@@ -320,6 +334,8 @@ function sectionGroupes(root) {
                     style="flex:0 0 26px;width:26px;height:24px;padding:0;margin:0;"><i class="fa-solid fa-list"></i></button>
                 ${mode === "custom" ? `<button type="button" class="scwm-smg-act" data-act="scene" data-tooltip="${tl("Revenir à la musique de la scène")}"
                     style="flex:0 0 26px;width:26px;height:24px;padding:0;margin:0;"><i class="fa-solid fa-rotate-left"></i></button>` : ""}
+                <button type="button" class="scwm-smg-act" data-act="boucle" data-tooltip="${boucle ? tl("En boucle : cliquer pour jouer une seule fois") : tl("Une seule fois : cliquer pour jouer en boucle")}"
+                    style="flex:0 0 26px;width:26px;height:24px;padding:0;margin:0;${boucle ? "color:#6aa8e8;border-color:#6aa8e8;" : "opacity:.6;"}"><i class="fa-solid fa-repeat"></i></button>
                 <input type="range" class="scwm-smg-volume" min="0" max="1" step="0.05" value="${vol}" data-tooltip="${tl("Volume pour ce groupe")}" style="flex:1;margin:0;">
             </div>
         </li>`;
@@ -328,8 +344,7 @@ function sectionGroupes(root) {
     sec.className = "scwm-smg-sidebar";
     sec.style.cssText = "margin:0 6px 6px;border:1px solid rgba(106,168,232,.45);border-radius:5px;background:rgba(0,0,0,.2);";
     sec.innerHTML = `<header style="display:flex;align-items:center;gap:6px;padding:4px 6px;font-weight:600;border-bottom:1px solid rgba(106,168,232,.3);">
-            <i class="fa-solid fa-users"></i> ${tl("Musique par groupe")}
-            <span style="font-weight:400;font-size:11px;opacity:.7;">${tl("(sans toucher aux autres)")}</span></header>
+            <i class="fa-solid fa-users"></i> ${tl("Musique du groupe")}</header>
         <ol style="list-style:none;margin:0;padding:0;">${lignes}</ol>`;
     sec.querySelectorAll(".scwm-smg-ligne").forEach(li => {
         const chefId = li.dataset.chef;
@@ -338,9 +353,16 @@ function sectionGroupes(root) {
             ev.preventDefault();
             const act = b.dataset.act;
             if (act === "stop")  return definirEtatGroupe(chefId, { ...etat(), mode: "stopped" });
-            if (act === "scene") return definirEtatGroupe(chefId, { mode: "scene", volume: etat().volume });
+            if (act === "scene") return definirEtatGroupe(chefId, { mode: "scene", volume: etat().volume, loop: etat().loop });
+            if (act === "boucle") {
+                const e = etat();
+                const chef = game.users.get(chefId);
+                const sc = game.scenes.get([chef, ...game.users.filter(u => u.getFlag(MOD, "partyId") === chefId)].find(u => u?.active && u.viewedScene)?.viewedScene);
+                const actuelle = e.mode === "custom" ? e.loop !== false : (e.loop ?? (sc ? lireCfg(sc).loop : true));
+                return definirEtatGroupe(chefId, { ...e, loop: !actuelle });
+            }
             if (act === "autre") {
-                _openPlaylistBrowser((path) => definirEtatGroupe(chefId, { mode: "custom", path, volume: etat().volume ?? 0.5, loop: true }));
+                _openPlaylistBrowser((path) => definirEtatGroupe(chefId, { mode: "custom", path, volume: etat().volume ?? 0.5, loop: etat().loop ?? true }));
             }
         }));
         li.querySelector(".scwm-smg-volume")?.addEventListener("change", (ev) =>

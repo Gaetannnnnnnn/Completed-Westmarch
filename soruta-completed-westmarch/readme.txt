@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 6.9.5
+Version : 6.9.6
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -217,6 +217,29 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v6.9.6 | 2026-11-21
+   - Fenêtre « Playlists — écouter & choisir » : on ne pouvait pas faire
+     défiler la liste (fenêtre de hauteur fixe, contenu coupé). La liste
+     défile maintenant dans la fenêtre (molette), la barre de recherche
+     reste collée en haut, le bouton Fermer reste visible en bas, et la
+     fenêtre reste redimensionnable. Fichiers : modules/sceneaudio.js,
+     styles/sceneaudio.css.
+   - Musique de scène : bouton 🔁 BOUCLE dans l'onglet Playlists, sur
+     chaque scène (pour tous) et sur chaque groupe (pour ce groupe, y
+     compris pour une autre musique choisie). Doré / bleu = en boucle,
+     grisé = une seule fois.
+   - « Musique par groupe » devient « Musique du groupe » : le MJ n'y voit
+     QUE son propre groupe (pas ceux des autres MJ), et seulement si ce
+     groupe est sur une scène qui a une musique configurée (ou a une
+     musique à lui). C'est la musique de la scène, dans une zone à part
+     pour que le MJ la mette en pause / la change pour son groupe. La
+     section globale « Musiques de scène » porte la mention « (chez tout
+     le monde) » et n'affiche que les scènes avec une musique configurée.
+   - Libellés corrigés : la musique de scène vaut pour TOUS ceux qui sont
+     sur la scène (config de scène : « Musique de la scène », onglet
+     Playlists : « chez tout le monde ») ; le réglage du groupe se fait
+     dans « Musique du groupe ». Fichier : modules/scenemusic.js.
 
 v6.9.5 | 2026-11-21
    - Musique de scène : contrôle GLOBAL (comme avant) ET PAR GROUPE.

@@ -549,7 +549,7 @@ export async function _openPlaylistBrowser(onPick) {
                 if (s) { onPick(s.path, s.name); ui.notifications?.info(tl("Son choisi : {0}", s.name)); }
             }));
         }
-    }, { width: 520, height: 560, resizable: true }).render(true);
+    }, { width: 520, height: 560, resizable: true, classes: ["scwm-pl-fenetre"] }).render(true);
 }
 
 // ============================================================

@@ -2,6 +2,9 @@
 // Généré à partir des textes du code ; une entrée absente reste en français.
 // © 2026 Soruta.
 export default {
+ "En ligne": "Online",
+ "Sans présentation :": "No introduction:",
+ "Aucun MJ n'a encore écrit de présentation.": "No GM has written an introduction yet.",
  "Repos court : avancer le temps d'1 heure": "Short rest: advance time by 1 hour",
  "Repos long : avancer le temps de 8 heures": "Long rest: advance time by 8 hours",
  "Fortune totale convertie en pièces d'or{0}": "Total wealth converted to gold pieces{0}",

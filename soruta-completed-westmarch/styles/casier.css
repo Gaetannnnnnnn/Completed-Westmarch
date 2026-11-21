@@ -354,3 +354,59 @@
     border-top: 1px solid rgba(201,162,39,0.18);
 }
 .scwm-casier-tabgroup:first-child { margin-top: 0; border-top: none; }
+
+/* =====================================================================
+   Présentations des MJ (fenêtre joueur) — .scwm-gmp
+   ===================================================================== */
+.scwm-gmp { display: flex; flex-direction: column; gap: 8px; }
+.scwm-gmp-aide { margin: 0; font-size: 12px; opacity: .65; }
+.scwm-gmp-liste { display: flex; flex-direction: column; gap: 8px; max-height: 62vh; overflow-y: auto; padding-right: 2px; }
+.scwm-gmp-carte {
+    border: 1px solid rgba(201, 162, 39, .3);
+    border-radius: 8px;
+    background: linear-gradient(100deg, rgba(201, 162, 39, .08), rgba(0, 0, 0, .15) 70%);
+    overflow: hidden;
+}
+.scwm-gmp-carte[open] { border-color: rgba(201, 162, 39, .6); }
+.scwm-gmp-carte > summary {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; cursor: pointer;
+    list-style: none;
+}
+.scwm-gmp-carte > summary::-webkit-details-marker { display: none; }
+.scwm-gmp-carte > summary::marker { content: ""; }
+.scwm-gmp-carte > summary:hover { background: rgba(201, 162, 39, .1); }
+.scwm-gmp-avatar {
+    flex: 0 0 auto; width: 40px; height: 40px; border-radius: 50%;
+    object-fit: cover; border: 2px solid #c9a227; background: rgba(0, 0, 0, .3);
+}
+.scwm-gmp-tete { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.scwm-gmp-nom { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 14px; }
+.scwm-gmp-enligne { width: 8px; height: 8px; border-radius: 50%; background: #5fbf77; box-shadow: 0 0 6px #5fbf77; }
+.scwm-gmp-apercu {
+    font-size: 12px; opacity: .7;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.scwm-gmp-carte[open] .scwm-gmp-apercu { display: none; }
+.scwm-gmp-chevron { flex: 0 0 auto; font-size: 11px; opacity: .6; transition: transform .2s; }
+.scwm-gmp-carte[open] .scwm-gmp-chevron { transform: rotate(180deg); }
+.scwm-gmp-texte {
+    margin: 0 10px 10px 60px; padding: 8px 10px;
+    border-left: 2px solid rgba(201, 162, 39, .5);
+    background: rgba(0, 0, 0, .2); border-radius: 0 6px 6px 0;
+    font-size: 13px; line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+.scwm-gmp-sans {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 5px;
+    padding: 8px 2px 0; border-top: 1px solid rgba(255, 255, 255, .08);
+    font-size: 12px;
+}
+.scwm-gmp-sans > span:first-child { opacity: .6; margin-right: 2px; }
+.scwm-gmp-pastille {
+    padding: 1px 8px; border-radius: 999px;
+    background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .12);
+    opacity: .75;
+}
+.scwm-gmp-vide { margin: 4px 0; text-align: center; opacity: .65; font-style: italic; }
+@media (prefers-reduced-motion: reduce) { .scwm-gmp-chevron { transition: none; } }

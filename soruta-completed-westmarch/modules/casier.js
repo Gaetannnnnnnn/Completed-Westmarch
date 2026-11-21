@@ -1513,52 +1513,51 @@ export function refreshCasierBadge() {
 }
 
 // Fenêtre (lecture seule) des présentations des MJ — accessible aux joueurs.
-// Chaque présentation est REPLIÉE : on voit le nom du MJ et le début du texte ;
-// un clic déplie le texte complet (élément <details> natif du navigateur).
+// Une carte par MJ qui a écrit une présentation : avatar, nom, début du texte ;
+// un clic déplie le texte complet (élément <details> natif). Les MJ sans
+// présentation sont regroupés en une ligne discrète en bas.
+// Styles : styles/casier.css (.scwm-gmp-*). Pas de <style> dans le contenu :
+// Foundry le retire des fenêtres.
 export function openGmPresentations() {
-    const gms = (game.users ?? []).filter(u => u.isGM);
+    const gms = (game.users ?? []).filter(u => u.isGM)
+        .sort((a, b) => a.name.localeCompare(b.name, game.i18n?.lang || "fr"));
+    const avec = gms.filter(g => getPresentation(g.id));
+    const sans = gms.filter(g => !getPresentation(g.id));
     const apercu = (t) => {
         const ligne = String(t).split(/\n+/).map(x => x.trim()).find(Boolean) ?? "";
-        return ligne.length > 90 ? ligne.slice(0, 90).trimEnd() + "…" : ligne;
+        return ligne.length > 140 ? ligne.slice(0, 140).trimEnd() + "…" : ligne;
     };
-    const cards = gms.map(gm => {
+    const avatar = (u) => `<img class="scwm-gmp-avatar" src="${esc(u.avatar || "icons/svg/mystery-man.svg")}" alt="">`;
+
+    const cartes = avec.map(gm => {
         const pres = getPresentation(gm.id);
-        if (!pres) {
-            return `<div class="scwm-gmp-carte scwm-gmp-vide">
-                <span class="scwm-gmp-nom"><i class="fa-solid fa-user-shield"></i> ${esc(gm.name)}</span>
-                <em>${tl("Aucune présentation.")}</em></div>`;
-        }
         return `<details class="scwm-gmp-carte">
             <summary>
-                <i class="fa-solid fa-chevron-right scwm-gmp-chevron"></i>
+                ${avatar(gm)}
                 <span class="scwm-gmp-tete">
-                    <span class="scwm-gmp-nom"><i class="fa-solid fa-user-shield"></i> ${esc(gm.name)}</span>
+                    <span class="scwm-gmp-nom">${esc(gm.name)}${gm.active ? `<span class="scwm-gmp-enligne" data-tooltip="${tl("En ligne")}"></span>` : ""}</span>
                     <span class="scwm-gmp-apercu">${esc(apercu(pres))}</span>
                 </span>
+                <i class="fa-solid fa-chevron-down scwm-gmp-chevron"></i>
             </summary>
             <div class="scwm-gmp-texte">${esc(pres).replace(/\n/g, "<br>")}</div>
         </details>`;
-    }).join("") || `<p>${tl("Aucun MJ.")}</p>`;
-    const style = `<style>
-        .scwm-gmp-carte { border:1px solid rgba(255,255,255,.12); border-radius:8px; margin:0 0 8px; }
-        .scwm-gmp-vide { display:flex; flex-wrap:wrap; gap:4px 10px; align-items:baseline; padding:8px 10px; }
-        .scwm-gmp-vide em { opacity:.7; font-size:.92em; }
-        .scwm-gmp-carte > summary { display:flex; align-items:flex-start; gap:8px; padding:8px 10px; cursor:pointer; list-style:none; }
-        .scwm-gmp-carte > summary::-webkit-details-marker { display:none; }
-        .scwm-gmp-carte > summary:hover { background:rgba(255,255,255,.05); border-radius:8px; }
-        .scwm-gmp-chevron { margin-top:3px; font-size:.8em; opacity:.7; transition:transform .15s; }
-        .scwm-gmp-carte[open] .scwm-gmp-chevron { transform:rotate(90deg); }
-        .scwm-gmp-tete { display:flex; flex-direction:column; min-width:0; flex:1; }
-        .scwm-gmp-nom { font-weight:700; }
-        .scwm-gmp-apercu { font-size:.85em; opacity:.65; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-        .scwm-gmp-carte[open] .scwm-gmp-apercu { display:none; }
-        .scwm-gmp-texte { padding:0 10px 10px 28px; font-size:.92em; opacity:.9; line-height:1.45; }
-    </style>`;
+    }).join("");
+
+    const pied = sans.length
+        ? `<div class="scwm-gmp-sans"><span>${tl("Sans présentation :")}</span> ${sans.map(g => `<span class="scwm-gmp-pastille">${esc(g.name)}</span>`).join("")}</div>`
+        : "";
+    const corps = (cartes || `<p class="scwm-gmp-vide">${tl("Aucun MJ n'a encore écrit de présentation.")}</p>`) + pied;
+    const vide = !gms.length ? `<p class="scwm-gmp-vide">${tl("Aucun MJ.")}</p>` : "";
+
     foundry.applications.api.DialogV2.wait({
         window:   { title: tl("Présentations des MJ"), icon: "fa-solid fa-user-shield" },
-        position: { width: 480 },
-        content:  `${style}<p style="margin:0 0 6px;font-size:.85em;opacity:.7;">${tl("Cliquez sur un MJ pour lire sa présentation.")}</p>
-            <div style="max-height:60vh;overflow:auto;">${cards}</div>`,
+        position: { width: 520 },
+        classes:  ["scwm-gmp-fenetre"],
+        content:  `<div class="scwm-gmp">
+            ${avec.length ? `<p class="scwm-gmp-aide">${tl("Cliquez sur un MJ pour lire sa présentation.")}</p>` : ""}
+            <div class="scwm-gmp-liste">${vide || corps}</div>
+        </div>`,
         rejectClose: false,
         buttons: [{ action: "close", label: tl("Fermer"), icon: "fa-solid fa-xmark", default: true }]
     }).catch(() => {});

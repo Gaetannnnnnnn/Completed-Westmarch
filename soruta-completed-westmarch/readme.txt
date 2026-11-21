@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 6.9.0
+Version : 6.9.1
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -217,6 +217,17 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v6.9.1 | 2026-11-21
+   - Présentations des MJ (fenêtre joueur) refaites : les styles étaient
+     ignorés (Foundry retire les balises <style> des fenêtres), d'où un
+     affichage brut avec double flèche. Les styles sont maintenant dans
+     styles/casier.css. Une carte par MJ ayant une présentation : avatar,
+     nom, point vert s'il est en ligne, début du texte ; clic = texte
+     complet dans un encadré, chevron qui pivote. Les MJ sans présentation
+     sont regroupés en pastilles sur une ligne en bas. Longs mots (ou
+     binaire) coupés proprement. Fichiers : modules/casier.js,
+     styles/casier.css.
 
 v6.9.0 | 2026-11-21
    - Présentations des MJ (côté joueur) : chaque présentation est

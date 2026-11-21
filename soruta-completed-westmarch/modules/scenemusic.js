@@ -23,7 +23,9 @@ import { _openPlaylistBrowser } from "./sceneaudio.js";
 // arrêtée, jouer aussi chez le MJ. Réglage du module : enableSceneMusic.
 //
 // Le MJ la pilote depuis l'onglet Playlists : section « Musiques de scène »
-// (scènes réglées où se trouve quelqu'un) avec arrêt / relance et volume.
+// (scènes réglées où se trouve quelqu'un) avec arrêt / relance et volume
+// POUR TOUT LE MONDE, et section « Musique par groupe » : arrêt, autre
+// musique ou volume pour UN groupe seulement (voir partyMusic plus bas).
 // © 2026 Soruta.
 // ============================================================
 
@@ -51,10 +53,49 @@ async function arreter(fadeS = 1) {
     catch { try { c.sound.stop(); } catch { /* */ } }
 }
 
+// ------------------------------------------------------------------
+// GROUPES (parties) : contrôle de la musique PAR GROUPE
+// Le groupe d'un utilisateur = flag partyId (id du MJ chef du groupe).
+// L'état musical du groupe est stocké sur le MJ chef : flag partyMusic
+//   { mode: "scene" | "stopped" | "custom", path, volume, loop }
+//   - scene   : le groupe entend la musique de la scène où il est (suit
+//               l'arrêt global de la scène) — mode posé à la création ;
+//   - stopped : arrêtée pour CE groupe seulement ;
+//   - custom  : une autre musique pour ce groupe seulement (quelle que soit
+//               la scène, même si la musique de la scène est arrêtée).
+// Sans groupe (ou groupe sans état) : la musique de la scène, réglage global.
+// ------------------------------------------------------------------
+const PFLAG = "partyMusic";
+export const chefDe = (user) => { const pid = user?.getFlag?.(MOD, "partyId"); return pid ? game.users.get(pid) ?? null : null; };
+export const etatGroupe = (chef) => chef?.getFlag?.(MOD, PFLAG) ?? null;
+export async function definirEtatGroupe(chefId, etat) {
+    const chef = game.users.get(chefId);
+    if (!chef || !game.user.isGM) return;
+    if (etat == null) return chef.unsetFlag(MOD, PFLAG);
+    return chef.setFlag(MOD, PFLAG, etat);
+}
+
+// Ce que CE client doit entendre sur cette scène : { path, volume, loop, fade } ou null.
+function musiqueVoulue(scene) {
+    if (!actif() || !scene) return null;
+    const cfg = lireCfg(scene);
+    if (game.user.isGM && cfg.gm === false && !chefDe(game.user)) return null;
+    const pm = etatGroupe(chefDe(game.user));
+    const fade = Number(cfg.fade) || 2;
+    if (pm?.mode === "stopped") return null;
+    if (pm?.mode === "custom" && pm.path) {
+        return { path: pm.path, volume: pm.volume ?? 0.5, loop: pm.loop !== false, fade };
+    }
+    if (!cfg.path || cfg.stopped) return null;
+    if (game.user.isGM && cfg.gm === false) return null;
+    return { path: cfg.path, volume: pm?.volume ?? cfg.volume, loop: cfg.loop, fade };
+}
+
 async function appliquer(scene) {
     const mon = ++_jeton;
-    const cfg = lireCfg(scene);
-    const veut = actif() && !!scene && !!cfg.path && !cfg.stopped && (!game.user.isGM || cfg.gm !== false);
+    const voulue = musiqueVoulue(scene);
+    const cfg = voulue ?? lireCfg(scene);
+    const veut = !!voulue;
     const vol = Math.min(1, Math.max(0, Number(cfg.volume) || 0));
 
     // Même musique que la scène précédente : on continue, réglages mis à jour.
@@ -238,6 +279,80 @@ function sectionPlaylists(app, html) {
     if (repere) repere.insertAdjacentElement("beforebegin", sec);
     else root.prepend(sec);
 }
+
+// Groupes existants : chaque MJ chef (partyId = son propre id) et ses membres.
+function groupes() {
+    return game.users.filter(u => u.isGM && u.getFlag(MOD, "partyId") === u.id).map(chef => ({
+        chef,
+        membres: game.users.filter(u => u.id !== chef.id && u.getFlag(MOD, "partyId") === chef.id),
+        etat: etatGroupe(chef)
+    }));
+}
+
+function sectionGroupes(root) {
+    root.querySelector(".scwm-smg-sidebar")?.remove();
+    const liste = groupes();
+    if (!liste.length) return;
+    const lignes = liste.map(({ chef, membres, etat }) => {
+        const enLigne = [chef, ...membres].filter(u => u.active);
+        const scenes = [...new Set(enLigne.map(u => u.viewedScene).filter(Boolean))].map(id => game.scenes.get(id)).filter(Boolean);
+        const scene = scenes[0] ?? null;
+        const cfgScene = scene ? lireCfg(scene) : null;
+        const mode = etat?.mode ?? "scene";
+        let quoi;
+        if (mode === "stopped") quoi = `<i class="fa-solid fa-volume-xmark"></i> ${tl("arrêtée pour ce groupe")}`;
+        else if (mode === "custom") quoi = `<i class="fa-solid fa-music"></i> ${esc(nomFichier(etat.path))} <em>(${tl("musique du groupe")})</em>`;
+        else if (cfgScene?.path) quoi = `<i class="fa-solid fa-map"></i> ${esc(nomFichier(cfgScene.path))}${cfgScene.stopped ? ` — ${tl("arrêtée (scène)")}` : ""}`;
+        else quoi = `<i class="fa-solid fa-map"></i> <em>${tl("pas de musique sur la scène")}</em>`;
+        const vol = Number(etat?.volume ?? (mode === "custom" ? 0.5 : cfgScene?.volume ?? 0.5));
+        return `<li class="scwm-smg-ligne" data-chef="${esc(chef.id)}" style="display:flex;flex-direction:column;gap:3px;padding:4px 6px;border-bottom:1px solid rgba(255,255,255,.08);${mode === "stopped" ? "opacity:.65;" : ""}">
+            <div style="display:flex;align-items:center;gap:6px;">
+                <div style="flex:1;min-width:0;">
+                    <div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${tl("Groupe de {0}", esc(chef.name))}
+                        <span style="font-weight:400;font-size:11px;opacity:.7;" data-tooltip="${esc([chef, ...membres].map(u => u.name).join(", "))}"><i class="fa-solid fa-users"></i> ${membres.length + 1}${scene ? ` · ${esc(scene.name)}` : ""}</span></div>
+                    <div style="font-size:11px;opacity:.8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${quoi}</div>
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:4px;">
+                <button type="button" class="scwm-smg-act" data-act="${mode === "stopped" ? "scene" : "stop"}" data-tooltip="${mode === "stopped" ? tl("Relancer la musique de la scène pour ce groupe") : tl("Arrêter la musique pour ce groupe seulement")}"
+                    style="flex:0 0 26px;width:26px;height:24px;padding:0;margin:0;"><i class="fa-solid ${mode === "stopped" ? "fa-play" : "fa-stop"}"></i></button>
+                <button type="button" class="scwm-smg-act" data-act="autre" data-tooltip="${tl("Jouer une autre musique pour ce groupe seulement")}"
+                    style="flex:0 0 26px;width:26px;height:24px;padding:0;margin:0;"><i class="fa-solid fa-list"></i></button>
+                ${mode === "custom" ? `<button type="button" class="scwm-smg-act" data-act="scene" data-tooltip="${tl("Revenir à la musique de la scène")}"
+                    style="flex:0 0 26px;width:26px;height:24px;padding:0;margin:0;"><i class="fa-solid fa-rotate-left"></i></button>` : ""}
+                <input type="range" class="scwm-smg-volume" min="0" max="1" step="0.05" value="${vol}" data-tooltip="${tl("Volume pour ce groupe")}" style="flex:1;margin:0;">
+            </div>
+        </li>`;
+    }).join("");
+    const sec = document.createElement("section");
+    sec.className = "scwm-smg-sidebar";
+    sec.style.cssText = "margin:0 6px 6px;border:1px solid rgba(106,168,232,.45);border-radius:5px;background:rgba(0,0,0,.2);";
+    sec.innerHTML = `<header style="display:flex;align-items:center;gap:6px;padding:4px 6px;font-weight:600;border-bottom:1px solid rgba(106,168,232,.3);">
+            <i class="fa-solid fa-users"></i> ${tl("Musique par groupe")}
+            <span style="font-weight:400;font-size:11px;opacity:.7;">${tl("(sans toucher aux autres)")}</span></header>
+        <ol style="list-style:none;margin:0;padding:0;">${lignes}</ol>`;
+    sec.querySelectorAll(".scwm-smg-ligne").forEach(li => {
+        const chefId = li.dataset.chef;
+        const etat = () => etatGroupe(game.users.get(chefId)) ?? { mode: "scene" };
+        li.querySelectorAll(".scwm-smg-act").forEach(b => b.addEventListener("click", async (ev) => {
+            ev.preventDefault();
+            const act = b.dataset.act;
+            if (act === "stop")  return definirEtatGroupe(chefId, { ...etat(), mode: "stopped" });
+            if (act === "scene") return definirEtatGroupe(chefId, { mode: "scene", volume: etat().volume });
+            if (act === "autre") {
+                _openPlaylistBrowser((path) => definirEtatGroupe(chefId, { mode: "custom", path, volume: etat().volume ?? 0.5, loop: true }));
+            }
+        }));
+        li.querySelector(".scwm-smg-volume")?.addEventListener("change", (ev) =>
+            definirEtatGroupe(chefId, { ...etat(), volume: Number(ev.currentTarget.value) }));
+    });
+    const apres = root.querySelector(".scwm-sm-sidebar");
+    if (apres) apres.insertAdjacentElement("afterend", sec);
+    else {
+        const repere = root.querySelector(".directory-list");
+        if (repere) repere.insertAdjacentElement("beforebegin", sec); else root.prepend(sec);
+    }
+}
 const rafraichirPlaylists = foundry.utils.debounce(() => {
     if (game.user?.isGM && ui.playlists?.rendered) ui.playlists.render();
 }, 250);
@@ -261,8 +376,20 @@ export function SceneMusicHooks() {
     // quand un joueur change de scène, se connecte ou se déconnecte.
     Hooks.on("renderPlaylistDirectory", (app, html) => {
         try { sectionPlaylists(app, html); } catch (e) { journal.avert(tl("[{0}] Musique de scène (onglet Playlists) :", MOD), e); }
+        try {
+            const root = (html instanceof HTMLElement) ? html : (html?.[0] ?? app?.element);
+            if (root && actif() && game.user.isGM) sectionGroupes(root);
+        } catch (e) { journal.avert(tl("[{0}] Musique par groupe (onglet Playlists) :", MOD), e); }
     });
-    Hooks.on("updateUser", (user, changes) => { if ("viewedScene" in changes || "active" in changes) rafraichirPlaylists(); });
+    Hooks.on("updateUser", (user, changes) => {
+        const groupe = foundry.utils.hasProperty(changes, `flags.${MOD}.${PFLAG}`)
+            || foundry.utils.hasProperty(changes, `flags.${MOD}.partyId`)
+            || foundry.utils.hasProperty(changes, `flags.${MOD}.-=${PFLAG}`)
+            || foundry.utils.hasProperty(changes, `flags.${MOD}.-=partyId`);
+        if ("viewedScene" in changes || "active" in changes || groupe) rafraichirPlaylists();
+        // Mon groupe a changé (j'y entre / en sors), ou l'état musical de mon groupe a changé.
+        if (groupe && (user.id === game.user.id || user.id === game.user.getFlag(MOD, "partyId"))) appliquer(canvas?.scene ?? null);
+    });
     Hooks.on("userConnected", () => rafraichirPlaylists());
     // La barre des scènes se redessine quand un joueur change de scène (ses
     // pastilles de joueurs) : bon signal pour remettre la section à jour.

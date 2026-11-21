@@ -782,7 +782,7 @@ async function closeSession(playerListApp) {
             }
         });
     }
-    game.user.unsetFlag(MOD, "partyId").then(() => {
+    game.user.update({ [`flags.${MOD}.-=partyId`]: null, [`flags.${MOD}.-=partyMusic`]: null }).then(() => {
         playerListApp.render();
     });
 

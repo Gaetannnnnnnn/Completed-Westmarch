@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 6.9.4
+Version : 6.9.5
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -217,6 +217,28 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v6.9.5 | 2026-11-21
+   - Musique de scène : contrôle GLOBAL (comme avant) ET PAR GROUPE.
+     · Global : section « Musiques de scène » de l'onglet Playlists, et
+       réglage « Arrêtée » de la scène : vaut pour tout le monde sur la
+       scène.
+     · Par groupe : à la création d'un groupe (Create Party), le groupe
+       reçoit son propre contrôle (il entend la musique de la scène).
+       Nouvelle section « Musique par groupe » sous la précédente, une
+       ligne par groupe (chef, membres, scène où il est, ce qu'il
+       entend) : ⏹ arrêter pour CE groupe, ☰ jouer une AUTRE musique pour
+       ce groupe (choix dans les playlists, avec recherche), ↺ revenir à
+       la musique de la scène, curseur de volume du groupe. Les autres
+       groupes et les joueurs hors groupe ne sont pas touchés.
+     · Priorités : groupe arrêté → silence ; autre musique du groupe →
+       elle joue (même si la musique de la scène est arrêtée) ; sinon la
+       musique de la scène (qui suit l'arrêt global).
+     · État stocké sur le MJ chef du groupe (flag partyMusic), effacé à la
+       dissolution du groupe (Leave Party, clôture de session). Les
+       groupes créés avant cette version suivent le réglage global
+       jusqu'au premier réglage de groupe.
+     Fichiers : modules/scenemusic.js, modules/player.js, modules/session.js.
 
 v6.9.4 | 2026-11-21
    - Casier MJ, Registre des personnages : colonne « Multi » retirée ;

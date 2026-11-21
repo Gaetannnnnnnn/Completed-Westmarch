@@ -61,7 +61,11 @@ export function PlayerHooks() {
             name: tl("Create Party"),
             icon: '<i class="fa-solid fa-users"></i>',
             callback: li => {
-                game.user.setFlag(MOD, "partyId", game.user.id).then(() => {
+                game.user.update({
+                    [`flags.${MOD}.partyId`]: game.user.id,
+                    // Musique de scène : le groupe a son propre contrôle (scenemusic.js).
+                    [`flags.${MOD}.partyMusic`]: { mode: "scene" }
+                }).then(() => {
                     if (partyFeatureEnabled("enableSessionLog")) startSessionLog(game.user.id);
                     ReloadChat();
                     appPlayerList.render();
@@ -95,7 +99,7 @@ export function PlayerHooks() {
                         }
                     });
                 }
-                game.user.unsetFlag(MOD, "partyId").then(() => {
+                game.user.update({ [`flags.${MOD}.-=partyId`]: null, [`flags.${MOD}.-=partyMusic`]: null }).then(() => {
                     ReloadChat();
                     appPlayerList.render();
                 });

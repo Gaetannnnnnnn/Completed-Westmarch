@@ -2,6 +2,19 @@
 // Généré à partir des textes du code ; une entrée absente reste en français.
 // © 2026 Soruta.
 export default {
+ "arrêtée pour ce groupe": "stopped for this group",
+ "musique du groupe": "group music",
+ "arrêtée (scène)": "stopped (scene)",
+ "pas de musique sur la scène": "no music on the scene",
+ "Groupe de {0}": "{0}'s group",
+ "Relancer la musique de la scène pour ce groupe": "Restart the scene music for this group",
+ "Arrêter la musique pour ce groupe seulement": "Stop the music for this group only",
+ "Jouer une autre musique pour ce groupe seulement": "Play another track for this group only",
+ "Revenir à la musique de la scène": "Back to the scene music",
+ "Volume pour ce groupe": "Volume for this group",
+ "Musique par groupe": "Music per group",
+ "(sans toucher aux autres)": "(without affecting others)",
+ "[{0}] Musique par groupe (onglet Playlists) :": "[{0}] Music per group (Playlists tab):",
  "Sous-classe(s)": "Subclass(es)",
  "État": "Status",
  "Validé par": "Approved by",

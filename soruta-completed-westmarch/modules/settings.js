@@ -594,6 +594,10 @@ export function registerSettings() {
         tl("Moine — Arts martiaux automatiques"),
         tl("Moines sans armure ni bouclier : leurs frappes à mains nues et leurs armes de moine utilisent le dé d'Arts martiaux (s'il est plus grand que celui de l'arme) et la Dextérité si elle est meilleure que la Force. Appliqué en mémoire, sans modifier les armes."),
         true, { onChange: () => import("./monk.js").then(m => m.rafraichirMoines()) }));
+    game.settings.register(MOD, "enableTavernBrawler", B(
+        tl("Tavern Brawler — frappe à mains nues automatique"),
+        tl("Personnages avec le don Tavern Brawler : leur frappe à mains nues lance 1d4 (+ mod.) au lieu de ses dégâts normaux, SAUF si elle a déjà un meilleur dé (dé d'Arts martiaux du moine, par ex.). Règles 2024 : les 1 sur les dés de dégâts de la frappe à mains nues sont relancés. Appliqué en mémoire, sans modifier l'objet."),
+        true, { onChange: () => import("./monk.js").then(m => m.rafraichirMoines()) }));
     game.settings.register(MOD, "enableUncannyMetabolism", B(
         tl("Moine — Métabolisme surnaturel au jet d'initiative"),
         tl("S'il reste une utilisation et qu'au moins un point de focus est dépensé : récupère tous les points de focus et rend dé d'Arts martiaux + niveau de moine PV. Ignoré si l'objet est déjà automatisé (dnd5e, Midi-QOL, premades).")));
@@ -1209,6 +1213,18 @@ function registerCategoryToggles() {
             }
             if (!group || group.querySelector(".scwm-cat-toggle")) continue;
 
+            // Catégorie gelée : pastille « temporairement désactivé », sans case.
+            if (FROZEN_SETTINGS.has(cat.master)) {
+                const gele = document.createElement("span");
+                gele.className = "scwm-cat-toggle";
+                gele.style.cssText = "display:inline-flex;align-items:center;gap:5px;margin-left:10px;font-size:11px;font-weight:600;color:#d9a45b;vertical-align:middle;";
+                gele.innerHTML = `<i class="fa-solid fa-pause"></i> ${tl("Temporairement désactivé")}`;
+                (group.querySelector("label") ?? group).appendChild(gele);
+                group.querySelectorAll("button").forEach(btn => { btn.disabled = true; });
+                group.style.opacity = "0.6";
+                continue;
+            }
+
             const on = !!game.settings.get(MOD, cat.master);
             const wrap = document.createElement("label");
             wrap.className = "scwm-cat-toggle";
@@ -1289,6 +1305,9 @@ const TWEAK_TREE = {
         } },
         "Healer (Guérisseur)": { children: {
             "Relance des 1 sur les soins (sorts, Battle Medic)": { key: "enableHealerReroll" }
+        } },
+        "Tavern Brawler (Bagarreur de taverne)": { children: {
+            "Frappe à mains nues d4 (sans écraser un meilleur dé) et relance des 1": { key: "enableTavernBrawler" }
         } }
     } },
     "Backgrounds": { icon: "fa-scroll",              children: {} },
@@ -1654,6 +1673,14 @@ export async function openConfigHub() {
                         ${tl("<i class=\"fa-solid fa-up-right-from-square\"></i> Ouvrir")}</button>
                 </div>`;
             }
+            // Catégorie gelée par le module (interrupteur principal dans
+            // FROZEN_SETTINGS) : marquée désactivée, non dépliable.
+            if (cat.master && FROZEN_SETTINGS.has(cat.master)) {
+                return `<div class="scwm-hub-cat scwm-hub-gele"${off} data-tooltip="${tl("Fonction temporairement désactivée par le module : ses réglages sont inaccessibles pour le moment.")}">
+                    <div class="scwm-hub-gele-tete"><i class="scwm-hub-caret fa-solid fa-lock"></i><i class="fa-solid ${cat.icon}"></i> ${cat.title}
+                        <span class="scwm-hub-gele-badge"><i class="fa-solid fa-pause"></i> ${tl("Temporairement désactivé")}</span></div>
+                </div>`;
+            }
             return `<details class="scwm-hub-cat"${off}>
                 <summary><i class="scwm-hub-caret fa-solid fa-caret-right"></i><i class="fa-solid ${cat.icon}"></i> ${cat.title}</summary>
                 <div class="scwm-hub-cat-body">${buildCategoryForm(cat, _hubHostId(cat), { banner: false })}</div>
@@ -1780,7 +1807,13 @@ function makeLauncher(category) {
             id:     `scwm-menu-${category.firstKey}`,
             window: { title: category.title }
         };
-        async render() { (category.open ?? (() => openCategoryDialog(category)))(); return this; }
+        async render() {
+            if (category.master && FROZEN_SETTINGS.has(category.master)) {
+                ui.notifications?.info(tl("« {0} » est temporairement désactivé par le module.", category.title));
+                return this;
+            }
+            (category.open ?? (() => openCategoryDialog(category)))(); return this;
+        }
         async close()  { return this; }
     };
 }

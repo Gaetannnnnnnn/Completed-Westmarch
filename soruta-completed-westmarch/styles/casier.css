@@ -360,7 +360,13 @@
    ===================================================================== */
 .scwm-gmp { display: flex; flex-direction: column; gap: 8px; }
 .scwm-gmp-aide { margin: 0; font-size: 12px; opacity: .65; }
-.scwm-gmp-liste { display: flex; flex-direction: column; gap: 8px; max-height: 62vh; overflow-y: auto; padding-right: 2px; }
+.scwm-gmp-liste {
+    display: flex; flex-direction: column; gap: 8px;
+    max-height: min(62vh, 600px); overflow-y: auto; overscroll-behavior: contain;
+    padding-right: 4px;
+}
+/* La fenêtre elle-même peut défiler si l'écran est petit. */
+.scwm-gmp-fenetre .window-content { overflow-y: auto; }
 .scwm-gmp-carte {
     border: 1px solid rgba(201, 162, 39, .3);
     border-radius: 8px;
@@ -396,6 +402,8 @@
     background: rgba(0, 0, 0, .2); border-radius: 0 6px 6px 0;
     font-size: 13px; line-height: 1.5;
     overflow-wrap: anywhere;
+    /* Présentation longue : elle défile dans son encadré. */
+    max-height: 40vh; overflow-y: auto; overscroll-behavior: contain;
 }
 .scwm-gmp-sans {
     display: flex; flex-wrap: wrap; align-items: center; gap: 5px;

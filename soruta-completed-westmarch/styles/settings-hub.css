@@ -144,3 +144,19 @@
 /* « Tout activer » cocherait des options masquées : caché avec le filtre. */
 .scwm-hub.scwm-filtre-actifs .scwm-all-on,
 .scwm-hub.scwm-filtre-actifs .scwm-all-on + span { display: none !important; }
+
+/* Catégorie gelée par le module : non dépliable, marquée désactivée. */
+.scwm-hub-gele { opacity: .75; cursor: not-allowed; }
+.scwm-hub-gele-tete {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 2px 6px;
+    padding: 8px 10px; font-weight: 600;
+    background: rgba(120, 120, 120, 0.1);
+}
+.scwm-hub-gele-tete > i { color: #8a8f98; margin-right: 4px; }
+.scwm-hub-gele-tete .scwm-hub-caret { margin-right: 8px; }
+.scwm-hub-gele-badge {
+    margin-left: auto; padding: 1px 9px; border-radius: 999px;
+    font-size: 11px; font-weight: 600; color: #e0a85a;
+    background: rgba(214, 130, 40, .15); border: 1px solid rgba(214, 130, 40, .5);
+}
+.scwm-hub-gele-badge i { color: inherit !important; margin-right: 3px; }

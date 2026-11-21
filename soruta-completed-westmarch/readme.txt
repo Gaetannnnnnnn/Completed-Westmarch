@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 6.9.2
+Version : 6.9.3
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -217,6 +217,42 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v6.9.3 | 2026-11-21
+   - Présentations des MJ : une longue présentation défile maintenant dans
+     son encadré (hauteur max 40 % de l'écran, molette ou glisser), la
+     liste des MJ défile aussi, et la fenêtre elle-même si l'écran est
+     petit. Le défilement ne « fuit » plus vers la page derrière.
+     Fichiers : modules/casier.js, styles/casier.css.
+   - Nouveau : Tavern Brawler (Bagarreur de taverne) automatisé, réglage
+     « Tavern Brawler — frappe à mains nues automatique » (Modifications
+     ciblées → Features). La frappe à mains nues d'un personnage qui a le
+     don lance 1d4 + mod. au lieu de ses dégâts normaux, SANS jamais
+     remplacer un meilleur dé : contre le dé d'Arts martiaux du moine (d6,
+     d8…), ou un d4 égal, c'est le dé du moine qui reste (et la
+     Dextérité). Règles 2024 : les 1 sur les dés de dégâts de la frappe à
+     mains nues sont relancés (1d4r1, ou 1d8r1 avec le dé du moine). En
+     mémoire, sans modifier l'objet. Icône ⚙ sur le don (« Géré par ») et
+     sur la frappe à mains nues (« Modifié par », avec le détail, y
+     compris « d4 non utilisé, le dé actuel est au moins aussi bon »).
+     Non automatisé : la poussée de 5 pieds (à faire à la main).
+     Fichiers : modules/monk.js, modules/gere.js, modules/settings.js.
+   - Catégorie de réglages GELÉE par le module (son interrupteur principal
+     est dans FROZEN_SETTINGS — aujourd'hui « Cartes de chat ») : dans le
+     panneau de configuration, elle est marquée « ⏸ Temporairement
+     désactivé », grisée, avec un cadenas, et NE SE DÉPLIE PLUS. Dans les
+     réglages de Foundry, même pastille à la place de la case « Activé » et
+     bouton « Configurer » désactivé. Fichiers : modules/settings.js,
+     styles/settings-hub.css.
+   - Icône ⚙ « Modifié par » : chaque modification est maintenant
+     EXPLIQUÉE et SOURCÉE, une ligne par changement, avec la règle qui la
+     justifie en gras (ex. « Arts martiaux — Moine niv. 5, règles 2024,
+     sans armure ni bouclier », « Tavern Brawler — don, règles 2024 »), et
+     la formule de dégâts finale (ex. « 1d6r1 + mod. »). La relance des 1
+     de Tavern Brawler apparaît (« r1 » expliqué), comme le cas où son d4
+     n'est pas utilisé (avec l'origine du meilleur dé). Bulle en HTML via
+     data-tooltip-html (recommandé par Foundry v13/v14).
+     Fichiers : modules/monk.js, modules/gere.js.
 
 v6.9.2 | 2026-11-21
    - Icône « modifié par le module » (engrenages dorés) sur les OBJETS que

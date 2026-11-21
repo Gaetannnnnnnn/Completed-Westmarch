@@ -31,6 +31,8 @@ const GERES = [
       texte: tl("utiliser cette aptitude fait passer votre jeton en taille Large, et inversement.") },
     { test: (i) => /giant.?s havoc/i.test(nom(i)), cle: "enableRageSize",
       texte: tl("pendant la Rage, votre jeton passe en taille Large.") },
+    { test: (i) => i.type === "feat" && (ident(i) === "tavern-brawler" || /^(tavern brawler|bagarreur( de taverne)?)$/i.test(nom(i))), cle: "enableTavernBrawler",
+      texte: tl("votre frappe à mains nues lance 1d4 (sauf si vous avez déjà un meilleur dé, comme celui d'Arts martiaux) et, en règles 2024, relance les 1 aux dégâts.") },
     { test: (i) => i.type === "feat" && ident(i) === "form-of-the-beast", cle: "enableFormOfTheBeast",
       texte: tl("les armes naturelles (Morsure, Griffes, Queue) sont créées automatiquement.") }
 ];
@@ -39,7 +41,7 @@ const GERES = [
 // Chaque entrée renvoie la liste des changements pour cet objet, ou null.
 const MODIFIES = [
     (i) => modifsArtsMartiaux(i),
-    (i) => i.getFlag?.(MOD, "beastWeapon") ? [tl("Arme naturelle créée automatiquement (Form of the Beast)")] : null
+    (i) => i.getFlag?.(MOD, "beastWeapon") ? { lignes: [{ source: tl("Form of the Beast — Barbare, Voie de la Bête"), texte: tl("arme naturelle créée automatiquement par le module quand la forme est activée") }] } : null
 ];
 
 export const badgeActif = () => lire("a11yManagedBadge", true) !== false;
@@ -60,9 +62,17 @@ function ajouterBadges(app, html) {
             let modifs = null;
             for (const f of MODIFIES) { try { modifs = f(item); } catch { modifs = null; } if (modifs) break; }
             if (!gere && !modifs) continue;
+            // Bulle : chaque changement avec sa SOURCE (la règle qui le justifie).
+            const e = (t) => foundry.utils.escapeHTML(String(t ?? ""));
+            const bulleHtml = gere
+                ? `<strong>${e(tl("Géré par {0}", nomModule()))}</strong><br>${e(g.texte)}`
+                : `<strong>${e(tl("Modifié par {0}", nomModule()))}</strong>`
+                  + modifs.lignes.map(l => `<br>• <strong>${e(l.source)}</strong> : ${e(l.texte)}`).join("")
+                  + (modifs.formule ? `<br><em>${e(tl("Formule de dégâts obtenue : {0}", modifs.formule))}</em>` : "");
             const bulle = gere
-                ? `${tl("Géré par {0} :", nomModule())} ${g.texte}`
-                : `${tl("Modifié par {0} :", nomModule())} ${modifs[0]}${modifs.length > 1 ? " — " + modifs.slice(1).join(" ; ") : ""}.`;
+                ? `${tl("Géré par {0}", nomModule())} : ${g.texte}`
+                : `${tl("Modifié par {0}", nomModule())} : ` + modifs.lignes.map(l => `${l.source} : ${l.texte}`).join(" ; ")
+                  + (modifs.formule ? `. ${tl("Formule de dégâts obtenue : {0}", modifs.formule)}` : "");
             root.querySelectorAll(`[data-item-id="${item.id}"]`).forEach(ligne => {
                 // Une seule icône par ligne : on ignore les éléments imbriqués
                 // qui portent aussi data-item-id (image, contrôles…).
@@ -71,7 +81,9 @@ function ajouterBadges(app, html) {
                 const cible = ligne.querySelector(".item-name .title, .item-name h4, .item-name, .name .title, .name, h4, .title") ?? ligne;
                 const i = document.createElement("i");
                 i.className = "fa-solid fa-gears scwm-gere";
-                i.dataset.tooltip = bulle;
+                // v13/v14 : data-tooltip-html = HTML explicite (recommandé par Foundry).
+                i.dataset.tooltipHtml = bulleHtml;
+                i.dataset.tooltipDirection = "UP";
                 i.setAttribute("aria-label", bulle);
                 i.style.cssText = "color:#c9a227;font-size:.8em;margin-left:5px;opacity:.85;cursor:help;";
                 cible.appendChild(i);

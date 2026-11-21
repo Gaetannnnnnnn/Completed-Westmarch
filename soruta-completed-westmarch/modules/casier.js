@@ -1540,7 +1540,7 @@ export function openGmPresentations() {
                 </span>
                 <i class="fa-solid fa-chevron-down scwm-gmp-chevron"></i>
             </summary>
-            <div class="scwm-gmp-texte">${esc(pres).replace(/\n/g, "<br>")}</div>
+            <div class="scwm-gmp-texte scrollable">${esc(pres).replace(/\n/g, "<br>")}</div>
         </details>`;
     }).join("");
 
@@ -1556,7 +1556,7 @@ export function openGmPresentations() {
         classes:  ["scwm-gmp-fenetre"],
         content:  `<div class="scwm-gmp">
             ${avec.length ? `<p class="scwm-gmp-aide">${tl("Cliquez sur un MJ pour lire sa présentation.")}</p>` : ""}
-            <div class="scwm-gmp-liste">${vide || corps}</div>
+            <div class="scwm-gmp-liste scrollable">${vide || corps}</div>
         </div>`,
         rejectClose: false,
         buttons: [{ action: "close", label: tl("Fermer"), icon: "fa-solid fa-xmark", default: true }]

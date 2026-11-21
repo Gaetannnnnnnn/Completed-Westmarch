@@ -127,54 +127,94 @@ function restaurer(sys) {
 // module » de la fiche, cf. gere.js). Clé : l'objet system préparé.
 const MODIFS = new WeakMap();
 export function modifsArtsMartiaux(item) {
-    const l = item?.system ? MODIFS.get(item.system) : null;
-    return l?.length ? l : null;
+    const m = item?.system ? MODIFS.get(item.system) : null;
+    return m?.lignes?.length ? m : null;
 }
 
-// Applique (ou retire) les Arts martiaux sur une arme, en mémoire.
+// ---- Tavern Brawler (Bagarreur de taverne) -----------------------------------
+// 2024 : frappe à mains nues 1d4 + Force au lieu des dégâts normaux, et les 1
+// des dés de dégâts de la frappe à mains nues sont relancés (nouveau jet gardé).
+// 2014 : frappe à mains nues 1d4. Le d4 ne remplace JAMAIS un meilleur dé
+// (dé d'Arts martiaux du moine, par ex.) ; la relance s'applique à tout dé.
+// Réglage : enableTavernBrawler (Modifications ciblées → Features).
+const bagarreurActif = () => { try { return game.settings.get(MOD, "enableTavernBrawler") === true; } catch { return false; } };
+export function donBagarreur(actor) {
+    return actor?.items?.find?.(i => i.type === "feat"
+        && (i.system?.identifier === "tavern-brawler" || /^(tavern brawler|bagarreur( de taverne)?)$/i.test(String(i.name ?? "").trim())));
+}
+
+// Applique (ou retire) les Arts martiaux et Tavern Brawler sur une arme, en mémoire.
 export function appliquerArtsMartiaux(item) {
     if (item?.type !== "weapon") return;
     const sys = item.system;
     const actor = item.actor;
+    const mainsNues = !!actor && estMainsNues(item);
     const classe = actif() && actor ? classeMoine(actor) : null;
-    const mainsNues = !!classe && estMainsNues(item);
-    const eligible = !!classe && !porteArmureOuBouclier(actor)
+    const moine = !!classe && !porteArmureOuBouclier(actor)
         && (mainsNues || estArmeDeMoine(item, regles2024(classe)));
-    if (!eligible) { restaurer(sys); MODIFS.delete(sys); return; }
+    const faces = moine ? deArtsMartiaux(actor, classe) : 0;
+    const don = mainsNues && bagarreurActif() ? donBagarreur(actor) : null;
+    if ((!moine || !faces) && !don) { restaurer(sys); MODIFS.delete(sys); return; }
+    if (!sys.damage?.base) { MODIFS.delete(sys); return; }
 
-    const faces = deArtsMartiaux(actor, classe);
-    if (!faces || !sys.damage?.base) { MODIFS.delete(sys); return; }
     const o = memoriser(sys);
     const b = sys.damage.base;
+    // Chaque changement : { source (d'où vient la règle), texte (ce qui change) }.
     const changes = [];
+    const srcMoine = classe ? tl("Arts martiaux — Moine niv. {0}, règles {1}, sans armure ni bouclier",
+        classe.system?.levels ?? "?", regles2024(classe) ? "2024" : "2014") : "";
 
-    // Dextérité : la propriété Finesse fait prendre la meilleure des deux
-    // (la Dextérité pour un moine classique). Une activité d'attaque réglée
-    // sur « Force » repasse en automatique, sinon elle ignorerait la Dextérité.
-    sys.properties?.add?.("fin");
-    let forceLibre = false;
-    for (const [id, ability] of o.attaques) {
-        const act = sys.activities?.get?.(id);
-        if (act?.attack && ability === "str") { act.attack.ability = ""; forceLibre = true; }
+    if (moine && faces) {
+        // Dextérité : la propriété Finesse fait prendre la meilleure des deux
+        // (la Dextérité pour un moine classique). Une activité d'attaque réglée
+        // sur « Force » repasse en automatique, sinon elle ignorerait la Dextérité.
+        sys.properties?.add?.("fin");
+        let forceLibre = false;
+        for (const [id, ability] of o.attaques) {
+            const act = sys.activities?.get?.(id);
+            if (act?.attack && ability === "str") { act.attack.ability = ""; forceLibre = true; }
+        }
+        if (!o.fin || forceLibre) changes.push({ source: srcMoine, texte: tl("Dextérité utilisable à la place de la Force, pour l'attaque et les dégâts (le module prend la meilleure des deux)") });
     }
-    if (!o.fin || forceLibre) changes.push(tl("Dextérité utilisable à la place de la Force (attaque et dégâts)"));
 
     const de = (n, d) => (Number(n || 1) === 1 ? `d${d}` : `${n}d${d}`);
     if (mainsNues) {
-        // Frappe à mains nues : le dé d'Arts martiaux, sauf si l'objet l'utilise déjà.
-        const dejaEchelle = /@scale\.monk\./.test(String(o.customFormula ?? ""));
-        const deActuel = o.customEnabled ? 0 : (Number(o.number || 1) === 1 ? Number(o.denomination) || 0 : 0);
-        if (!dejaEchelle && deActuel < faces) {
-            if (b.custom) { b.custom.enabled = true; b.custom.formula = `1d${faces} + @mod`; }
-            else { b.number = 1; b.denomination = faces; }
-            changes.push(tl("dé d'Arts martiaux d{0}{1}", faces, deActuel ? tl(" au lieu de d{0}", deActuel) : ""));
+        // Dé de départ de la frappe à mains nues : le dé d'Arts martiaux si la
+        // formule native l'utilise déjà (@scale.monk), sinon le dé de l'objet
+        // (0 pour « 1 + Force »).
+        const echelleNative = /@scale\.monk\./.test(String(o.customFormula ?? ""));
+        const deObjet = o.customEnabled ? 0 : (Number(o.number || 1) === 1 ? Number(o.denomination) || 0 : 0);
+        const deDepart = echelleNative ? faces : deObjet;
+        let deFinal = deDepart;
+        if (moine && faces > deFinal) {
+            deFinal = faces;
+            changes.push({ source: srcMoine, texte: tl("dé de dégâts remplacé par le dé d'Arts martiaux d{0}{1}", faces, deDepart ? tl(" au lieu de d{0}", deDepart) : tl(" au lieu de 1 dégât fixe")) });
         }
-    } else if (!o.customEnabled) {                    // formule personnalisée : on n'y touche pas
+        let relance = false;
+        if (don) {
+            const srcDon = tl("Tavern Brawler — don, règles {0}", "{R}");
+            if (deFinal < 4) {
+                changes.push({ source: srcDon, texte: tl("dégâts de la frappe à mains nues : 1d4 + modificateur au lieu de {0}", deDepart ? `d${deDepart}` : tl("1 dégât fixe")) });
+                deFinal = 4;
+            } else {
+                const origine = (echelleNative || (moine && faces === deFinal)) ? tl("dé d'Arts martiaux du moine") : tl("dé de l'arme");
+                changes.push({ source: srcDon, texte: tl("son d4 n'est PAS utilisé : le d{0} actuel ({1}) est au moins aussi bon", deFinal, origine) });
+            }
+            const r2024 = String(don.system?.source?.rules ?? "") === "2024"
+                || (String(don.system?.source?.rules ?? "") !== "2014" && (() => { try { return game.settings.get("dnd5e", "rulesVersion") !== "legacy"; } catch { return true; } })());
+            for (const c of changes) if (c.source === srcDon) c.source = srcDon.replace("{R}", r2024 ? "2024" : "2014");
+            if (r2024 && b.custom) { relance = true; changes.push({ source: srcDon.replace("{R}", "2024"), texte: tl("un 1 sur un dé de dégâts est relancé et le nouveau résultat est gardé (« r1 » dans la formule)") }); }
+        }
+        if (deFinal !== deDepart || relance) {
+            if (b.custom) { b.custom.enabled = true; b.custom.formula = `1d${deFinal}${relance ? "r1" : ""} + @mod`; }
+            else { b.number = 1; b.denomination = deFinal; }
+        }
+    } else if (moine && faces && !o.customEnabled) {   // formule personnalisée : on n'y touche pas
         // Arme de moine : un seul dé, remplacé s'il est plus petit.
         const nombre = Number(o.number || 1);
         if (nombre === 1 && Number(o.denomination || 0) < faces) {
             b.number = 1; b.denomination = faces;
-            changes.push(tl("dé d'Arts martiaux d{0} au lieu de {1}", faces, de(o.number, o.denomination)));
+            changes.push({ source: srcMoine, texte: tl("dé de dégâts remplacé par le dé d'Arts martiaux d{0} au lieu de {1}", faces, de(o.number, o.denomination)) });
         }
         if (sys.isVersatile && sys.damage.versatile) {
             const vOrig = Number(o.vDenomination || o.stepped || o.denomination || 0);
@@ -183,14 +223,18 @@ export function appliquerArtsMartiaux(item) {
             else { v.number = o.vNumber || nombre; v.denomination = vOrig; }
         }
     }
-    if (changes.length) MODIFS.set(sys, [tl("Arts martiaux du moine (sans armure ni bouclier)"), ...changes]);
-    else MODIFS.delete(sys);
+    if (!changes.length) { MODIFS.delete(sys); return; }
+    // Formule de dégâts obtenue, pour qu'on voie le résultat final.
+    let formule = b.custom?.enabled ? String(b.custom.formula ?? "") : (b.denomination ? `${b.number || 1}d${b.denomination} + @mod` : "");
+    if (faces) formule = formule.replace(/@scale\.monk\.[\w-]+/g, `1d${faces}`);
+    formule = formule.replace(/@mod/g, tl("mod."));
+    MODIFS.set(sys, { lignes: changes, formule });
 }
 
-// Re-prépare les acteurs moines (réglage changé).
+// Re-prépare les acteurs moines et bagarreurs (réglage changé).
 export function rafraichirMoines() {
     for (const a of game.actors ?? []) {
-        if (!classeMoine(a)) continue;
+        if (!classeMoine(a) && !donBagarreur(a)) continue;
         try { a.reset(); a.sheet?.rendered && a.sheet.render(); } catch { /* */ }
     }
 }

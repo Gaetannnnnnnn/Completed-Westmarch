@@ -2,6 +2,13 @@
 // Généré à partir des textes du code ; une entrée absente reste en français.
 // © 2026 Soruta.
 export default {
+ "Dextérité utilisable à la place de la Force (attaque et dégâts)": "Dexterity usable instead of Strength (attack and damage)",
+ "dé d'Arts martiaux d{0}{1}": "Martial Arts die d{0}{1}",
+ " au lieu de d{0}": " instead of d{0}",
+ "dé d'Arts martiaux d{0} au lieu de {1}": "Martial Arts die d{0} instead of {1}",
+ "Arts martiaux du moine (sans armure ni bouclier)": "Monk Martial Arts (no armor or shield)",
+ "Arme naturelle créée automatiquement (Form of the Beast)": "Natural weapon created automatically (Form of the Beast)",
+ "Modifié par {0} :": "Modified by {0}:",
  "En ligne": "Online",
  "Sans présentation :": "No introduction:",
  "Aucun MJ n'a encore écrit de présentation.": "No GM has written an introduction yet.",

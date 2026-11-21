@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 6.9.1
+Version : 6.9.2
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -217,6 +217,18 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v6.9.2 | 2026-11-21
+   - Icône « modifié par le module » (engrenages dorés) sur les OBJETS que
+     le module modifie, plus seulement sur les aptitudes qu'il gère. Au
+     survol : « Modifié par <nom du module> : » puis le détail.
+     · Armes du moine sous Arts martiaux (frappe à mains nues et armes de
+       moine) : « dé d'Arts martiaux d8 au lieu de d4 », « Dextérité
+       utilisable à la place de la Force ». L'icône n'apparaît que si le
+       module change réellement quelque chose (sans armure ni bouclier).
+     · Armes naturelles créées par Form of the Beast.
+     Même réglage d'accessibilité que les autres icônes (a11yManagedBadge).
+     Fichiers : modules/gere.js, modules/monk.js.
 
 v6.9.1 | 2026-11-21
    - Présentations des MJ (fenêtre joueur) refaites : les styles étaient

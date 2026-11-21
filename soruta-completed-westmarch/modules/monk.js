@@ -123,6 +123,14 @@ function restaurer(sys) {
     ORIGINES.delete(sys);
 }
 
+// Ce que le module a changé sur chaque arme (pour l'icône « modifié par le
+// module » de la fiche, cf. gere.js). Clé : l'objet system préparé.
+const MODIFS = new WeakMap();
+export function modifsArtsMartiaux(item) {
+    const l = item?.system ? MODIFS.get(item.system) : null;
+    return l?.length ? l : null;
+}
+
 // Applique (ou retire) les Arts martiaux sur une arme, en mémoire.
 export function appliquerArtsMartiaux(item) {
     if (item?.type !== "weapon") return;
@@ -132,42 +140,51 @@ export function appliquerArtsMartiaux(item) {
     const mainsNues = !!classe && estMainsNues(item);
     const eligible = !!classe && !porteArmureOuBouclier(actor)
         && (mainsNues || estArmeDeMoine(item, regles2024(classe)));
-    if (!eligible) { restaurer(sys); return; }
+    if (!eligible) { restaurer(sys); MODIFS.delete(sys); return; }
 
     const faces = deArtsMartiaux(actor, classe);
-    if (!faces || !sys.damage?.base) return;
+    if (!faces || !sys.damage?.base) { MODIFS.delete(sys); return; }
     const o = memoriser(sys);
     const b = sys.damage.base;
+    const changes = [];
 
     // Dextérité : la propriété Finesse fait prendre la meilleure des deux
     // (la Dextérité pour un moine classique). Une activité d'attaque réglée
     // sur « Force » repasse en automatique, sinon elle ignorerait la Dextérité.
     sys.properties?.add?.("fin");
+    let forceLibre = false;
     for (const [id, ability] of o.attaques) {
         const act = sys.activities?.get?.(id);
-        if (act?.attack && ability === "str") act.attack.ability = "";
+        if (act?.attack && ability === "str") { act.attack.ability = ""; forceLibre = true; }
     }
+    if (!o.fin || forceLibre) changes.push(tl("Dextérité utilisable à la place de la Force (attaque et dégâts)"));
 
-    // Frappe à mains nues : le dé d'Arts martiaux, sauf si l'objet l'utilise déjà.
+    const de = (n, d) => (Number(n || 1) === 1 ? `d${d}` : `${n}d${d}`);
     if (mainsNues) {
-        if (/@scale\.monk\./.test(String(o.customFormula ?? ""))) return;
+        // Frappe à mains nues : le dé d'Arts martiaux, sauf si l'objet l'utilise déjà.
+        const dejaEchelle = /@scale\.monk\./.test(String(o.customFormula ?? ""));
         const deActuel = o.customEnabled ? 0 : (Number(o.number || 1) === 1 ? Number(o.denomination) || 0 : 0);
-        if (deActuel >= faces) return;
-        if (b.custom) { b.custom.enabled = true; b.custom.formula = `1d${faces} + @mod`; }
-        else { b.number = 1; b.denomination = faces; }
-        return;
+        if (!dejaEchelle && deActuel < faces) {
+            if (b.custom) { b.custom.enabled = true; b.custom.formula = `1d${faces} + @mod`; }
+            else { b.number = 1; b.denomination = faces; }
+            changes.push(tl("dé d'Arts martiaux d{0}{1}", faces, deActuel ? tl(" au lieu de d{0}", deActuel) : ""));
+        }
+    } else if (!o.customEnabled) {                    // formule personnalisée : on n'y touche pas
+        // Arme de moine : un seul dé, remplacé s'il est plus petit.
+        const nombre = Number(o.number || 1);
+        if (nombre === 1 && Number(o.denomination || 0) < faces) {
+            b.number = 1; b.denomination = faces;
+            changes.push(tl("dé d'Arts martiaux d{0} au lieu de {1}", faces, de(o.number, o.denomination)));
+        }
+        if (sys.isVersatile && sys.damage.versatile) {
+            const vOrig = Number(o.vDenomination || o.stepped || o.denomination || 0);
+            const v = sys.damage.versatile;
+            if (Number(o.vNumber || nombre) === 1 && vOrig < faces) { v.number = 1; v.denomination = faces; }
+            else { v.number = o.vNumber || nombre; v.denomination = vOrig; }
+        }
     }
-
-    // Arme de moine : un seul dé, remplacé s'il est plus petit.
-    if (o.customEnabled) return;                     // formule personnalisée : on n'y touche pas
-    const nombre = Number(o.number || 1);
-    if (nombre === 1 && Number(o.denomination || 0) < faces) { b.number = 1; b.denomination = faces; }
-    if (sys.isVersatile && sys.damage.versatile) {
-        const vOrig = Number(o.vDenomination || o.stepped || o.denomination || 0);
-        const v = sys.damage.versatile;
-        if (Number(o.vNumber || nombre) === 1 && vOrig < faces) { v.number = 1; v.denomination = faces; }
-        else { v.number = o.vNumber || nombre; v.denomination = vOrig; }
-    }
+    if (changes.length) MODIFS.set(sys, [tl("Arts martiaux du moine (sans armure ni bouclier)"), ...changes]);
+    else MODIFS.delete(sys);
 }
 
 // Re-prépare les acteurs moines (réglage changé).

@@ -338,11 +338,19 @@ export function advancePartyTime(partyId, seconds, fedOtherIds) {
  *  - announce   : message même sans changement de jour (avance manuelle) ;
  *  - run        : true = l'horloge court ensuite, false = elle est figée,
  *                 undefined = elle garde son état. */
-function commitTime(partyId, target, { fedOtherIds, announce = false, run } = {}) {
-    return serial(() => _commitTime(partyId, target, { fedOtherIds, announce, run }));
+function commitTime(partyId, target, { fedOtherIds, announce = false, run, recul = false } = {}) {
+    return serial(() => _commitTime(partyId, target, { fedOtherIds, announce, run, recul }));
 }
 
-async function _commitTime(partyId, target, { fedOtherIds, announce, run }) {
+/** Recule l'horloge de la party de `seconds` (correction d'une erreur) : aucune
+ *  ration n'est rendue ni consommée. */
+export function reculerPartyTime(partyId, seconds) {
+    if (!game.user.isGM || !partyId || !(seconds > 0)) return Promise.resolve();
+    if (!getPartyClock(partyId)) return Promise.resolve();
+    return commitTime(partyId, (t) => Math.max(0, t - seconds), { announce: true, recul: true });
+}
+
+async function _commitTime(partyId, target, { fedOtherIds, announce, run, recul }) {
     // L'horloge n'existe que pendant une expédition : sans elle, rien à faire.
     const clock = getPartyClock(partyId);
     if (!clock) return;
@@ -351,7 +359,7 @@ async function _commitTime(partyId, target, { fedOtherIds, announce, run }) {
     clock.hungry   = clock.hungry ?? {};
 
     const before  = effectiveTime(clock);
-    const after   = Math.max(before, target(before));
+    const after   = recul ? target(before) : Math.max(before, target(before));
     const days    = daysCrossed(before, after);
     const running = (run === undefined) ? !!clock.anchor : run;
     clock.time    = after;
@@ -510,29 +518,21 @@ function sceneFromLi(li) {
     return game.scenes.get(id);
 }
 
-// ── Fenêtre « Avancer le temps de la party » ───────────────────
+// ── Repos long (bouton 🛏 8h de la barre) : nutrition ──────────
+// En expédition, avec les rations actives : petite fenêtre qui liste les PJ
+// de la party, leurs rations, et une case « Nourri autrement » (sort, chasse,
+// capacité…) avant d'avancer de 8 h. Sinon : avance directe de 8 h.
+async function ouvrirReposLong() {
+    if (!game.user.isGM) return;
+    const { pid, clock } = heureAffichee();
+    const members = pid ? partyMembers(pid) : [];
+    if (!clock || !rationsEnabled() || !members.length) return avancerTempsAffiche(8 * secondsPerHour());
 
-async function openAdvanceDialog() {
-    if (!partyTimeEnabled()) {
-        ui.notifications.warn(tl("[Party] L'horloge de party est désactivée dans les réglages du module."));
-        return;
-    }
-    const partyId = myPartyId();
-    const members = partyId ? partyMembers(partyId) : [];
-    if (!partyId || !members.length) {
-        ui.notifications.warn(tl("[Party] Aucun PJ dans votre party. Créez d'abord une party (clic droit sur votre nom dans la liste des joueurs)."));
-        return;
-    }
-
-    const clock = getPartyClock(partyId);
-    if (!clock) {
-        ui.notifications.warn(tl("[Party] Aucune expédition ouverte : le temps de la party ne s'avance que pendant une expédition. Ouvrez-en une avec le bouton « Date Expédition »."));
-        return;
-    }
     const time     = effectiveTime(clock);
     const fedOther = clock.fedOther ?? [];
-
-    const rows = !rationsEnabled() ? "" : members.map(a => `
+    const apres    = time + 8 * secondsPerHour();
+    const jours    = daysCrossed(time, apres);
+    const rows = members.map(a => `
         <li style="list-style:none;margin:3px 0;display:flex;justify-content:space-between;gap:8px;">
             <span>${foundry.utils.escapeHTML(a.name)} <span style="color:#aaa;font-size:11px;">— ${tl("{0} ration(s)", rationCount(a))}</span></span>
             <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;">
@@ -540,55 +540,96 @@ async function openAdvanceDialog() {
                 ${tl("Nourri autrement")}
             </label>
         </li>`).join("");
-
     const content = `
-<div style="display:flex;flex-direction:column;gap:10px;padding:4px 0;">
-    <div>${tl("Date de la party :")} <strong>${formatClock(time)}</strong></div>
-    <div style="display:flex;gap:6px;align-items:center;">
-        <label>${tl("Avancer de")}</label>
-        <input type="number" name="scwm-amount" value="1" min="1" step="1" style="width:70px;">
-        <select name="scwm-unit">
-            <option value="hours">${tl("heure(s)")}</option>
-            <option value="days" selected>${tl("jour(s)")}</option>
-        </select>
-    </div>
-    ${rationsEnabled() ? `<div>
-        <p style="margin:0 0 4px;font-size:11px;color:#aaa;">${tl("1 ration par PJ et par jour franchi. Cochez ceux qui se nourrissent autrement (sort, chasse, capacité…).")}</p>
-        <ul style="margin:0;padding:0;">${rows}</ul>
-    </div>` : ""}
+<div style="display:flex;flex-direction:column;gap:8px;padding:4px 0;">
+    <div>${tl("Maintenant :")} <strong>${formatClock(time)}</strong><br>${tl("Après le repos :")} <strong>${formatClock(apres)}</strong></div>
+    <p style="margin:0;font-size:12px;${jours ? "color:#e0a13a;" : "color:#aaa;"}">${jours
+        ? tl("Le repos passe minuit : 1 ration par PJ sera consommée, sauf pour ceux nourris autrement.")
+        : tl("Le repos ne passe pas minuit : aucune ration consommée cette fois, mais les cases sont mémorisées.")}</p>
+    <ul style="margin:0;padding:0;">${rows}</ul>
 </div>`;
-
-    const readForm = (form) => {
-        const ids = rationsEnabled()
-            ? members.filter(a => form?.elements?.[`scwm-fed-${a.id}`]?.checked).map(a => a.id)
-            : fedOther;
-        const amount = Math.max(0, Math.floor(Number(form?.elements?.["scwm-amount"]?.value) || 0));
-        const unit = form?.elements?.["scwm-unit"]?.value === "hours" ? secondsPerHour() : secondsPerDay();
-        return { ids, seconds: amount * unit };
-    };
-
-    let res = null;
+    let ids = null;
     const action = await foundry.applications.api.DialogV2.wait({
-        window:      { title: tl("Avancer le temps de la party") },
-        position:    { width: 400 },
+        window: { title: tl("Repos long — nutrition"), icon: "fa-solid fa-bed" },
+        position: { width: 400 },
         content,
         rejectClose: false,
         buttons: [
-            {
-                action: "advance", label: tl("Avancer"), icon: '<i class="fa-solid fa-forward"></i>', default: true,
-                callback: (ev, btn) => { res = readForm(btn?.form); }
-            },
-            {
-                action: "longrest", label: tl("Repos long (+8 h)"), icon: '<i class="fa-solid fa-campground"></i>',
-                callback: (ev, btn) => { res = { ...readForm(btn?.form), seconds: 8 * secondsPerHour() }; }
-            },
+            { action: "ok", label: tl("Repos long (+8 h)"), icon: '<i class="fa-solid fa-bed"></i>', default: true,
+              callback: (ev, btn) => { ids = members.filter(a => btn?.form?.elements?.[`scwm-fed-${a.id}`]?.checked).map(a => a.id); } },
             { action: "cancel", label: tl("Annuler"), icon: '<i class="fa-solid fa-times"></i>' }
         ]
     });
-    if (action === "cancel" || !res || !(res.seconds > 0)) return;
+    if (action !== "ok" || !ids) return;
+    try { await advancePartyTime(pid, 8 * secondsPerHour(), ids); }
+    catch (e) {
+        journal.erreur(tl("[Party] Erreur lors de l'avance du temps de la party"), e);
+        ui.notifications.error(tl("[Party] Erreur lors de l'avance du temps (voir console)."));
+    }
+}
 
+// ── Plus d'options (bouton ⋯ de la barre) : les réglages moins courants ──
+// Avancer ou reculer d'une durée libre (minutes, heures, jours), ou aller à
+// une heure précise (prochaine occurrence). Horloge de la party pendant une
+// expédition, sinon calendrier du monde.
+async function ouvrirPlusOptions() {
+    if (!game.user.isGM) return;
+    const { pid, clock, time } = heureAffichee();
+    const cible = clock ? tl("l'horloge de la party") : tl("le calendrier du monde");
+    const content = `
+<div style="display:flex;flex-direction:column;gap:10px;padding:4px 0;">
+    <div>${tl("Maintenant :")} <strong>${formatClock(time)}</strong> <span style="font-size:11px;color:#aaa;">(${cible})</span></div>
+    <fieldset style="margin:0;padding:6px 8px;">
+        <legend>${tl("Durée")}</legend>
+        <div style="display:flex;gap:6px;align-items:center;">
+            <input type="number" name="scwm-n" value="1" min="1" step="1" style="width:80px;">
+            <select name="scwm-u">
+                <option value="m">${tl("minute(s)")}</option>
+                <option value="h" selected>${tl("heure(s)")}</option>
+                <option value="d">${tl("jour(s)")}</option>
+            </select>
+        </div>
+        <p style="margin:4px 0 0;font-size:11px;color:#aaa;">${tl("« Avancer » consomme les rations des minuits franchis ; « Reculer » corrige une erreur et ne rend aucune ration.")}</p>
+    </fieldset>
+    <fieldset style="margin:0;padding:6px 8px;">
+        <legend>${tl("Aller à une heure")}</legend>
+        <input type="time" name="scwm-h" value="08:00">
+        <p style="margin:4px 0 0;font-size:11px;color:#aaa;">${tl("Prochaine fois que cette heure arrive (le lendemain si elle est déjà passée).")}</p>
+    </fieldset>
+</div>`;
+    let choix = null;
+    const lire = (form) => {
+        const n = Math.max(0, Math.floor(Number(form?.elements?.["scwm-n"]?.value) || 0));
+        const u = form?.elements?.["scwm-u"]?.value;
+        const unite = u === "d" ? secondsPerDay() : u === "m" ? 60 : secondsPerHour();
+        const [hh, mm] = String(form?.elements?.["scwm-h"]?.value ?? "").split(":").map(Number);
+        return { duree: n * unite, heure: Number.isFinite(hh) ? (hh * secondsPerHour() + (mm || 0) * 60) : null };
+    };
+    const action = await foundry.applications.api.DialogV2.wait({
+        window: { title: tl("Gérer le temps"), icon: "fa-solid fa-clock" },
+        position: { width: 420 },
+        content,
+        rejectClose: false,
+        buttons: [
+            { action: "avancer", label: tl("Avancer"), icon: '<i class="fa-solid fa-forward"></i>', default: true, callback: (e, b) => { choix = lire(b?.form); } },
+            { action: "reculer", label: tl("Reculer"), icon: '<i class="fa-solid fa-backward"></i>', callback: (e, b) => { choix = lire(b?.form); } },
+            { action: "aller",   label: tl("Aller à l'heure"), icon: '<i class="fa-solid fa-clock"></i>', callback: (e, b) => { choix = lire(b?.form); } },
+            { action: "cancel",  label: tl("Annuler"), icon: '<i class="fa-solid fa-times"></i>' }
+        ]
+    });
+    if (!choix || action === "cancel" || !action) return;
     try {
-        await advancePartyTime(partyId, res.seconds, res.ids);
+        if (action === "avancer" && choix.duree > 0) return avancerTempsAffiche(choix.duree);
+        if (action === "reculer" && choix.duree > 0) {
+            if (clock) return reculerPartyTime(pid, choix.duree);
+            return game.time.advance(-choix.duree);
+        }
+        if (action === "aller" && choix.heure != null) {
+            const debut = dayStart(time);
+            let vise = debut + choix.heure;
+            if (vise <= time) vise += secondsPerDay();
+            return avancerTempsAffiche(vise - time);
+        }
     } catch (e) {
         journal.erreur(tl("[Party] Erreur lors de l'avance du temps de la party"), e);
         ui.notifications.error(tl("[Party] Erreur lors de l'avance du temps (voir console)."));
@@ -801,7 +842,8 @@ function construireBarre() {
     el.innerHTML = `
         ${mj ? `<button type="button" class="scwm-tb-btn scwm-tb-jour" data-tooltip="${tl("Jour suivant (+1 jour, rations comprises)")}"><i class="fa-solid fa-forward-step"></i></button>
         <button type="button" class="scwm-tb-btn scwm-tb-repos" data-heures="1" data-tooltip="${tl("Repos court : avancer le temps d'1 heure")}"><i class="fa-solid fa-mug-hot"></i><span>1h</span></button>
-        <button type="button" class="scwm-tb-btn scwm-tb-repos" data-heures="8" data-tooltip="${tl("Repos long : avancer le temps de 8 heures")}"><i class="fa-solid fa-bed"></i><span>8h</span></button>` : ""}
+        <button type="button" class="scwm-tb-btn scwm-tb-repos" data-heures="8" data-tooltip="${tl("Repos long : avancer le temps de 8 heures (avec la nutrition en expédition)")}"><i class="fa-solid fa-bed"></i><span>8h</span></button>
+        <button type="button" class="scwm-tb-btn scwm-tb-plus" data-tooltip="${tl("Plus d'options : avancer ou reculer d'une durée libre, aller à une heure")}"><i class="fa-solid fa-ellipsis"></i></button>` : ""}
         <span class="scwm-tb-info">
             <i class="fa-solid fa-sun scwm-tb-astre"></i>
             <span class="scwm-tb-heure"></span>
@@ -825,8 +867,13 @@ function construireBarre() {
     // (horloge de la party si elle en a une, sinon le monde).
     el.querySelectorAll(".scwm-tb-repos").forEach(btn => btn.addEventListener("click", async (ev) => {
         const b = ev.currentTarget; b.disabled = true;
-        try { await avancerTempsAffiche((Number(b.dataset.heures) || 0) * 3600); } finally { b.disabled = false; }
+        try {
+            const h = Number(b.dataset.heures) || 0;
+            if (h === 8) await ouvrirReposLong();          // nutrition en expédition
+            else await avancerTempsAffiche(h * 3600);
+        } finally { b.disabled = false; }
     }));
+    el.querySelector(".scwm-tb-plus")?.addEventListener("click", () => ouvrirPlusOptions());
     const curseur = el.querySelector(".scwm-tb-curseur");
     const duree   = el.querySelector(".scwm-tb-duree");
     const ok      = el.querySelector(".scwm-tb-ok");
@@ -1091,23 +1138,8 @@ export function PartyTimeHooks() {
     });
     Hooks.on("renderPlayers", () => { try { renderClockWidget(); } catch { /* */ } });
 
-    Hooks.on("getSceneControlButtons", (controls) => {
-        if (!game.user.isGM || !partyTimeEnabled()) return;
-        if (!controls.westmarch) {
-            controls.westmarch = {
-                name: "westmarch", title: "WestMarch",
-                icon: "fa-solid fa-hammer", layer: "tokens", tools: {}
-            };
-        }
-        controls.westmarch.tools.partyTime = {
-            name:     "partyTime",
-            title:    tl("Avancer le temps de la party"),
-            icon:     "fa-solid fa-hourglass-half",
-            button:   true,
-            onChange: () => openAdvanceDialog(),
-            visible:  true
-        };
-    });
+    // (L'ancien bouton sablier « Avancer le temps de la party » des outils
+    //  WestMarch est retiré : tout passe par la barre du haut.)
 
     // Clic droit sur une scène : la faire suivre (ou non) l'heure de la party.
     Hooks.on("getSceneContextOptions", (app, options) => {

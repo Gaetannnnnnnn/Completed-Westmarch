@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 6.9.7
+Version : 6.9.8
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -217,6 +217,49 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v6.9.8 | 2026-11-22
+   - Fenêtre « Playlists — écouter & choisir » refaite :
+     · navigation comme dans le compendium : Monde / chaque compendium →
+       dossiers et sous-dossiers → playlists → morceaux, TOUT repliable
+       (le nombre de morceaux est affiché sur chaque niveau) ; la
+       recherche ouvre automatiquement les dossiers qui contiennent un
+       résultat et masque les autres ;
+     · ▶ écoute pour le MJ seul : le bouton devient ⏹ pendant l'écoute
+       (re-clic = arrêt), une seule écoute à la fois, arrêt à la
+       fermeture ; le bouton « Stop » du haut est retiré.
+   - Musique du groupe : FILE D'ATTENTE et PASSER.
+     · Depuis ☰, chaque morceau a ≡ « Ajouter à la file d'attente » (en
+       plus de ✓ « Jouer maintenant »). La file s'affiche sous la musique
+       du groupe (numérotée, ✕ pour retirer un morceau, 🗑 pour vider).
+     · À la fin du morceau en cours, le suivant démarre tout seul (tant
+       que la file n'est pas vide, le morceau en cours ne boucle pas ; le
+       dernier suit le réglage 🔁).
+     · ⏭ Passer : morceau suivant de la file ; file vide → retour à la
+       musique de la scène.
+     · Le passage au suivant est décidé par le client du MJ chef du
+       groupe (il doit être connecté et sur la scène).
+     Fichiers : modules/sceneaudio.js, modules/scenemusic.js,
+     styles/sceneaudio.css.
+   - Horloge (MJ) : le bouton sablier « Avancer le temps de la party » des
+     outils WestMarch est RETIRÉ, tout passe par la barre du haut :
+     · 🛏 8h (repos long) : pendant une expédition avec les rations, ouvre
+       la fenêtre de NUTRITION (rations de chaque PJ, case « Nourri
+       autrement » mémorisée, avertissement si le repos passe minuit),
+       puis avance de 8 h ; hors expédition, avance directement ;
+     · nouveau bouton ⋯ « Plus d'options » → fenêtre « Gérer le temps » :
+       avancer ou RECULER d'une durée libre (minutes, heures, jours ;
+       reculer ne rend ni ne consomme de rations), ou aller à une heure
+       précise (prochaine occurrence). Horloge de la party en expédition,
+       sinon calendrier du monde.
+     · Tutoriel « Horloge » mis à jour (étape repos court / long, ⋯).
+     Fichiers : modules/partytime.js, modules/tutorial.js.
+   - Correctif « Musique du groupe » : la section disparaissait après ↺
+     « Revenir à la musique de la scène » quand le MJ regardait une autre
+     scène que ses joueurs (la scène du groupe était prise chez le MJ). La
+     scène du groupe est maintenant celle de ses JOUEURS (de préférence
+     une scène avec musique), et la section reste aussi affichée quand la
+     musique du groupe est arrêtée. Fichier : modules/scenemusic.js.
 
 v6.9.7 | 2026-11-21
    - Statistiques : le pourcentage est maintenant calculé par rapport au

@@ -164,29 +164,27 @@
 .scwm-pl-browser .scwm-pl-search { flex: 1 1 auto; min-width: 0; }
 .scwm-pl-browser .scwm-pl-compte { flex: 0 0 auto; font-size: 11px; opacity: .7; white-space: nowrap; }
 .scwm-pl-browser .scwm-pl-vide { margin: 4px 0 8px; font-style: italic; opacity: .7; }
-.scwm-pl-browser .scwm-pl-toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    margin-bottom: 8px;
-}
-.scwm-pl-browser .scwm-pl-toolbar .notes { font-size: 11px; opacity: 0.8; }
-.scwm-pl-browser .scwm-pl-stop { flex: 0 0 auto; white-space: nowrap; }
 
-.scwm-pl-group { margin-bottom: 10px; }
-.scwm-pl-group h3 {
-    margin: 6px 0 4px;
-    border-bottom: 1px solid rgba(201, 148, 40, 0.4);
-    padding-bottom: 2px;
-    font-size: 14px;
+/* Arborescence : source → dossiers → playlists → morceaux, tout repliable. */
+.scwm-pl-browser .scwm-pl-aide { margin: 0 0 6px; font-size: 11px; opacity: .7; }
+.scwm-pl-arbre details > summary {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 6px; border-radius: 4px; cursor: pointer;
+    list-style: none; user-select: none;
 }
-.scwm-pl-group h3 .scwm-pl-src {
-    font-size: 10px;
-    font-weight: 400;
-    opacity: 0.6;
-    margin-left: 6px;
-}
+.scwm-pl-arbre details > summary::-webkit-details-marker { display: none; }
+.scwm-pl-arbre details > summary::marker { content: ""; }
+.scwm-pl-arbre details > summary:hover { background: rgba(255, 255, 255, 0.06); }
+.scwm-pl-chev { width: 10px; font-size: 10px; opacity: .6; transition: transform .15s; }
+.scwm-pl-arbre details[open] > summary > .scwm-pl-chev { transform: rotate(90deg); }
+.scwm-pl-nb { margin-left: auto; font-size: 10px; opacity: .55; }
+.scwm-pl-contenu { padding-left: 14px; border-left: 1px solid rgba(201, 148, 40, 0.25); margin-left: 10px; }
+.scwm-pl-source > summary { font-weight: 700; font-size: 14px; border-bottom: 1px solid rgba(201, 148, 40, 0.4); border-radius: 0; }
+.scwm-pl-source > summary .fa-earth-europe, .scwm-pl-source > summary .fa-book { color: #c99428; }
+.scwm-pl-dossier > summary .fa-folder { color: #c99428; opacity: .85; }
+.scwm-pl-group > summary { font-weight: 600; }
+.scwm-pl-group > summary .fa-music { opacity: .7; }
+@media (prefers-reduced-motion: reduce) { .scwm-pl-chev { transition: none; } }
 .scwm-pl-row {
     display: flex;
     align-items: center;
@@ -198,7 +196,7 @@
 .scwm-pl-row:hover { background: rgba(255, 255, 255, 0.06); }
 .scwm-pl-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .scwm-pl-row-actions { flex: 0 0 auto; display: flex; gap: 4px; }
-.scwm-pl-row-actions button { width: 30px; line-height: 1; }
+.scwm-pl-row-actions button { width: 30px; line-height: 1; margin: 0; }
 
 /* ---- Sélecteur de cues (HUD token) ---- */
 .scwm-cue-picker { display: flex; flex-direction: column; gap: 4px; }

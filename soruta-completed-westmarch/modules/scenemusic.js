@@ -46,9 +46,11 @@ function lireCfg(scene) {
 let _courant = null;     // { path, sound }
 let _jeton = 0;          // annule une lecture devenue obsolète (changements de scène rapides)
 
+const ARRETES = new WeakSet();   // sons arrêtés volontairement (pas une « fin » de morceau)
 async function arreter(fadeS = 1) {
     const c = _courant; _courant = null;
     if (!c?.sound) return;
+    ARRETES.add(c.sound);
     // Pas d'attente : l'ancienne musique s'éteint pendant que la nouvelle monte (fondu enchaîné).
     try { Promise.resolve(c.sound.stop({ fade: Math.max(0, fadeS) * 1000 })).catch(() => {}); }
     catch { try { c.sound.stop(); } catch { /* */ } }
@@ -69,6 +71,16 @@ async function arreter(fadeS = 1) {
 const PFLAG = "partyMusic";
 export const chefDe = (user) => { const pid = user?.getFlag?.(MOD, "partyId"); return pid ? game.users.get(pid) ?? null : null; };
 export const etatGroupe = (chef) => chef?.getFlag?.(MOD, PFLAG) ?? null;
+// Passe au morceau suivant de la file d'attente du groupe. Renvoie false si
+// la file est vide.
+export async function avancerFile(chefId) {
+    const e = etatGroupe(game.users.get(chefId));
+    const file = e?.queue ?? [];
+    if (!file.length) return false;
+    const [suivant, ...reste] = file;
+    await definirEtatGroupe(chefId, { ...e, mode: "custom", path: suivant.path, nom: suivant.name, queue: reste });
+    return true;
+}
 export async function definirEtatGroupe(chefId, etat) {
     const chef = game.users.get(chefId);
     if (!chef || !game.user.isGM) return;
@@ -81,15 +93,22 @@ function musiqueVoulue(scene) {
     if (!actif() || !scene) return null;
     const cfg = lireCfg(scene);
     if (game.user.isGM && cfg.gm === false && !chefDe(game.user)) return null;
-    const pm = etatGroupe(chefDe(game.user));
+    const chef = chefDe(game.user);
+    const pm = etatGroupe(chef);
     const fade = Number(cfg.fade) || 2;
+    // File d'attente non vide : le morceau en cours ne boucle pas, pour que
+    // le suivant puisse démarrer à la fin.
+    const attente = (pm?.queue?.length ?? 0) > 0;
+    const groupe = pm ? chef.id : null;
     if (pm?.mode === "stopped") return null;
     if (pm?.mode === "custom" && pm.path) {
-        return { path: pm.path, volume: pm.volume ?? 0.5, loop: pm.loop !== false, fade };
+        return { path: pm.path, volume: pm.volume ?? 0.5, loop: pm.loop !== false && !attente, fade, groupe };
     }
     if (!cfg.path || cfg.stopped) return null;
-    if (game.user.isGM && cfg.gm === false) return null;
-    return { path: cfg.path, volume: pm?.volume ?? cfg.volume, loop: pm?.loop ?? cfg.loop, fade };
+    // « Pas chez le MJ » : sauf pour le MJ chef quand une file d'attente
+    // attend la fin du morceau (c'est sa lecture qui déclenche le suivant).
+    if (game.user.isGM && cfg.gm === false && !(attente && groupe === game.user.id)) return null;
+    return { path: cfg.path, volume: pm?.volume ?? cfg.volume, loop: (pm?.loop ?? cfg.loop) && !attente, fade, groupe };
 }
 
 async function appliquer(scene) {
@@ -119,6 +138,14 @@ async function appliquer(scene) {
         if (mon !== _jeton) return;
         await sound.play({ loop: !!cfg.loop, volume: vol, fade: (Number(cfg.fade) || 0) * 1000 });
         _courant = { path: cfg.path, sound };
+        // Fin naturelle du morceau chez le MJ chef du groupe : il passe au
+        // suivant de la file d'attente (une seule personne décide, pas de doublon).
+        if (voulue?.groupe && voulue.groupe === game.user.id) {
+            sound.addEventListener?.("end", () => {
+                if (ARRETES.has(sound) || _courant?.sound !== sound) return;
+                avancerFile(voulue.groupe).catch(() => {});
+            });
+        }
     } catch (e) {
         journal.avert(tl("[{0}] Musique de scène : lecture impossible ({1}).", MOD, cfg.path), e);
     }
@@ -287,6 +314,14 @@ function sectionPlaylists(app, html) {
     else root.prepend(sec);
 }
 
+// Scène d'un groupe : d'abord les scènes des joueurs connectés (avec musique
+// en priorité), puis celle du MJ chef.
+function sceneDuGroupe(chef, membres) {
+    const ids = [...new Set([...membres, chef].filter(u => u?.active && u.viewedScene).map(u => u.viewedScene))];
+    const scenes = ids.map(id => game.scenes.get(id)).filter(Boolean);
+    return scenes.find(sc => String(lireCfg(sc).path ?? "").trim()) ?? scenes[0] ?? null;
+}
+
 // Groupes existants : chaque MJ chef (partyId = son propre id) et ses membres.
 function groupes() {
     return game.users.filter(u => u.isGM && u.getFlag(MOD, "partyId") === u.id).map(chef => ({
@@ -300,21 +335,23 @@ function sectionGroupes(root) {
     root.querySelector(".scwm-smg-sidebar")?.remove();
     // Groupe concerné : sur une scène qui a une musique configurée, ou avec
     // une musique à lui.
-    const sceneDe = (g) => game.scenes.get([g.chef, ...g.membres].find(u => u.active && u.viewedScene)?.viewedScene);
+    // Scène du groupe : celle où sont les JOUEURS du groupe (le MJ chef peut
+    // regarder ailleurs), de préférence une scène qui a une musique.
+    const sceneDe = (g) => sceneDuGroupe(g.chef, g.membres);
     // Seulement le groupe DU MJ qui regarde (celui dont il fait partie).
     const monGroupe = game.user.getFlag(MOD, "partyId");
     const liste = groupes().filter(g => g.chef.id === monGroupe)
-        .filter(g => g.etat?.mode === "custom" || String(lireCfg(sceneDe(g)).path ?? "").trim());
+        .filter(g => g.etat?.mode === "custom" || g.etat?.mode === "stopped" || g.etat?.queue?.length
+            || String(lireCfg(sceneDe(g)).path ?? "").trim());
     if (!liste.length) return;
     const lignes = liste.map(({ chef, membres, etat }) => {
         const enLigne = [chef, ...membres].filter(u => u.active);
-        const scenes = [...new Set(enLigne.map(u => u.viewedScene).filter(Boolean))].map(id => game.scenes.get(id)).filter(Boolean);
-        const scene = scenes[0] ?? null;
+        const scene = sceneDuGroupe(chef, membres);
         const cfgScene = scene ? lireCfg(scene) : null;
         const mode = etat?.mode ?? "scene";
         let quoi;
         if (mode === "stopped") quoi = `<i class="fa-solid fa-volume-xmark"></i> ${tl("arrêtée pour ce groupe")}`;
-        else if (mode === "custom") quoi = `<i class="fa-solid fa-music"></i> ${esc(nomFichier(etat.path))} <em>(${tl("musique du groupe")})</em>`;
+        else if (mode === "custom") quoi = `<i class="fa-solid fa-music"></i> ${esc(etat.nom || nomFichier(etat.path))} <em>(${tl("musique du groupe")})</em>`;
         else if (cfgScene?.path) quoi = `<i class="fa-solid fa-map"></i> ${esc(nomFichier(cfgScene.path))}${cfgScene.stopped ? ` — ${tl("arrêtée (scène)")}` : ""}`;
         else quoi = `<i class="fa-solid fa-map"></i> <em>${tl("pas de musique sur la scène")}</em>`;
         const vol = Number(etat?.volume ?? (mode === "custom" ? 0.5 : cfgScene?.volume ?? 0.5));
@@ -332,12 +369,27 @@ function sectionGroupes(root) {
                     style="flex:0 0 26px;width:26px;height:24px;padding:0;margin:0;"><i class="fa-solid ${mode === "stopped" ? "fa-play" : "fa-stop"}"></i></button>
                 <button type="button" class="scwm-smg-act" data-act="autre" data-tooltip="${tl("Jouer une autre musique pour ce groupe seulement")}"
                     style="flex:0 0 26px;width:26px;height:24px;padding:0;margin:0;"><i class="fa-solid fa-list"></i></button>
+                <button type="button" class="scwm-smg-act" data-act="skip" data-tooltip="${(etat?.queue?.length) ? tl("Passer au morceau suivant de la file d'attente") : (mode === "custom" ? tl("Passer : revenir à la musique de la scène") : tl("File d'attente vide"))}"
+                    ${(etat?.queue?.length || mode === "custom") ? "" : "disabled"}
+                    style="flex:0 0 26px;width:26px;height:24px;padding:0;margin:0;"><i class="fa-solid fa-forward-step"></i></button>
                 ${mode === "custom" ? `<button type="button" class="scwm-smg-act" data-act="scene" data-tooltip="${tl("Revenir à la musique de la scène")}"
                     style="flex:0 0 26px;width:26px;height:24px;padding:0;margin:0;"><i class="fa-solid fa-rotate-left"></i></button>` : ""}
                 <button type="button" class="scwm-smg-act" data-act="boucle" data-tooltip="${boucle ? tl("En boucle : cliquer pour jouer une seule fois") : tl("Une seule fois : cliquer pour jouer en boucle")}"
                     style="flex:0 0 26px;width:26px;height:24px;padding:0;margin:0;${boucle ? "color:#6aa8e8;border-color:#6aa8e8;" : "opacity:.6;"}"><i class="fa-solid fa-repeat"></i></button>
                 <input type="range" class="scwm-smg-volume" min="0" max="1" step="0.05" value="${vol}" data-tooltip="${tl("Volume pour ce groupe")}" style="flex:1;margin:0;">
             </div>
+            ${(etat?.queue?.length) ? `<div class="scwm-smg-file" style="margin-top:2px;padding:3px 0 0;border-top:1px dashed rgba(106,168,232,.35);">
+                <div style="display:flex;align-items:center;gap:6px;font-size:11px;opacity:.8;">
+                    <i class="fa-solid fa-list-ol"></i> ${tl("File d'attente ({0})", etat.queue.length)}
+                    <a class="scwm-smg-vider" style="margin-left:auto;cursor:pointer;" data-tooltip="${tl("Vider la file d'attente")}"><i class="fa-solid fa-trash"></i></a>
+                </div>
+                <ol style="margin:2px 0 0;padding-left:20px;font-size:11px;">
+                    ${etat.queue.map((q, i) => `<li style="display:flex;align-items:center;gap:4px;">
+                        <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" data-tooltip="${esc(q.path)}">${esc(q.name || nomFichier(q.path))}</span>
+                        <a class="scwm-smg-retirer" data-i="${i}" style="cursor:pointer;opacity:.7;" data-tooltip="${tl("Retirer de la file")}"><i class="fa-solid fa-xmark"></i></a>
+                    </li>`).join("")}
+                </ol>
+            </div>` : ""}
         </li>`;
     }).join("");
     const sec = document.createElement("section");
@@ -353,7 +405,7 @@ function sectionGroupes(root) {
             ev.preventDefault();
             const act = b.dataset.act;
             if (act === "stop")  return definirEtatGroupe(chefId, { ...etat(), mode: "stopped" });
-            if (act === "scene") return definirEtatGroupe(chefId, { mode: "scene", volume: etat().volume, loop: etat().loop });
+            if (act === "scene") return definirEtatGroupe(chefId, { ...etat(), mode: "scene", path: undefined, nom: undefined });
             if (act === "boucle") {
                 const e = etat();
                 const chef = game.users.get(chefId);
@@ -362,8 +414,24 @@ function sectionGroupes(root) {
                 return definirEtatGroupe(chefId, { ...e, loop: !actuelle });
             }
             if (act === "autre") {
-                _openPlaylistBrowser((path) => definirEtatGroupe(chefId, { mode: "custom", path, volume: etat().volume ?? 0.5, loop: etat().loop ?? true }));
+                _openPlaylistBrowser(
+                    (path, name) => definirEtatGroupe(chefId, { ...etat(), mode: "custom", path, nom: name, volume: etat().volume ?? 0.5, loop: etat().loop ?? true }),
+                    {
+                        titre: tl("Musique du groupe — choisir ou mettre en file d'attente"),
+                        onQueue: (path, name) => { const e = etat(); return definirEtatGroupe(chefId, { ...e, queue: [...(e.queue ?? []), { path, name }] }); }
+                    });
             }
+            if (act === "skip") {
+                if (await avancerFile(chefId)) return;
+                const e = etat();
+                if (e.mode === "custom") return definirEtatGroupe(chefId, { mode: "scene", volume: e.volume, loop: e.loop, queue: [] });
+                ui.notifications?.info(tl("File d'attente vide."));
+            }
+        }));
+        li.querySelector(".scwm-smg-vider")?.addEventListener("click", () => definirEtatGroupe(chefId, { ...etat(), queue: [] }));
+        li.querySelectorAll(".scwm-smg-retirer").forEach(x => x.addEventListener("click", () => {
+            const e = etat(); const q = [...(e.queue ?? [])]; q.splice(Number(x.dataset.i), 1);
+            definirEtatGroupe(chefId, { ...e, queue: q });
         }));
         li.querySelector(".scwm-smg-volume")?.addEventListener("change", (ev) =>
             definirEtatGroupe(chefId, { ...etat(), volume: Number(ev.currentTarget.value) }));

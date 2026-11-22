@@ -443,53 +443,107 @@ export function openSceneCues() {
 // Rassemble les sons des playlists du MONDE et des COMPENDIUMS. Chaque son
 // expose un chemin de fichier (PlaylistSound#path) directement réutilisable
 // comme source d'un cue, sans devoir l'importer ni ranger le fichier.
+// Arborescence des playlists : Source (Monde / chaque compendium) → dossiers
+// (comme dans la barre latérale ou le compendium) → playlists → morceaux.
+// Les compendiums ne sont lus qu'en texte (fiches), aucun fichier audio n'est chargé.
+function _cheminDossiers(folder) {
+    if (!folder) return [];
+    try { return [...[...(folder.ancestors ?? [])].reverse().map(f => f.name), folder.name].filter(Boolean); }
+    catch { return folder.name ? [folder.name] : []; }
+}
+const _noeud = (nom) => ({ nom, dossiers: new Map(), playlists: [] });
+function _ranger(racine, chemin, pl) {
+    let n = racine;
+    for (const d of chemin) { if (!n.dossiers.has(d)) n.dossiers.set(d, _noeud(d)); n = n.dossiers.get(d); }
+    n.playlists.push(pl);
+}
 async function _collectPlaylistSounds() {
-    const groups = [];
+    const sources = [];
     const grab = (pl) => [...pl.sounds]
+        .sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0))
         .map(s => ({ name: s.name || tl("Son"), path: s.path }))
         .filter(s => s.path);
 
+    const monde = _noeud(tl("Monde"));
     for (const pl of game.playlists ?? []) {
         const sounds = grab(pl);
-        if (sounds.length) groups.push({ label: pl.name, source: tl("Monde"), sounds });
+        if (sounds.length) _ranger(monde, _cheminDossiers(pl.folder), { label: pl.name, sounds });
     }
+    if (monde.playlists.length || monde.dossiers.size) sources.push({ ...monde, icone: "fa-earth-europe" });
+
     for (const pack of game.packs.filter(p => p.documentName === "Playlist")) {
         let docs = [];
         try { docs = await pack.getDocuments(); } catch (e) { journal.avert(`[${MOD}] compendium ${pack.collection} :`, e); }
+        const racine = _noeud(pack.metadata?.label ?? pack.collection);
         for (const pl of docs) {
             const sounds = grab(pl);
-            if (sounds.length) groups.push({ label: pl.name, source: pack.metadata?.label ?? "Compendium", sounds });
+            if (sounds.length) _ranger(racine, _cheminDossiers(pl.folder), { label: pl.name, sounds });
         }
+        if (racine.playlists.length || racine.dossiers.size) sources.push({ ...racine, icone: "fa-book" });
     }
-    return groups;
+    return sources;
 }
 
 // Texte simplifié pour la recherche : minuscules, sans accents.
-const _cle = (t) => String(t ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+const _cle = (t) => String(t ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
-export async function _openPlaylistBrowser(onPick) {
-    const groups = await _collectPlaylistSounds();
-    if (!groups.length) {
+// Aperçu local (MJ seul) : un seul morceau à la fois, bouton ▶ ↔ ⏹.
+let _apercu = null, _apercuBtn = null;
+async function _arreterApercu() {
+    const s = _apercu; _apercu = null;
+    if (_apercuBtn) { _apercuBtn.querySelector("i").className = "fa-solid fa-play"; _apercuBtn.dataset.tooltip = tl("Écouter (moi uniquement)"); }
+    _apercuBtn = null;
+    try { await s?.stop?.(); } catch { /* */ }
+}
+
+/**
+ * Fenêtre « Playlists — écouter & choisir ».
+ * @param {Function} onPick   (path, name) → morceau choisi.
+ * @param {object}   [opts]
+ * @param {Function} [opts.onQueue]  (path, name) → ajoute à une file d'attente
+ *                                   (bouton affiché seulement si fourni).
+ * @param {string}   [opts.titre]
+ */
+export async function _openPlaylistBrowser(onPick, opts = {}) {
+    const sources = await _collectPlaylistSounds();
+    if (!sources.length) {
         ui.notifications?.warn(tl("Aucun son trouvé dans les playlists (monde ou compendiums)."));
         return;
     }
     const flat = [];
-    const groupsHtml = groups.map(g => {
-        const rows = g.sounds.map(s => {
+    const compter = (n) => n.playlists.reduce((a, p) => a + p.sounds.length, 0)
+        + [...n.dossiers.values()].reduce((a, d) => a + compter(d), 0);
+    const rendrePlaylist = (pl, contexte) => {
+        const rows = pl.sounds.map(s => {
             const idx = flat.push(s) - 1;
-            return `<div class="scwm-pl-row" data-cherche="${esc(_cle(`${s.name} ${g.label} ${g.source}`))}">
+            return `<div class="scwm-pl-row" data-cherche="${esc(_cle(`${s.name} ${pl.label} ${contexte}`))}">
                 <span class="scwm-pl-name">${esc(s.name)}</span>
                 <span class="scwm-pl-row-actions">
-                    <button type="button" class="scwm-pl-play" data-idx="${idx}" title="${tl("Écouter (moi uniquement)")}"><i class="fa-solid fa-play"></i></button>
-                    <button type="button" class="scwm-pl-pick" data-idx="${idx}" title="${tl("Choisir ce son")}"><i class="fa-solid fa-check"></i></button>
+                    <button type="button" class="scwm-pl-play" data-idx="${idx}" data-tooltip="${tl("Écouter (moi uniquement)")}"><i class="fa-solid fa-play"></i></button>
+                    ${opts.onQueue ? `<button type="button" class="scwm-pl-queue" data-idx="${idx}" data-tooltip="${tl("Ajouter à la file d'attente")}"><i class="fa-solid fa-list-ol"></i></button>` : ""}
+                    <button type="button" class="scwm-pl-pick" data-idx="${idx}" data-tooltip="${opts.onQueue ? tl("Jouer maintenant") : tl("Choisir ce son")}"><i class="fa-solid fa-check"></i></button>
                 </span>
             </div>`;
         }).join("");
-        return `<div class="scwm-pl-group">
-            <h3>${esc(g.label)} <span class="scwm-pl-src">${esc(g.source)}</span></h3>
-            ${rows}
-        </div>`;
-    }).join("");
+        return `<details class="scwm-pl-group">
+            <summary><i class="fa-solid fa-chevron-right scwm-pl-chev"></i><i class="fa-solid fa-music"></i> ${esc(pl.label)} <span class="scwm-pl-nb">${pl.sounds.length}</span></summary>
+            <div class="scwm-pl-contenu">${rows}</div>
+        </details>`;
+    };
+    const rendreNoeud = (n, contexte) => {
+        const dossiers = [...n.dossiers.values()].sort((a, b) => a.nom.localeCompare(b.nom, game.i18n?.lang || "fr"))
+            .map(d => `<details class="scwm-pl-dossier">
+                <summary><i class="fa-solid fa-chevron-right scwm-pl-chev"></i><i class="fa-solid fa-folder"></i> ${esc(d.nom)} <span class="scwm-pl-nb">${compter(d)}</span></summary>
+                <div class="scwm-pl-contenu">${rendreNoeud(d, `${contexte} ${d.nom}`)}</div>
+            </details>`).join("");
+        const pls = n.playlists.slice().sort((a, b) => a.label.localeCompare(b.label, game.i18n?.lang || "fr"))
+            .map(pl => rendrePlaylist(pl, contexte)).join("");
+        return dossiers + pls;
+    };
+    const arbre = sources.map((src, i) => `<details class="scwm-pl-source"${i === 0 ? " open" : ""}>
+            <summary><i class="fa-solid fa-chevron-right scwm-pl-chev"></i><i class="fa-solid ${src.icone}"></i> ${esc(src.nom)} <span class="scwm-pl-nb">${compter(src)}</span></summary>
+            <div class="scwm-pl-contenu">${rendreNoeud(src, src.nom)}</div>
+        </details>`).join("");
 
     const content = `
         <div class="scwm-pl-browser">
@@ -499,57 +553,80 @@ export async function _openPlaylistBrowser(onPick) {
                 <span class="scwm-pl-compte"></span>
             </div>
             <p class="scwm-pl-vide" hidden>${tl("Aucune musique ne correspond.")}</p>
-            <div class="scwm-pl-toolbar">
-                <span class="notes">${tl("Écoute locale (les joueurs n'entendent rien). « Choisir » remplit le champ du fichier.")}</span>
-                <button type="button" class="scwm-pl-stop">${tl("<i class=\"fa-solid fa-stop\"></i> Stop")}</button>
-            </div>
-            ${groupsHtml}
+            <p class="scwm-pl-aide">${opts.onQueue
+                ? tl("▶ écoute pour vous seul · ≡ ajoute à la file d'attente du groupe · ✓ joue maintenant pour le groupe.")
+                : tl("▶ écoute pour vous seul (les joueurs n'entendent rien) · ✓ choisit le morceau.")}</p>
+            <div class="scwm-pl-arbre">${arbre}</div>
         </div>`;
 
     new Dialog({
-        title: tl("Playlists — écouter & choisir"),
+        title: opts.titre ?? tl("Playlists — écouter & choisir"),
         content,
         buttons: {
-            close: { icon: '<i class="fa-solid fa-times"></i>', label: tl("Fermer"), callback: () => stopAllCuesLocal(150) }
+            close: { icon: '<i class="fa-solid fa-times"></i>', label: tl("Fermer"), callback: () => _arreterApercu() }
         },
         default: "close",
+        close: () => _arreterApercu(),
         render: (html) => {
             const root = html[0] ?? html;
-            root.querySelector(".scwm-pl-stop")?.addEventListener("click", () => stopAllCuesLocal(150));
             // Recherche : sans accents ni majuscules, sur le nom du morceau, de
-            // sa playlist et de sa source ; chaque mot doit être trouvé.
+            // sa playlist, de ses dossiers et de sa source ; chaque mot doit être
+            // trouvé. Les dossiers/playlists qui contiennent un résultat s'ouvrent.
             const champ = root.querySelector(".scwm-pl-search");
             const compte = root.querySelector(".scwm-pl-compte");
             const vide = root.querySelector(".scwm-pl-vide");
+            const blocs = [...root.querySelectorAll(".scwm-pl-arbre details")];
+            const etatInitial = new Map(blocs.map(d => [d, d.open]));
             const filtrer = () => {
                 const mots = _cle(champ?.value).split(/\s+/).filter(Boolean);
                 let n = 0;
-                root.querySelectorAll(".scwm-pl-group").forEach(g => {
-                    let visibles = 0;
-                    g.querySelectorAll(".scwm-pl-row").forEach(r => {
-                        const ok = mots.every(m => r.dataset.cherche.includes(m));
-                        r.style.display = ok ? "" : "none";
-                        if (ok) visibles++;
-                    });
-                    g.style.display = visibles ? "" : "none";
-                    n += visibles;
+                root.querySelectorAll(".scwm-pl-row").forEach(r => {
+                    const ok = mots.every(m => r.dataset.cherche.includes(m));
+                    r.style.display = ok ? "" : "none";
+                    if (ok) n++;
                 });
+                // Du plus profond au plus haut : un bloc est visible s'il contient une ligne visible.
+                for (const d of blocs.slice().reverse()) {
+                    const visible = [...d.querySelectorAll(".scwm-pl-row")].some(r => r.style.display !== "none");
+                    d.style.display = visible ? "" : "none";
+                    d.open = mots.length ? visible : etatInitial.get(d);
+                }
                 if (compte) compte.textContent = mots.length ? tl("{0} résultat(s)", n) : "";
                 if (vide) vide.hidden = n > 0;
             };
             champ?.addEventListener("input", filtrer);
             champ?.addEventListener("keydown", (ev) => { if (ev.key === "Enter") ev.preventDefault(); });
             setTimeout(() => champ?.focus(), 50);
-            root.querySelectorAll(".scwm-pl-play").forEach(b => b.addEventListener("click", () => {
+
+            // ▶ / ⏹ : aperçu local, le bouton bascule.
+            root.querySelectorAll(".scwm-pl-play").forEach(b => b.addEventListener("click", async () => {
                 const s = flat[Number(b.dataset.idx)];
-                if (s) playCueLocal({ path: s.path, volume: 0.7 });
+                if (!s) return;
+                const memeBouton = _apercuBtn === b;
+                await _arreterApercu();
+                if (memeBouton) return;
+                try {
+                    const AH = foundry.audio?.AudioHelper ?? globalThis.AudioHelper;
+                    const son = await AH.play({ src: s.path, volume: 0.7, loop: false }, false);
+                    _apercu = son; _apercuBtn = b;
+                    b.querySelector("i").className = "fa-solid fa-stop";
+                    b.dataset.tooltip = tl("Arrêter l'écoute");
+                    son?.addEventListener?.("end", () => { if (_apercu === son) _arreterApercu(); });
+                } catch (e) {
+                    journal.avert(tl("[{0}] Aperçu audio :", MOD), e);
+                    ui.notifications?.warn(tl("Impossible de lire « {0} » (fichier manquant ?).", s.name));
+                }
             }));
             root.querySelectorAll(".scwm-pl-pick").forEach(b => b.addEventListener("click", () => {
                 const s = flat[Number(b.dataset.idx)];
                 if (s) { onPick(s.path, s.name); ui.notifications?.info(tl("Son choisi : {0}", s.name)); }
             }));
+            root.querySelectorAll(".scwm-pl-queue").forEach(b => b.addEventListener("click", () => {
+                const s = flat[Number(b.dataset.idx)];
+                if (s) { opts.onQueue(s.path, s.name); ui.notifications?.info(tl("Ajouté à la file d'attente : {0}", s.name)); }
+            }));
         }
-    }, { width: 520, height: 560, resizable: true, classes: ["scwm-pl-fenetre"] }).render(true);
+    }, { width: 540, height: 600, resizable: true, classes: ["scwm-pl-fenetre"] }).render(true);
 }
 
 // ============================================================

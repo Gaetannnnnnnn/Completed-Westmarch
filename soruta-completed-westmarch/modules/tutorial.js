@@ -1366,7 +1366,15 @@ const STEPS_BY_FEATURE = {
             gmOnly:     true,
             target:     "#scwm-time-bar .scwm-tb-jour, #scwm-time-bar",
             title:      tl("Jour suivant (MJ)"),
-            text:       `${tl("À gauche, <i class='fa-solid fa-forward-step'></i> <strong>Jour suivant</strong> avance d'un jour la date de votre party : chaque PJ consomme sa ration (sauf ceux cochés « nourris autrement » dans la fenêtre du sablier). Hors expédition, il avance le calendrier du monde.")}`,
+            text:       `${tl("À gauche, <i class='fa-solid fa-forward-step'></i> <strong>Jour suivant</strong> avance d'un jour la date de votre party : chaque PJ consomme sa ration (sauf ceux cochés « nourris autrement » dans la fenêtre du repos long). Hors expédition, il avance le calendrier du monde.")}`,
+            position:   "bottom"
+        },
+        {
+            feature:    ["enableParty", "enablePartyTime", "partyTimeShowClock"],
+            gmOnly:     true,
+            target:     "#scwm-time-bar .scwm-tb-repos, #scwm-time-bar",
+            title:      tl("Repos court et repos long (MJ)"),
+            text:       `${tl("<i class='fa-solid fa-mug-hot'></i> <strong>1h</strong> avance d'une heure (repos court). <i class='fa-solid fa-bed'></i> <strong>8h</strong> (repos long) ouvre, pendant une expédition, la fenêtre de <strong>nutrition</strong> : les rations de chaque PJ et la case « Nourri autrement » (sort, chasse, capacité…), puis avance de 8 h.")}`,
             position:   "bottom"
         },
         {
@@ -1374,7 +1382,7 @@ const STEPS_BY_FEATURE = {
             gmOnly:     true,
             target:     "#scwm-time-bar .scwm-tb-avance, #scwm-time-bar",
             title:      tl("Avancer le temps (MJ)"),
-            text:       `${tl("Le <strong>curseur</strong> choisit une durée de 0 à 12 h, par 10 minutes ; elle s'affiche à côté. Rien ne bouge tant que vous ne cliquez pas sur <i class='fa-solid fa-check'></i>. Pour plus de choix (plusieurs jours, repos long, qui est nourri autrement), le bouton <i class='fa-solid fa-hourglass-half'></i> de la barre WestMarch ouvre la fenêtre complète.")}`,
+            text:       `${tl("Le <strong>curseur</strong> choisit une durée de 0 à 12 h, par 10 minutes ; elle s'affiche à côté. Rien ne bouge tant que vous ne cliquez pas sur <i class='fa-solid fa-check'></i>. Pour le reste, le bouton <i class='fa-solid fa-ellipsis'></i> <strong>Plus d'options</strong> ouvre « Gérer le temps » : avancer ou reculer d'une durée libre (minutes, heures, jours), ou aller à une heure précise.")}`,
             position:   "bottom"
         },
         {

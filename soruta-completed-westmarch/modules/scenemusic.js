@@ -78,7 +78,36 @@ export async function avancerFile(chefId) {
     const file = e?.queue ?? [];
     if (!file.length) return false;
     const [suivant, ...reste] = file;
-    await definirEtatGroupe(chefId, { ...e, mode: "custom", path: suivant.path, nom: suivant.name, queue: reste });
+    await definirEtatGroupe(chefId, { ...e, mode: "custom", path: suivant.path, nom: suivant.name, queue: reste, history: avecHistorique(e) });
+    return true;
+}
+
+// ---- Historique (bouton ⏮ « Musique précédente ») ----
+// Chaque fois que le groupe change de morceau (suivant, autre musique,
+// retour à la scène), ce qu'il écoutait est mémorisé (20 au plus) :
+//   { path, name } pour un morceau choisi, { scene: true } pour la musique
+//   de la scène.
+const HIST_MAX = 20;
+const entreeCourante = (e) => (e?.mode === "custom" && e.path) ? { path: e.path, name: e.nom ?? "" }
+    : (!e || !e.mode || e.mode === "scene") ? { scene: true } : null;
+export function avecHistorique(e) {
+    const h = [...(e?.history ?? [])];
+    const c = entreeCourante(e);
+    const dernier = h[h.length - 1];
+    if (c && !(dernier && (c.scene ? dernier.scene : dernier.path === c.path))) h.push(c);
+    return h.slice(-HIST_MAX);
+}
+// Revient au morceau précédent ; le morceau en cours repasse en tête de la
+// file d'attente (⏭ le retrouve). Renvoie false si l'historique est vide.
+export async function morceauPrecedent(chefId) {
+    const e = etatGroupe(game.users.get(chefId));
+    const h = [...(e?.history ?? [])];
+    if (!h.length) return false;
+    const prec = h.pop();
+    const c = entreeCourante(e);
+    const queue = (c && !c.scene) ? [c, ...(e.queue ?? [])] : [...(e.queue ?? [])];
+    if (prec.scene) await definirEtatGroupe(chefId, { ...e, mode: "scene", history: h, queue });
+    else await definirEtatGroupe(chefId, { ...e, mode: "custom", path: prec.path, nom: prec.name, history: h, queue });
     return true;
 }
 export async function definirEtatGroupe(chefId, etat) {
@@ -369,6 +398,13 @@ function sectionGroupes(root) {
                     style="flex:0 0 26px;width:26px;height:24px;padding:0;margin:0;"><i class="fa-solid ${mode === "stopped" ? "fa-play" : "fa-stop"}"></i></button>
                 <button type="button" class="scwm-smg-act" data-act="autre" data-tooltip="${tl("Jouer une autre musique pour ce groupe seulement")}"
                     style="flex:0 0 26px;width:26px;height:24px;padding:0;margin:0;"><i class="fa-solid fa-list"></i></button>
+                ${(() => {
+                    const prec = (etat?.history ?? []).at(-1);
+                    const nomPrec = prec ? (prec.scene ? tl("musique de la scène") : (prec.name || nomFichier(prec.path))) : "";
+                    return `<button type="button" class="scwm-smg-act" data-act="prec" ${prec ? "" : "disabled"}
+                        data-tooltip="${prec ? esc(tl("Musique précédente : {0}", nomPrec)) : tl("Aucune musique précédente")}"
+                        style="flex:0 0 26px;width:26px;height:24px;padding:0;margin:0;"><i class="fa-solid fa-backward-step"></i></button>`;
+                })()}
                 <button type="button" class="scwm-smg-act" data-act="skip" data-tooltip="${(etat?.queue?.length) ? tl("Passer au morceau suivant de la file d'attente") : (mode === "custom" ? tl("Passer : revenir à la musique de la scène") : tl("File d'attente vide"))}"
                     ${(etat?.queue?.length || mode === "custom") ? "" : "disabled"}
                     style="flex:0 0 26px;width:26px;height:24px;padding:0;margin:0;"><i class="fa-solid fa-forward-step"></i></button>
@@ -405,7 +441,11 @@ function sectionGroupes(root) {
             ev.preventDefault();
             const act = b.dataset.act;
             if (act === "stop")  return definirEtatGroupe(chefId, { ...etat(), mode: "stopped" });
-            if (act === "scene") return definirEtatGroupe(chefId, { ...etat(), mode: "scene", path: undefined, nom: undefined });
+            if (act === "scene") return definirEtatGroupe(chefId, { ...etat(), mode: "scene", history: avecHistorique(etat()) });
+            if (act === "prec") {
+                if (!(await morceauPrecedent(chefId))) ui.notifications?.info(tl("Aucune musique précédente."));
+                return;
+            }
             if (act === "boucle") {
                 const e = etat();
                 const chef = game.users.get(chefId);
@@ -415,7 +455,7 @@ function sectionGroupes(root) {
             }
             if (act === "autre") {
                 _openPlaylistBrowser(
-                    (path, name) => definirEtatGroupe(chefId, { ...etat(), mode: "custom", path, nom: name, volume: etat().volume ?? 0.5, loop: etat().loop ?? true }),
+                    (path, name) => definirEtatGroupe(chefId, { ...etat(), mode: "custom", path, nom: name, volume: etat().volume ?? 0.5, loop: etat().loop ?? true, history: avecHistorique(etat()) }),
                     {
                         titre: tl("Musique du groupe — choisir ou mettre en file d'attente"),
                         onQueue: (path, name) => { const e = etat(); return definirEtatGroupe(chefId, { ...e, queue: [...(e.queue ?? []), { path, name }] }); }
@@ -424,7 +464,7 @@ function sectionGroupes(root) {
             if (act === "skip") {
                 if (await avancerFile(chefId)) return;
                 const e = etat();
-                if (e.mode === "custom") return definirEtatGroupe(chefId, { mode: "scene", volume: e.volume, loop: e.loop, queue: [] });
+                if (e.mode === "custom") return definirEtatGroupe(chefId, { ...e, mode: "scene", queue: [], history: avecHistorique(e) });
                 ui.notifications?.info(tl("File d'attente vide."));
             }
         }));

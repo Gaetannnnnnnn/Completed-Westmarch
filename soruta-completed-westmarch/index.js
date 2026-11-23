@@ -35,6 +35,7 @@ import { PlaylistPackHooks } from "./modules/playlistpack.js";
 import { SceneMusicHooks }   from "./modules/scenemusic.js";
 import { EnchantArmeHooks }  from "./modules/enchantarme.js";
 import { MonkHooks }         from "./modules/monk.js";
+import { EncumbranceHooks }  from "./modules/encumbrance.js";
 import { InitiativeRecupHooks } from "./modules/initiative-recup.js";
 import { InspirationHooks }  from "./modules/inspiration.js";
 import { AlertHooks }        from "./modules/alert.js";
@@ -202,6 +203,7 @@ Hooks.on("init", () => {
     SceneMusicHooks();
     EnchantArmeHooks();
     MonkHooks();
+    EncumbranceHooks();
     InitiativeRecupHooks();
     InspirationHooks();
     AlertHooks();

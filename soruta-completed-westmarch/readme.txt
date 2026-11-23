@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 6.9.8
+Version : 6.9.9
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -217,6 +217,43 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v6.9.9 | 2026-11-23
+   - Musique du groupe : bouton ⏮ « Musique précédente » (à côté de ⏭).
+     Chaque changement de morceau (suivant, autre musique, retour à la
+     scène) mémorise ce que le groupe écoutait (20 au plus). ⏮ y revient,
+     et le morceau en cours repasse en tête de la file d'attente (⏭ le
+     retrouve). Au survol : le nom du morceau précédent ; grisé si rien à
+     reprendre. Fichier : modules/scenemusic.js.
+   - Panneau de configuration du module : BARRE DE RECHERCHE en haut de la
+     colonne de gauche. Elle cherche dans tous les thèmes à la fois, sur
+     le titre des catégories, le libellé et l'aide de chaque réglage (sans
+     accents ni majuscules, plusieurs mots possibles) ; les catégories et
+     les branches de l'arbre « Modifications ciblées » qui contiennent un
+     résultat s'ouvrent, le reste est masqué ; nombre de résultats
+     affiché. Les réglages désactivés sont aussi cherchés (pour les
+     réactiver), même avec « Uniquement l'actif ». Échap ou un clic sur un
+     thème efface la recherche et rend l'affichage d'avant.
+     Fichiers : modules/settings.js, styles/settings-hub.css.
+   - Nouveau (DÉSACTIVÉ par défaut) : PÉNALITÉS DE POIDS. Toolkit →
+     « Pénalités de poids (vitesse) » + un facteur par palier de la barre
+     d'encombrement de la fiche : 1er palier (5 × Force), 2e (10 × Force),
+     3e = capacité max. (15 × Force), multipliés selon la taille comme
+     dnd5e. Au-delà d'un palier, toutes les vitesses (marche, vol, nage,
+     escalade, fouissement) suivent sa règle : un facteur (« 2/3 »,
+     « 0,5 », « 50% », « 0 » = ne peut plus bouger) ou une vitesse
+     maximale (« 5ft », « 1,5m »), arrondie vers le bas à la case
+     (5 ft / 1,5 m). Défauts = règles 2024 : rien aux paliers 1 et 2,
+     5 ft maximum au-delà de la capacité (on ne fait plus que traîner).
+     Sur la fiche (onglet Inventaire), une petite icône ⚙ à côté du poids
+     porté affiche au survol les règles utilisées : seuils de CETTE fiche
+     (en lb/kg), règle de chaque palier, palier atteint en gras, et
+     vitesses avant → après. Icône dorée = aucune pénalité, rouge =
+     vitesse réduite. Visible seulement quand la fonction est active.
+     Tant que c'est actif, les réductions propres à dnd5e (−10/−20 ft,
+     plafond 5 ft) sont neutralisées pour ne pas se cumuler. Calcul en
+     mémoire, rien n'est écrit sur la fiche. Fichiers :
+     modules/encumbrance.js (nouveau), modules/settings.js, index.js.
 
 v6.9.8 | 2026-11-22
    - Fenêtre « Playlists — écouter & choisir » refaite :

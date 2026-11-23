@@ -758,6 +758,17 @@ export function registerSettings() {
     game.settings.register(MOD, "enableSceneMusic", B(
         tl("Musique de scène pour le groupe"),
         tl("Dans la configuration d'une scène (onglet « Autres »), une musique jouée chez chaque personne qui a la scène à l'écran, même si elle n'est pas active : volume, boucle, fondu, jouée ou non chez le MJ. Elle s'arrête en quittant la scène.")));
+    game.settings.register(MOD, "enableEncumbrancePenalty", B(
+        tl("Pénalités de poids (vitesse)"),
+        tl("Quand le poids porté dépasse un des 3 paliers de la barre d'encombrement de la fiche, la vitesse de déplacement (tous les modes) suit la règle du palier : un facteur ou une vitesse maximale, arrondie à la case. Défauts = règles 2024 : rien aux paliers 1 et 2, 5 ft maximum au-delà de la capacité (on traîne la charge). Remplace les réductions de vitesse de dnd5e (−10 / −20 ft, plafond 5 ft) tant que c'est actif. Calcul en mémoire, rien n'est écrit sur la fiche."),
+        false, { onChange: () => import("./encumbrance.js").then(m => m.rafraichirActeurs()) }));
+    for (const [k, n, d, h] of [
+        ["encPenalty1", tl("Pénalités de poids — 1er palier (×5 Force)"), "1",   tl("Vitesse au-delà du 1er palier. Facteur : « 1 » = aucune pénalité, « 2/3 », « 0,5 », « 50% », « 0 » = ne peut plus bouger. Ou vitesse maximale : « 5ft », « 1,5m ». Défaut (2024) : 1.")],
+        ["encPenalty2", tl("Pénalités de poids — 2e palier (×10 Force)"), "1", tl("Vitesse au-delà du 2e palier (facteur ou vitesse maximale). Défaut (2024) : 1, aucune pénalité. Ex. « 2/3 » : 30 ft → 20 ft.")],
+        ["encPenalty3", tl("Pénalités de poids — 3e palier (capacité max., ×15 Force)"), "5ft", tl("Vitesse au-delà de la capacité maximale (facteur ou vitesse maximale). Défaut (2024) : « 5ft », on ne fait plus que traîner la charge. « 0 » = ne peut plus bouger.")]
+    ]) {
+        game.settings.register(MOD, k, { ...S(n, h, d), onChange: () => import("./encumbrance.js").then(m => m.rafraichirActeurs()) });
+    }
     game.settings.register(MOD, "enableMejRestock", B(
         tl("Réapprovisionnement automatique des boutiques"),
         tl("Active/désactive le système de réapprovisionnement des boutiques MEJ.")));
@@ -1405,7 +1416,7 @@ const CATEGORIES = [
       keys: ["tmEnabled","tmSkillBase","tmAddAbilityMod","tmBonusMaitrise","tmBonusExpertise","tmBonusTools","tmRollMinDays","tmReliableTalent","tmSkillFormula","tmCraftNonMagicCostDiv","tmCraftNonMagicDaysPerGp","tmCraftNonMagicCostFormula","tmCraftNonMagicDaysFormula","tmSingleUseFactor","tmScrollTable","tmMagicTable","tmRollTable"] },
     { firstKey: "enableTokenAppearance", icon: "fa-toolbox",         title: "Toolkit",
       desc: tl("Apparences de tokens, transformations, tailles Large, TGCM, utilitaires GM, templates AoE, boutiques MEJ et réapprovisionnement."),
-      keys: ["enableCasierGm","enableExpeditionDate","enableChatTools","enableExportDialog","enablePlayerListToggle","enableTokenAppearance","enableTokenPortraitButton","enableTokenAccroche","enableGmNotesNpc","enableTgcm","enableCompanions","enableFolderMove","enableToolAbilityFix","enableConnStats","enablePlayerListCompact","enableTemplateSnap","enableFollowTemplates","enableMejShopFix","enableMejCompendiumFix","enablePlaylistPackViewer","playlistUploadDossier","playlistUploadSousDossier","enableSceneMusic","enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
+      keys: ["enableCasierGm","enableExpeditionDate","enableChatTools","enableExportDialog","enablePlayerListToggle","enableTokenAppearance","enableTokenPortraitButton","enableTokenAccroche","enableGmNotesNpc","enableTgcm","enableCompanions","enableFolderMove","enableToolAbilityFix","enableConnStats","enablePlayerListCompact","enableTemplateSnap","enableFollowTemplates","enableMejShopFix","enableMejCompendiumFix","enablePlaylistPackViewer","playlistUploadDossier","playlistUploadSousDossier","enableSceneMusic","enableEncumbrancePenalty","encPenalty1","encPenalty2","encPenalty3","enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
     { firstKey: "relationsEnabled", master: "relationsEnabled",      icon: "fa-heart",           title: tl("Fiche PJ — Relations"),
       desc: tl("Onglet Relations : liens entre personnages, détection automatique des rencontres, anonymisation."),
       keys: ["relationsEnabled","relationsAnonymization","relationsLastSeen"] },
@@ -1615,6 +1626,7 @@ const HUB_DEPENDANCES = {
     sessionLogWebhookUrl: "enableSessionLog", sessionLogForum: "enableSessionLog", sessionTags: "enableSessionLog",
     shopRestockDays: "enableMejRestock", shopRestockDaysCommon: "enableMejRestock", shopRestockDaysUncommon: "enableMejRestock",
     shopRestockDaysRare: "enableMejRestock", shopRestockDaysVeryRare: "enableMejRestock", shopRestockDaysLegendary: "enableMejRestock",
+    encPenalty1: "enableEncumbrancePenalty", encPenalty2: "enableEncumbrancePenalty", encPenalty3: "enableEncumbrancePenalty",
     ...Object.fromEntries(PARTYDARK_SUB_SETTINGS.map(k => [k, "enablePartyDarkness"]))
 };
 const _hubFiltreActif = () => { try { return game.settings.get(MOD, "hubActifsSeulement") !== false; } catch { return true; } };
@@ -1701,7 +1713,11 @@ export async function openConfigHub() {
         <span>${tl("Uniquement l'actif")}<small class="scwm-hub-filtre-n"></small></span></label>`;
     const content = `
     <div id="scwm-hub" class="scwm-hub ${filtreOn ? "scwm-filtre-actifs" : ""}">
-        <div class="scwm-hub-nav">${filtre}${nav}</div>
+        <div class="scwm-hub-nav">
+            <div class="scwm-hub-cherche"><i class="fa-solid fa-magnifying-glass"></i>
+                <input type="search" class="scwm-hub-cherche-in" placeholder="${tl("Rechercher un réglage…")}" autocomplete="off"></div>
+            <small class="scwm-hub-cherche-n"></small>
+            ${filtre}${nav}</div>
         <div class="scwm-hub-scroll">${groupHtml}</div>
     </div>`;
 
@@ -1738,6 +1754,75 @@ export async function openConfigHub() {
             try { await game.settings.set(MOD, "hubActifsSeulement", cb.checked); } catch (err) { journal.avert(`[${MOD}] hubActifsSeulement`, err); }
         });
         _hubAppliquerFiltre(root, !!cb?.checked);
+
+        // Recherche : dans TOUS les thèmes, sur le titre de la catégorie, le
+        // libellé et l'aide de chaque réglage (sans accents ni majuscules ;
+        // chaque mot doit être trouvé). Les catégories et branches qui
+        // contiennent un résultat s'ouvrent ; le reste est masqué. Pendant une
+        // recherche, les réglages désactivés sont aussi cherchés (pour pouvoir
+        // les réactiver), même avec « Uniquement l'actif ».
+        const champ = root.querySelector(".scwm-hub-cherche-in");
+        const compteur = root.querySelector(".scwm-hub-cherche-n");
+        const norm = (t) => String(t ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        const details = [...root.querySelectorAll(".scwm-hub-scroll details")];
+        let ouverts = null;   // état d'ouverture avant la recherche
+        const elems = () => [...root.querySelectorAll(".scwm-hub-scroll .scwm-set, .scwm-hub-scroll .scwm-hub-cat, .scwm-hub-scroll .scwm-hub-launch, .scwm-hub-scroll details, .scwm-hub-group")];
+        const chercher = () => {
+            const mots = norm(champ?.value).split(/\s+/).filter(Boolean);
+            if (!mots.length) {
+                root.classList.remove("scwm-hub-recherche");
+                root.classList.toggle("scwm-filtre-actifs", !!cb?.checked);
+                elems().forEach(e => { e.style.display = ""; });
+                if (ouverts) { details.forEach(d => { d.open = ouverts.get(d) ?? false; }); ouverts = null; }
+                const actif = root.querySelector(".scwm-hub-navbtn.active") ?? root.querySelector(".scwm-hub-navbtn");
+                const gi = actif?.dataset.group ?? "0";
+                root.querySelectorAll(".scwm-hub-group").forEach(sec => { sec.style.display = (sec.dataset.group === gi) ? "" : "none"; });
+                if (compteur) compteur.textContent = "";
+                return;
+            }
+            if (!ouverts) ouverts = new Map(details.map(d => [d, d.open]));
+            root.classList.add("scwm-hub-recherche");
+            root.classList.remove("scwm-filtre-actifs");
+            const ok = (texte) => { const t = norm(texte); return mots.every(m => t.includes(m)); };
+            let n = 0;
+            root.querySelectorAll(".scwm-hub-group").forEach(sec => {
+                let secVisible = false;
+                const titreGroupe = sec.querySelector(".scwm-hub-group-title")?.textContent ?? "";
+                sec.querySelectorAll(".scwm-hub-cat, .scwm-hub-launch").forEach(cat => {
+                    const titreCat = cat.querySelector(":scope > summary, .scwm-hub-launch-title, .scwm-hub-gele-tete")?.textContent ?? cat.textContent;
+                    const catEntiere = ok(`${titreGroupe} ${titreCat}`);
+                    const lignes = [...cat.querySelectorAll(".scwm-set")];
+                    let vus = 0;
+                    lignes.forEach(l => {
+                        const vu = catEntiere || ok(`${titreCat} ${l.textContent}`);
+                        l.style.display = vu ? "" : "none";
+                        if (vu) vus++;
+                    });
+                    // Branches de l'arbre (Modifications ciblées) : visibles et
+                    // ouvertes si elles contiennent un résultat.
+                    [...cat.querySelectorAll("details")].reverse().forEach(d => {
+                        const v = [...d.querySelectorAll(".scwm-set")].some(l => l.style.display !== "none");
+                        d.style.display = v ? "" : "none";
+                        d.open = v;
+                    });
+                    const visible = vus > 0 || (!lignes.length && catEntiere);
+                    cat.style.display = visible ? "" : "none";
+                    if (visible && cat.tagName === "DETAILS") cat.open = true;
+                    if (visible) { secVisible = true; n += vus || 1; }
+                });
+                sec.style.display = secVisible ? "" : "none";
+            });
+            if (compteur) compteur.textContent = n ? tl("{0} résultat(s)", n) : tl("Aucun réglage trouvé.");
+            root.querySelector(".scwm-hub-scroll")?.scrollTo({ top: 0 });
+        };
+        let minuterie = null;
+        champ?.addEventListener("input", () => { clearTimeout(minuterie); minuterie = setTimeout(chercher, 120); });
+        champ?.addEventListener("keydown", (ev) => { if (ev.key === "Enter") ev.preventDefault(); if (ev.key === "Escape" && champ.value) { ev.preventDefault(); ev.stopPropagation(); champ.value = ""; chercher(); } });
+        // Cliquer un thème pendant une recherche : la recherche est effacée.
+        root.querySelectorAll(".scwm-hub-navbtn").forEach(btn => btn.addEventListener("click", () => {
+            if (champ?.value) { champ.value = ""; chercher(); }
+        }));
+        setTimeout(() => champ?.focus(), 60);
     };
 
     await foundry.applications.api.DialogV2.wait({

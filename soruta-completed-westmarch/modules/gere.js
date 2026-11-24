@@ -44,7 +44,9 @@ const MODIFIES = [
     (i) => i.getFlag?.(MOD, "beastWeapon") ? { lignes: [{ source: tl("Form of the Beast — Barbare, Voie de la Bête"), texte: tl("arme naturelle créée automatiquement par le module quand la forme est activée") }] } : null
 ];
 
-export const badgeActif = () => lire("a11yManagedBadge", true) !== false;
+// Icônes masquées si le joueur coche « Cacher les icônes du module » (Accessibilité),
+// ou s'il avait décoché l'ancien réglage « Indicateur géré par le module ».
+export const badgeActif = () => lire("a11yHideModuleIcons", false) !== true && lire("a11yManagedBadge", true) !== false;
 
 // Nom du module tel qu'affiché par Foundry (module.json → title).
 const nomModule = () => game.modules?.get?.(MOD)?.title || "Soruta — Completed Westmarch";

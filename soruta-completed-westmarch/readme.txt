@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 6.9.9
+Version : 7.0.0
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -217,6 +217,55 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v7.0.0 | 2026-11-23
+   - Journal « Où ranger quoi ? » : « MJ » devient « GM » partout. Le guide
+     ne dit plus seulement où RANGER pour être reconnu, mais aussi où placer
+     ce qu'on IMPORTE du compendium pour s'en servir : créatures dans le
+     dossier GM perso, PNJ dans le dossier PNJ (ou dossier GM perso si on ne
+     veut pas les partager), cartes temporaires dans le dossier GM (ou le
+     dossier du monde si elles représentent un lieu de l'univers) — en
+     gardant toujours une copie au compendium. Principe rappelé en tête :
+     ne garder dans les fichiers du monde que le nécessaire, tout conserver
+     au compendium (serveur plus léger). Fichiers : modules/rangement.js.
+   - Campagnes secondaires : nouveau réglage (Hub → « Campagnes
+     secondaires », désactivé par défaut) où l'on choisit UN dossier
+     d'acteurs. Les personnages de ce dossier et de ses sous-dossiers sont
+     « hors campagne principale » : absents du casier, des statistiques, des
+     assiduités et des expéditions comptées, sans étape de validation, et
+     n'envoient rien sur Discord (pings de validation et logs). Le bestiaire,
+     les relations et la mécanique d'expédition restent disponibles pour eux.
+     Rappel : si des expéditions ou validations partent aussi via le bot
+     Discord externe, il faut lui apprendre la même exclusion de son côté.
+     Fichiers : modules/horsprincipale.js (nouveau), modules/settings.js,
+     modules/casier.js, modules/charvalidation.js, modules/discordlog.js.
+   - Changement d'apparence des tokens : fonction réactivée (elle était
+     gelée). Elle a son propre interrupteur dans le Toolkit, ÉTEINT par
+     défaut. Fichiers : modules/token.js, modules/settings.js.
+   - Apparences du token (Prototype Token) : si le module « Tokenizer »
+     (vtta-tokenizer) est présent, un bouton « Créer avec Tokenizer » ouvre
+     Tokenizer pour fabriquer un token et l'ajoute à la liste des apparences,
+     SANS modifier le token principal de la fiche (l'image créée est
+     récupérée, le token de la fiche est laissé tel quel). Aucune dépendance :
+     le bouton n'apparaît que si Tokenizer est actif. Fichier : modules/token.js.
+   - Casier du joueur (« Mes personnages ») : l'en-tête n'affiche plus
+     l'avatar du joueur (souvent un portrait de personnage) mais un petit
+     emblème doré au thème du casier. Fichiers : modules/charvalidation.js,
+     styles/charvalidation.css.
+   - Diagnostic : le rapport affiche une « Référence de build », un code
+     court et stable que les joueurs recopient dans leur ticket. Deux mondes
+     sur le même build donnent le même code ; il change si les fichiers du
+     module sont altérés, ce qui aide à reconnaître une version modifiée.
+     Fichier : modules/signature.js (nouveau), modules/diagnostic.js.
+   - Accessibilité : nouvelle case « Cacher les icônes du module sur la
+     fiche » (par joueur, DÉCOCHÉE par défaut). Cochée, elle masque toutes
+     les icônes ⚙ de la fiche : « géré par le module », « modifié par le
+     module » (dés du moine, Tavern Brawler, Form of the Beast) et la bulle
+     des règles de poids sur la barre d'encombrement. Les règles restent
+     appliquées. Elle remplace l'ancienne case « Indicateur géré par le
+     module » (un joueur qui l'avait décochée garde ses icônes cachées).
+     Fichiers : modules/accessibility.js, modules/gere.js,
+     modules/encumbrance.js.
 
 v6.9.9 | 2026-11-23
    - Musique du groupe : bouton ⏮ « Musique précédente » (à côté de ⏭).

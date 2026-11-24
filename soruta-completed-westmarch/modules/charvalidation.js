@@ -21,6 +21,7 @@
 // ============================================================
 
 import { MOD } from "./const.js";
+import { estHorsPrincipale } from "./horsprincipale.js";
 import { journal } from "./log.js";
 import { Dialog } from "./compat.js";
 import { commonFolderNewChars, commonFolderPJ } from "./settings.js";
@@ -88,7 +89,7 @@ export function getCreationRequests() {
 }
 export function getPendingActors() {
     return (game.actors ?? [])
-        .filter(a => a.type === "character" && a.getFlag(MOD, "pendingValidation") === true)
+        .filter(a => a.type === "character" && !estHorsPrincipale(a) && a.getFlag(MOD, "pendingValidation") === true)
         .map(a => ({
             id: a.id,
             name: a.name,
@@ -112,6 +113,7 @@ const isStock   = (a) => a?.getFlag?.(MOD, "stock") === true;
 export function estEnConstruction(actor) {
     try {
         if (!enabled() || !actor || actor.type !== "character") return false;
+        if (estHorsPrincipale(actor)) return false;
         const f = (k) => actor.getFlag(MOD, k);
         if (f("locked") === true || f("pendingValidation") === true || isStock(actor)) return false;
         return !!(f("createdFor") || f("validated") === true || f("levelUpGranted") === true);
@@ -134,7 +136,7 @@ function canLevelUp(actor) {
 function actorsForUser(userId) {
     const L = CONST.DOCUMENT_OWNERSHIP_LEVELS;
     return (game.actors ?? []).filter(a =>
-        a.type === "character" &&
+        a.type === "character" && !estHorsPrincipale(a) &&
         (a.getFlag(MOD, "createdFor") === userId || a.ownership?.[userId] === L.OWNER));
 }
 function activeCountForUser(userId) {
@@ -331,7 +333,7 @@ export async function rejectCreation(userId) {
 export async function validateActor(actorId) {
     if (!game.user.isGM) return;
     const actor = game.actors.get(actorId);
-    if (!actor) return;
+    if (!actor || estHorsPrincipale(actor)) return;
     await actor.update({
         [`flags.${MOD}.locked`]: true,
         [`flags.${MOD}.validated`]: true,
@@ -666,7 +668,7 @@ export function openPlayerHub() {
 
     const content = `<div class="scwm-cv-hub scwm-cvh">
         <header class="scwm-cvh-entete">
-            <img class="scwm-cvh-avatar" src="${esc(game.user.avatar)}" alt="">
+            <span class="scwm-cvh-embleme" aria-hidden="true"><i class="fa-solid fa-boxes-stacked"></i></span>
             <div>
                 <h3>${tl("Mes personnages")}</h3>
                 <small>${tl("Le casier de {0}", esc(game.user.name))}</small>

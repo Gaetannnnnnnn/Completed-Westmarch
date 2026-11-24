@@ -1,6 +1,7 @@
 import { MOD } from "./const.js";
 import { journal } from "./log.js";
 import { tl } from "./i18n.js";
+import { badgeActif } from "./gere.js";
 // ============================================================
 // encumbrance.js — Pénalités de poids (vitesse) aux 3 paliers de la fiche
 //
@@ -179,7 +180,7 @@ export function bulleRegles(actor) {
 }
 function ajouterBulle(app, html) {
     try {
-        if (!actif()) return;
+        if (!actif() || !badgeActif()) return;
         const actor = app?.document ?? app?.actor;
         if (!(actor instanceof Actor) || actor.type !== "character") return;
         const root = html instanceof HTMLElement ? html : (html?.[0] ?? app?.element);

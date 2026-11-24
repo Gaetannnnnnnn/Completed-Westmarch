@@ -275,12 +275,86 @@ function openImportPopup(onConfirm) {
     $(document.body).append(overlay);
 }
 
-// Changement d'apparence des tokens temporairement DÉSACTIVÉ (en attente
-// d'une décision). Le réglage est grisé dans la configuration. Pour réactiver :
-// repasser à false et retirer "enableTokenAppearance" de FROZEN_SETTINGS
-// (settings.js).
-const APPARENCE_DISABLED = true;
+// Changement d'apparence des tokens : fonction ACTIVE. Elle se pilote par le
+// réglage "enableTokenAppearance" (éteint par défaut, voir settings.js). Pour
+// la geler de nouveau : repasser à true et remettre "enableTokenAppearance"
+// dans FROZEN_SETTINGS (settings.js).
+const APPARENCE_DISABLED = false;
 const apparenceActive = () => !APPARENCE_DISABLED && game.settings.get(MOD, "enableTokenAppearance");
+
+// ============================================================
+// Intégration Tokenizer 2 (module « vtta-tokenizer »), optionnelle.
+// But : un bouton ouvre Tokenizer ; le token qu'il crée est ajouté à la
+// liste des apparences SANS modifier le token principal de la fiche.
+// On n'appelle pas l'API interne de Tokenizer (elle change d'une version
+// à l'autre). On arme une « capture » : au moment où Tokenizer pose sa
+// nouvelle image sur la fiche, on récupère le chemin du fichier qu'il a
+// créé, on l'ajoute aux apparences, et on empêche le changement d'image
+// principale de s'appliquer. Le token de la fiche reste donc inchangé.
+// ============================================================
+const TOKENIZER_ID = "vtta-tokenizer";
+const tokenizerActif = () => !!game.modules.get(TOKENIZER_ID)?.active;
+
+// Essaie d'ouvrir Tokenizer par quelques points d'entrée connus. Si aucun
+// ne répond, l'utilisateur l'ouvre à la main (la capture est déjà armée).
+function lancerTokenizer(actor) {
+    const mod = game.modules.get(TOKENIZER_ID);
+    const essais = [
+        () => mod?.api?.tokenizeActor?.(actor),
+        () => globalThis.Tokenizer?.tokenizeActor?.(actor),
+        () => mod?.api?.launch?.(actor)
+    ];
+    for (const f of essais) {
+        try { const r = f(); if (r !== undefined) return true; } catch (e) { /* point d'entrée suivant */ }
+    }
+    return false;
+}
+
+// Arme la capture de la prochaine image posée par Tokenizer sur cet acteur.
+function armerCaptureTokenizer(actor, onAjout) {
+    const base = { img: actor.img, src: actor.prototypeToken?.texture?.src ?? null };
+    let fait = false;
+    let hookId = null;
+    const minuteur = setTimeout(() => {
+        if (fait) return;
+        if (hookId != null) Hooks.off("preUpdateActor", hookId);
+        ui.notifications?.info(tl("Création de token annulée : aucune image reçue de Tokenizer."));
+    }, 180000);
+    const desarmer = () => { fait = true; clearTimeout(minuteur); if (hookId != null) Hooks.off("preUpdateActor", hookId); };
+
+    hookId = Hooks.on("preUpdateActor", (doc, changes) => {
+        if (fait || doc.id !== actor.id) return;
+        let src;
+        try {
+            const exp = foundry.utils.expandObject(foundry.utils.deepClone(changes));
+            src = foundry.utils.getProperty(exp, "prototypeToken.texture.src") || exp.img;
+        } catch (e) { return; }
+        if (!src || src === base.src) return;
+
+        // Empêcher le changement d'image principale (token ET portrait) de
+        // s'appliquer — le fichier créé par Tokenizer, lui, reste sur le disque.
+        delete changes.img;
+        delete changes["img"];
+        delete changes["prototypeToken.texture.src"];
+        if (changes.prototypeToken?.texture) delete changes.prototypeToken.texture.src;
+
+        desarmer();
+        // Ajout différé (hors du hook preUpdate) à la liste des apparences.
+        Promise.resolve().then(async () => {
+            try {
+                const current = actor.getFlag(MOD, "images") ?? [];
+                const updated = [...current, { src, ring: null }];
+                await actor.setFlag(MOD, "images", updated);
+                onAjout?.(updated);
+                ui.notifications?.info(tl("Apparence ajoutée depuis Tokenizer. Le token de la fiche est inchangé."));
+            } catch (e) {
+                journal.avert(tl("[WestMarch] capture Tokenizer :"), e);
+                ui.notifications?.warn(tl("Impossible d'ajouter l'apparence créée par Tokenizer."));
+            }
+        });
+    });
+    return base;
+}
 
 export function TokenHooks() {
 
@@ -441,6 +515,7 @@ export function TokenHooks() {
                     <button type="button" class="westmarch-add-image" style="flex:1;">
                         ${tl("<i class=\"fa-solid fa-plus\"></i> Importer un token")}
                     </button>
+                    ${tokenizerActif() ? `<button type="button" class="westmarch-tokenizer" style="flex:1;">${tl("<i class=\"fa-solid fa-wand-magic-sparkles\"></i> Créer avec Tokenizer")}</button>` : ""}
                 </div>
             </fieldset>
         `);
@@ -469,6 +544,13 @@ export function TokenHooks() {
                 await actor.setFlag(MOD, "images", updated);
                 renderImages(updated);
             });
+        });
+
+        section.find(".westmarch-tokenizer").click(() => {
+            if (!tokenizerActif()) { ui.notifications?.warn(tl("Le module Tokenizer n'est pas actif.")); return; }
+            armerCaptureTokenizer(actor, (updated) => renderImages(updated));
+            const ouvert = lancerTokenizer(actor);
+            if (!ouvert) ui.notifications?.info(tl("Ouvre Tokenizer sur ce personnage et valide : l'image créée sera ajoutée aux apparences, sans toucher au token de la fiche."));
         });
 
         section.on("click", ".westmarch-remove-image", async (ev) => {

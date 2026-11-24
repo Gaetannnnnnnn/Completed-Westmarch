@@ -2,6 +2,7 @@ import { MOD } from "./const.js";
 import { journal, problemesRecents, INVITATION } from "./log.js";
 import { licenceValide, etatLicence } from "./licence.js";
 import { tl, locale } from "./i18n.js";
+import { empreinteBuild } from "./signature.js";
 // ============================================================
 // diagnostic.js — Bouton « Diagnostic » (paramètres, MJ)
 //
@@ -99,6 +100,7 @@ export function lancerDiagnostic() {
 export function texteDiagnostic(sections) {
     const date = new Date().toLocaleString(locale());
     return [tl("Diagnostic Completed Westmarch — {0} — monde « {1} »", date, game.world?.title ?? "?"),
+        tl("Référence de build : {0}", empreinteBuild()),
         tl("(à joindre à un ticket sur le Discord Althéia : {0})", INVITATION),
         ...sections.flatMap(s => ["", `== ${s.titre} ==`, ...s.lignes.map(l => `${ICONES[l.etat]} ${l.texte}`)])].join("\n");
 }
@@ -113,6 +115,7 @@ export async function ouvrirDiagnostic() {
         const resume = nb.ko ? `❌ ${nb.ko} point(s) bloquant(s)${nb.attention ? tl(", ⚠️ {0} à surveiller", nb.attention) : ""}` : nb.attention ? tl("⚠️ {0} point(s) à surveiller", nb.attention) : tl("✅ Tout est en ordre");
         return { sections, html: `<div id="${uid}" style="max-height:65vh;overflow-y:auto;padding-right:4px;">
             <p style="margin:0 0 8px;font-weight:700;">${resume}</p>
+            <p style="margin:0 0 8px;font-size:.8em;opacity:.7;">${tl("Référence de build : {0} (à recopier dans ton ticket)", `<code>${esc(empreinteBuild())}</code>`)}</p>
             ${sections.map(s => `<h3 style="margin:10px 0 4px;font-size:14px;border-bottom:1px solid rgba(201,162,39,.4);">${esc(s.titre)}</h3>
                 <ul style="list-style:none;margin:0;padding:0;">${s.lignes.map(l => `<li style="padding:2px 0;">${ICONES[l.etat]} ${esc(l.texte)}</li>`).join("")}</ul>`).join("")}
             <p style="margin:10px 0 0;font-size:.8em;opacity:.7;">${tl("« Copier » met ce résultat dans le presse-papiers. Pour le signaler, ouvre un ticket sur le Discord Althéia (pas de message privé, merci) : <a href=\"{0}\" target=\"_blank\" rel=\"noopener\">{1}</a>", INVITATION, INVITATION)}</p>

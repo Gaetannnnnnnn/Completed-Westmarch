@@ -10,6 +10,7 @@
 // © 2026 Soruta.
 // ============================================================
 
+import { estHorsPrincipale } from "./horsprincipale.js";
 import { MOD } from "./const.js";
 import { journal } from "./log.js";
 import { getExpeditions, formatDate } from "./carnet.js";
@@ -52,7 +53,7 @@ function gmExpeditions(gmId = game.user.id) {
 
     const groups = new Map();
     for (const actor of game.actors ?? []) {
-        if (actor.type !== "character" || estDemo(actor)) continue;
+        if (actor.type !== "character" || estDemo(actor) || estHorsPrincipale(actor)) continue;
         for (const e of getExpeditions(actor)) {
             if (!e.startDate || e.endDate) continue;
             // Uniquement les expéditions dont CE GM est le MJ (tag gmId).
@@ -150,7 +151,7 @@ function charRace(actor) {
 function rosterRows() {
     const rows = [];
     for (const a of game.actors ?? []) {
-        if (a.type !== "character" || !a.hasPlayerOwner || estDemo(a)) continue;
+        if (a.type !== "character" || !a.hasPlayerOwner || estDemo(a) || estHorsPrincipale(a)) continue;
         const classes = charClassList(a);
         const total = a.system?.details?.level ?? classes.reduce((s, c) => s + (c.lvl || 0), 0);
         rows.push({
@@ -567,7 +568,7 @@ const estDemo = (actor) => actor?.getFlag?.(MOD, "tutorialDemo") === true;
 function closedExpeditions() {
     const map = new Map();
     for (const actor of game.actors ?? []) {
-        if (actor.type !== "character" || estDemo(actor)) continue;
+        if (actor.type !== "character" || estDemo(actor) || estHorsPrincipale(actor)) continue;
         for (const e of getExpeditions(actor)) {
             if (!e.startDate || !e.endDate) continue;   // seulement clôturées
             const key = `${e.name || "?"}|${JSON.stringify(e.startDate)}|${e.gmId || ""}`;
@@ -614,7 +615,7 @@ function gmTracking() {
     // Regroupe les expéditions ouvertes par GM puis par expédition (nom+date).
     const byGm = new Map();
     for (const actor of game.actors ?? []) {
-        if (actor.type !== "character" || estDemo(actor)) continue;
+        if (actor.type !== "character" || estDemo(actor) || estHorsPrincipale(actor)) continue;
         for (const e of getExpeditions(actor)) {
             if (!e.startDate || e.endDate || !e.gmId) continue;
             if (!byGm.has(e.gmId)) byGm.set(e.gmId, new Map());
@@ -887,7 +888,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             keepMax(sessGmLast, gmName, s.dateISO);
             for (const p of (s.players ?? [])) {
                 const a = game.actors.get(p.actorId);
-                if (estDemo(a)) continue;   // PJ du tutoriel : ignoré
+                if (estDemo(a) || estHorsPrincipale(a)) continue;   // PJ tutoriel / campagne secondaire : ignoré
                 keepMax(sessPlayerLast, a ? playerOf(a) : (p.name ?? "?"), s.dateISO);
             }
         }

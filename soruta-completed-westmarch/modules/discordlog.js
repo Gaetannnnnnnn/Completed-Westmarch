@@ -2,6 +2,7 @@ import { MOD } from "./const.js";
 import { journal, definirRelais, INVITATION } from "./log.js";
 import { tl } from "./i18n.js";
 import { estEnConstruction } from "./charvalidation.js";
+import { estHorsPrincipale } from "./horsprincipale.js";
 // ============================================================
 // discordlog.js — Log des modifications vers un salon Discord
 // Envoie un message via webhook Discord pour : ajout/suppression
@@ -25,7 +26,7 @@ const _log = (k) => game.settings.get(MOD, k);
 // Un acteur est-il loggé ? PJ toujours ; PNJ seulement si « Inclure les PNJ ».
 // Un PNJ importé d'un compendium n'est jamais loggé (voir importeDuCompendium).
 const _actorLogged = (actor) =>
-    !!actor && (actor.type === "character" || (actor.type === "npc" && _log("logIncludeNpc") && !importeDuCompendium(actor)));
+    !!actor && !estHorsPrincipale(actor) && (actor.type === "character" || (actor.type === "npc" && _log("logIncludeNpc") && !importeDuCompendium(actor)));
 
 // Acteur (non PJ) importé depuis un compendium (créatures, PNJ du
 // compendium, import Plutonium) : jamais loggé, pour ne pas dévoiler aux

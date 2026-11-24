@@ -562,10 +562,18 @@ export function registerSettings() {
     // ============================================================
     game.settings.register(MOD, "enableTokenAppearance", B(
         tl("Changement d'apparence des tokens"),
-        tl("Le GM configure plusieurs images sur un token ; les joueurs cyclent via un bouton dans le HUD.")));
+        tl("Le GM configure plusieurs images sur un token ; les joueurs cyclent via un bouton dans le HUD. Si le module Tokenizer est présent, un bouton « Créer avec Tokenizer » fabrique un token et l'ajoute aux apparences sans toucher au token de la fiche."),
+        false));
     game.settings.register(MOD, "enableTokenPortraitButton", B(
         tl("Bouton 'Voir le portrait' (HUD du token)"),
         tl("Ajoute un bouton dans le HUD du token qui affiche en grand l'image de la fiche.")));
+    game.settings.register(MOD, "enableSecondaryCampaign", B(
+        tl("Campagnes secondaires (hors principale)"),
+        tl("Un dossier d'acteurs choisi ci-dessous devient « hors campagne principale » : ses personnages (et ceux de ses sous-dossiers) n'apparaissent pas dans le casier, les statistiques, les assiduités ni les expéditions comptées, n'ont pas d'étape de validation et n'envoient rien sur Discord. Le bestiaire, les relations et la mécanique d'expédition continuent de fonctionner pour eux."),
+        false));
+    game.settings.register(MOD, "secondaryFolderId", S(
+        tl("Dossier des campagnes secondaires"),
+        tl("Le dossier d'acteurs dont le contenu est traité comme secondaire. Vide = aucun.")));
     game.settings.register(MOD, "enableCasierGm", B(
         tl("Casier du MJ (barre WestMarch)"),
         tl("Bouton « Casier » de la barre WestMarch (MJ) et bouton « Présentations des MJ » (joueurs). Désactivé : les brouillons de session enregistrés « pour plus tard » restent stockés, mais ne sont plus accessibles tant que le Casier est coupé.")));
@@ -1417,6 +1425,9 @@ const CATEGORIES = [
     { firstKey: "enableTokenAppearance", icon: "fa-toolbox",         title: "Toolkit",
       desc: tl("Apparences de tokens, transformations, tailles Large, TGCM, utilitaires GM, templates AoE, boutiques MEJ et réapprovisionnement."),
       keys: ["enableCasierGm","enableExpeditionDate","enableChatTools","enableExportDialog","enablePlayerListToggle","enableTokenAppearance","enableTokenPortraitButton","enableTokenAccroche","enableGmNotesNpc","enableTgcm","enableCompanions","enableFolderMove","enableToolAbilityFix","enableConnStats","enablePlayerListCompact","enableTemplateSnap","enableFollowTemplates","enableMejShopFix","enableMejCompendiumFix","enablePlaylistPackViewer","playlistUploadDossier","playlistUploadSousDossier","enableSceneMusic","enableEncumbrancePenalty","encPenalty1","encPenalty2","encPenalty3","enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
+    { firstKey: "enableSecondaryCampaign", master: "enableSecondaryCampaign", icon: "fa-folder-tree", title: tl("Campagnes secondaires"),
+      desc: tl("Un dossier d'acteurs « hors campagne principale » : ses persos profitent du bestiaire, des relations et des expéditions, mais restent hors du casier, des statistiques, des assiduités, de la validation et de Discord."),
+      keys: ["enableSecondaryCampaign","secondaryFolderId"] },
     { firstKey: "relationsEnabled", master: "relationsEnabled",      icon: "fa-heart",           title: tl("Fiche PJ — Relations"),
       desc: tl("Onglet Relations : liens entre personnages, détection automatique des rencontres, anonymisation."),
       keys: ["relationsEnabled","relationsAnonymization","relationsLastSeen"] },
@@ -1447,7 +1458,7 @@ const ACCENT = "#e67e22";
 
 // Réglages GELÉS : affichés grisés/désactivés dans la configuration (on ne peut
 // pas les modifier). Utilisé pour une fonctionnalité temporairement coupée.
-export const FROZEN_SETTINGS = new Set(["enableTgcm", "enableTokenAppearance", "enableChatCards"]);
+export const FROZEN_SETTINGS = new Set(["enableTgcm", "enableChatCards"]);
 
 // Schémas des tables de temps morts éditées en grille (champs structurés).
 const TM_TABLE_SCHEMAS = {
@@ -2035,6 +2046,8 @@ function settingControlHtml(key) {
         control = `<select name="${key}" style="width:100%;">${packOptionsHtml(val, docType)}</select>`;
     } else if (key === "expeditionMapSceneId") {
         control = `<select name="${key}" style="width:100%;">${sceneOptionsHtml(val)}</select>`;
+    } else if (key === "secondaryFolderId") {
+        control = `<select name="${key}" style="width:100%;">${folderOptionsHtml(val)}</select>`;
     } else if (key === "expeditionMapSceneIds") {
         const ids = Array.isArray(val) ? val.filter(Boolean) : [];
         const rows = ids.map(id => sceneRowHtml(id)).join("");
@@ -2327,6 +2340,18 @@ function sceneOptionsHtml(currentVal) {
     return [
         `<option value="">${tl("— Aucune —")}</option>`,
         ...game.scenes.contents.map(s => `<option value="${s.id}" ${s.id === currentVal ? "selected" : ""}>${s.name}</option>`)
+    ].join("");
+}
+
+// Liste des dossiers d'acteurs (indentés selon leur profondeur) pour le choix
+// du dossier des campagnes secondaires.
+function folderOptionsHtml(currentVal) {
+    const folders = (game.folders?.contents ?? []).filter(f => f.type === "Actor");
+    const prof = (f) => { let d = 0, p = f.folder; while (p && d < 50) { d++; p = p.folder; } return d; };
+    folders.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+    return [
+        `<option value="">${tl("— Aucun (fonction inactive) —")}</option>`,
+        ...folders.map(f => `<option value="${f.id}" ${f.id === currentVal ? "selected" : ""}>${"\u2014 ".repeat(prof(f))}${escapeAttr(f.name)}</option>`)
     ].join("");
 }
 

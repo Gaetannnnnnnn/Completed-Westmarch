@@ -123,6 +123,15 @@
     border: 2px solid var(--cvh-or);
     box-shadow: 0 0 8px rgba(201, 162, 39, .35);
 }
+.scwm-cvh-embleme {
+    width: 42px; height: 42px; flex: 0 0 auto;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    border: 2px solid var(--cvh-or);
+    color: var(--cvh-or); font-size: 20px;
+    background: radial-gradient(circle at 50% 35%, rgba(201, 162, 39, .22), rgba(201, 162, 39, .06));
+    box-shadow: 0 0 8px rgba(201, 162, 39, .35);
+}
 .scwm-cvh-entete h3 { margin: 0; border: 0; font-size: 1.35em; line-height: 1.1; }
 .scwm-cvh-entete small { opacity: .7; }
 

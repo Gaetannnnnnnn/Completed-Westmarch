@@ -40,7 +40,8 @@ const K_CONTRASTCOL = "a11yContrastColor"; // String (couleur des contours)
 const K_AVATARS  = "a11yPlayerAvatars";   // Boolean
 const K_AUTOHIDE = "a11yAutoHide";        // Boolean
 const K_COMPACT  = "a11yCompactControls"; // Boolean
-const K_GERE     = "a11yManagedBadge";    // Boolean (indicateur « géré par le module »)
+const K_GERE     = "a11yManagedBadge";    // Boolean (ancien : indicateur « géré par le module », plus affiché)
+const K_CACHEICO = "a11yHideModuleIcons"; // Boolean (cacher les icônes « géré / modifié par le module »)
 const K_HEALTH   = "a11yHealthEstimate";  // Boolean (afficher Health Estimate)
 const K_PCLOCK   = "a11yPartyClock";      // Boolean (afficher l'horloge de la party, partytime.js)
 
@@ -81,6 +82,10 @@ function registerA11ySettings() {
     game.settings.register(MOD, K_GERE, {
         name: tl("Indicateur « géré par le module »"), scope: "user", config: false,
         type: Boolean, default: true, onChange: () => rafraichirFiches()
+    });
+    game.settings.register(MOD, K_CACHEICO, {
+        name: tl("Cacher les icônes du module sur la fiche"), scope: "user", config: false,
+        type: Boolean, default: false, onChange: () => rafraichirFiches()
     });
     game.settings.register(MOD, K_HEALTH, {
         name: tl("Afficher l'état de santé estimé (Health Estimate)"), scope: "user", config: false,
@@ -170,7 +175,7 @@ export async function openA11yDialog() {
         ${row(K_COMPACT,  tl("Contrôles de gauche compacts"), tl("Réduit la taille des icônes de la barre d'outils de gauche."), "compact")}
         ${healthEstimateActive() ? row(K_HEALTH, tl("Afficher l'état de santé estimé"), tl("Texte du module Health Estimate au survol des tokens (« Blessé », « Mal en point »…). Décoche pour ne plus le voir sur ton compte ; les autres joueurs gardent leur propre choix."), "health") : ""}
         ${partyClockOffered() ? row(K_PCLOCK, tl("Afficher l'horloge de la party"), tl("Horloge à droite de la liste des joueurs (avec les secondes) : heure de ta party pendant l'expédition, sinon celle du monde."), "partyclock") : ""}
-        ${row(K_GERE,     tl("Indicateur « géré par le module »"), tl("Petite icône d'engrenages dorée sur les aptitudes de ta fiche dont le module applique la règle tout seul (Healer, Alert, Large Form…). Au survol : ce que fait le module."), "gere")}
+        ${row(K_CACHEICO, tl("Cacher les icônes du module sur la fiche"), tl("Masque les petites icônes d'engrenages ⚙ de ta fiche : « géré par le module » (Healer, Alert, Large Form…), « modifié par le module » (dés du moine, Tavern Brawler…) et règles de poids sur la barre d'encombrement. Les règles restent appliquées, seules les icônes disparaissent. Décoché par défaut."), "gere")}
 
         <div style="margin:10px 0 4px;font-weight:700;color:#c9a227;font-size:.9em;">${tl("Divertissement")}</div>
         ${row(K_FUN, tl("FunnyStats — tableau de fin de combat"), tl("À la fin de chaque combat, ouvre un tableau des stats de tout le monde (dégâts infligés et reçus, soins, éliminations, critiques…) avec des titres, façon fin de partie. <a class=\"scwm-fun-voir\" style=\"color:#c9a227;cursor:pointer;\">Voir le dernier tableau</a>"), "funnystats")}
@@ -219,7 +224,7 @@ export async function openA11yDialog() {
                     await game.settings.set(MOD, K_DALTON, sel?.value ?? "none");
                     const col = root.querySelector(`[name="${K_CONTRASTCOL}"]`);
                     await game.settings.set(MOD, K_CONTRASTCOL, col?.value || DEFAULT_BORDER);
-                    for (const k of [K_CONTRAST, K_AVATARS, K_AUTOHIDE, K_COMPACT, K_GERE, K_FUN]) {
+                    for (const k of [K_CONTRAST, K_AVATARS, K_AUTOHIDE, K_COMPACT, K_CACHEICO, K_FUN]) {
                         const cb = root.querySelector(`[name="${k}"]`);
                         await game.settings.set(MOD, k, !!cb?.checked);
                     }

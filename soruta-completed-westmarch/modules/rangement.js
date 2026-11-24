@@ -1,10 +1,10 @@
 // ============================================================
-// rangement.js — « Où ranger quoi ? » : guide de rangement pour les MJ
+// rangement.js — « Où ranger quoi ? » : guide de rangement pour les GM
 //
 // Les fonctions du module ne reconnaissent un PJ, un PNJ ou une créature que
 // s'ils sont rangés au bon endroit (dossiers et compendiums communs). Ce
 // fichier produit, à partir des RÉGLAGES RÉELS du monde :
-//   - un JOURNAL « Où ranger quoi ? (MJ) », réservé aux MJ, généré par un
+//   - un JOURNAL « Où ranger quoi ? (GM) », réservé aux GM, généré par un
 //     bouton des paramètres (catégorie « Dossiers & Compendiums ») et remis à
 //     jour tout seul quand les réglages concernés changent ;
 //   - page 1 : le guide ; page 2 : une VÉRIFICATION de ce qui est mal rangé
@@ -86,6 +86,7 @@ export function guideHtml() {
             <li>${tl("<strong>Relations</strong> : un PNJ rangé dans ce dossier s'ajoute tout seul aux relations d'un PJ dès que son jeton est vu par ce PJ. Hors de ce dossier, il n'apparaît jamais.")}</li>
             <li>${tl("PNJ en compendium : {0}. Ils sont proposés dans l'ajout manuel d'une relation.", valeur(packPnj, nomPack(packPnj), !!game.packs.get(packPnj)))}</li>
             <li>${tl("Un PNJ à ne jamais montrer dans les relations (déguisement, espion) : bouton « Exclure » de sa fiche.")}</li>
+            <li>${tl("Pour t'en <strong>servir</strong> : si les autres GM doivent pouvoir l'utiliser, importe-le dans le <strong>dossier des PNJ</strong> ; si tu le réserves à ta campagne, mets-le dans <strong>ton dossier GM</strong> (il n'apparaîtra alors pas dans les relations). Dans les deux cas, garde une copie dans le compendium des PNJ.")}</li>
             ${actif("mondeEnabled") ? `<li>${tl("Sa fiche du monde (Monk's) : bouton <i class=\"fa-solid fa-book-atlas\"></i> de sa fiche d'acteur ; elle est rangée dans le compendium {0}.", nomPackRegistre("mondePackPerson", tl("Registre — PNJ")))}</li>` : ""}
         </ul>`);
 
@@ -95,6 +96,7 @@ export function guideHtml() {
             <li>${tl("<strong>Bestiaire</strong> : une créature s'ajoute au bestiaire d'un PJ quand il la voit, à condition d'être <strong>importée depuis ce compendium</strong> (glisser-déposer depuis le compendium vers la scène ou les acteurs).")}</li>
             <li>${tl("Une créature fabriquée à la main n'est reconnue que si elle porte <strong>exactement</strong> le nom d'une entrée du compendium. Sinon, ajoute-la d'abord au compendium.")}</li>
             <li>${tl("Ne range pas une créature dans le dossier des PNJ : elle apparaîtrait dans les relations au lieu du bestiaire.")}</li>
+            <li>${tl("Pour t'en <strong>servir</strong> en jeu, importe-la depuis ce compendium dans <strong>ton dossier GM</strong> : le bestiaire la reconnaît par ce lien d'import, où qu'elle soit rangée. L'entrée du compendium, elle, reste toujours en place.")}</li>
             ${actif("enableHarvest") ? `<li>${tl("Récolte : crée tes RollTables, puis associe-les aux créatures (par type ou par nom) avec le bouton « Associations » de la barre WestMarch.")}</li>` : ""}
         </ul>`, actif("bestiaryEnabled") || !!packCrea);
 
@@ -126,12 +128,17 @@ export function guideHtml() {
 
     const parent = lire("gmAutoFolderParent");
     if (parent) {
-        section("fa-folder-tree", tl("Dossiers personnels des MJ"), `
-            <p>${tl("À la connexion de chaque MJ, un sous-dossier à son nom est créé dans <strong>{0}</strong> (Acteurs, Journaux et Scènes) : c'est là qu'il range ses préparations. Ce qui doit être <em>reconnu</em> par le module (PNJ récurrents, créatures) va quand même dans les dossiers ci-dessus.", esc(parent))}</p>`);
+        section("fa-folder-tree", tl("Dossiers personnels des GM"), `
+            <p>${tl("À la connexion de chaque GM, un sous-dossier à son nom est créé dans <strong>{0}</strong> (Acteurs, Journaux et Scènes) : c'est son espace de travail — ses créatures et PNJ importés pour jouer (voir ci-dessus), ses notes, ses cartes.", esc(parent))}</p>
+            <ul>
+                <li>${tl("<strong>Cartes / scènes</strong> temporaires, propres à ta campagne : dans ton dossier GM. Si la carte représente un <strong>lieu de l'univers</strong> partagé, range-la plutôt dans le dossier du monde.")}</li>
+                <li>${tl("Règle d'or : ne garde dans les fichiers du monde que le strict nécessaire pour jouer ; tout le reste vit au compendium, qui en conserve toujours une copie. Des fichiers de monde légers gardent le serveur rapide.")}</li>
+            </ul>`);
     }
 
     return `<div class="scwm-rg-guide">
         <p>${tl("<em>Page générée à partir des réglages du module (Paramètres → Dossiers &amp; Compendiums). Elle se met à jour toute seule.</em>")}</p>
+        <p>${tl("<strong>Principe :</strong> le compendium est le coffre-fort — <strong>tout y reste toujours</strong>. On n'importe dans le monde que ce qu'on utilise vraiment en jeu, et on garde la copie du compendium. But : ne laisser dans les fichiers du monde que le strict nécessaire (serveur rapide), tout le reste étant conservé au compendium.")}</p>
         ${sections.join("\n")}
     </div>`;
 }
@@ -224,8 +231,8 @@ function verificationJournalHtml(pbs) {
 }
 
 // ============================================================
-// Journal « Où ranger quoi ? (MJ) » — généré depuis les paramètres
-// (catégorie « Dossiers & Compendiums »), réservé aux MJ.
+// Journal « Où ranger quoi ? (GM) » — généré depuis les paramètres
+// (catégorie « Dossiers & Compendiums »), réservé aux GM.
 // ============================================================
 export function trouverGuide() {
     return game.journal?.find(e => e.getFlag?.(MOD, FLAG_GUIDE) === true) ?? null;
@@ -254,7 +261,7 @@ export async function publierGuide() {
         return existant;
     }
     return JournalEntry.create({
-        name: tl("📌 Où ranger quoi ? (MJ)"),
+        name: tl("📌 Où ranger quoi ? (GM)"),
         ownership: { default: CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE },
         sort: -100000,
         flags: { [MOD]: { [FLAG_GUIDE]: true } },
@@ -268,7 +275,7 @@ export async function genererEtOuvrirGuide() {
         const deja = !!trouverGuide();
         const e = await publierGuide();
         if (!e) return null;
-        ui.notifications?.info(deja ? tl("Journal « Où ranger quoi ? » mis à jour.") : tl("Journal « Où ranger quoi ? » créé (réservé aux MJ)."));
+        ui.notifications?.info(deja ? tl("Journal « Où ranger quoi ? » mis à jour.") : tl("Journal « Où ranger quoi ? » créé (réservé aux GM)."));
         e.sheet?.render(true);
         return e;
     } catch (err) {
@@ -283,13 +290,13 @@ export function blocGuideReglagesHtml() {
     const guide = trouverGuide();
     return `
     <div class="scwm-rg-bloc" style="margin:10px 4px 4px;padding:8px 10px;border:1px solid rgba(201,162,39,.45);border-radius:5px;background:rgba(201,162,39,.07);">
-        <div style="font-weight:600;">${tl("<i class=\"fa-solid fa-boxes-stacked\"></i> Guide « Où ranger quoi ? » pour les MJ")}</div>
-        <p style="margin:3px 0 6px;font-size:.8em;color:#aaa;">${tl("Crée un journal réservé aux MJ qui explique où ranger PJ, PNJ, créatures, lieux… avec les dossiers et compendiums réglés ici, plus une vérification de ce qui est mal rangé dans le monde. Les réglages de cette fenêtre sont enregistrés avant. Le journal se met ensuite à jour tout seul quand ces réglages changent.")}</p>
+        <div style="font-weight:600;">${tl("<i class=\"fa-solid fa-boxes-stacked\"></i> Guide « Où ranger quoi ? » pour les GM")}</div>
+        <p style="margin:3px 0 6px;font-size:.8em;color:#aaa;">${tl("Crée un journal réservé aux GM qui explique où ranger PJ, PNJ, créatures, lieux… avec les dossiers et compendiums réglés ici, plus une vérification de ce qui est mal rangé dans le monde. Les réglages de cette fenêtre sont enregistrés avant. Le journal se met ensuite à jour tout seul quand ces réglages changent.")}</p>
         <button type="button" class="scwm-rg-generer"><i class="fa-solid fa-book"></i> ${guide ? tl("Mettre à jour et ouvrir le journal") : tl("Générer le journal")}</button>
     </div>`;
 }
 
-// Journal publié : régénéré (MJ actif, différé) quand un réglage suivi change.
+// Journal publié : régénéré (GM actif, différé) quand un réglage suivi change.
 export function RangementHooks() {
     let t = null;
     Hooks.on("updateSetting", (setting) => {

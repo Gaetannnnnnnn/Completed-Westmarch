@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 7.0.0
+Version : 7.0.1
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -217,6 +217,12 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v7.0.1 | 2026-11-24
+   - Correctif : suppression d'un doublon de fonction (folderOptionsHtml)
+     introduit en 7.0.0, qui empêchait le fichier des réglages de se charger
+     (plus aucun réglage du module visible dans Foundry). Aucune autre
+     modification. Fichier : modules/settings.js.
 
 v7.0.0 | 2026-11-23
    - Journal « Où ranger quoi ? » : « MJ » devient « GM » partout. Le guide

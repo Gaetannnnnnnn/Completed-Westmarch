@@ -2343,18 +2343,6 @@ function sceneOptionsHtml(currentVal) {
     ].join("");
 }
 
-// Liste des dossiers d'acteurs (indentés selon leur profondeur) pour le choix
-// du dossier des campagnes secondaires.
-function folderOptionsHtml(currentVal) {
-    const folders = (game.folders?.contents ?? []).filter(f => f.type === "Actor");
-    const prof = (f) => { let d = 0, p = f.folder; while (p && d < 50) { d++; p = p.folder; } return d; };
-    folders.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
-    return [
-        `<option value="">${tl("— Aucun (fonction inactive) —")}</option>`,
-        ...folders.map(f => `<option value="${f.id}" ${f.id === currentVal ? "selected" : ""}>${"\u2014 ".repeat(prof(f))}${escapeAttr(f.name)}</option>`)
-    ].join("");
-}
-
 // Liste d'intrigues (tags de rapports) — rangées de champs texte + / −.
 function tagRowHtml(val = "") {
     return `<div class="scwm-tag-row" style="display:flex;gap:4px;margin-bottom:4px;">

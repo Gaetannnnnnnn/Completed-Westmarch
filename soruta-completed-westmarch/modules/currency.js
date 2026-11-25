@@ -84,26 +84,35 @@ async function ouvrirRepartition(actor) {
     const denoms = denomsAutorisees();
     const uid = "scwm-rep-" + foundry.utils.randomID();
 
-    const thead = `<tr><th style="text-align:left;">${esc(tl("Contenant"))}</th>${denoms.map(d => `<th style="width:4.8em;">${DENOM_LABEL[d]}</th>`).join("")}</tr>`;
+    const colgroup = `<colgroup><col>${denoms.map(() => `<col style="width:3.4em;">`).join("")}</colgroup>`;
+    const thead = `<tr><th class="scwm-rep-h-nom">${esc(tl("Contenant"))}</th>${denoms.map(d => `<th class="scwm-rep-den ${d}">${DENOM_LABEL[d]}</th>`).join("")}</tr>`;
     const lignes = conts.map(c => {
         const v = rep[c.id] ?? {};
-        const badge = estSansPoids(c) ? ` <span style="font-size:.75em;color:#c9a227;border:1px solid #c9a227;border-radius:4px;padding:0 4px;" data-tooltip="${esc(tl("Contenu sans poids : les pièces ici ne pèsent pas."))}">${esc(tl("sans poids"))}</span>` : "";
-        return `<tr data-cid="${c.id}"><td style="padding:2px 4px;">${esc(c.name)}${badge}</td>${denoms.map(d =>
-            `<td style="text-align:center;"><input type="number" min="0" step="1" data-d="${d}" value="${nf(v[d])}" style="width:4.3em;"></td>`).join("")}</tr>`;
+        const img = esc(c.img || "icons/svg/item-bag.svg");
+        const badge = estSansPoids(c) ? `<span class="scwm-rep-sp" data-tooltip="${esc(tl("Contenu sans poids : les pièces ici ne pèsent pas."))}">${esc(tl("sans poids"))}</span>` : "";
+        return `<tr data-cid="${c.id}">
+            <td class="scwm-rep-nom"><div class="scwm-rep-nomwrap"><img class="scwm-rep-img" src="${img}" alt=""><div class="scwm-rep-nomtxt"><b>${esc(c.name)}</b>${badge}</div></div></td>
+            ${denoms.map(d => `<td><input type="number" min="0" step="1" data-d="${d}" value="${nf(v[d])}"></td>`).join("")}
+        </tr>`;
     }).join("");
+    const videRow = `<tr><td colspan="${denoms.length + 1}" style="opacity:.7;padding:10px;text-align:center;">${esc(tl("Aucun contenant sur la fiche."))}</td></tr>`;
+    const footLigne = (cls, label, attr) => `<tr class="${cls}"><td class="scwm-rep-flabel">${esc(label)}</td>${denoms.map(d =>
+        `<td${attr ? ` class="${attr === "reste" ? "scwm-rep-reste" : ""}" data-${attr}="${d}"` : ""}>${attr ? (attr === "tot" ? "0" : "—") : nf(purse[d])}</td>`).join("")}</tr>`;
 
     const content = `<div id="${uid}" class="scwm-rep">
-        <p style="margin:0 0 8px;font-size:.88em;opacity:.85;">${esc(tl("Les pièces restent sur ta bourse — tu notes seulement où tu les ranges. Seul un sac sans fond retire leur poids de l'encombrement."))}</p>
-        <table style="width:100%;border-collapse:collapse;font-size:.9em;">
-            <thead style="border-bottom:1px solid rgba(255,255,255,.15);">${thead}</thead>
-            <tbody>${lignes || `<tr><td colspan="${denoms.length + 1}" style="opacity:.7;padding:6px;">${esc(tl("Aucun contenant sur la fiche."))}</td></tr>`}</tbody>
-            <tfoot style="border-top:1px solid rgba(255,255,255,.15);">
-                <tr style="opacity:.85;"><td style="padding:2px 4px;">${esc(tl("Bourse (total)"))}</td>${denoms.map(d => `<td style="text-align:center;">${nf(purse[d])}</td>`).join("")}</tr>
-                <tr style="font-weight:600;"><td style="padding:2px 4px;">${esc(tl("Rangé (total)"))}</td>${denoms.map(d => `<td style="text-align:center;" data-tot="${d}">0</td>`).join("")}</tr>
-                <tr style="font-weight:600;"><td style="padding:2px 4px;">${esc(tl("Reste sur la bourse"))}</td>${denoms.map(d => `<td style="text-align:center;" data-reste="${d}">—</td>`).join("")}</tr>
-            </tfoot>
-        </table>
-        <p data-err style="color:#e06c5a;min-height:1.1em;margin:6px 0 0;font-size:.82em;"></p>
+        <p class="scwm-rep-intro">${esc(tl("Les pièces restent sur ta bourse — tu notes seulement où tu les ranges. Seul un sac sans fond retire leur poids de l'encombrement."))}</p>
+        <div class="scwm-rep-scroll">
+            <table>${colgroup}
+                <thead>${thead}</thead>
+                <tbody>${lignes || videRow}</tbody>
+            </table>
+        </div>
+        <div class="scwm-rep-foot"><table>${colgroup}<tbody>
+            ${footLigne("scwm-rep-bourse", tl("Bourse (total)"), "")}
+            ${footLigne("scwm-rep-fort", tl("Rangé (total)"), "tot")}
+            ${footLigne("scwm-rep-fort", tl("Reste sur la bourse"), "reste")}
+        </tbody></table></div>
+        <p class="scwm-rep-err" data-err></p>
     </div>`;
 
     const recalc = () => {

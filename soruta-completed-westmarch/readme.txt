@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 7.0.3
+Version : 7.0.4
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -217,6 +217,15 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v7.0.4 | 2026-11-25
+   - Fenêtre de répartition des pièces : défilable et retravaillée. Chaque
+     contenant s'affiche avec son IMAGE et son nom (badge « sans poids » pour
+     le sac sans fond), dans une liste défilante à en-tête de colonnes figé ;
+     les totaux « Bourse / Rangé / Reste » restent en bas hors du défilement.
+     Devises colorées, survol de ligne, habillage via une nouvelle feuille de
+     style. Fichiers : modules/currency.js, styles/currency.css (nouveau),
+     build.sh.
 
 v7.0.3 | 2026-11-25
    - Monnaie : nouveau réglage « Pièces dans le sac sans fond (poids) »

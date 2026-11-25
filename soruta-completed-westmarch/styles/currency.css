@@ -1,0 +1,60 @@
+/* ===== Fenêtre de répartition des pièces (sac sans fond) ===== */
+.scwm-rep { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.scwm-rep-intro { margin: 0; font-size: .86em; opacity: .8; line-height: 1.35; }
+
+.scwm-rep-scroll {
+    max-height: min(52vh, 360px);
+    overflow-y: auto;
+    border: 1px solid var(--color-border-light-2, rgba(127, 127, 127, .3));
+    border-radius: 6px;
+}
+.scwm-rep table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: .9em; }
+.scwm-rep thead th {
+    position: sticky; top: 0; z-index: 1;
+    background: var(--color-background, #15161a);
+    padding: 6px 4px; font-weight: 600; text-align: center;
+    border-bottom: 1px solid rgba(127, 127, 127, .35);
+}
+.scwm-rep thead th.scwm-rep-h-nom { text-align: left; padding-left: 8px; }
+.scwm-rep tbody tr { border-bottom: 1px solid rgba(127, 127, 127, .12); }
+.scwm-rep tbody tr:last-child { border-bottom: none; }
+.scwm-rep tbody tr:hover { background: rgba(201, 162, 39, .07); }
+
+.scwm-rep-nom { padding: 5px 6px 5px 8px; }
+.scwm-rep-nomwrap { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.scwm-rep-img {
+    width: 28px; height: 28px; flex: 0 0 auto;
+    border-radius: 5px; object-fit: cover;
+    border: 1px solid rgba(127, 127, 127, .45);
+    background: rgba(0, 0, 0, .25);
+}
+.scwm-rep-nomtxt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.scwm-rep-nomtxt b { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.scwm-rep-sp {
+    align-self: flex-start;
+    font-size: .68em; letter-spacing: .02em; text-transform: uppercase;
+    color: #c9a227; border: 1px solid #c9a227; border-radius: 4px; padding: 0 4px;
+    white-space: nowrap;
+}
+.scwm-rep td input[type="number"] {
+    width: 100%; text-align: center; height: 1.7em; padding: 0 2px;
+}
+
+/* Pastilles colorées par devise */
+.scwm-rep-den { font-weight: 700; }
+.scwm-rep-den.pp { color: #cfd2d6; }
+.scwm-rep-den.gp { color: #e2b84c; }
+.scwm-rep-den.ep { color: #7fd08a; }
+.scwm-rep-den.sp { color: #c3c3c3; }
+.scwm-rep-den.cp { color: #cc8a4e; }
+
+/* Totaux (hors défilement) */
+.scwm-rep-foot table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: .9em; }
+.scwm-rep-foot td { padding: 3px 4px; text-align: center; }
+.scwm-rep-foot td.scwm-rep-flabel { text-align: left; padding-left: 8px; }
+.scwm-rep-foot tr.scwm-rep-bourse { opacity: .8; }
+.scwm-rep-foot tr.scwm-rep-fort { font-weight: 600; }
+.scwm-rep-foot tr.scwm-rep-fort td:first-child { color: #c9a227; }
+.scwm-rep-reste.neg { color: #e06c5a; }
+
+.scwm-rep-err { color: #e06c5a; min-height: 1.1em; margin: 0; font-size: .82em; }

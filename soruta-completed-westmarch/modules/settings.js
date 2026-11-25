@@ -335,6 +335,10 @@ export function registerSettings() {
         scope: "world", config: false, type: String, default: "off", requiresReload: false,
         choices: { off: tl("Désactivé"), players: tl("Joueurs uniquement"), all: tl("Tout le monde") }
     });
+    game.settings.register(MOD, "enableBagOfHoldingCoins", B(
+        tl("Pièces dans le sac sans fond (poids)"),
+        tl("Si un contenant « au contenu sans poids » (sac sans fond, Bag of Holding) est sur la fiche, une case apparaît à côté de la bourse. Cochée, le poids des pièces ne compte plus dans l'encombrement (les pièces restent sur la bourse, donc toujours comptées par la richesse, les temps morts, etc.). Nécessite la règle dnd5e « Le poids de la monnaie compte »."),
+        false));
     // État de pause par party (mapping partyId -> true), synchronisé sur tous
     // les clients. Non affiché dans la configuration.
     // --- Horloge de party (section dédiée, voir partytime.js) ---
@@ -1394,7 +1398,7 @@ const CATEGORIES = [
       keys: ["enableCharValidation","charMaxTotal","charMaxActive","charFreeLevelUp","charNotifyLevelUp","charValidationWebhookUrl","blockPlayerPlutonium"] },
     { firstKey: "disableElectrum", icon: "fa-coins", title: tl("Monnaie"),
       desc: tl("Règles de bourse. ⚠️ Pour que les modules qui lisent la richesse sur la fiche (ex. Temps morts) fonctionnent correctement, forcez les pièces à rester sur la fiche (option « Pièces dans les contenants »)."),
-      keys: ["disableElectrum","currencyContainerBlock"] },
+      keys: ["disableElectrum","currencyContainerBlock","enableBagOfHoldingCoins"] },
     { firstKey: "enableSourceControl", master: "enableSourceControl", icon: "fa-book-skull", title: tl("Contrôle des sources"),
       desc: tl("Réglemente les livres/extensions D&D (Xanathar, Tal'Dorei, etc.) autorisés sur les fiches PJ, via deux listes blanches (joueurs / MJ). Le contenu d'une source non autorisée est bloqué avec un avertissement, quelle que soit la méthode d'ajout."),
       keys: ["enableSourceControl","sourceAllowPlayers","sourceAllowGm","sourceDeny","sourceMatchField","sourceMatchExact","sourceBlockUnknown"] },

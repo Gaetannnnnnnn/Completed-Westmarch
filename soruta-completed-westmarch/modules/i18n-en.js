@@ -2,6 +2,21 @@
 // Généré à partir des textes du code ; une entrée absente reste en français.
 // © 2026 Soruta.
 export default {
+ "Les pièces restent sur ta bourse — tu notes seulement où tu les ranges. Seul un sac sans fond retire leur poids de l'encombrement.": "The coins stay in your purse — you just note where you keep them. Only a Bag of Holding removes their weight from encumbrance.",
+ "Contenant": "Container",
+ "Contenu sans poids : les pièces ici ne pèsent pas.": "Weightless contents: coins here have no weight.",
+ "sans poids": "weightless",
+ "Aucun contenant sur la fiche.": "No container on the sheet.",
+ "Bourse (total)": "Purse (total)",
+ "Rangé (total)": "Stored (total)",
+ "Reste sur la bourse": "Left in the purse",
+ "Tu ranges plus de pièces que tu n'en as (valeurs en rouge).": "You are storing more coins than you have (values in red).",
+ "Répartition des pièces — {0}": "Coin distribution — {0}",
+ "Répartir les pièces dans les contenants (poids du sac sans fond).": "Distribute coins across containers (Bag of Holding weight).",
+ "Pièces dans le sac sans fond (poids)": "Coins in the Bag of Holding (weight)",
+ "Si un contenant « au contenu sans poids » (sac sans fond, Bag of Holding) est sur la fiche, une case apparaît à côté de la bourse. Cochée, le poids des pièces ne compte plus dans l'encombrement (les pièces restent sur la bourse, donc toujours comptées par la richesse, les temps morts, etc.). Nécessite la règle dnd5e « Le poids de la monnaie compte ».": "If a container with “weightless contents” (a Bag of Holding) is on the sheet, a checkbox appears next to the purse. When ticked, the coins' weight no longer counts toward encumbrance (the coins stay in the purse, so they are still counted by wealth, downtime, etc.). Requires the dnd5e rule “Currency has weight”.",
+ "Pièces rangées dans le sac sans fond : leur poids ne compte pas dans l'encombrement.": "Coins stored in the Bag of Holding: their weight does not count toward encumbrance.",
+ "[{0}] Poids des pièces (sac sans fond) :": "[{0}] Coin weight (Bag of Holding):",
  "<strong>Principe :</strong> le compendium est le coffre-fort — <strong>tout y reste toujours</strong>. On n'importe dans le monde que ce qu'on utilise vraiment en jeu, et on garde la copie du compendium. But : ne laisser dans les fichiers du monde que le strict nécessaire (serveur rapide), tout le reste étant conservé au compendium.": "<strong>Principle:</strong> the compendium is the vault — <strong>everything always stays there</strong>. Only import into the world what you actually use in play, and keep the compendium copy. Goal: leave in the world files only what is strictly needed (a fast server), everything else being preserved in the compendium.",
  "Pour t'en <strong>servir</strong> en jeu, importe-la depuis ce compendium dans <strong>ton dossier GM</strong> : le bestiaire la reconnaît par ce lien d'import, où qu'elle soit rangée. L'entrée du compendium, elle, reste toujours en place.": "To <strong>use</strong> it in play, import it from this compendium into <strong>your GM folder</strong>: the bestiary recognises it through that import link, wherever it is stored. The compendium entry itself always stays in place.",
  "Pour t'en <strong>servir</strong> : si les autres GM doivent pouvoir l'utiliser, importe-le dans le <strong>dossier des PNJ</strong> ; si tu le réserves à ta campagne, mets-le dans <strong>ton dossier GM</strong> (il n'apparaîtra alors pas dans les relations). Dans les deux cas, garde une copie dans le compendium des PNJ.": "To <strong>use</strong> it: if other GMs should be able to use it, import it into the <strong>NPC folder</strong>; if you keep it to your own campaign, put it in <strong>your GM folder</strong> (it then won't appear in relations). Either way, keep a copy in the NPC compendium.",

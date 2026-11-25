@@ -1,6 +1,7 @@
 import { MOD } from "./const.js";
 import { journal } from "./log.js";
 import { tl } from "./i18n.js";
+import { poidsMonnaieSac } from "./currency.js";
 import { badgeActif } from "./gere.js";
 // ============================================================
 // encumbrance.js — Pénalités de poids (vitesse) aux 3 paliers de la fiche
@@ -201,6 +202,19 @@ function ajouterBulle(app, html) {
     } catch { /* jamais bloquant pour la fiche */ }
 }
 
+// Retire le poids des pièces de l'encombrement quand elles sont « dans le
+// sac sans fond » (case cochée sur la fiche). Les pièces restent sur la bourse.
+function retirerPoidsMonnaie(actor) {
+    const w = poidsMonnaieSac(actor);
+    if (!w) return;
+    const enc = actor?.system?.attributes?.encumbrance;
+    if (!enc || !Number.isFinite(Number(enc.value))) return;
+    enc.value = Math.max(0, Number(enc.value) - w);
+    if (Number.isFinite(Number(enc.max)) && Number(enc.max) > 0) {
+        enc.pct = Math.max(0, Math.min(100, (enc.value / enc.max) * 100));
+    }
+}
+
 export function EncumbranceHooks() {
     Hooks.on("renderActorSheetV2", ajouterBulle);
     Hooks.on("renderActorSheet", ajouterBulle);
@@ -209,6 +223,7 @@ export function EncumbranceHooks() {
     const cible = "CONFIG.Actor.documentClass.prototype.prepareDerivedData";
     const apres = function (wrapped, ...args) {
         const r = wrapped(...args);
+        try { retirerPoidsMonnaie(this); } catch (e) { journal.avert(tl("[{0}] Poids des pièces (sac sans fond) :", MOD), e); }
         try { appliquer(this); } catch (e) { journal.avert(tl("[{0}] Pénalités de poids :", MOD), e); }
         return r;
     };

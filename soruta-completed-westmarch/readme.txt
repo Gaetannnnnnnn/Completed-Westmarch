@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 7.0.2
+Version : 7.0.3
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -217,6 +217,22 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v7.0.3 | 2026-11-25
+   - Monnaie : nouveau réglage « Pièces dans le sac sans fond (poids) »
+     (catégorie Monnaie, désactivé par défaut). Si le personnage a au moins
+     un contenant, une icône 💰 apparaît à côté de la bourse et ouvre une
+     petite fenêtre de RÉPARTITION : une ligne par contenant, un champ par
+     pièce (PP/PO/PA/PC, + PE si l'électrum n'est pas retiré), plus deux
+     lignes dynamiques « Rangé (total) » et « Reste sur la bourse ». Les
+     pièces ne QUITTENT PAS la bourse (system.currency) — c'est un simple
+     suivi — donc elles restent vues par la richesse, les temps morts et le
+     log. Seules les pièces rangées dans un contenant « au contenu sans
+     poids » (sac sans fond / Bag of Holding) voient leur poids retiré de
+     l'encombrement ; dans les autres contenants, elles pèsent normalement.
+     On ne peut pas répartir plus que ce que contient la bourse. Nécessite
+     la règle dnd5e « Le poids de la monnaie compte » pour l'effet de poids.
+     Fichiers : modules/currency.js, modules/encumbrance.js, modules/settings.js.
 
 v7.0.2 | 2026-11-25
    - Performance : le module est maintenant chargé en UN seul fichier JS

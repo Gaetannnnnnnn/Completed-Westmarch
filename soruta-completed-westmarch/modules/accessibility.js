@@ -33,6 +33,7 @@ import { rafraichirFiches } from "./gere.js";
 import { journal } from "./log.js";
 import { tl } from "./i18n.js";
 import { K_FUN, ouvrirTableau } from "./funnystats.js";
+import { cartesActives } from "./chat.js";
 // Clés de réglages (toutes "client").
 const K_DALTON   = "a11yDaltonism";      // "none" | "protan" | "deutan" | "tritan"
 const K_CONTRAST = "a11yContrast";        // Boolean
@@ -180,6 +181,7 @@ export async function openA11yDialog() {
         <div style="margin:10px 0 4px;font-weight:700;color:#c9a227;font-size:.9em;">${tl("Divertissement")}</div>
         ${row(K_FUN, tl("FunnyStats — tableau de fin de combat"), tl("À la fin de chaque combat, ouvre un tableau des stats de tout le monde (dégâts infligés et reçus, soins, éliminations, critiques…) avec des titres, façon fin de partie. <a class=\"scwm-fun-voir\" style=\"color:#c9a227;cursor:pointer;\">Voir le dernier tableau</a>"), "funnystats")}
 
+${cartesActives() ? `
         <div style="margin:10px 0 4px;font-weight:700;color:#c9a227;font-size:.9em;">${tl("Cartes de chat")}</div>
         <div class="scwm-a11y-row" data-a11y-row="chatcol" style="padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.07);">
             <label style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0;font-weight:600;">
@@ -191,7 +193,7 @@ export async function openA11yDialog() {
                 </span>
             </label>
             <p style="margin:3px 0 0;font-size:.8em;color:#999;">${tl("Couleur de fond de tes cartes de chat (blanc crème par défaut). Le texte s'adapte automatiquement pour rester lisible. Les autres options (repli, boutons…) sont dans les réglages « Cartes de chat » du MJ.")}</p>
-        </div>
+        </div>` : ""}
     </div>`;
 
     await foundry.applications.api.DialogV2.wait({
@@ -235,7 +237,7 @@ export async function openA11yDialog() {
                     if (pc) await game.settings.set(MOD, K_PCLOCK, !!pc.checked);
                     // Préférences « cartes de chat » (par joueur).
                     const chatCol = root.querySelector(`[name="chatCardColor"]`);
-                    await game.settings.set(MOD, "chatCardColor", chatCol?.value || "#f4ecd8");
+                    if (chatCol) await game.settings.set(MOD, "chatCardColor", chatCol.value || "#f4ecd8");
 
                     applyAccessibility();
                     try { ui.players?.render(); } catch {}

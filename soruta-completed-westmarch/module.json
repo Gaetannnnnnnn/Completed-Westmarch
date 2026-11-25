@@ -1,7 +1,7 @@
 {
   "id": "soruta-completed-westmarch",
   "title": "Soruta — Completed Westmarch",
-  "version": "7.0.1",
+  "version": "7.0.2",
   "changelog": "2026-10-31",
   "authors": [
     {
@@ -16,29 +16,10 @@
   },
   "description": "Module unifié West March pour Foundry VTT (dnd5e). Regroupe l'ancien ensemble de modules Soruta en un seul : système de party / chat / combat West March, temps morts & personnalisations serveur, toolkit (tokens, transformations, MEJ, templates), onglets de fiche Relations / Bestiaire / Carnet & Expéditions, carte des expéditions, fix de portée midi-qol et tutoriel interactif. Chaque fonctionnalité reste activable individuellement. Migration automatique des données des anciens modules au premier lancement.",
   "esmodules": [
-    "./index.js"
+    "./dist/scwm.mjs"
   ],
   "styles": [
-    "./styles/westmarch-chat.css",
-    "./styles/westmarch-character.css",
-    "./styles/toolkit-character.css",
-    "./styles/relations.css",
-    "./styles/bestiary.css",
-    "./styles/carnet.css",
-    "./styles/tutoriel.css",
-    "./styles/midi-range-fix.css",
-    "./styles/connstats.css",
-    "./styles/partypause.css",
-    "./styles/playerlist.css",
-    "./styles/casier.css",
-    "./styles/pcstatus.css",
-    "./styles/sceneaudio.css",
-    "./styles/charvalidation.css",
-    "./styles/gmnotes.css",
-    "./styles/accessibility.css",
-    "./styles/settings-hub.css",
-    "./styles/chat-cards.css",
-    "./styles/trade.css"
+    "./styles/_bundle.css"
   ],
   "relationships": {
     "requires": [

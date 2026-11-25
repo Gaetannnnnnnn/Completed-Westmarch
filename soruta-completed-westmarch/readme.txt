@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 7.0.1
+Version : 7.0.2
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -217,6 +217,21 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v7.0.2 | 2026-11-25
+   - Performance : le module est maintenant chargé en UN seul fichier JS
+     (dist/scwm.mjs) et UN seul CSS (styles/_bundle.css) au lieu de ~92 JS
+     + 20 CSS. À la connexion, Foundry faisait une requête par fichier
+     (~112 allers-retours) ; il n'en fait plus que 2. Le code source reste
+     dans modules/ et styles/ ; le bundle se reconstruit avec build.sh
+     (à lancer avant chaque publication). Fichiers : module.json, build.sh
+     (nouveau), dist/scwm.mjs (généré), styles/_bundle.css (généré).
+   - Accessibilité : la proposition « Couleur des cartes de chat » (et son
+     titre « Cartes de chat ») n'apparaît plus tant que la fonctionnalité
+     des cartes de chat est désactivée — elle ne servait à rien dans ce cas.
+     Elle réapparaît automatiquement si les cartes sont réactivées. La
+     sauvegarde n'écrase plus la couleur quand le champ est masqué.
+     Fichiers : modules/accessibility.js, modules/chat.js.
 
 v7.0.1 | 2026-11-24
    - Correctif : suppression d'un doublon de fonction (folderOptionsHtml)

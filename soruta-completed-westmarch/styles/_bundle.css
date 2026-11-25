@@ -1,0 +1,4398 @@
+/* ===== westmarch-chat.css ===== */
+/* Barre d'onglets du chat (IC / Autre / OOC) */
+.tabbed-controls {
+    display: flex;
+    width: 100%;
+    gap: 4px;
+    margin: 4px 0 6px;
+    padding: 0;
+    line-height: 1.2;
+}
+.tabbed-controls .ui-control {
+    position: relative;
+    flex: 1;
+    height: auto;
+    min-height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 4px 6px;
+    font-size: 12px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid #4a4a4a;
+    border-radius: 4px;
+    color: #c0c0c0;
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s, color 0.12s, box-shadow 0.12s;
+}
+.tabbed-controls .ui-control:hover {
+    border-color: #ff6400;
+    color: #fff;
+}
+.tabbed-controls .ui-control[aria-pressed="true"] {
+    border-color: #ff6400;
+    color: #fff;
+    background: rgba(255, 100, 0, 0.12);
+    box-shadow: inset 0 0 6px rgba(255, 100, 0, 0.4);
+}
+.tabbed-controls .ui-control i:first-child { font-size: 13px; }
+.tabbed-controls .scwm-notif {
+    position: absolute;
+    top: 3px;
+    right: 5px;
+    font-size: 7px;
+    color: #ff6400;
+    display: none;
+}
+
+.hardHide {
+    display: none !important;
+}
+
+/* ============================================================
+   Cartes midi-qol HÉRITÉES (compat quand midi-qol est désactivé)
+   Les messages créés pendant que midi-qol était actif contiennent
+   ses vignettes de cible. Sans le CSS de midi (module retiré), elles
+   s'affichent en pleine taille (images « immenses »). On les recontraint
+   pour que l'historique du chat reste lisible.
+   ============================================================ */
+.midi-qol-target-img {
+    width: 28px !important;
+    height: 28px !important;
+    object-fit: cover;
+    border-radius: 3px;
+    vertical-align: middle;
+    display: inline-block;
+}
+.midi-qol-target-select,
+.midi-qol-hit-class {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+    max-width: 100%;
+}
+.midi-qol-target-select .midi-qol-target-npc,
+.midi-qol-target-select .midi-qol-target-name {
+    font-size: 12px;
+}
+
+#players .players-list {
+    gap: 4px;
+    max-height: 300px;
+}
+
+/* ============================================================
+   Boutons gestion party (GM) — ajoutés en fin de rangée .control-buttons
+   ============================================================ */
+
+/* Boutons individuels — héritent du style ui-control Foundry v13 */
+.wm-party-btn[data-wm-action="clearParty"]:hover {
+    color: #e74c3c !important;
+}
+
+.wm-party-btn[data-wm-action="importParty"]:hover {
+    color: #3498db !important;
+}
+
+.westmarch-close-session-wrap {
+    flex: 0 0 auto;
+    padding: 4px 8px;
+    margin-top: 4px;
+}
+
+.westmarch-close-session-wrap .westmarch-close-session {
+    width: 100%;
+    font-size: 12px;
+    line-height: 24px;
+    height: auto;
+}
+
+/* ============================================================
+   Barre de contrôle du chat — rendu uniforme de TOUS les boutons
+   (modes de jet, export/flush, boutons party…) : même taille,
+   bordure, fond, rayon et écart.
+   ============================================================ */
+#chat-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: nowrap;
+}
+#chat-controls > * { margin: 0; }
+#chat-controls .roll-privacy,
+#chat-controls .control-buttons {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    border: none;
+    background: none;
+    padding: 0;
+}
+#chat-controls button,
+#chat-controls .ui-control {
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+    flex: 0 0 auto;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #4a4a4a;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.25);
+    color: #c8c8c8;
+    box-shadow: none;
+    transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+#chat-controls button:hover,
+#chat-controls .ui-control:hover {
+    border-color: #ff6400;
+    color: #fff;
+    background: rgba(255, 100, 0, 0.10);
+}
+#chat-controls button.active,
+#chat-controls .ui-control.active,
+#chat-controls button[aria-pressed="true"],
+#chat-controls .ui-control[aria-pressed="true"] {
+    border-color: #ff6400;
+    color: #fff;
+    background: rgba(255, 100, 0, 0.16);
+}
+
+/* ===== westmarch-character.css ===== */
+.checked {
+    color: #e74c3c;
+  }
+/* ===== toolkit-character.css ===== */
+.checked {
+    color: #e74c3c;
+}
+
+/* ============================================================
+   DIALOG — Export d'acteur (choix de fiche)
+   ============================================================ */
+
+.tko-export-dialog .window-content {
+    background: #1a1008;
+    border-top: 1px solid #5a3a0a;
+}
+
+.tko-export-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 4px 0 8px;
+}
+
+.tko-export-intro {
+    margin: 0 0 12px;
+    font-size: 12px;
+    color: #c8b89a;
+    line-height: 1.6;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    padding: 8px 10px;
+    background: rgba(201, 168, 76, 0.08);
+    border-left: 3px solid #c9a84c;
+    border-radius: 0 4px 4px 0;
+}
+
+.tko-export-intro i {
+    color: #c9a84c;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.tko-export-opt {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 11px 14px;
+    border-radius: 4px;
+    border: 1px solid rgba(201, 168, 76, 0.2);
+    background: rgba(255, 255, 255, 0.03);
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.tko-export-opt:hover {
+    border-color: rgba(201, 168, 76, 0.45);
+    background: rgba(201, 168, 76, 0.05);
+}
+
+.tko-export-opt:has(input:checked) {
+    border-color: #c9a84c;
+    background: rgba(201, 168, 76, 0.1);
+    box-shadow: inset 0 0 0 1px rgba(201, 168, 76, 0.15);
+}
+
+.tko-export-opt input[type="radio"] {
+    margin-top: 3px;
+    flex-shrink: 0;
+    accent-color: #c9a84c;
+}
+
+.tko-export-opt-body {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.tko-export-opt-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #f0e6cc;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    letter-spacing: 0.02em;
+}
+
+.tko-export-opt-title i {
+    color: #c9a84c;
+    font-size: 12px;
+}
+
+.tko-export-opt-desc {
+    font-size: 11.5px;
+    color: #a89070;
+    line-height: 1.6;
+}
+
+/* Boutons */
+.tko-export-dialog .dialog-buttons {
+    display: flex;
+    gap: 8px;
+    padding: 10px 12px 12px;
+    background: #1a1008;
+    border-top: 1px solid rgba(201, 168, 76, 0.2);
+}
+
+.tko-export-dialog .dialog-button {
+    flex: 1;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: filter 0.15s, background 0.15s;
+    border: 1px solid;
+}
+
+.tko-export-dialog .dialog-button[data-button="export"] {
+    background: linear-gradient(180deg, #c9a84c 0%, #9e7c2a 100%);
+    border-color: #e0c060;
+    color: #1a1008;
+    text-shadow: none;
+}
+
+.tko-export-dialog .dialog-button[data-button="export"]:hover {
+    filter: brightness(1.15);
+}
+
+.tko-export-dialog .dialog-button[data-button="cancel"] {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(201, 168, 76, 0.25);
+    color: #a89070;
+}
+
+.tko-export-dialog .dialog-button[data-button="cancel"]:hover {
+    background: rgba(255, 255, 255, 0.09);
+    border-color: rgba(201, 168, 76, 0.5);
+    color: #c8b89a;
+}
+/* Masquer la barre de macros pour les joueurs (reglage enableHideHotbar) */
+body.scwm-hide-hotbar #hotbar { display: none !important; }
+
+/* ===== relations.css ===== */
+/* ============================================================
+   relations.css — Styles onglet Relations (Relations)
+   Layout critique en inline JS (buildTabHtml) pour contourner
+   le cache CSS Foundry. Ce fichier gère couleurs et cosmétique.
+   ============================================================ */
+
+/* ---- Conteneur principal ---------------------------------- */
+
+.rel-tab {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    font-family: inherit;
+}
+
+.rel-list {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* ---- État vide -------------------------------------------- */
+
+.rel-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 40px 20px;
+    color: #444;
+    font-size: 12px;
+    text-align: center;
+}
+
+.rel-empty i {
+    font-size: 28px;
+    color: #333;
+}
+
+/* ---- Ligne de relation ------------------------------------ */
+
+.rel-row {
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    transition: background 0.15s;
+}
+
+.rel-row:hover {
+    background: rgba(255,255,255,0.02);
+}
+
+.rel-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    cursor: pointer;
+}
+
+/* Avatar */
+
+.rel-avatar {
+    width: 32px;
+    height: 32px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.1);
+    flex-shrink: 0;
+}
+
+/* Nom */
+
+.rel-name {
+    flex: 1;
+    font-size: 12px;
+    font-weight: 600;
+    color: #ccc;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ---- Sélecteur de niveau ---------------------------------- */
+
+.rel-level { flex-shrink: 0; }
+.rel-level-icon { font-size: 13px; }
+
+.rel-level-selector {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.rel-level-label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+    opacity: 0.8;
+    margin-right: 2px;
+    min-width: 58px;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.rel-level-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 3px;
+    color: #444;
+    font-size: 10px;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+}
+
+.rel-level-btn:hover {
+    background: rgba(255,255,255,0.07);
+    color: #888 !important;
+}
+
+.rel-level-btn.active {
+    background: rgba(255,255,255,0.06);
+}
+
+/* Secret */
+
+.rel-secret {
+    color: #555;
+    font-size: 11px;
+    flex-shrink: 0;
+}
+
+/* ---- Boutons d'action (toggle notes, supprimer) ----------- */
+
+.rel-btns {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+}
+
+.rel-btns a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 3px;
+    color: #444;
+    font-size: 10px;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+}
+
+.rel-btns a:hover {
+    background: rgba(255,255,255,0.06);
+    color: #888;
+}
+
+.rel-delete:hover { color: #c0392b !important; }
+.rel-toggle       { color: #555 !important; }
+.rel-toggle:hover { color: #999 !important; }
+
+/* ---- Barre de recherche ----------------------------------- */
+
+.rel-tab .rel-search-input,
+.rel-tab .rel-search-input:focus,
+.rel-tab .rel-search-input:hover {
+    -webkit-appearance: none !important;
+    appearance: none !important;
+}
+
+.rel-tab .rel-search-input::-webkit-search-cancel-button,
+.rel-tab .rel-search-input::-webkit-search-decoration { display: none !important; }
+
+.rel-search-clear:hover { color: #ccc; }
+
+/* ---- Zone de notes --------------------------------------- */
+
+.rel-notes {
+    padding: 6px 10px 10px 50px;
+    background: rgba(0,0,0,0.15);
+    border-top: 1px solid rgba(255,255,255,0.04);
+}
+
+/* Dernière position */
+
+.rel-lastpos-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 6px;
+}
+
+.rel-field-label {
+    color: #555;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 9px;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.rel-lastpos-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    border-radius: 0;
+    color: #777;
+    font-size: 10px;
+    padding: 0 2px;
+    box-shadow: none;
+    font-family: inherit;
+}
+
+.rel-lastpos-input:focus {
+    outline: none;
+    border-bottom-color: rgba(255,255,255,0.2);
+    color: #aaa;
+}
+
+.rel-lastpos-row.rel-readonly {
+    font-size: 10px;
+    color: #555;
+    gap: 5px;
+}
+
+/* Textarea notes */
+
+.rel-note-input {
+    width: 100%;
+    min-height: 52px;
+    resize: none;
+    overflow: hidden;
+    background: rgba(0,0,0,0.2);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 4px;
+    color: #aaa;
+    font-size: 11px;
+    padding: 5px 7px;
+    font-family: inherit;
+    line-height: 1.5;
+    box-shadow: none;
+    box-sizing: border-box;
+}
+
+.rel-note-input:focus {
+    outline: none;
+    border-color: rgba(255,255,255,0.15);
+    background: rgba(0,0,0,0.3);
+}
+
+/* Notes lecture seule */
+
+.rel-note-ro {
+    margin: 0;
+    font-size: 11px;
+    color: #666;
+    line-height: 1.5;
+    font-style: italic;
+}
+
+/* ---- Aucun résultat (recherche) --------------------------- */
+
+.rel-no-results {
+    padding: 24px 20px;
+}
+
+/* ---- Picker acteur (dialog ajout) ------------------------- */
+
+.rel-picker-list {
+    max-height: 190px;
+    overflow-y: auto;
+    border: 1px solid #2e2e2e;
+    border-radius: 4px;
+    background: #0e0e0e;
+}
+
+.rel-picker-section-hdr {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    cursor: pointer;
+    background: #161616;
+    border-bottom: 1px solid #222;
+    font-size: 11px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    user-select: none;
+}
+
+.rel-picker-section-hdr:hover { background: #1c1c1c; color: #aaa; }
+.rel-picker-section-hdr small { color: #555; margin-left: auto; font-size: 10px; }
+.rel-picker-section-hdr i     { font-size: 9px; color: #555; }
+
+.rel-picker-actor {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.12s;
+}
+
+.rel-picker-actor:hover { background: rgba(255,255,255,0.06); }
+
+.rel-picker-actor.selected {
+    background: rgba(233,30,140,0.12);
+    outline: 1px solid rgba(233,30,140,0.4);
+}
+
+.rel-picker-actor img {
+    width: 28px;
+    height: 28px;
+    border-radius: 3px;
+    object-fit: cover;
+    border: 1px solid rgba(255,255,255,0.1);
+    flex-shrink: 0;
+}
+
+.rel-picker-actor span {
+    font-size: 12px;
+    color: #ccc;
+}
+
+/* Bouton "Ajouter" — même style que les boutons Carnet/Expéditions (doré) */
+.rel-add-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 14px;
+    background: rgba(201, 162, 39, 0.1);
+    border: 1px solid rgba(201, 162, 39, 0.35);
+    border-radius: 4px;
+    color: #c9a227; font-size: 12px; font-weight: 600;
+    cursor: pointer; letter-spacing: 0.03em; text-decoration: none;
+    transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.rel-add-btn:hover {
+    background: rgba(201, 162, 39, 0.22);
+    color: #e8cc6a; border-color: rgba(201, 162, 39, 0.55);
+    box-shadow: 0 2px 8px rgba(201, 162, 39, 0.1); text-decoration: none;
+}
+
+/* ============================================================
+   Habillage thématique (fantasy) — noms en serif D&D, filets dorés
+   Miroir de l'onglet Bestiaire (bestiary.css).
+   ============================================================ */
+.rel-name {
+    font-family: "Bookinsanity", Georgia, "Times New Roman", serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #dccba4;
+    letter-spacing: 0.01em;
+}
+.rel-row {
+    border-bottom: 1px solid transparent;
+    border-image: linear-gradient(90deg, transparent, rgba(201,162,39,0.30) 12%, rgba(201,162,39,0.30) 88%, transparent) 1;
+}
+.rel-row:hover {
+    background: rgba(201, 162, 39, 0.05);
+}
+.rel-level-label {
+    color: #b89a52;
+}
+.rel-level-btn:hover {
+    background: rgba(201, 162, 39, 0.14);
+    color: #e0a13a !important;
+}
+.rel-level-btn.active {
+    background: rgba(201, 162, 39, 0.12);
+}
+.rel-btns a:hover {
+    background: rgba(201, 162, 39, 0.12);
+    color: #e0a13a;
+}
+.rel-empty {
+    color: #6b5a34;
+    font-family: "Bookinsanity", Georgia, serif;
+    font-style: italic;
+}
+.rel-empty i { color: #5a4a28; }
+.rel-notes {
+    border-top: 1px solid rgba(201,162,39,0.15);
+}
+.rel-field-label { color: #8a7038; }
+
+/* Picker : sélection dorée (au lieu du rose), cohérent avec le bestiaire */
+.rel-picker-actor.selected {
+    background: rgba(224,123,57,0.18);
+    outline: 1px solid rgba(224,123,57,0.4);
+}
+
+/* ===== bestiary.css ===== */
+/* ============================================================
+   bestiary.css — Styles onglet Bestiaire (Bestiaire)
+   Layout critique en inline JS (buildTabHtml) pour contourner
+   le cache CSS Foundry. Ce fichier gère couleurs et cosmétique.
+   ============================================================ */
+
+/* ---- Conteneur principal ---------------------------------- */
+
+.bst-tab {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    font-family: inherit;
+}
+
+.bst-list {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* ---- État vide -------------------------------------------- */
+
+.bst-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 40px 20px;
+    color: #444;
+    font-size: 12px;
+    text-align: center;
+}
+
+.bst-empty i {
+    font-size: 28px;
+    color: #333;
+}
+
+/* ---- Ligne créature --------------------------------------- */
+
+.bst-row {
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    transition: background 0.15s;
+}
+
+.bst-row:hover {
+    background: rgba(255,255,255,0.02);
+}
+
+.bst-row-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    cursor: pointer;
+}
+
+/* Avatar */
+
+.bst-avatar {
+    width: 32px;
+    height: 32px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.1);
+    flex-shrink: 0;
+}
+
+/* Nom */
+
+.bst-name {
+    flex: 1;
+    font-size: 12px;
+    font-weight: 600;
+    color: #ccc;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ---- Sélecteur d'hostilité -------------------------------- */
+
+.bst-hostility-selector {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.bst-h-label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+    opacity: 0.8;
+    margin-right: 2px;
+}
+
+.bst-h-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 3px;
+    color: #444;
+    font-size: 10px;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+}
+
+.bst-h-btn:hover {
+    background: rgba(255,255,255,0.07);
+    color: #888 !important;
+}
+
+.bst-h-btn.active {
+    background: rgba(255,255,255,0.06);
+}
+
+/* Icône seule (lecture) */
+.bst-hostility {
+    flex-shrink: 0;
+    font-size: 12px;
+}
+
+/* ---- Boutons d'action (toggle notes, supprimer) ----------- */
+
+.bst-btns {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+}
+
+.bst-btns a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 3px;
+    color: #444;
+    font-size: 10px;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+}
+
+.bst-btns a:hover {
+    background: rgba(255,255,255,0.06);
+    color: #888;
+}
+
+.bst-delete:hover {
+    color: #c0392b !important;
+}
+
+/* ---- Zone de notes --------------------------------------- */
+
+.bst-notes {
+    padding: 6px 10px 10px 50px;
+    background: rgba(0,0,0,0.15);
+    border-top: 1px solid rgba(255,255,255,0.04);
+}
+
+/* Première rencontre */
+
+.bst-scene-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 6px;
+    font-size: 10px;
+    color: #555;
+}
+
+.bst-scene-row i {
+    font-size: 9px;
+    color: #444;
+}
+
+.bst-field-label {
+    color: #555;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 9px;
+}
+
+.bst-scene-value {
+    color: #777;
+    font-size: 10px;
+}
+
+.bst-scene-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    border-radius: 0;
+    color: #777;
+    font-size: 10px;
+    padding: 0 2px;
+    box-shadow: none;
+    font-family: inherit;
+}
+
+.bst-scene-input:focus {
+    outline: none;
+    border-bottom-color: rgba(255,255,255,0.2);
+    color: #aaa;
+}
+
+/* Textarea notes */
+
+.bst-note-input {
+    width: 100%;
+    min-height: 52px;
+    resize: none;
+    overflow: hidden;
+    background: rgba(0,0,0,0.2);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 4px;
+    color: #aaa;
+    font-size: 11px;
+    padding: 5px 7px;
+    font-family: inherit;
+    line-height: 1.5;
+    box-shadow: none;
+    box-sizing: border-box;
+}
+
+.bst-note-input:focus {
+    outline: none;
+    border-color: rgba(255,255,255,0.15);
+    background: rgba(0,0,0,0.3);
+}
+
+/* Notes lecture seule */
+
+.bst-note-ro {
+    margin: 0;
+    font-size: 11px;
+    color: #666;
+    line-height: 1.5;
+    font-style: italic;
+}
+
+/* ---- Aucun résultat (recherche) --------------------------- */
+
+.bst-no-results {
+    padding: 24px 20px;
+}
+
+/* ---- Picker dialog (ajout manuel) ------------------------- */
+
+.bst-picker-actor {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.12s;
+}
+
+.bst-picker-actor:hover {
+    background: rgba(255,255,255,0.06);
+}
+
+.bst-picker-actor.selected {
+    background: rgba(224,123,57,0.18);
+    outline: 1px solid rgba(224,123,57,0.4);
+}
+
+.bst-picker-actor img {
+    width: 28px;
+    height: 28px;
+    border-radius: 3px;
+    object-fit: cover;
+    border: 1px solid rgba(255,255,255,0.1);
+    flex-shrink: 0;
+}
+
+.bst-picker-actor span {
+    font-size: 12px;
+    color: #ccc;
+}
+
+/* Bouton "Ajouter" — même style que les boutons Carnet/Expéditions (doré) */
+.bst-add-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 14px;
+    background: rgba(201, 162, 39, 0.1);
+    border: 1px solid rgba(201, 162, 39, 0.35);
+    border-radius: 4px;
+    color: #c9a227; font-size: 12px; font-weight: 600;
+    cursor: pointer; letter-spacing: 0.03em; text-decoration: none;
+    transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.bst-add-btn:hover {
+    background: rgba(201, 162, 39, 0.22);
+    color: #e8cc6a; border-color: rgba(201, 162, 39, 0.55);
+    box-shadow: 0 2px 8px rgba(201, 162, 39, 0.1); text-decoration: none;
+}
+
+/* ============================================================
+   Habillage thématique (fantasy) — noms en serif D&D, filets dorés
+   ============================================================ */
+.bst-name {
+    font-family: "Bookinsanity", Georgia, "Times New Roman", serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #dccba4;
+    letter-spacing: 0.01em;
+}
+.bst-row {
+    border-bottom: 1px solid transparent;
+    border-image: linear-gradient(90deg, transparent, rgba(201,162,39,0.30) 12%, rgba(201,162,39,0.30) 88%, transparent) 1;
+}
+.bst-row:hover {
+    background: rgba(201, 162, 39, 0.05);
+}
+.bst-h-label {
+    color: #b89a52;
+}
+.bst-h-btn:hover {
+    background: rgba(201, 162, 39, 0.14);
+    color: #e0a13a !important;
+}
+.bst-h-btn.active {
+    background: rgba(201, 162, 39, 0.12);
+}
+.bst-btns a:hover {
+    background: rgba(201, 162, 39, 0.12);
+    color: #e0a13a;
+}
+.bst-empty {
+    color: #6b5a34;
+    font-family: "Bookinsanity", Georgia, serif;
+    font-style: italic;
+}
+.bst-empty i { color: #5a4a28; }
+.bst-notes {
+    border-top: 1px solid rgba(201,162,39,0.15);
+}
+.bst-field-label { color: #8a7038; }
+
+/* ===== carnet.css ===== */
+/* ============================================================
+   carnet.css — Soruta — Carnet d'Expéditions  v1.1.8
+   Palette : grimoire médiéval — or, bordeaux, vert forêt, parchemin
+   ============================================================ */
+
+/*
+   Palette de référence
+   ─────────────────────────────────────────────────────────────
+   Or ancien        #c9a227   rgba(201,162,39, …)
+   Or clair         #e8cc6a
+   Bordeaux         #8b2635   rgba(139,38,53, …)
+   Bordeaux doux    #b94a5a
+   Vert forêt       #2d6a4f   rgba(45,106,79, …)
+   Vert clair       #4a9e78
+   Parchemin        #c8b89a
+   Parchemin sombre #8a7a65
+   Encre            #3a3020
+   ──────────────────────────────────────────────────────────── */
+
+/* ============================================================
+   COMMUN
+   ============================================================ */
+
+.carnet-body {
+    display: flex;
+    flex-direction: column;
+    padding: 14px 16px;
+    min-height: 100%;
+}
+
+/* ── Boutons Ajouter ─────────────────────────────────────────── */
+
+.carnet-add-bar button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 14px;
+    background: rgba(201, 162, 39, 0.1);
+    border: 1px solid rgba(201, 162, 39, 0.35);
+    border-radius: 4px;
+    color: #c9a227;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+    transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
+.carnet-add-bar button:hover {
+    background: rgba(201, 162, 39, 0.22);
+    color: #e8cc6a;
+    border-color: rgba(201, 162, 39, 0.55);
+    box-shadow: 0 2px 8px rgba(201, 162, 39, 0.1);
+}
+
+/* ── État vide ───────────────────────────────────────────────── */
+
+.carnet-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 50px 20px;
+    text-align: center;
+}
+
+.carnet-empty-state i {
+    font-size: 2.4em;
+    color: rgba(201, 162, 39, 0.25);
+}
+
+.carnet-empty-state p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.65;
+    color: #5c5040;
+    max-width: 260px;
+}
+
+/* ── Flash surbrillance ──────────────────────────────────────── */
+
+@keyframes carnet-flash {
+    0%   { background: rgba(201, 162, 39, 0.18); }
+    100% { background: transparent; }
+}
+
+.carnet-highlight {
+    animation: carnet-flash 2s ease-out forwards;
+    border-radius: 5px;
+}
+
+/* ============================================================
+   ONGLET CARNET — Notes
+   ============================================================ */
+
+/* ── Drag handle ─────────────────────────────────────────────── */
+
+.carnet-drag-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    flex-shrink: 0;
+    cursor: grab;
+    color: rgba(255, 255, 255, 0.12);
+    font-size: 12px;
+    padding: 0 2px;
+    transition: color 0.15s;
+    user-select: none;
+}
+
+.carnet-drag-handle:hover { color: rgba(201, 162, 39, 0.5); }
+.carnet-drag-handle:active { cursor: grabbing; }
+
+/* ── Note card ───────────────────────────────────────────────── */
+
+.carnet-note-card {
+    display: flex;
+    align-items: stretch;
+    gap: 4px;
+    padding: 10px 14px 10px 8px;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-left: 3px solid rgba(201, 162, 39, 0.2);
+    transition: border-color 0.15s, background 0.15s, border-left-color 0.15s;
+    margin-bottom: 4px;
+}
+
+.carnet-note-card:hover {
+    background: rgba(201, 162, 39, 0.03);
+    border-color: rgba(255, 255, 255, 0.09);
+    border-left-color: rgba(201, 162, 39, 0.5);
+}
+
+.carnet-note-inner {
+    flex: 1;
+    min-width: 0;
+}
+
+/* ── Section header ──────────────────────────────────────────── */
+
+.carnet-section-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px 6px 8px;
+    margin: 10px 0 4px;
+    border-radius: 4px;
+    background: rgba(201, 162, 39, 0.07);
+    border: 1px solid rgba(201, 162, 39, 0.2);
+    border-left: 3px solid rgba(201, 162, 39, 0.5);
+}
+
+.carnet-section-header:first-child { margin-top: 0; }
+
+.carnet-toggle-section {
+    background: none;
+    border: none;
+    color: #8a7a65;
+    cursor: pointer;
+    padding: 2px 4px 2px 0;
+    font-size: 11px;
+    flex-shrink: 0;
+}
+
+.carnet-toggle-section:hover { color: #c9a227; }
+
+.carnet-section-title-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid transparent;
+    border-radius: 0;
+    color: #c9a227;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 2px 0;
+    transition: border-color 0.15s;
+}
+
+.carnet-section-title-input:focus {
+    outline: none;
+    border-bottom-color: rgba(201, 162, 39, 0.45);
+}
+
+.carnet-section-title-label {
+    flex: 1;
+    font-size: 12px;
+    font-weight: 700;
+    color: #c9a227;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.carnet-del-section {
+    color: #4a3f35;
+    font-size: 11px;
+    cursor: pointer;
+    opacity: 0;
+    transition: color 0.15s, opacity 0.15s;
+    flex-shrink: 0;
+}
+
+.carnet-section-header:hover .carnet-del-section {
+    opacity: 1;
+}
+
+.carnet-del-section:hover { color: #b94a5a; }
+
+/* ── Drag-and-drop visual indicators ────────────────────────── */
+
+.carnet-dragging {
+    opacity: 0.4;
+}
+
+.carnet-drag-over-top {
+    border-top: 2px solid rgba(201, 162, 39, 0.7) !important;
+}
+
+.carnet-drag-over-bottom {
+    border-bottom: 2px solid rgba(201, 162, 39, 0.7) !important;
+}
+
+/* ── Add bar (2 boutons côte à côte) ────────────────────────── */
+
+.carnet-add-bar {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+    margin-bottom: 14px;
+}
+
+.carnet-separator {
+    border: none;
+    border-top: 1px solid rgba(201, 162, 39, 0.08);
+    margin: 5px 0;
+}
+
+/* ── En-tête de note ─────────────────────────────────────────── */
+
+.carnet-note-header {
+    margin-bottom: 8px;
+}
+
+.carnet-note-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.carnet-note-title-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid transparent;
+    border-radius: 0;
+    color: #c8b89a;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 2px 0;
+    letter-spacing: 0.02em;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.carnet-note-title-input:hover,
+.carnet-note-title-input:focus {
+    border-bottom-color: rgba(201, 162, 39, 0.45);
+    outline: none;
+    color: #e8cc6a;
+}
+
+.carnet-note-title-input::placeholder {
+    color: #3a3020;
+    font-weight: 400;
+}
+
+.carnet-note-title-label {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 700;
+    color: #c8b89a;
+}
+
+.carnet-note-actions-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+/* ── Liens expédition ────────────────────────────────────────── */
+
+.carnet-link-exp,
+.carnet-go-exp {
+    font-size: 11px;
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
+    opacity: 0.5;
+    transition: color 0.15s, opacity 0.15s;
+}
+
+.carnet-link-exp { color: #8a7a65; }
+.carnet-go-exp   { color: #c9a227; }
+
+.carnet-link-exp:hover { color: #c8b89a; opacity: 1; }
+.carnet-go-exp:hover   { color: #e8cc6a; opacity: 1; }
+
+/* ── Icône supprimer note ────────────────────────────────────── */
+
+.carnet-del-note {
+    color: #4a3f35;
+    font-size: 11px;
+    cursor: pointer;
+    text-decoration: none;
+    opacity: 0;
+    transition: color 0.15s, opacity 0.15s;
+}
+
+.carnet-note-card:hover .carnet-del-note {
+    opacity: 0.5;
+}
+
+.carnet-del-note:hover {
+    color: #b94a5a !important;
+    opacity: 1 !important;
+}
+
+/* ── Contenu de note ─────────────────────────────────────────── */
+
+.carnet-note-display {
+    padding: 4px 0 2px;
+    min-height: 28px;
+}
+
+.carnet-note-content {
+    font-size: 13px;
+    line-height: 1.75;
+    color: #8a7a65;
+}
+
+.carnet-note-content p           { margin: 0 0 5px; }
+.carnet-note-content p:last-child { margin-bottom: 0; }
+
+.carnet-note-content h2 {
+    font-size: 14px;
+    font-weight: 700;
+    color: #c8b89a;
+    margin: 8px 0 4px;
+    padding-bottom: 3px;
+    border-bottom: 1px solid rgba(201, 162, 39, 0.2);
+}
+
+.carnet-note-content h3 {
+    font-size: 13px;
+    font-weight: 700;
+    color: #a89070;
+    margin: 6px 0 3px;
+}
+
+.carnet-note-content ul,
+.carnet-note-content ol { margin: 3px 0; padding-left: 20px; }
+.carnet-note-content li { margin-bottom: 2px; }
+
+.carnet-note-content strong { color: #c8b89a; }
+.carnet-note-content em     { color: #a89070; font-style: italic; }
+
+.carnet-note-placeholder {
+    margin: 0;
+    font-size: 12px;
+    color: #3a3020;
+    font-style: italic;
+}
+
+/* ── Bouton Modifier ─────────────────────────────────────────── */
+
+.carnet-edit-actions {
+    margin-top: 9px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.carnet-edit-note {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    background: transparent;
+    border: 1px solid rgba(201, 162, 39, 0.15);
+    border-radius: 3px;
+    color: #5c5040;
+    font-size: 11px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.carnet-edit-note:hover {
+    border-color: rgba(201, 162, 39, 0.45);
+    color: #c9a227;
+    background: rgba(201, 162, 39, 0.07);
+}
+
+/* ============================================================
+   ÉDITEUR — Barre d'outils + contenteditable
+   ============================================================ */
+
+.carnet-tb-btn:hover {
+    background: rgba(201, 162, 39, 0.2) !important;
+    border-color: rgba(201, 162, 39, 0.45) !important;
+    color: #e8cc6a !important;
+}
+
+.carnet-tb-btn:active {
+    background: rgba(201, 162, 39, 0.35) !important;
+}
+
+#carnet-note-editor {
+    caret-color: #c9a227;
+}
+
+#carnet-note-editor h2 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #c8b89a;
+    margin: 10px 0 5px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid rgba(201, 162, 39, 0.25);
+}
+
+#carnet-note-editor h3 {
+    font-size: 13px;
+    font-weight: 700;
+    color: #a89070;
+    margin: 8px 0 4px;
+}
+
+#carnet-note-editor p          { margin: 0 0 6px; }
+#carnet-note-editor p:last-child { margin-bottom: 0; }
+
+#carnet-note-editor ul,
+#carnet-note-editor ol { padding-left: 22px; margin: 4px 0; }
+#carnet-note-editor li { margin-bottom: 3px; line-height: 1.65; }
+
+/* ============================================================
+   ONGLET EXPÉDITIONS — Cartes
+   ============================================================ */
+
+.carnet-tm-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* ── Carte ───────────────────────────────────────────────────── */
+
+.carnet-tm-card {
+    display: flex;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    overflow: hidden;
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+
+.carnet-tm-card:hover {
+    background: rgba(201, 162, 39, 0.025);
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 3px 14px rgba(0, 0, 0, 0.25);
+}
+
+.carnet-tm-card.open {
+    border-color: rgba(139, 38, 53, 0.3);
+}
+
+.carnet-tm-card.open:hover {
+    border-color: rgba(139, 38, 53, 0.5);
+    box-shadow: 0 3px 14px rgba(139, 38, 53, 0.1);
+}
+
+/* ── Bande gauche ────────────────────────────────────────────── */
+
+.carnet-tm-stripe {
+    width: 4px;
+    flex-shrink: 0;
+}
+
+.carnet-tm-card.open    .carnet-tm-stripe { background: #8b2635; }
+.carnet-tm-card.closed  .carnet-tm-stripe { background: #2d6a4f; }
+.carnet-tm-card.pending .carnet-tm-stripe { background: rgba(138, 122, 101, 0.4); }
+
+/* ── Contenu ─────────────────────────────────────────────────── */
+
+.carnet-tm-content {
+    flex: 1;
+    min-width: 0;
+    padding: 11px 14px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+/* ── En-tête ─────────────────────────────────────────────────── */
+
+.carnet-tm-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.carnet-tm-name-wrap {
+    flex: 1;
+    min-width: 0;
+}
+
+.carnet-name-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid transparent;
+    border-radius: 0;
+    color: #c8b89a;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 2px 0;
+    min-width: 0;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.carnet-name-input:hover,
+.carnet-name-input:focus {
+    border-bottom-color: rgba(201, 162, 39, 0.4);
+    outline: none;
+    color: #e8cc6a;
+}
+
+.carnet-name-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #c8b89a;
+}
+
+.carnet-tm-header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+/* ── Badges statut ───────────────────────────────────────────── */
+
+.carnet-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    white-space: nowrap;
+}
+
+.carnet-badge.open {
+    background: rgba(139, 38, 53, 0.18);
+    border: 1px solid rgba(139, 38, 53, 0.4);
+    color: #b94a5a;
+}
+
+.carnet-badge.closed {
+    background: rgba(45, 106, 79, 0.14);
+    border: 1px solid rgba(45, 106, 79, 0.35);
+    color: #4a9e78;
+}
+
+.carnet-badge.pending {
+    background: rgba(138, 122, 101, 0.1);
+    border: 1px solid rgba(138, 122, 101, 0.25);
+    color: #6b5e4e;
+}
+
+/* ── Liens / actions (droit en-tête) ────────────────────────── */
+
+.carnet-go-note,
+.carnet-create-note,
+.carnet-del-exp {
+    font-size: 11px;
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
+    opacity: 0;
+    transition: color 0.15s, opacity 0.15s;
+}
+
+.carnet-tm-card:hover .carnet-go-note,
+.carnet-tm-card:hover .carnet-create-note,
+.carnet-tm-card:hover .carnet-del-exp {
+    opacity: 0.65;
+}
+
+.carnet-go-note:hover     { color: #c9a227 !important; opacity: 1 !important; }
+.carnet-create-note:hover { color: #4a9e78 !important; opacity: 1 !important; }
+.carnet-del-exp:hover     { color: #b94a5a !important; opacity: 1 !important; }
+
+/* ── Zone dates ──────────────────────────────────────────────── */
+
+.carnet-tm-dates {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 8px 10px;
+    background: rgba(0, 0, 0, 0.18);
+    border-radius: 4px;
+    border: 1px solid rgba(201, 162, 39, 0.07);
+}
+
+.carnet-date-block {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 90px;
+}
+
+.carnet-date-block.duration {
+    min-width: 70px;
+}
+
+.carnet-date-label {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: #4a3f35;
+    white-space: nowrap;
+}
+
+.carnet-date-label i {
+    font-size: 8px;
+    margin-right: 3px;
+}
+
+.carnet-date-value {
+    font-size: 12px;
+    color: #8a7a65;
+    white-space: nowrap;
+    font-weight: 500;
+}
+
+.carnet-date-value.empty {
+    color: #3a3020;
+    font-style: italic;
+}
+
+.carnet-duration-value {
+    font-size: 12px;
+    color: #c9a227;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.carnet-dates-sep {
+    color: #2e2518;
+    font-size: 16px;
+    flex-shrink: 0;
+    align-self: center;
+    padding-top: 18px;
+}
+
+/* ── Boutons de date (GM) ────────────────────────────────────── */
+
+.carnet-date-actions {
+    display: flex;
+    gap: 3px;
+    margin-top: 3px;
+}
+
+.carnet-date-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border-radius: 3px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: #3a3020;
+    font-size: 10px;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.carnet-date-btn[data-action="set"]:hover {
+    background: rgba(201, 162, 39, 0.16);
+    border-color: rgba(201, 162, 39, 0.4);
+    color: #c9a227;
+}
+
+.carnet-date-btn[data-action="clear"]:hover {
+    background: rgba(139, 38, 53, 0.15);
+    border-color: rgba(139, 38, 53, 0.38);
+    color: #b94a5a;
+}
+
+/* ── Police par défaut de l'éditeur de notes : Immortal ──────── */
+/* Fichier : modules/soruta-completed-westmarch/fonts/Immortal.ttf
+   (© Graham Meade & Apostrophic Labs). Remplace Perry Gothic. */
+@font-face {
+    font-family: "Immortal";
+    src: url("../fonts/Immortal.ttf") format("truetype");
+    font-display: swap;
+}
+#carnet-note-editor,
+#carnet-note-editor .ProseMirror,
+.carnet-note-content {
+    font-family: "Immortal", "Signika", sans-serif;
+    font-size: 14px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Éditeur "grimoire" — page de parchemin vieilli (dialog .carnet-grimoire)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Fenêtre : cadre bois/cuir sombre */
+.carnet-grimoire.application {
+    border: 2px solid #2c1e0f;
+    border-radius: 6px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+}
+
+/* Bandeau de titre : cuir vieilli */
+.carnet-grimoire .window-header {
+    background: linear-gradient(#3a2a17, #241a0e) !important;
+    border-bottom: 1px solid #6b4e2a !important;
+}
+.carnet-grimoire .window-header .window-title {
+    color: #e8d9b5 !important;
+    font-family: "Immortal", "Signika", serif;
+    letter-spacing: 0.03em;
+}
+
+/* Corps : le parchemin — texture image « parchemin.png » étirée en fond,
+   fallback dégradé. (Les lignes réglées sont sur l'éditeur, cf. plus bas,
+   pour rester alignées au texte malgré la hauteur de la barre d'outils.) */
+.carnet-grimoire .window-content {
+    background-color: #e9dcbe !important;
+    background-image:
+        url("../assets/parchemin.png"),
+        linear-gradient(160deg, #efe4c7 0%, #e6d6b0 55%, #d8c49c 100%) !important;
+    background-repeat: no-repeat, no-repeat !important;
+    background-position: center top, center !important;
+    background-size: 100% 100%, cover !important;
+    box-shadow: none !important;
+    color: #3a2a15 !important;
+}
+
+/* Barre d'outils : bandeau parchemin plus foncé, façon reliure */
+.carnet-grimoire .carnet-editor-toolbar {
+    background: linear-gradient(#d9c49a, #cbb387) !important;
+    border-bottom: 1px solid rgba(80,52,20,0.55) !important;
+    box-shadow: inset 0 -2px 4px rgba(80,52,20,0.15) !important;
+}
+.carnet-grimoire .carnet-tb-btn {
+    color: #4a3418 !important;
+}
+.carnet-grimoire .carnet-tb-btn:hover {
+    background: rgba(90,60,25,0.18) !important;
+    color: #2a1c0a !important;
+}
+.carnet-grimoire .carnet-tb-btn:active {
+    background: rgba(90,60,25,0.30) !important;
+}
+
+/* La page d'écriture : transparente pour laisser voir le parchemin,
+   encre sépia, marges de page, léger relief d'encre. */
+.carnet-grimoire #carnet-note-editor {
+    /* Lignes réglées peintes SUR l'éditeur : offset = padding-top (40px),
+       pas de la barre d'outils → alignées sous chaque ligne de texte. */
+    background-image:
+        repeating-linear-gradient(to bottom,
+            transparent 0 25px,
+            rgba(90,60,25,0.18) 25px 26px) !important;
+    background-repeat: repeat !important;
+    background-position: 0 40px !important;   /* = padding-top, cale la 1re ligne */
+    background-size: 100% 26px !important;     /* = interligne exact ci-dessous */
+    color: #38270f !important;
+    caret-color: #38270f !important;
+    /* marges généreuses : le texte reste dans la zone crème centrale,
+       à l'écart du rouleau (haut) et des bords déchirés (côtés/bas). */
+    padding: 40px 52px 48px !important;
+    text-shadow: 0 1px 0 rgba(255,250,235,0.25);
+}
+.carnet-grimoire #carnet-note-editor h2 {
+    color: #6e2617 !important;                 /* titre à l'encre rouge */
+    border-bottom: 1px solid rgba(110,38,23,0.35) !important;
+    font-family: "Immortal", "Signika", serif;
+}
+.carnet-grimoire #carnet-note-editor h3 {
+    color: #7a4a1c !important;                 /* sous-titre encre brune */
+    font-family: "Immortal", "Signika", serif;
+}
+.carnet-grimoire #carnet-note-editor a { color: #7a3410 !important; }
+.carnet-grimoire #carnet-note-editor hr {
+    border: none;
+    border-top: 1px solid rgba(90,60,25,0.4);
+}
+
+/* Pied de dialog : boutons assortis */
+.carnet-grimoire .dialog-buttons button,
+.carnet-grimoire .form-footer button {
+    background: linear-gradient(#e0cfa6, #d2bd8e) !important;
+    border: 1px solid rgba(80,52,20,0.5) !important;
+    color: #3a2a12 !important;
+}
+.carnet-grimoire .dialog-buttons button:hover,
+.carnet-grimoire .form-footer button:hover {
+    background: linear-gradient(#ecdcb4, #ddc79a) !important;
+    box-shadow: 0 0 8px rgba(120,80,30,0.25) !important;
+}
+
+/* Barre de défilement discrète sur le parchemin */
+.carnet-grimoire #carnet-note-editor::-webkit-scrollbar { width: 8px; }
+.carnet-grimoire #carnet-note-editor::-webkit-scrollbar-thumb {
+    background: rgba(90,60,25,0.4); border-radius: 4px;
+}
+
+/* Taille de plume dans le grimoire (l'inline 13px est écrasé). Défaut 12 pt.
+   Interligne EXACT 26px = pas des lignes réglées (voir background ci-dessus). */
+.carnet-grimoire #carnet-note-editor { font-size: 12pt !important; line-height: 26px !important; }
+
+/* Éditeur grimoire : la zone d'écriture remplit toute la hauteur du dialog
+   (évite le grand vide de parchemin sous les boutons).
+   DialogV2 imbrique : .window-content > form > [contenu, .form-footer(boutons)].
+   On étire chaque maillon pour que les boutons collent au bas de l'éditeur. */
+.carnet-grimoire .window-content {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+.carnet-grimoire .window-content > form,
+.carnet-grimoire .window-content > .dialog-form {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+/* Le div wrapper (toolbar + éditeur) grandit ; le footer des boutons reste
+   à sa taille naturelle et se retrouve donc juste sous l'éditeur. */
+.carnet-grimoire .window-content > form > div:first-child,
+.carnet-grimoire .window-content > .dialog-form > div:first-child {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto !important;
+}
+/* Repli : si le contenu n'est pas enveloppé dans un <form>, on étire
+   directement le premier div enfant de .window-content. */
+.carnet-grimoire .window-content > div:first-child {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto !important;
+}
+.carnet-grimoire .window-content .form-footer,
+.carnet-grimoire .window-content .dialog-buttons {
+    flex: 0 0 auto;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Notes du Carnet sur la FICHE PJ — vieux parchemin abîmé (crème,
+   bords irréguliers, taches de café, encre sépia).
+   ═══════════════════════════════════════════════════════════════ */
+.carnet-note-card {
+    position: relative;
+    background-color: #cdaf7d !important;
+    background-image:
+        /* texture parchemin recadrée sur le corps (le rouleau est hors cadre) */
+        url("../assets/parchemin.png"),
+        /* fallback parchemin miel, chaud et lumineux, si l'image manque */
+        linear-gradient(150deg, #f2e2b8 0%, #ead39a 55%, #e0c583 100%) !important;
+    background-repeat: no-repeat, no-repeat !important;
+    background-position: center 58%, center !important;
+    background-size: cover, cover !important;
+    color: #33240d !important;
+    border: 1px solid #c8a86e !important;
+    border-left: 4px solid #9a7638 !important;
+    border-radius: 3px 7px 4px 8px !important;      /* coins légèrement irréguliers */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.35), inset 0 0 22px rgba(120,86,38,0.14) !important;
+    overflow: hidden;
+}
+.carnet-note-card:hover {
+    border-left-color: #9a743a !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5), inset 0 0 34px rgba(60,38,12,0.36) !important;
+}
+/* Texte de la note : police plus petite, plus lisible sur vélin */
+.carnet-note-card .carnet-note-content { font-size: 13px !important; line-height: 1.55 !important; }
+/* Encre sépia sur le parchemin */
+.carnet-note-card .carnet-note-title-input,
+.carnet-note-card .carnet-note-title-label { color: #4a2f10 !important; }
+.carnet-note-card .carnet-note-title-input { background: transparent !important; }
+.carnet-note-card .carnet-note-title-input::placeholder { color: rgba(74,47,16,0.55) !important; }
+.carnet-note-card .carnet-note-display,
+.carnet-note-card .carnet-note-display * { color: #2e2009 !important; }
+.carnet-note-card .carnet-note-display h2 { color: #6e2617 !important; }
+.carnet-note-card .carnet-note-display h3 { color: #6a3d12 !important; }
+.carnet-note-card .carnet-note-display a  { color: #7a3410 !important; }
+.carnet-note-card .carnet-note-placeholder { color: rgba(90,58,22,0.6) !important; }
+.carnet-note-card .carnet-toggle-note,
+.carnet-note-card .carnet-toggle-note i { color: #4a3212 !important; }
+.carnet-note-card .carnet-drag-handle,
+.carnet-note-card .carnet-drag-handle i { color: rgba(50,32,10,0.6) !important; }
+.carnet-note-card .carnet-del-note,
+.carnet-note-card .carnet-del-note i { color: #7c2412 !important; }
+.carnet-note-card .carnet-del-note:hover i { color: #a2331a !important; }
+/* Lien / autres icônes d'entête de carte (ex. « Lier ») */
+.carnet-note-card a,
+.carnet-note-card a i,
+.carnet-note-card [class*="link"],
+.carnet-note-card [class*="link"] i { color: #4a3212 !important; }
+/* Bouton « Modifier » assorti */
+.carnet-note-card .carnet-edit-note {
+    background: rgba(90,60,25,0.10) !important;
+    border: 1px solid rgba(90,60,25,0.35) !important;
+    color: #5a3a16 !important;
+}
+.carnet-note-card .carnet-edit-note:hover {
+    background: rgba(90,60,25,0.20) !important;
+    color: #3a2412 !important;
+}
+
+/* Barre d'outils du carnet (recherche + tout déplier/replier) */
+.carnet-tools-bar {
+    display: flex; align-items: center; gap: 6px; margin: 4px 0 8px;
+}
+.carnet-tools-bar .carnet-search {
+    flex: 1 1 auto; min-width: 120px;
+    padding: 4px 8px; border-radius: 4px;
+    border: 1px solid rgba(201,162,39,0.3);
+    background: rgba(0,0,0,0.2); color: #e8dcc0; font-size: 13px;
+}
+.carnet-tools-bar .carnet-expand-all,
+.carnet-tools-bar .carnet-collapse-all {
+    flex: 0 0 auto; width: 28px; height: 28px; padding: 0;
+    border-radius: 4px; cursor: pointer;
+    border: 1px solid rgba(201,162,39,0.3);
+    background: rgba(255,255,255,0.05); color: #c9a227;
+}
+.carnet-tools-bar .carnet-expand-all:hover,
+.carnet-tools-bar .carnet-collapse-all:hover { background: rgba(201,162,39,0.18); }
+
+/* ===== tutoriel.css ===== */
+/* ============================================================
+   tutoriel.css — Soruta — Tutoriel
+   Thème médiéval-fantastique : cuir vieilli, or, parchemin
+   ============================================================ */
+
+/* ============================================================
+   FENÊTRE DE BIENVENUE
+   ============================================================ */
+
+.tuto-welcome-dialog .dialog-buttons {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.tuto-welcome-dialog .dialog-button {
+    flex: 1;
+    min-width: 130px;
+}
+
+/* Boutons à libellé long (« Ne plus afficher à la connexion », « Commencer
+   (l'essentiel puis le menu) ») : Foundry fixe la hauteur des boutons de
+   dialogue, le texte qui passe sur deux lignes débordait en haut et en bas.
+   Hauteur libre + retour à la ligne + texte centré.
+   Ces fenêtres sont des DialogV2 : leurs boutons sont dans « footer.form-footer »
+   (pas de classe .dialog-button) — les deux formes sont visées. */
+.tuto-welcome-dialog .form-footer button,
+.tuto-hub-dialog .form-footer button,
+.tuto-welcome-dialog .dialog-button,
+.tuto-hub-dialog .dialog-button {
+    height: auto !important;
+    min-height: 32px;
+    padding: 4px 8px;
+    line-height: 1.2 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+.tuto-welcome-dialog .form-footer button span,
+.tuto-hub-dialog .form-footer button span { white-space: normal; }
+
+/* Menu du guide : 4 boutons → grille 2 × 2 pour qu'aucun ne soit trop étroit. */
+.tuto-hub-dialog .form-footer,
+.tuto-hub-dialog .dialog-buttons {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+.tuto-hub-dialog .form-footer button,
+.tuto-hub-dialog .dialog-button {
+    margin: 0;
+    width: 100%;
+}
+
+.tuto-welcome-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 20px 12px 12px;
+    gap: 14px;
+    background: linear-gradient(180deg, #1e1508 0%, #14100a 100%);
+    border-bottom: 1px solid rgba(139, 105, 20, 0.3);
+}
+
+.tuto-welcome-icon {
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(100, 70, 10, 0.45) 0%, rgba(18, 12, 4, 0.7) 100%);
+    border: 2px solid #8B6914;
+    box-shadow:
+        0 0 18px rgba(180, 140, 40, 0.3),
+        inset 0 0 10px rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    color: #D4A850;
+    flex-shrink: 0;
+}
+
+.tuto-welcome-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: #D4A850;
+    letter-spacing: 0.08em;
+    font-variant: small-caps;
+    text-shadow: 0 0 16px rgba(180, 140, 40, 0.4);
+}
+
+.tuto-welcome-text {
+    margin: 0;
+    font-size: 12.5px;
+    color: #8a7050;
+    line-height: 1.65;
+}
+
+/* ============================================================
+   DIALOG SÉLECTEUR DE SECTIONS
+   ============================================================ */
+
+.tuto-selector-body {
+    padding: 14px 4px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.tuto-selector-hint {
+    margin: 0;
+    font-size: 11.5px;
+    color: #6a5030;
+    padding: 0 6px;
+    font-style: italic;
+}
+
+.tuto-section-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.tuto-section-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s, border-color 0.12s;
+    font-size: 12.5px;
+    color: #8a7050;
+    user-select: none;
+    border: 1px solid transparent;
+}
+
+.tuto-section-row:hover {
+    background: rgba(100, 70, 10, 0.2);
+    color: #D4A850;
+    border-color: rgba(139, 105, 20, 0.2);
+}
+
+.tuto-section-row input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    accent-color: #C8A030;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin: 0;
+}
+
+.tuto-section-row i {
+    width: 16px;
+    text-align: center;
+    color: #8B6914;
+    font-size: 12px;
+    flex-shrink: 0;
+}
+
+.tuto-section-row span {
+    flex: 1;
+}
+
+/* ============================================================
+   ANNEAU DE SPOTLIGHT
+   ============================================================ */
+
+.tuto-ring {
+    border-color: #C8A030;
+    border-radius: 3px !important;
+    animation: tuto-pulse 2.2s ease-in-out infinite;
+}
+
+@keyframes tuto-pulse {
+    0%, 100% {
+        box-shadow:
+            0 0 0 3px rgba(180, 140, 40, 0.18),
+            0 0 14px rgba(180, 140, 40, 0.35),
+            inset 0 0 8px rgba(180, 140, 40, 0.05);
+    }
+    50% {
+        box-shadow:
+            0 0 0 5px rgba(180, 140, 40, 0.28),
+            0 0 28px rgba(180, 140, 40, 0.55),
+            inset 0 0 16px rgba(180, 140, 40, 0.1);
+    }
+}
+
+/* ============================================================
+   BULLE TUTORIEL
+   ============================================================ */
+
+#tuto-bubble {
+    width: 340px;
+    background:
+        repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 19px,
+            rgba(0, 0, 0, 0.06) 19px,
+            rgba(0, 0, 0, 0.06) 20px
+        ),
+        linear-gradient(180deg, #201508 0%, #160f06 100%);
+    border: 1px solid #8B6914;
+    border-radius: 3px;
+    box-shadow:
+        0 0 0 1px rgba(25, 18, 4, 0.95),
+        0 0 0 2px rgba(139, 105, 20, 0.22),
+        0 14px 42px rgba(0, 0, 0, 0.92),
+        inset 0 1px 0 rgba(220, 180, 80, 0.07);
+    animation: tuto-bubble-in 0.25s ease-out;
+    overflow: visible;
+    position: relative;
+}
+
+/* Animation : fade seul, sans transform (évite le conflit avec translate(-50%,-50%)) */
+@keyframes tuto-bubble-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* ---- Flèches ------------------------------------------------
+   ::before = triangle extérieur (couleur bordure or)
+   ::after  = triangle intérieur (couleur fond) pour l'effet bordé
+   ------------------------------------------------------------ */
+
+#tuto-bubble::before,
+#tuto-bubble::after {
+    content: "";
+    position: absolute;
+    width: 0;
+    height: 0;
+    display: none;
+}
+
+/* ---- Droite (bulle à droite de la cible) ---- */
+
+#tuto-bubble[data-arrow="right"]::before {
+    display: block;
+    right: calc(100% + 1px);
+    top: var(--tuto-arrow-v, 50%);
+    transform: translateY(-50%);
+    border-top:    11px solid transparent;
+    border-bottom: 11px solid transparent;
+    border-right:  15px solid #8B6914;
+    z-index: 1;
+}
+
+#tuto-bubble[data-arrow="right"]::after {
+    display: block;
+    right: 100%;
+    top: var(--tuto-arrow-v, 50%);
+    transform: translateY(-50%);
+    border-top:    9px solid transparent;
+    border-bottom: 9px solid transparent;
+    border-right:  12px solid #160f06;
+    z-index: 2;
+}
+
+/* ---- Gauche (bulle à gauche de la cible) ---- */
+
+#tuto-bubble[data-arrow="left"]::before {
+    display: block;
+    left: calc(100% + 1px);
+    top: var(--tuto-arrow-v, 50%);
+    transform: translateY(-50%);
+    border-top:    11px solid transparent;
+    border-bottom: 11px solid transparent;
+    border-left:   15px solid #8B6914;
+    z-index: 1;
+}
+
+#tuto-bubble[data-arrow="left"]::after {
+    display: block;
+    left: 100%;
+    top: var(--tuto-arrow-v, 50%);
+    transform: translateY(-50%);
+    border-top:    9px solid transparent;
+    border-bottom: 9px solid transparent;
+    border-left:   12px solid #160f06;
+    z-index: 2;
+}
+
+/* ---- Bas (bulle en dessous de la cible) ---- */
+
+#tuto-bubble[data-arrow="bottom"]::before {
+    display: block;
+    bottom: calc(100% + 1px);
+    left: var(--tuto-arrow-h, 50%);
+    transform: translateX(-50%);
+    border-left:   11px solid transparent;
+    border-right:  11px solid transparent;
+    border-bottom: 15px solid #8B6914;
+    z-index: 1;
+}
+
+#tuto-bubble[data-arrow="bottom"]::after {
+    display: block;
+    bottom: 100%;
+    left: var(--tuto-arrow-h, 50%);
+    transform: translateX(-50%);
+    border-left:   9px solid transparent;
+    border-right:  9px solid transparent;
+    border-bottom: 12px solid #160f06;
+    z-index: 2;
+}
+
+/* ---- Haut (bulle au-dessus de la cible) ---- */
+
+#tuto-bubble[data-arrow="top"]::before {
+    display: block;
+    top: calc(100% + 1px);
+    left: var(--tuto-arrow-h, 50%);
+    transform: translateX(-50%);
+    border-left:  11px solid transparent;
+    border-right: 11px solid transparent;
+    border-top:   15px solid #8B6914;
+    z-index: 1;
+}
+
+#tuto-bubble[data-arrow="top"]::after {
+    display: block;
+    top: 100%;
+    left: var(--tuto-arrow-h, 50%);
+    transform: translateX(-50%);
+    border-left:  9px solid transparent;
+    border-right: 9px solid transparent;
+    border-top:   12px solid #160f06;
+    z-index: 2;
+}
+
+/* ---- En-tête ---- */
+
+.tuto-bubble-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 12px 7px;
+    border-bottom: 1px solid;
+    border-image: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(139, 105, 20, 0.55) 20%,
+        rgba(200, 160, 48, 0.4) 50%,
+        rgba(139, 105, 20, 0.55) 80%,
+        transparent 100%
+    ) 1;
+}
+
+.tuto-step-counter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 9.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #5a4420;
+}
+
+/* ---- Points de progression ---- */
+
+.tuto-step-dots {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.tuto-dot {
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: rgba(80, 58, 16, 0.4);
+    border: 1px solid rgba(120, 88, 24, 0.4);
+    transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+
+.tuto-dot.active {
+    background: #C8A030;
+    border-color: #E0C050;
+    transform: scale(1.35);
+    box-shadow: 0 0 5px rgba(200, 160, 48, 0.55);
+}
+
+.tuto-dot.dim {
+    opacity: 0.3;
+    transform: scale(0.75);
+}
+
+/* ---- Bouton fermer ---- */
+
+.tuto-close-btn {
+    background: transparent;
+    border: none;
+    color: #40300e;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 2px 5px;
+    border-radius: 2px;
+    line-height: 1;
+    transition: color 0.15s;
+}
+
+.tuto-close-btn:hover { color: #7a1a1a; }
+
+/* ---- Corps ---- */
+
+.tuto-bubble-body {
+    padding: 12px 14px 10px;
+}
+
+.tuto-bubble-title {
+    margin: 0 0 7px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #D4A850;
+    letter-spacing: 0.07em;
+    font-variant: small-caps;
+    text-shadow: 0 0 12px rgba(180, 140, 40, 0.3);
+}
+
+.tuto-bubble-text {
+    margin: 0;
+    font-size: 12px;
+    color: #9a7e50;
+    line-height: 1.65;
+}
+
+.tuto-bubble-text strong { color: #D4A850; }
+.tuto-bubble-text i      { color: #C8A030; }
+
+/* ---- Pied ---- */
+
+.tuto-bubble-footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 12px 11px;
+    border-top: 1px solid;
+    border-image: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(139, 105, 20, 0.55) 20%,
+        rgba(200, 160, 48, 0.4) 50%,
+        rgba(139, 105, 20, 0.55) 80%,
+        transparent 100%
+    ) 1;
+}
+
+.tuto-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 13px;
+    border-radius: 2px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    border: 1px solid rgba(90, 65, 18, 0.5);
+    background: rgba(18, 12, 4, 0.85);
+    color: #6a5030;
+    font-variant: small-caps;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+
+.tuto-btn:hover:not(:disabled) {
+    background: rgba(38, 26, 8, 0.9);
+    border-color: #8B6914;
+    color: #C8A030;
+}
+
+.tuto-btn:disabled {
+    opacity: 0.22;
+    cursor: not-allowed;
+}
+
+.tuto-btn.primary {
+    background: linear-gradient(180deg, #9A6E10 0%, #705008 100%);
+    border-color: #C8A030;
+    color: #F5E4A0;
+    font-weight: 700;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 220, 80, 0.12);
+}
+
+.tuto-btn.primary:hover {
+    background: linear-gradient(180deg, #C8A030 0%, #9A6E10 100%);
+    color: #1a1000;
+    border-color: #E0C050;
+}
+
+/* ---- Boutons de navigation par catégorie (coins de l'en-tête) ---- */
+.tuto-bubble-header { justify-content: flex-start; gap: 6px; }
+.tuto-bubble-header .tuto-step-counter { flex: 1; justify-content: center; }
+
+.tuto-cat-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #6a4f18;
+    background: rgba(200, 160, 48, 0.12);
+    border: 1px solid rgba(139, 105, 20, 0.45);
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.tuto-cat-btn:hover:not([disabled]) {
+    background: rgba(200, 160, 48, 0.25);
+    color: #3f2e0e;
+    border-color: rgba(200, 160, 48, 0.7);
+}
+.tuto-cat-btn[disabled] {
+    opacity: 0.35;
+    cursor: default;
+}
+
+/* Surbrillance temporaire posée par le tutoriel (ligne de réglage « Accessibilité »
+   dans la config du module, badge de statut dans le répertoire des Acteurs). */
+.tuto-a11y-highlight {
+    outline: 2px solid #c9a227;
+    outline-offset: 2px;
+    border-radius: 4px;
+    background: rgba(201,162,39,0.10);
+}
+
+/* ===== midi-range-fix.css ===== */
+/* ============================================================
+   midi-range-fix.css — Bloc explicatif dans la config
+   ============================================================ */
+
+.mrf-explainer {
+    margin: 10px 0 4px;
+    border: 1px solid rgba(155, 89, 182, 0.3);
+    border-radius: 6px;
+    overflow: hidden;
+    font-size: 12px;
+}
+
+.mrf-explainer-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    background: rgba(155, 89, 182, 0.12);
+    border-bottom: 1px solid rgba(155, 89, 182, 0.2);
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #c39bd3;
+}
+
+.mrf-explainer-header i {
+    font-size: 12px;
+}
+
+.mrf-explainer-body {
+    padding: 10px 14px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Formule */
+
+.mrf-formula {
+    margin: 0;
+    font-size: 12.5px;
+    color: #ddd;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 7px 10px;
+    border-radius: 4px;
+    border-left: 3px solid #9b59b6;
+}
+
+.mrf-formula strong {
+    color: #c39bd3;
+}
+
+.mrf-formula sub {
+    font-size: 9px;
+    color: #aaa;
+}
+
+.mrf-formula-sub {
+    margin: 0;
+    font-size: 11px;
+    color: #888;
+    padding-left: 2px;
+}
+
+/* Tableau */
+
+.mrf-table-wrap {
+    overflow-x: auto;
+}
+
+.mrf-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+}
+
+.mrf-table thead tr {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mrf-table th {
+    padding: 5px 8px;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #777;
+    white-space: nowrap;
+}
+
+.mrf-table td {
+    padding: 5px 8px;
+    color: #bbb;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    vertical-align: middle;
+}
+
+.mrf-table tr:last-child td {
+    border-bottom: none;
+}
+
+.mrf-ok {
+    color: #82e0aa;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.mrf-no {
+    color: #e74c3c;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* Note */
+
+.mrf-note {
+    margin: 0;
+    font-size: 11px;
+    color: #666;
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+}
+
+.mrf-note i {
+    color: #555;
+    margin-top: 1px;
+    flex-shrink: 0;
+}
+
+/* ===== connstats.css ===== */
+/* ============================================================
+   connstats.css — Fenêtre d'infos de connexion (haut/centre)
+   ============================================================ */
+
+#scwm-connstats {
+    position: fixed;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10000;
+    min-width: 220px;
+    padding: 8px 12px 9px;
+    background: linear-gradient(180deg, rgba(20,18,14,0.96), rgba(12,11,9,0.96));
+    border: 1px solid rgba(201,162,39,0.45);
+    border-radius: 6px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.5);
+    color: #cbb98f;
+    font-family: "Signika", sans-serif;
+    font-size: 12px;
+    pointer-events: auto;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+#scwm-connstats.scwm-connstats-hide {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-8px);
+}
+
+.scwm-connstats-title {
+    font-family: "Modesto Condensed", "Signika", serif;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 13px;
+    font-weight: 700;
+    color: #c9a227;
+    margin-bottom: 5px;
+    padding: 0 14px 4px 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-bottom: 1px solid rgba(201,162,39,0.25);
+}
+
+.scwm-connstats-title i { color: #e0a13a; font-size: 12px; }
+
+.scwm-connstats-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 1px 0;
+}
+
+.scwm-connstats-row span { color: #9a8a66; }
+.scwm-connstats-row b { color: #e8dcc0; font-weight: 600; }
+
+.scwm-connstats-close {
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    color: #6b5a34;
+    font-size: 11px;
+    cursor: pointer;
+    line-height: 1;
+}
+.scwm-connstats-close:hover { color: #e0a13a; }
+
+/* ===== partypause.css ===== */
+/* ============================================================
+   partypause.css — Pause de party
+   ------------------------------------------------------------
+   On réutilise le banner natif #pause (« Game Paused ») : aucun
+   style maison n'est imposé, afin de conserver l'apparence de
+   Foundry et de laisser les modules d'habillage de la pause
+   (ex. le glow bleu de Monk) s'appliquer normalement.
+   ============================================================ */
+
+/* ===== playerlist.css ===== */
+/* ============================================================
+   playerlist.css — Liste des joueurs compacte + barre de recherche
+   ============================================================ */
+
+/* Hauteur limitée (~4 lignes) + défilement. !important pour battre les
+   règles natives de Foundry (sélecteurs à id, plus prioritaires). */
+/* La liste devient la zone défilante (barre épinglée + ~4 lignes). */
+.players-list.scwm-players-compact {
+    max-height: 128px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding: 0 !important;
+}
+
+/* Barre de recherche épinglée EN HAUT de la liste, pleine largeur, fond
+   solide opaque et sans coins arrondis : rien ne transparaît derrière. */
+.scwm-player-search {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    padding: 6px 8px;
+    background: #14120e;
+    border-bottom: 1px solid rgba(201, 162, 39, 0.4);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.55);
+}
+
+.scwm-player-search i {
+    color: #a8863a;
+    font-size: 11px;
+    flex-shrink: 0;
+}
+
+.scwm-player-search input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    outline: none;
+    color: #cbb98f;
+    font-size: 12px;
+    padding: 0;
+    min-width: 0;
+}
+
+.scwm-player-search input::placeholder { color: #7a6a44; }
+
+/* ── Repli du panneau des joueurs ────────────────────────────────────── */
+/* Décale le panneau vers la droite pour laisser la place au bouton fixe. */
+body:not(.scwm-players-collapsed) #players { margin-left: 26px !important; }
+/* Replié = la fenêtre disparaît simplement (le bouton reste pour la ramener). */
+body.scwm-players-collapsed #players { display: none !important; }
+
+/* Bouton fixe (bas-gauche) qui replie / déplie — toujours visible. */
+.scwm-players-toggle {
+    position: fixed;
+    left: 2px; bottom: 2px;
+    display: flex; align-items: center; justify-content: center; gap: 2px;
+    min-width: 22px; height: 24px; padding: 0 5px;
+    border: 1px solid rgba(201,162,39,0.5);
+    border-radius: 4px;
+    background: rgba(20,18,14,0.9);
+    color: #e8cc6a;
+    font-size: 12px; cursor: pointer;
+    z-index: 70;
+    opacity: 0.85;
+    transition: opacity .15s, background .15s;
+}
+.scwm-players-toggle:hover { opacity: 1; background: rgba(201,162,39,0.3); color: #fff; }
+.scwm-players-toggle.is-collapsed { color: #c9a227; }
+
+/* ===== casier.css ===== */
+/* ============================================================
+   casier.css — Tableau de bord « Casier de [GM] » (style livret)
+   ============================================================ */
+
+.scwm-casier .window-content { padding: 0; }
+
+/* Pastille de notification sur le bouton Casier (rapports en attente). */
+[data-tool="casier"] { position: relative; }
+[data-tool="casier"].scwm-has-drafts::after {
+    content: "";
+    position: absolute;
+    top: 1px;
+    right: 1px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #e0a13a;
+    border: 1px solid #1a1712;
+    box-shadow: 0 0 5px rgba(224,161,58,0.9);
+}
+
+/* Message d'alerte (chuchoté) rappelant les rapports en attente. */
+.scwm-casier-alert p { margin: 0 0 6px; }
+.scwm-casier-alert i { color: #e0a13a; }
+.scwm-casier-alert button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    background: rgba(201,162,39,0.14);
+    border: 1px solid rgba(201,162,39,0.5);
+    border-radius: 4px;
+    color: #e8cc6a;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.scwm-casier-alert button:hover { background: rgba(201,162,39,0.26); }
+
+.scwm-casier-body {
+    display: flex;
+    height: 100%;
+    min-height: 0;
+    font-family: "Bookinsanity", Georgia, "Times New Roman", serif;
+    color: #e8dcc0;
+    background:
+        linear-gradient(180deg, rgba(20,18,14,0.4), rgba(12,11,9,0.4)),
+        #1a1712;
+}
+
+/* ---- Colonne gauche : livret ---- */
+.scwm-casier-side {
+    width: 240px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(180deg, rgba(201,162,39,0.08), transparent), #14120e;
+    border-right: 2px solid transparent;
+    border-image: linear-gradient(180deg, transparent, rgba(201,162,39,0.5) 15%, rgba(201,162,39,0.5) 85%, transparent) 1;
+}
+
+.scwm-casier-tabs { display: flex; flex-direction: column; gap: 3px; padding: 8px 6px; }
+
+.scwm-casier-tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: rgba(0,0,0,0.25);
+    border: 1px solid rgba(201,162,39,0.22);
+    border-left: 3px solid transparent;
+    border-radius: 4px;
+    color: #b89a52;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+}
+.scwm-casier-tab i { width: 16px; text-align: center; color: #a8863a; }
+.scwm-casier-tab.active { background: rgba(201,162,39,0.16); color: #e8cc6a; border-left-color: #e0a13a; }
+.scwm-casier-tab:hover { color: #e0a13a; }
+
+/* ---- Dashboard ---- */
+.scwm-casier-stats { display: flex; gap: 10px; margin: 10px 0 4px; flex-wrap: wrap; }
+.scwm-casier-stat {
+    flex: 1;
+    min-width: 120px;
+    text-align: center;
+    padding: 10px 8px;
+    background: rgba(0,0,0,0.25);
+    border: 1px solid rgba(201,162,39,0.22);
+    border-radius: 5px;
+}
+.scwm-casier-stat b { display: block; font-size: 22px; color: #e8cc6a; font-family: "Modesto Condensed","Signika",serif; }
+.scwm-casier-stat span { font-size: 11px; color: #9a8a66; }
+.scwm-casier-presentation {
+    width: 100%;
+    box-sizing: border-box;
+    background: rgba(0,0,0,0.28);
+    border: 1px solid rgba(201,162,39,0.3);
+    border-radius: 4px;
+    color: #e8dcc0;
+    font-family: "Bookinsanity", Georgia, serif;
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 8px 10px;
+    resize: vertical;
+}
+.scwm-casier-presentation:focus { outline: none; border-color: rgba(201,162,39,0.6); }
+
+/* ---- Suivi des GM ---- */
+.scwm-casier-gm-card {
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    background: rgba(0,0,0,0.22);
+    border: 1px solid rgba(201,162,39,0.18);
+    border-left: 3px solid rgba(120,120,120,0.5);
+    border-radius: 4px;
+}
+.scwm-casier-gm-card.active { border-left-color: #2ecc71; }
+.scwm-casier-gm-head { display: flex; align-items: center; gap: 8px; }
+.scwm-casier-gm-head i { color: #a8863a; }
+.scwm-casier-gm-name { font-weight: 700; color: #dccba4; font-size: 14px; }
+.scwm-casier-gm-open { cursor: pointer; }
+.scwm-casier-gm-open:hover { color: #f0d98a; text-decoration: underline; }
+
+/* Retour depuis le dashboard d'un GM + présentation en lecture seule */
+.scwm-casier-gm-back {
+    background: rgba(0,0,0,0.25);
+    border: 1px solid rgba(201,162,39,0.3);
+    border-radius: 4px;
+    color: #dccba4;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 4px 10px;
+    margin-bottom: 8px;
+}
+.scwm-casier-gm-back:hover { border-color: rgba(201,162,39,0.6); color: #f0d98a; }
+.scwm-casier-presentation-view {
+    background: rgba(0,0,0,0.28);
+    border: 1px solid rgba(201,162,39,0.3);
+    border-radius: 4px;
+    color: #e8dcc0;
+    font-family: "Bookinsanity", Georgia, serif;
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 8px 10px;
+}
+.scwm-casier-gm-badge {
+    margin-left: auto;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: rgba(120,120,120,0.2);
+    color: #bbb;
+}
+.scwm-casier-gm-card.active .scwm-casier-gm-badge { background: rgba(46,204,113,0.18); color: #67e29a; }
+.scwm-casier-gm-line { font-size: 12px; color: #b0a074; margin-top: 5px; }
+.scwm-casier-gm-line span { color: #8a7038; font-weight: 600; }
+.scwm-casier-gm-exps { margin: 6px 0 0; padding-left: 18px; }
+.scwm-casier-gm-exps li { font-size: 13px; margin: 4px 0; }
+.scwm-casier-gm-exps li strong { color: #dccba4; }
+.scwm-casier-gm-parts { font-size: 11px; color: #9a8a66; margin-top: 1px; }
+
+/* ---- Expéditions en cours (du GM) ---- */
+.scwm-casier-exp-card {
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    background: rgba(0,0,0,0.22);
+    border: 1px solid rgba(201,162,39,0.18);
+    border-left: 3px solid rgba(120,120,120,0.5);
+    border-radius: 4px;
+}
+.scwm-casier-exp-card.current { border-left-color: #2ecc71; background: rgba(46,204,113,0.06); }
+.scwm-casier-exp-head { display: flex; align-items: center; gap: 8px; }
+.scwm-casier-exp-head i { color: #a8863a; }
+.scwm-casier-exp-name { font-weight: 700; color: #dccba4; font-size: 14px; }
+.scwm-casier-exp-badge {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: rgba(46,204,113,0.18);
+    color: #67e29a;
+}
+.scwm-casier-exp-head .scwm-casier-date { margin-left: auto; }
+.scwm-casier-exp-parts { font-size: 12px; color: #b0a074; margin-top: 5px; }
+
+.scwm-casier-pages { flex: 1; overflow-y: auto; padding: 6px; }
+
+.scwm-casier-page {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    margin-bottom: 5px;
+    background: rgba(0,0,0,0.22);
+    border: 1px solid rgba(201,162,39,0.18);
+    border-left: 3px solid rgba(201,162,39,0.4);
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s;
+}
+.scwm-casier-page:hover { background: rgba(201,162,39,0.1); }
+.scwm-casier-page.active { background: rgba(201,162,39,0.16); border-left-color: #e0a13a; }
+.scwm-casier-page i { color: #a8863a; font-size: 12px; flex-shrink: 0; }
+.scwm-casier-page-title { font-size: 13px; color: #dccba4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.scwm-casier-empty {
+    padding: 18px 12px;
+    text-align: center;
+    color: #6b5a34;
+    font-style: italic;
+    font-size: 12px;
+}
+
+/* ---- Colonne droite : contenu ---- */
+.scwm-casier-content { flex: 1; overflow-y: auto; padding: 16px 20px; min-width: 0; }
+
+.scwm-casier-placeholder {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: #6b5a34;
+    font-style: italic;
+}
+.scwm-casier-placeholder i { font-size: 34px; color: #4a3e22; }
+
+.scwm-casier-detail h2 {
+    font-family: "Modesto Condensed", "Signika", serif;
+    color: #c9a227;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border-bottom: 1px solid rgba(201,162,39,0.3);
+    padding-bottom: 6px;
+    margin: 0 0 4px;
+}
+.scwm-casier-detail h3 {
+    color: #b89a52;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 14px 0 4px;
+}
+.scwm-casier-meta { color: #9a8a66; font-size: 12px; margin: 0 0 6px; }
+.scwm-casier-detail ul { margin: 0; padding-left: 18px; }
+.scwm-casier-detail li { font-size: 13px; margin: 2px 0; }
+.scwm-casier-date { color: #8a7038; font-size: 11px; }
+
+.scwm-casier-notes {
+    width: 100%;
+    box-sizing: border-box;
+    background: rgba(0,0,0,0.28);
+    border: 1px solid rgba(201,162,39,0.3);
+    border-radius: 4px;
+    color: #e8dcc0;
+    font-family: "Bookinsanity", Georgia, serif;
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 8px 10px;
+    resize: vertical;
+}
+.scwm-casier-notes:focus { outline: none; border-color: rgba(201,162,39,0.6); }
+
+.scwm-casier-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+.scwm-casier-actions button {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.scwm-casier-send {
+    background: rgba(201,162,39,0.14);
+    border: 1px solid rgba(201,162,39,0.5);
+    color: #e8cc6a;
+}
+.scwm-casier-send:hover { background: rgba(201,162,39,0.26); }
+.scwm-casier-delete {
+    background: rgba(192,57,43,0.12);
+    border: 1px solid rgba(192,57,43,0.4);
+    color: #e08070;
+}
+.scwm-casier-delete:hover { background: rgba(192,57,43,0.24); }
+
+/* Actions rapides du dashboard (ex. ouvrir les temps morts). */
+.scwm-casier-quickactions { margin: 8px 0; display: flex; gap: 6px; flex-wrap: wrap; }
+.scwm-casier-quickactions button { flex: 0 0 auto; white-space: nowrap; }
+
+/* ============================================================
+   Registre des PJ / Statistiques / Disponibilités (vues tableur)
+   ============================================================ */
+.scwm-reg-toolbar {
+    display: flex; align-items: center; gap: 8px;
+    margin: 4px 0 10px; flex-wrap: wrap;
+}
+.scwm-reg-filter {
+    flex: 1 1 220px; min-width: 160px;
+    padding: 4px 8px; border-radius: 4px;
+    border: 1px solid rgba(201,162,39,0.3);
+    background: rgba(0,0,0,0.25); color: #e8dcc0;
+}
+.scwm-reg-count { font-size: 12px; color: #9a8b70; white-space: nowrap; }
+.scwm-reg-csv { flex: 0 0 auto; white-space: nowrap; }
+
+.scwm-reg-table {
+    width: 100%; border-collapse: collapse; font-size: 13px;
+}
+.scwm-reg-table th, .scwm-reg-table td {
+    padding: 4px 8px; text-align: left;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.scwm-reg-table thead th {
+    position: sticky; top: 0; z-index: 1;
+    background: rgba(201,162,39,0.12); color: #e8cc6a;
+    font-weight: 700; letter-spacing: 0.03em;
+}
+.scwm-reg-sort { cursor: pointer; user-select: none; }
+.scwm-reg-sort:hover { background: rgba(201,162,39,0.22); }
+.scwm-reg-sort::after { content: attr(data-arrow); color: #e8cc6a; }
+.scwm-reg-table tbody tr:hover { background: rgba(201,162,39,0.06); }
+
+.scwm-stat-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px; margin-top: 12px; align-items: start;
+}
+.scwm-stat-block h3 { margin: 0 0 4px; color: #c9a227; font-size: 13px; }
+.scwm-stat-block .scwm-reg-table td { border-bottom: 1px solid rgba(255,255,255,0.05); }
+
+/* Registre : lignes cliquables + joueurs inactifs + légende */
+.scwm-reg-clickable { cursor: pointer; }
+.scwm-reg-clickable:hover td { background: rgba(201,162,39,0.10); }
+.scwm-reg-inactive td { color: #8a7d63; opacity: 0.72; }
+.scwm-reg-inactive td .fa-moon { color: #7a6cae; margin-left: 3px; font-size: 0.85em; }
+.scwm-reg-legend { margin: 2px 0 8px; font-size: 11px; color: #9a8b70; }
+.scwm-reg-legend .fa-moon { color: #7a6cae; }
+
+/* En-têtes de groupe dans la colonne d'onglets du Casier (Travail / Statistiques) */
+.scwm-casier-tabgroup {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+    color: #9a8b70;
+    padding: 8px 10px 3px;
+    margin-top: 4px;
+    border-top: 1px solid rgba(201,162,39,0.18);
+}
+.scwm-casier-tabgroup:first-child { margin-top: 0; border-top: none; }
+
+/* =====================================================================
+   Présentations des MJ (fenêtre joueur) — .scwm-gmp
+   ===================================================================== */
+.scwm-gmp { display: flex; flex-direction: column; gap: 8px; }
+.scwm-gmp-aide { margin: 0; font-size: 12px; opacity: .65; }
+.scwm-gmp-liste {
+    display: flex; flex-direction: column; gap: 8px;
+    max-height: min(62vh, 600px); overflow-y: auto; overscroll-behavior: contain;
+    padding-right: 4px;
+}
+/* La fenêtre elle-même peut défiler si l'écran est petit. */
+.scwm-gmp-fenetre .window-content { overflow-y: auto; }
+.scwm-gmp-carte {
+    border: 1px solid rgba(201, 162, 39, .3);
+    border-radius: 8px;
+    background: linear-gradient(100deg, rgba(201, 162, 39, .08), rgba(0, 0, 0, .15) 70%);
+    overflow: hidden;
+}
+.scwm-gmp-carte[open] { border-color: rgba(201, 162, 39, .6); }
+.scwm-gmp-carte > summary {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; cursor: pointer;
+    list-style: none;
+}
+.scwm-gmp-carte > summary::-webkit-details-marker { display: none; }
+.scwm-gmp-carte > summary::marker { content: ""; }
+.scwm-gmp-carte > summary:hover { background: rgba(201, 162, 39, .1); }
+.scwm-gmp-avatar {
+    flex: 0 0 auto; width: 40px; height: 40px; border-radius: 50%;
+    object-fit: cover; border: 2px solid #c9a227; background: rgba(0, 0, 0, .3);
+}
+.scwm-gmp-tete { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.scwm-gmp-nom { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 14px; }
+.scwm-gmp-enligne { width: 8px; height: 8px; border-radius: 50%; background: #5fbf77; box-shadow: 0 0 6px #5fbf77; }
+.scwm-gmp-apercu {
+    font-size: 12px; opacity: .7;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.scwm-gmp-carte[open] .scwm-gmp-apercu { display: none; }
+.scwm-gmp-chevron { flex: 0 0 auto; font-size: 11px; opacity: .6; transition: transform .2s; }
+.scwm-gmp-carte[open] .scwm-gmp-chevron { transform: rotate(180deg); }
+.scwm-gmp-texte {
+    margin: 0 10px 10px 60px; padding: 8px 10px;
+    border-left: 2px solid rgba(201, 162, 39, .5);
+    background: rgba(0, 0, 0, .2); border-radius: 0 6px 6px 0;
+    font-size: 13px; line-height: 1.5;
+    overflow-wrap: anywhere;
+    /* Présentation longue : elle défile dans son encadré. */
+    max-height: 40vh; overflow-y: auto; overscroll-behavior: contain;
+}
+.scwm-gmp-sans {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 5px;
+    padding: 8px 2px 0; border-top: 1px solid rgba(255, 255, 255, .08);
+    font-size: 12px;
+}
+.scwm-gmp-sans > span:first-child { opacity: .6; margin-right: 2px; }
+.scwm-gmp-pastille {
+    padding: 1px 8px; border-radius: 999px;
+    background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .12);
+    opacity: .75;
+}
+.scwm-gmp-vide { margin: 4px 0; text-align: center; opacity: .65; font-style: italic; }
+@media (prefers-reduced-motion: reduce) { .scwm-gmp-chevron { transition: none; } }
+
+/* Registre : colonne État (joué / en stock) */
+.scwm-reg-etat { display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 999px; font-size: 11px; white-space: nowrap; }
+.scwm-reg-joue  { color: #9fd9a8; background: rgba(95, 191, 119, .14); border: 1px solid rgba(95, 191, 119, .45); }
+.scwm-reg-stock { color: #b9bec6; background: rgba(138, 143, 152, .14); border: 1px solid rgba(138, 143, 152, .45); }
+
+/* ===== pcstatus.css ===== */
+/* ============================================================
+   pcstatus.css — Badge de statut de disponibilité des PJ
+   (répertoire des Acteurs)
+   ============================================================ */
+
+.scwm-pc-status {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex: 0 0 auto;
+    padding: 1px 7px;
+    border-radius: 9px;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: .2px;
+    white-space: nowrap;
+    border: 1px solid transparent;
+    pointer-events: none;
+}
+
+.scwm-pc-status i {
+    font-size: 9px;
+}
+
+/* Disponible — vert */
+.scwm-pc-status-available {
+    color: #b9f6c8;
+    background: rgba(46, 160, 67, 0.22);
+    border-color: rgba(46, 160, 67, 0.55);
+}
+
+/* En expédition — ambre */
+.scwm-pc-status-expedition {
+    color: #ffe3a3;
+    background: rgba(201, 148, 40, 0.22);
+    border-color: rgba(201, 148, 40, 0.6);
+}
+
+/* Marqueur temporaire posé par le tutoriel pour cibler le badge du perso démo. */
+.scwm-pc-status.tuto-status-highlight {
+    box-shadow: 0 0 0 2px rgba(255, 227, 163, 0.9);
+}
+
+/* Sur les lignes étroites du répertoire, ne garder que l'icône. */
+#actors .directory-item.actor .scwm-pc-status-label {
+    display: inline;
+}
+@media (max-width: 300px) {
+    .scwm-pc-status-label { display: none; }
+}
+
+/* ===== sceneaudio.css ===== */
+/* ============================================================
+   sceneaudio.css — Mise en scène : gestionnaire de cues audio
+   ============================================================ */
+
+/* Bouton HUD du token (des cues sont liés). */
+.control-icon.scwm-cue-btn.active {
+    color: #ffe3a3;
+    box-shadow: 0 0 8px rgba(201, 148, 40, 0.7);
+}
+
+/* ---- Gestionnaire ---- */
+.scwm-cue-manager {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    height: 100%;
+}
+.scwm-cue-toolbar {
+    display: flex;
+    gap: 6px;
+    flex: 0 0 auto;
+}
+.scwm-cue-toolbar button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+.scwm-cue-toolbar-sep { flex: 1 1 auto; }
+
+/* ---- Section (en-tête repliable) ---- */
+.scwm-cue-section {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    margin-top: 4px;
+    border-radius: 6px;
+    background: linear-gradient(90deg, rgba(201,148,40,0.22), rgba(201,148,40,0.06));
+    border: 1px solid rgba(201, 148, 40, 0.5);
+}
+.scwm-cue-section .scwm-cue-sec-icon { flex: 0 0 auto; color: #ffe3a3; }
+.scwm-cue-sec-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-weight: 700;
+    background: transparent;
+    border: none;
+}
+.scwm-cue-sec-collapse,
+.scwm-cue-collapse {
+    flex: 0 0 auto;
+    width: 26px;
+    line-height: 1;
+    background: none;
+    border: none;
+}
+.scwm-cue-move { flex: 0 0 auto; display: flex; gap: 4px; }
+.scwm-cue-move button { width: 28px; line-height: 1; }
+.scwm-cue-list {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-right: 4px;
+}
+.scwm-cue-empty {
+    opacity: 0.7;
+    text-align: center;
+    padding: 20px;
+}
+
+.scwm-cue-card {
+    border: 1px solid rgba(201, 148, 40, 0.5);
+    border-radius: 6px;
+    padding: 8px 10px;
+    background: rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.scwm-cue-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.scwm-cue-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.scwm-cue-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-weight: 600;
+}
+.scwm-cue-head-actions {
+    flex: 0 0 auto;
+    display: flex;
+    gap: 4px;
+}
+.scwm-cue-head-actions button {
+    flex: 0 0 auto;
+    width: 30px;
+    line-height: 1;
+}
+
+.scwm-cue-card .form-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+}
+.scwm-cue-card .form-group > label {
+    flex: 0 0 90px;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+.scwm-cue-file {
+    display: flex;
+    gap: 4px;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.scwm-cue-file input[type="text"] { flex: 1 1 auto; min-width: 0; }
+.scwm-cue-file .scwm-cue-browse { flex: 0 0 auto; width: 34px; line-height: 1; }
+
+.scwm-cue-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+}
+.scwm-cue-grid .form-group {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+}
+.scwm-cue-grid .form-group > label {
+    flex: none;
+    font-size: 11px;
+    opacity: 0.85;
+}
+.scwm-cue-grid input { width: 100%; }
+
+.scwm-cue-tokenrow {
+    flex-wrap: wrap;
+}
+.scwm-cue-tokenname {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-style: italic;
+    opacity: 0.9;
+}
+.scwm-cue-tokenrow button { flex: 0 0 auto; white-space: nowrap; }
+
+/* ---- Navigateur de playlists ---- */
+.scwm-pl-browser .scwm-pl-recherche {
+    position: sticky; top: 0; z-index: 1;
+    display: flex; align-items: center; gap: 6px;
+    margin: 0 0 8px; padding: 4px 0;
+    background: var(--color-cool-5, #1e1e24);
+}
+.scwm-pl-browser .scwm-pl-recherche i { opacity: .7; }
+.scwm-pl-browser .scwm-pl-search { flex: 1 1 auto; min-width: 0; }
+.scwm-pl-browser .scwm-pl-compte { flex: 0 0 auto; font-size: 11px; opacity: .7; white-space: nowrap; }
+.scwm-pl-browser .scwm-pl-vide { margin: 4px 0 8px; font-style: italic; opacity: .7; }
+
+/* Arborescence : source → dossiers → playlists → morceaux, tout repliable. */
+.scwm-pl-browser .scwm-pl-aide { margin: 0 0 6px; font-size: 11px; opacity: .7; }
+.scwm-pl-arbre details > summary {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 6px; border-radius: 4px; cursor: pointer;
+    list-style: none; user-select: none;
+}
+.scwm-pl-arbre details > summary::-webkit-details-marker { display: none; }
+.scwm-pl-arbre details > summary::marker { content: ""; }
+.scwm-pl-arbre details > summary:hover { background: rgba(255, 255, 255, 0.06); }
+.scwm-pl-chev { width: 10px; font-size: 10px; opacity: .6; transition: transform .15s; }
+.scwm-pl-arbre details[open] > summary > .scwm-pl-chev { transform: rotate(90deg); }
+.scwm-pl-nb { margin-left: auto; font-size: 10px; opacity: .55; }
+.scwm-pl-contenu { padding-left: 14px; border-left: 1px solid rgba(201, 148, 40, 0.25); margin-left: 10px; }
+.scwm-pl-source > summary { font-weight: 700; font-size: 14px; border-bottom: 1px solid rgba(201, 148, 40, 0.4); border-radius: 0; }
+.scwm-pl-source > summary .fa-earth-europe, .scwm-pl-source > summary .fa-book { color: #c99428; }
+.scwm-pl-dossier > summary .fa-folder { color: #c99428; opacity: .85; }
+.scwm-pl-group > summary { font-weight: 600; }
+.scwm-pl-group > summary .fa-music { opacity: .7; }
+@media (prefers-reduced-motion: reduce) { .scwm-pl-chev { transition: none; } }
+.scwm-pl-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 2px 4px;
+    border-radius: 4px;
+}
+.scwm-pl-row:hover { background: rgba(255, 255, 255, 0.06); }
+.scwm-pl-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scwm-pl-row-actions { flex: 0 0 auto; display: flex; gap: 4px; }
+.scwm-pl-row-actions button { width: 30px; line-height: 1; margin: 0; }
+
+/* ---- Sélecteur de cues (HUD token) ---- */
+.scwm-cue-picker { display: flex; flex-direction: column; gap: 4px; }
+.scwm-cue-pick {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 4px 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.scwm-cue-pick-actions button { white-space: nowrap; }
+
+/* Fenêtre « Playlists — écouter & choisir » : hauteur fixe (redimensionnable),
+   donc le contenu DÉFILE dans la fenêtre ; la barre de recherche reste
+   collée en haut pendant le défilement. Les boutons du bas restent visibles. */
+.scwm-pl-fenetre .window-content { display: flex; flex-direction: column; overflow: hidden; }
+.scwm-pl-fenetre .window-content > :not(.form-footer):not(footer) { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.scwm-pl-fenetre .scwm-pl-browser { overflow: visible; }
+.scwm-pl-browser .scwm-pl-recherche { background: var(--color-cool-5, #1e1e24); box-shadow: 0 4px 6px -4px rgba(0, 0, 0, .6); }
+
+/* ===== charvalidation.css ===== */
+/* ============================================================
+   charvalidation.css — Validation des personnages
+   ============================================================ */
+
+/* Badge d'état dans le répertoire des Acteurs (entre le nom et l'expédition). */
+.scwm-cv-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex: 0 0 auto;
+    margin-left: 8px;
+    padding: 1px 7px;
+    border-radius: 9px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .2px;
+    white-space: nowrap;
+    border: 1px solid transparent;
+    pointer-events: none;
+}
+.scwm-cv-badge i { font-size: 9px; }
+
+.scwm-cv-badge-pending {
+    color: #ffe3a3;
+    background: rgba(201, 148, 40, 0.22);
+    border-color: rgba(201, 148, 40, 0.6);
+}
+.scwm-cv-badge-levelup {
+    color: #b9d9ff;
+    background: rgba(52, 120, 201, 0.22);
+    border-color: rgba(52, 120, 201, 0.6);
+}
+.scwm-cv-badge-creating {
+    color: #d9c6ff;
+    background: rgba(140, 100, 210, 0.22);
+    border-color: rgba(140, 100, 210, 0.6);
+}
+.scwm-cv-badge-stock {
+    color: #cbd2d9;
+    background: rgba(120, 130, 140, 0.25);
+    border-color: rgba(120, 130, 140, 0.6);
+}
+.scwm-cv-badge-building {
+    color: #ffcf9e;
+    background: rgba(214, 130, 40, 0.22);
+    border-color: rgba(214, 130, 40, 0.6);
+}
+
+/* Ligne d'un perso en stock (grisée). */
+.scwm-cv-charrow.scwm-cv-stocked { opacity: 0.7; }
+.scwm-cv-counters { font-size: 12px; opacity: 0.85; margin: 2px 0 8px; }
+
+/* Hub joueur « Mon personnage ». */
+.scwm-cv-hub .form-group { display: flex; flex-direction: column; gap: 2px; margin: 6px 0; }
+.scwm-cv-hub .form-group > label { font-weight: 600; font-size: 12px; }
+.scwm-cv-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.scwm-cv-actions button { flex: 0 0 auto; white-space: nowrap; }
+
+/* Liste des personnages du joueur (multi-personnages). */
+.scwm-cv-charlist { display: flex; flex-direction: column; gap: 6px; }
+.scwm-cv-charrow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 8px;
+    border: 1px solid rgba(201, 148, 40, 0.35);
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.12);
+}
+.scwm-cv-charinfo { flex: 1 1 auto; min-width: 0; }
+.scwm-cv-charstatus { font-size: 12px; opacity: 0.85; }
+.scwm-cv-charactions { flex: 0 0 auto; display: flex; gap: 4px; }
+.scwm-cv-charactions button { white-space: nowrap; }
+.scwm-cv-empty { opacity: 0.7; padding: 8px; text-align: center; }
+
+/* Onglet Validation du Casier. */
+.scwm-casier-cv-section { margin-bottom: 14px; }
+.scwm-casier-cv-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 8px;
+    border: 1px solid rgba(201, 148, 40, 0.35);
+    border-radius: 6px;
+    margin-bottom: 6px;
+    background: rgba(0, 0, 0, 0.15);
+}
+.scwm-casier-cv-row .scwm-cv-info { flex: 1 1 auto; min-width: 0; }
+.scwm-casier-cv-row .scwm-cv-info small { opacity: 0.75; }
+.scwm-cv-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 8px;
+    padding: 1px 7px;
+    border-radius: 9px;
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+    border: 1px solid transparent;
+    vertical-align: middle;
+}
+.scwm-cv-tag-creation { color: #b9f6c8; background: rgba(46,160,67,0.22); border-color: rgba(46,160,67,0.55); }
+.scwm-cv-tag-levelup  { color: #b9d9ff; background: rgba(52,120,201,0.22); border-color: rgba(52,120,201,0.6); }
+.scwm-casier-cv-row .scwm-cv-row-actions { flex: 0 0 auto; display: flex; gap: 4px; }
+.scwm-casier-cv-row .scwm-cv-row-actions button { white-space: nowrap; }
+
+/* =====================================================================
+   Hub joueur « Mes personnages » — version illustrée (.scwm-cvh)
+   Carte par personnage : portrait, statut coloré, infos de jeu, XP.
+   ===================================================================== */
+.scwm-cvh {
+    --cvh-or: #c9a227;
+    --cvh-statut: #c9a227;
+    display: flex; flex-direction: column; gap: 10px;
+}
+.scwm-cvh-entete { display: flex; align-items: center; gap: 10px; }
+.scwm-cvh-avatar {
+    width: 42px; height: 42px; flex: 0 0 auto;
+    border-radius: 50%; object-fit: cover;
+    border: 2px solid var(--cvh-or);
+    box-shadow: 0 0 8px rgba(201, 162, 39, .35);
+}
+.scwm-cvh-embleme {
+    width: 42px; height: 42px; flex: 0 0 auto;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    border: 2px solid var(--cvh-or);
+    color: var(--cvh-or); font-size: 20px;
+    background: radial-gradient(circle at 50% 35%, rgba(201, 162, 39, .22), rgba(201, 162, 39, .06));
+    box-shadow: 0 0 8px rgba(201, 162, 39, .35);
+}
+.scwm-cvh-entete h3 { margin: 0; border: 0; font-size: 1.35em; line-height: 1.1; }
+.scwm-cvh-entete small { opacity: .7; }
+
+.scwm-cvh-compteurs { display: flex; flex-wrap: wrap; gap: 6px; }
+.scwm-cvh-compteur {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 10px; border-radius: 999px;
+    background: rgba(201, 162, 39, .1); border: 1px solid rgba(201, 162, 39, .35);
+    font-size: 12px;
+}
+.scwm-cvh-jauge { display: inline-flex; gap: 3px; }
+.scwm-cvh-jauge span { width: 7px; height: 7px; border-radius: 50%; border: 1px solid var(--cvh-or); }
+.scwm-cvh-jauge span.plein { background: var(--cvh-or); }
+
+.scwm-cvh-liste { display: flex; flex-direction: column; gap: 8px; }
+
+/* Carte d'un personnage */
+.scwm-cvh-carte {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 10px;
+    border: 1px solid rgba(255, 255, 255, .1);
+    border-left: 4px solid var(--cvh-statut);
+    border-radius: 8px;
+    background: linear-gradient(100deg, color-mix(in srgb, var(--cvh-statut) 12%, transparent), rgba(0, 0, 0, .15) 60%);
+    transition: transform .15s, box-shadow .15s;
+}
+.scwm-cvh-carte:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0, 0, 0, .35); }
+.scwm-cvh-construction { --cvh-statut: #e0913a; }
+.scwm-cvh-attente      { --cvh-statut: #e6c34a; }
+.scwm-cvh-valide       { --cvh-statut: #5fbf77; }
+.scwm-cvh-jouable      { --cvh-statut: #6aa8e8; }
+.scwm-cvh-stock        { --cvh-statut: #8a8f98; }
+.scwm-cvh-stock .scwm-cvh-portrait img { filter: grayscale(.85) brightness(.75); }
+.scwm-cvh-stock .scwm-cvh-corps > :not(.scwm-cvh-actions):not(.scwm-cvh-tete) { opacity: .6; }
+
+.scwm-cvh .scwm-cvh-portrait {
+    flex: 0 0 auto; width: 76px; height: 76px; padding: 0; margin: 0;
+    border-radius: 8px; overflow: hidden; cursor: pointer;
+    border: 2px solid var(--cvh-statut); background: rgba(0, 0, 0, .3);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--cvh-statut) 35%, transparent);
+}
+.scwm-cvh-portrait img { width: 100%; height: 100%; object-fit: cover; object-position: top; border: 0; display: block; transition: transform .2s; }
+.scwm-cvh-portrait:hover img { transform: scale(1.06); }
+
+.scwm-cvh-corps { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.scwm-cvh-tete { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.scwm-cvh-tete h4 { margin: 0; font-size: 1.15em; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scwm-cvh-statut {
+    flex: 0 0 auto; display: inline-flex; align-items: center; gap: 5px;
+    padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 600;
+    color: var(--cvh-statut);
+    background: color-mix(in srgb, var(--cvh-statut) 16%, transparent);
+    border: 1px solid color-mix(in srgb, var(--cvh-statut) 55%, transparent);
+}
+.scwm-cvh-sous { margin: 0; font-size: 12px; opacity: .85; }
+.scwm-cvh-histo { margin: 0; font-size: 11px; font-style: italic; opacity: .65; }
+.scwm-cvh-puces { display: flex; flex-wrap: wrap; gap: 5px; }
+.scwm-cvh-puce {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 1px 7px; border-radius: 4px; font-size: 11px;
+    background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .1);
+}
+.scwm-cvh-puce .fa-heart { color: #e0605a; }
+.scwm-cvh-puce .fa-shield { color: #8fb3d9; }
+.scwm-cvh-puce .fa-coins { color: var(--cvh-or); }
+
+.scwm-cvh-xp { display: flex; flex-direction: column; gap: 2px; }
+.scwm-cvh-xp-barre { height: 5px; border-radius: 3px; background: rgba(255, 255, 255, .1); overflow: hidden; }
+.scwm-cvh-xp-barre span { display: block; height: 100%; background: linear-gradient(90deg, #8a6d1a, var(--cvh-or)); }
+.scwm-cvh-xp small { font-size: 10px; opacity: .65; }
+.scwm-cvh-xp-pret small { color: #ffe08a; opacity: 1; font-weight: 600; }
+.scwm-cvh-xp-pret .scwm-cvh-xp-barre span { animation: scwm-cvh-lueur 1.6s ease-in-out infinite; }
+@keyframes scwm-cvh-lueur { 50% { filter: brightness(1.6); } }
+
+.scwm-cvh-actions { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+.scwm-cvh .scwm-cvh-actions button {
+    flex: 0 0 auto; width: auto; margin: 0; padding: 2px 10px;
+    min-height: 26px; line-height: 1.2; white-space: nowrap; font-size: 12px;
+}
+.scwm-cvh .scwm-cvh-discret { background: transparent; }
+.scwm-cvh .scwm-cvh-brille { border-color: #ffe08a; box-shadow: 0 0 8px rgba(255, 224, 138, .45); }
+
+/* Demande en attente, limite, nouveau personnage, liste vide */
+.scwm-cvh-demande {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 8px;
+    border: 1px dashed rgba(230, 195, 74, .6); background: rgba(230, 195, 74, .08);
+}
+.scwm-cvh-demande > i { font-size: 1.4em; color: #e6c34a; }
+.scwm-cvh-demande > div { flex: 1; min-width: 0; }
+.scwm-cvh-demande small { opacity: .75; }
+.scwm-cvh .scwm-cvh-demande button { flex: 0 0 auto; width: auto; margin: 0; }
+.scwm-cvh-limite { margin: 0; text-align: center; opacity: .75; font-size: 12px; }
+.scwm-cvh .scwm-cvh-nouveau {
+    width: 100%; margin: 0; padding: 10px; min-height: 40px;
+    border: 1px dashed rgba(201, 162, 39, .6); border-radius: 8px;
+    background: rgba(201, 162, 39, .06); font-weight: 600;
+}
+.scwm-cvh .scwm-cvh-nouveau:hover { background: rgba(201, 162, 39, .16); box-shadow: 0 0 10px rgba(201, 162, 39, .3); }
+.scwm-cvh-vide { text-align: center; padding: 14px 8px; opacity: .8; }
+.scwm-cvh-vide i { font-size: 2em; color: var(--cvh-or); }
+.scwm-cvh-vide p { margin: 6px 0 0; }
+
+@media (prefers-reduced-motion: reduce) {
+    .scwm-cvh-carte, .scwm-cvh-portrait img { transition: none; }
+    .scwm-cvh-xp-pret .scwm-cvh-xp-barre span { animation: none; }
+}
+
+/* Système d'étoiles dans le casier joueur */
+.scwm-cvh-etoiles small .fa-star { color: var(--cvh-or); }
+.scwm-cvh-puce b { font-weight: 700; }
+.scwm-cvh-actions button i { margin-right: 3px; }
+
+/* ===== gmnotes.css ===== */
+/* ============================================================
+   gmnotes.css — Onglet « Note GM » (privé, fiche PJ)
+   ============================================================ */
+
+.scwm-gmnotes {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    height: 100%;
+    padding: 12px 14px;
+    box-sizing: border-box;
+}
+
+/* En-tête : icône + titre + badge « privé » */
+.scwm-gmnotes-header {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(201, 148, 40, 0.45);
+}
+.scwm-gmnotes-header > i {
+    font-size: 18px;
+    color: #e0a13a;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+.scwm-gmnotes-title {
+    flex: 1 1 auto;
+    font-family: "Modesto Condensed", "Signika", serif;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: #f0e6cc;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+}
+.scwm-gmnotes-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex: 0 0 auto;
+    padding: 2px 9px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #ffe3a3;
+    background: rgba(201, 148, 40, 0.18);
+    border: 1px solid rgba(201, 148, 40, 0.6);
+}
+.scwm-gmnotes-badge i { font-size: 9px; }
+
+.scwm-gmnotes-sub {
+    margin: 0;
+    font-size: 12px;
+    font-style: italic;
+    opacity: 0.75;
+}
+
+/* « Papier » qui entoure la zone de saisie */
+.scwm-gmnotes-paper {
+    flex: 1 1 auto;
+    display: flex;
+    min-height: 260px;
+    border-radius: 8px;
+    border: 1px solid rgba(201, 148, 40, 0.5);
+    background:
+        radial-gradient(ellipse at 15% 10%, rgba(201, 148, 40, 0.06), transparent 55%),
+        linear-gradient(180deg, rgba(30, 26, 18, 0.55), rgba(18, 15, 10, 0.55));
+    box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+}
+
+.scwm-gmnotes-input {
+    flex: 1 1 auto;
+    width: 100%;
+    resize: none;
+    box-sizing: border-box;
+    padding: 12px 14px;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #ece3cf;
+    font-family: "Signika", sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+}
+.scwm-gmnotes-input::placeholder {
+    color: rgba(236, 227, 207, 0.4);
+    font-style: italic;
+}
+.scwm-gmnotes-paper:focus-within {
+    border-color: rgba(224, 161, 58, 0.85);
+    box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.4), 0 0 0 2px rgba(224, 161, 58, 0.25);
+}
+
+.scwm-gmnotes-foot {
+    margin: 0;
+    font-size: 11px;
+    opacity: 0.6;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* ===== accessibility.css ===== */
+/* ============================================================
+   accessibility.css — Accessibilité & confort d'interface
+   (réglages personnels par joueur ; voir accessibility.js)
+   ============================================================ */
+
+/* ── 1. Daltonisme ─────────────────────────────────────────────
+   La correction des couleurs de la SCÈNE est appliquée en JavaScript via un
+   filtre PIXI (ColorMatrixFilter) sur le canvas de rendu — voir
+   accessibility.js. Un filtre CSS url() sur un canvas WebGL est ignoré par le
+   navigateur : il ne faut donc PAS le faire ici. Aucune règle CSS de filtre. */
+
+/* ── 2. Fort contraste ─────────────────────────────────────── */
+/* La couleur des contours est pilotée par --scwm-a11y-border, posée en
+   inline sur <body> par accessibility.js (réglage a11yContrastColor).
+   Valeur de repli si non définie : jaune. */
+body.scwm-a11y-contrast #interface {
+    --color-text-dark-primary: #ffffff;
+    --color-text-light-primary: #ffffff;
+}
+/* Fonds opaques UNIQUEMENT sur des fenêtres dimensionnées. On NE touche PAS :
+   #players (barre noire) NI les messages de chat (habillage crème dédié). */
+body.scwm-a11y-contrast .app,
+body.scwm-a11y-contrast .application {
+    background: rgba(0, 0, 0, 0.92) !important;
+    border-color: var(--scwm-a11y-border, #ffd54a) !important;
+    color: #ffffff !important;
+}
+/* Liste des joueurs : on renforce le texte et on borde SEULEMENT la liste
+   réelle, sans remplir tout le panneau. */
+body.scwm-a11y-contrast #players .players-list,
+body.scwm-a11y-contrast #players .player {
+    border-color: var(--scwm-a11y-border, #ffd54a) !important;
+}
+body.scwm-a11y-contrast #interface a,
+body.scwm-a11y-contrast .window-content,
+body.scwm-a11y-contrast #players .player-name,
+body.scwm-a11y-contrast .player-name {
+    color: #ffffff !important;
+    text-shadow: 0 0 2px #000, 0 0 2px #000 !important;
+}
+/* Le fort contraste ne doit PAS toucher les cartes de chat (habillage crème). */
+body.scwm-a11y-contrast :is(#chat-log, .chat-log, .chat-sidebar, .chat-popout) .message,
+body.scwm-a11y-contrast :is(#chat-log, .chat-log, .chat-sidebar, .chat-popout) .message-content {
+    background: revert !important;
+    color: revert !important;
+    text-shadow: none !important;
+}
+body.scwm-a11y-contrast .control-tool,
+body.scwm-a11y-contrast #controls .control,
+body.scwm-a11y-contrast button.control,
+body.scwm-a11y-contrast .scene-control {
+    border: 2px solid var(--scwm-a11y-border, #ffd54a) !important;
+}
+body.scwm-a11y-contrast :focus-visible {
+    outline: 3px solid var(--scwm-a11y-border, #ffd54a) !important;
+    outline-offset: 2px !important;
+}
+
+/* ── 3. Avatars dans la liste des joueurs ──────────────────── */
+.scwm-player-avatar {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex: 0 0 auto;
+    margin-right: 6px;
+    border: 1px solid rgba(201, 162, 39, 0.6);
+    background: #000;
+    vertical-align: middle;
+}
+#players .player > h3,
+#players .player-name { display: inline-flex; align-items: center; }
+
+/* ── 4. Auto-masquage (fondu tant que non survolé) ──────────── */
+body.scwm-a11y-autohide #ui-left,
+body.scwm-a11y-autohide #controls,
+body.scwm-a11y-autohide #navigation,
+body.scwm-a11y-autohide #ui-bottom #hotbar,
+body.scwm-a11y-autohide #hotbar,
+body.scwm-a11y-autohide #players {
+    opacity: 0.22;
+    transition: opacity 0.25s ease;
+}
+body.scwm-a11y-autohide #ui-left:hover,
+body.scwm-a11y-autohide #controls:hover,
+body.scwm-a11y-autohide #navigation:hover,
+body.scwm-a11y-autohide #ui-bottom #hotbar:hover,
+body.scwm-a11y-autohide #hotbar:hover,
+body.scwm-a11y-autohide #players:hover {
+    opacity: 1;
+}
+
+/* ── 5. Contrôles de gauche compacts (icônes + espacements resserrés) ── */
+/* Taille des boutons. */
+body.scwm-a11y-compact #controls .control-tool,
+body.scwm-a11y-compact #controls li.scene-control,
+body.scwm-a11y-compact #controls .control,
+body.scwm-a11y-compact #scene-controls .control,
+body.scwm-a11y-compact #ui-left button.control {
+    width: 30px !important;
+    height: 30px !important;
+    line-height: 30px !important;
+    font-size: 14px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+/* Espacement vertical entre boutons + entre les deux colonnes (outils/sous-outils). */
+body.scwm-a11y-compact #ui-left,
+body.scwm-a11y-compact #controls,
+body.scwm-a11y-compact #scene-controls {
+    gap: 2px !important;
+}
+body.scwm-a11y-compact #controls ol,
+body.scwm-a11y-compact #controls menu,
+body.scwm-a11y-compact #controls .control-tools,
+body.scwm-a11y-compact #scene-controls ol,
+body.scwm-a11y-compact #scene-controls menu {
+    gap: 2px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+/* Colle les deux colonnes (barre principale ↔ sous-outils). */
+body.scwm-a11y-compact #controls { column-gap: 3px !important; }
+
+/* ===== settings-hub.css ===== */
+/* ============================================================
+   settings-hub.css — Panneau de configuration regroupé
+   ============================================================ */
+
+.scwm-hub {
+    display: flex;
+    gap: 10px;
+    /* Hauteur DÉFINIE (indispensable pour que les zones internes défilent
+       au lieu de déborder de l'écran). */
+    height: 70vh;
+    max-height: 70vh;
+    min-height: 0;
+}
+
+/* Barre de navigation des thèmes (à gauche). */
+.scwm-hub-nav {
+    flex: 0 0 190px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 6px;
+    border-right: 1px solid rgba(201, 162, 39, 0.35);
+}
+.scwm-hub-navbtn {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;   /* texte collé à gauche, pas centré */
+    text-align: left;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid rgba(201, 162, 39, 0.25);
+    border-radius: 5px;
+    background: rgba(20, 18, 14, 0.4);
+    color: #d8cfa8;
+    font-size: 0.85em;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+.scwm-hub-navbtn i { color: #c9a227; width: 16px; text-align: center; flex: 0 0 auto; }
+.scwm-hub-navbtn span { flex: 1 1 auto; text-align: left; }
+.scwm-hub-navbtn:hover { background: rgba(201, 162, 39, 0.15); }
+.scwm-hub-navbtn.active {
+    background: linear-gradient(180deg, rgba(201, 162, 39, 0.28), rgba(201, 162, 39, 0.1));
+    border-color: rgba(201, 162, 39, 0.7);
+    color: #fff;
+    font-weight: 600;
+}
+
+/* Zone de contenu défilante (à droite). */
+.scwm-hub-scroll {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 6px;
+}
+.scwm-hub-group-title {
+    margin: 0 0 8px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid rgba(201, 162, 39, 0.4);
+    font-size: 1.05em;
+    color: #e8cc6a;
+}
+.scwm-hub-group-title i { margin-right: 6px; }
+
+/* Chaque catégorie devient une section repliable. */
+.scwm-hub-cat {
+    margin: 0 0 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 5px;
+    background: rgba(0, 0, 0, 0.12);
+    overflow: hidden;
+}
+.scwm-hub-cat > summary {
+    cursor: pointer;
+    padding: 8px 10px;
+    font-weight: 600;
+    background: rgba(201, 162, 39, 0.08);
+    list-style: none;
+}
+.scwm-hub-cat > summary::-webkit-details-marker { display: none; }
+/* Chevron : vraie icône FontAwesome (pas un pseudo-élément unicode, qui
+   s'affichait en carré selon la police FA chargée). */
+.scwm-hub-caret {
+    color: #c9a227;
+    margin-right: 8px;
+    width: 12px;
+    text-align: center;
+    display: inline-block;
+    transition: transform 0.15s;
+}
+.scwm-hub-cat[open] > summary .scwm-hub-caret { transform: rotate(90deg); }
+.scwm-hub-cat > summary i { color: #c9a227; margin-right: 4px; }
+.scwm-hub-cat > summary .scwm-hub-caret { margin-right: 8px; }
+.scwm-hub-cat-body { padding: 4px 10px 8px; }
+/* Le formulaire de catégorie inliné ne gère plus sa propre hauteur/scroll :
+   c'est la zone du hub qui défile. */
+.scwm-hub-cat-body .scwm-cat-form { max-height: none !important; overflow: visible !important; }
+
+/* Catégories à éditeur dédié : ligne avec bouton « Ouvrir ». */
+.scwm-hub-launch {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0 0 8px;
+    padding: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 5px;
+    background: rgba(0, 0, 0, 0.12);
+}
+.scwm-hub-launch-desc { font-size: 0.78em; color: #999; margin-top: 2px; line-height: 1.35; }
+.scwm-hub-open {
+    flex: 0 0 auto;
+    padding: 6px 12px;
+    border: 1px solid rgba(201, 162, 39, 0.5);
+    border-radius: 5px;
+    background: rgba(201, 162, 39, 0.15);
+    color: #e8cc6a;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.scwm-hub-open:hover { background: rgba(201, 162, 39, 0.3); color: #fff; }
+
+/* Filtre « Uniquement l'actif » : masque ce qui est désactivé. */
+.scwm-hub-filtre {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 6px;
+    padding: 6px 8px;
+    border: 1px dashed rgba(201, 162, 39, 0.45);
+    border-radius: 5px;
+    font-size: 0.82em;
+    color: #d8cfa8;
+    cursor: pointer;
+}
+.scwm-hub-filtre input { width: 15px; height: 15px; margin: 0; flex: 0 0 auto; }
+.scwm-hub-filtre small { display: block; opacity: 0.7; font-size: 0.9em; }
+.scwm-hub.scwm-filtre-actifs [data-scwm-off] { display: none !important; }
+/* « Tout activer » cocherait des options masquées : caché avec le filtre. */
+.scwm-hub.scwm-filtre-actifs .scwm-all-on,
+.scwm-hub.scwm-filtre-actifs .scwm-all-on + span { display: none !important; }
+
+/* Catégorie gelée par le module : non dépliable, marquée désactivée. */
+.scwm-hub-gele { opacity: .75; cursor: not-allowed; }
+.scwm-hub-gele-tete {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 2px 6px;
+    padding: 8px 10px; font-weight: 600;
+    background: rgba(120, 120, 120, 0.1);
+}
+.scwm-hub-gele-tete > i { color: #8a8f98; margin-right: 4px; }
+.scwm-hub-gele-tete .scwm-hub-caret { margin-right: 8px; }
+.scwm-hub-gele-badge {
+    margin-left: auto; padding: 1px 9px; border-radius: 999px;
+    font-size: 11px; font-weight: 600; color: #e0a85a;
+    background: rgba(214, 130, 40, .15); border: 1px solid rgba(214, 130, 40, .5);
+}
+.scwm-hub-gele-badge i { color: inherit !important; margin-right: 3px; }
+
+/* Recherche dans le panneau (en haut de la colonne de gauche). */
+.scwm-hub-cherche {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 6px; margin-bottom: 2px;
+    border: 1px solid rgba(201, 162, 39, 0.45); border-radius: 5px;
+    background: rgba(0, 0, 0, 0.25);
+}
+.scwm-hub-cherche i { color: #c9a227; font-size: 0.85em; }
+.scwm-hub-cherche input { flex: 1 1 auto; min-width: 0; border: 0; background: transparent; height: 22px; padding: 0; }
+.scwm-hub-cherche input:focus { box-shadow: none; outline: none; }
+.scwm-hub-cherche:focus-within { border-color: #c9a227; box-shadow: 0 0 6px rgba(201, 162, 39, 0.35); }
+.scwm-hub-cherche-n { display: block; min-height: 0; font-size: 0.8em; opacity: 0.7; padding: 0 4px; }
+.scwm-hub-cherche-n:empty { display: none; }
+/* Pendant une recherche, la navigation par thème est grisée (tous les thèmes sont cherchés). */
+.scwm-hub.scwm-hub-recherche .scwm-hub-navbtn { opacity: 0.55; }
+.scwm-hub.scwm-hub-recherche .scwm-hub-navbtn.active { background: rgba(20, 18, 14, 0.4); border-color: rgba(201, 162, 39, 0.25); font-weight: 400; color: #d8cfa8; }
+
+/* ===== chat-cards.css ===== */
+/* ============================================================
+   chat-cards.css — Habillage « westmarch » des cartes de chat dnd5e
+   (attaques, aptitudes, sorts, objets…).
+
+   • Activé seulement si body.scwm-chat-cards est présent (réglage
+     "enableChatCards", posé par le module).
+   • Fond des cartes piloté par --scwm-chat-bg (couleur au choix de
+     CHAQUE joueur ; défaut : blanc crème). Le texte s'adapte via
+     --scwm-chat-fg / --scwm-chat-fg2 (calculés en JS selon la
+     luminosité de la couleur choisie, pour rester lisible).
+   • On surcharge les variables du système + les jetons de texte, donc
+     la structure et les mécaniques (boutons, jets, repli) sont intactes.
+   Sélecteurs plats (pas de nesting) pour compat maximale.
+   ============================================================ */
+
+:root {
+    --scwm-chat-bg:  #f4ecd8;   /* blanc crème par défaut */
+    --scwm-chat-fg:  #2a2418;   /* texte principal (foncé sur crème) */
+    --scwm-chat-fg2: #5c5240;   /* texte secondaire */
+    --scwm-chat-gold: #9a7b1e;  /* or lisible sur fond clair */
+}
+
+/* ── Teinte globale de la carte ───────────────────────────── */
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) {
+    --dnd5e-chat-background: var(--scwm-chat-bg);
+    --dnd5e-border-gold: 1px solid var(--scwm-chat-gold);
+    --dnd5e-background-card: rgba(255, 255, 255, 0.35);
+    --dnd5e-chat-button-background: rgba(154, 123, 30, 0.12);
+    --dnd5e-chat-button-border: rgba(154, 123, 30, 0.5);
+    /* Jetons de texte du cœur Foundry → couleurs lisibles sur la carte */
+    --color-text-primary: var(--scwm-chat-fg);
+    --color-text-secondary: var(--scwm-chat-fg2);
+    --color-text-tertiary: var(--scwm-chat-fg2);
+    color: var(--scwm-chat-fg);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+/* ── En-tête : titre doré foncé, sous-titre discret ───────── */
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .title {
+    color: var(--scwm-chat-gold);
+    text-shadow: none;
+}
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .subtitle {
+    color: var(--scwm-chat-fg2);
+}
+
+/* ── Icône d'objet / avatar : encadrée d'or ───────────────── */
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .message-sender .avatar:not(.token) img,
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .chat-card .description .summary > img {
+    border: 1px solid var(--scwm-chat-gold) !important;
+    border-radius: 4px;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+}
+
+/* ── Boutons (Attaque / Dégâts / Sauvegarde / Utiliser…) ──── */
+/* Confort : pleine largeur, cible cliquable plus haute, halo au survol. */
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .chat-card .card-buttons button {
+    border: 1px solid rgba(154, 123, 30, 0.55);
+    background: linear-gradient(180deg, rgba(154, 123, 30, 0.16), rgba(154, 123, 30, 0.05));
+    color: var(--scwm-chat-fg);
+    border-radius: 5px;
+    font-weight: 600;
+    min-height: 26px;
+    transition: box-shadow 0.15s, background 0.15s, border-color 0.15s, color 0.15s;
+}
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .chat-card .card-buttons button:hover {
+    border-color: #e67e22;
+    background: rgba(230, 126, 34, 0.16);
+    box-shadow: 0 0 8px rgba(230, 126, 34, 0.4);
+}
+
+/* ── Pastilles + suppléments (Action, portée, composantes…) ─ */
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .pills .pill {
+    border: 1px solid rgba(154, 123, 30, 0.4);
+    background: rgba(154, 123, 30, 0.10);
+    border-radius: 3px;
+    color: var(--scwm-chat-fg);
+}
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) p.supplement > strong {
+    color: var(--scwm-chat-gold);
+}
+
+/* ── Panneau de description : liseré interne doré ─────────── */
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .chat-card .description {
+    box-shadow: inset 0 0 0 1px rgba(154, 123, 30, 0.15);
+}
+
+/* ── Total du jet : liseré doré (réussite/échec conservés) ── */
+body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .dice-total {
+    border-color: rgba(154, 123, 30, 0.45);
+}
+
+/* ===== trade.css ===== */
+/* ============================================================
+   trade.css — Fenêtre d'échange entre joueurs + bouton liste joueurs
+   ============================================================ */
+
+/* Bouton « Échanger » dans la liste des joueurs. */
+.scwm-trade-btn {
+    margin-left: 6px;
+    color: #c9a227;
+    cursor: pointer;
+    flex: 0 0 auto;
+}
+.scwm-trade-btn:hover { color: #fff; text-shadow: 0 0 6px #e67e22; }
+
+/* Fenêtre d'échange. */
+.scwm-trade .window-content { padding: 8px; }
+.scwm-trade-body { display: flex; flex-direction: column; gap: 10px; height: 100%; }
+.scwm-trade-cols { display: flex; gap: 10px; flex: 1 1 auto; min-height: 0; }
+
+.scwm-trade-col {
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border: 1px solid rgba(201, 162, 39, 0.4);
+    border-radius: 6px;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.15);
+    min-width: 0;
+}
+.scwm-trade-col h3 {
+    margin: 0 0 2px;
+    font-size: 13px;
+    color: #e8cc6a;
+    border-bottom: 1px solid rgba(201, 162, 39, 0.3);
+    padding-bottom: 4px;
+}
+.scwm-trade-items {
+    flex: 1 1 auto;
+    min-height: 90px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.scwm-trade-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 4px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.04);
+}
+.scwm-trade-item img { width: 28px; height: 28px; border: none; border-radius: 3px; flex: 0 0 auto; object-fit: cover; }
+.scwm-trade-item .n { flex: 1 1 auto; font-size: 12px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scwm-trade-item .q { font-size: 12px; color: #c9a227; flex: 0 0 auto; }
+.scwm-trade-rem { color: #e58f8f; cursor: pointer; flex: 0 0 auto; padding: 0 4px; }
+.scwm-trade-rem:hover { color: #fff; }
+.scwm-trade-empty { color: #777; font-style: italic; font-size: 12px; padding: 6px; text-align: center; }
+
+.scwm-trade-add {
+    font-size: 12px;
+    padding: 3px 8px;
+    border: 1px dashed rgba(201, 162, 39, 0.5);
+    border-radius: 4px;
+    background: rgba(201, 162, 39, 0.08);
+    color: #c9a227;
+    cursor: pointer;
+}
+.scwm-trade-add:hover { background: rgba(201, 162, 39, 0.18); color: #fff; }
+
+.scwm-trade-cur { display: flex; flex-wrap: wrap; gap: 4px; }
+.scwm-cur { display: flex; align-items: center; gap: 3px; font-size: 11px; }
+.scwm-cur span { color: #c9a227; min-width: 20px; }
+.scwm-cur input { width: 46px; height: 22px; font-size: 11px; padding: 0 4px; }
+.scwm-cur-ro { font-size: 11px; color: #d8cca0; padding: 2px 5px; border: 1px solid rgba(201,162,39,0.25); border-radius: 3px; }
+
+.scwm-trade-status { font-size: 11px; display: flex; gap: 8px; margin-top: 2px; }
+.scwm-lock { color: #999; }
+.scwm-lock.on { color: #8fd19e; }
+.scwm-conf.on { color: #8fd19e; }
+
+.scwm-trade-actions { display: flex; gap: 6px; }
+.scwm-trade-actions button {
+    flex: 1 1 auto;
+    min-height: 32px;
+    border-radius: 5px;
+    border: 1px solid rgba(201, 162, 39, 0.5);
+    background: rgba(201, 162, 39, 0.12);
+    color: #ecdca0;
+    cursor: pointer;
+    font-weight: 600;
+}
+.scwm-trade-actions button:hover:not(:disabled) { background: rgba(201, 162, 39, 0.25); color: #fff; }
+.scwm-trade-actions .scwm-trade-lock.on { background: rgba(143, 209, 158, 0.15); border-color: #8fd19e; color: #cdeccf; }
+.scwm-trade-actions .scwm-trade-confirm { border-color: #8fd19e; background: rgba(143, 209, 158, 0.15); color: #d8f0da; }
+.scwm-trade-actions .scwm-trade-cancel { border-color: rgba(192, 57, 43, 0.5); background: rgba(192, 57, 43, 0.12); color: #e58f8f; }
+.scwm-trade-actions button:disabled { opacity: 0.45; cursor: default; }
+

@@ -162,7 +162,7 @@ body.scwm-chat-bigbtn ${SCOPE} .message .scwm-btn-row button.icon { width: 100% 
 // décision). Le réglage est grisé dans la configuration. Pour réactiver :
 // repasser à false et retirer "enableChatCards" de FROZEN_SETTINGS (settings.js).
 const CARTES_DISABLED = true;
-const cartesActives = () => { if (CARTES_DISABLED) return false; try { return !!game.settings.get(MOD, "enableChatCards"); } catch { return false; } };
+export const cartesActives = () => { if (CARTES_DISABLED) return false; try { return !!game.settings.get(MOD, "enableChatCards"); } catch { return false; } };
 
 export function applyChatCardPrefs() {
     const body = document.body;

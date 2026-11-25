@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 7.0.4
+Version : 7.0.5
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -217,6 +217,18 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v7.0.5 | 2026-11-25
+   - Répartition des pièces : les contenants « liquides » (gourde, flasque,
+     cruche… = capacité en volume uniquement, sans capacité en objets/poids)
+     ne sont plus listés ni comptés pour l'icône — on n'y range pas de
+     pièces. Fichier : modules/currency.js.
+   - Fenêtre de répartition : passée en tableau unique (en-tête + totaux
+     figés), et les champs de saisie s'élargissent maintenant selon la
+     taille du nombre tapé (field-sizing). Fichiers : modules/currency.js,
+     styles/currency.css.
+   - Icône bourse sur la fiche : info-bulle au survol corrigée (description
+     plus claire). Fichier : modules/currency.js.
 
 v7.0.4 | 2026-11-25
    - Fenêtre de répartition des pièces : défilable et retravaillée. Chaque

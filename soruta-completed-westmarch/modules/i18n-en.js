@@ -2,6 +2,7 @@
 // Généré à partir des textes du code ; une entrée absente reste en français.
 // © 2026 Soruta.
 export default {
+ "Répartir mes pièces dans mes contenants — le sac sans fond retire leur poids de l'encombrement.": "Distribute my coins across my containers — a Bag of Holding removes their weight from encumbrance.",
  "Les pièces restent sur ta bourse — tu notes seulement où tu les ranges. Seul un sac sans fond retire leur poids de l'encombrement.": "The coins stay in your purse — you just note where you keep them. Only a Bag of Holding removes their weight from encumbrance.",
  "Contenant": "Container",
  "Contenu sans poids : les pièces ici ne pèsent pas.": "Weightless contents: coins here have no weight.",

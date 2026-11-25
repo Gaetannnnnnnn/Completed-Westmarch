@@ -48,7 +48,16 @@ const estSansPoids = (item) => {
     const p = item?.system?.properties;
     return !!(p?.has?.("weightlessContents") || (Array.isArray(p) && p.includes("weightlessContents")));
 };
-const contenants = (actor) => (actor?.items ?? []).filter(i => i.type === "container");
+// Un contenant « liquide » (gourde, flasque, cruche…) a une capacité en VOLUME
+// et aucune capacité en objets/poids : on n'y range pas de pièces → exclu.
+const peutContenirPieces = (c) => {
+    const cap = c?.system?.capacity ?? {};
+    const vol = Number(cap.volume?.value) || 0;
+    const cnt = Number(cap.count) || 0;
+    const wt  = Number(cap.weight?.value) || 0;
+    return !(vol > 0 && cnt <= 0 && wt <= 0);
+};
+const contenants = (actor) => (actor?.items ?? []).filter(i => i.type === "container" && peutContenirPieces(i));
 const aContenant = (actor) => { try { return contenants(actor).length > 0; } catch { return false; } };
 const denomsAutorisees = () => {
     let ep = true; try { ep = !game.settings.get(MOD, "disableElectrum"); } catch { /* */ }
@@ -84,7 +93,6 @@ async function ouvrirRepartition(actor) {
     const denoms = denomsAutorisees();
     const uid = "scwm-rep-" + foundry.utils.randomID();
 
-    const colgroup = `<colgroup><col>${denoms.map(() => `<col style="width:3.4em;">`).join("")}</colgroup>`;
     const thead = `<tr><th class="scwm-rep-h-nom">${esc(tl("Contenant"))}</th>${denoms.map(d => `<th class="scwm-rep-den ${d}">${DENOM_LABEL[d]}</th>`).join("")}</tr>`;
     const lignes = conts.map(c => {
         const v = rep[c.id] ?? {};
@@ -92,26 +100,26 @@ async function ouvrirRepartition(actor) {
         const badge = estSansPoids(c) ? `<span class="scwm-rep-sp" data-tooltip="${esc(tl("Contenu sans poids : les pièces ici ne pèsent pas."))}">${esc(tl("sans poids"))}</span>` : "";
         return `<tr data-cid="${c.id}">
             <td class="scwm-rep-nom"><div class="scwm-rep-nomwrap"><img class="scwm-rep-img" src="${img}" alt=""><div class="scwm-rep-nomtxt"><b>${esc(c.name)}</b>${badge}</div></div></td>
-            ${denoms.map(d => `<td><input type="number" min="0" step="1" data-d="${d}" value="${nf(v[d])}"></td>`).join("")}
+            ${denoms.map(d => `<td><input class="scwm-rep-coin" type="number" min="0" step="1" data-d="${d}" value="${nf(v[d])}"></td>`).join("")}
         </tr>`;
     }).join("");
     const videRow = `<tr><td colspan="${denoms.length + 1}" style="opacity:.7;padding:10px;text-align:center;">${esc(tl("Aucun contenant sur la fiche."))}</td></tr>`;
-    const footLigne = (cls, label, attr) => `<tr class="${cls}"><td class="scwm-rep-flabel">${esc(label)}</td>${denoms.map(d =>
+    const footRow = (cls, label, attr) => `<tr class="${cls}"><td class="scwm-rep-flabel">${esc(label)}</td>${denoms.map(d =>
         `<td${attr ? ` class="${attr === "reste" ? "scwm-rep-reste" : ""}" data-${attr}="${d}"` : ""}>${attr ? (attr === "tot" ? "0" : "—") : nf(purse[d])}</td>`).join("")}</tr>`;
 
     const content = `<div id="${uid}" class="scwm-rep">
         <p class="scwm-rep-intro">${esc(tl("Les pièces restent sur ta bourse — tu notes seulement où tu les ranges. Seul un sac sans fond retire leur poids de l'encombrement."))}</p>
         <div class="scwm-rep-scroll">
-            <table>${colgroup}
+            <table>
                 <thead>${thead}</thead>
                 <tbody>${lignes || videRow}</tbody>
+                <tfoot>
+                    ${footRow("scwm-rep-bourse", tl("Bourse (total)"), "")}
+                    ${footRow("", tl("Rangé (total)"), "tot")}
+                    ${footRow("", tl("Reste sur la bourse"), "reste")}
+                </tfoot>
             </table>
         </div>
-        <div class="scwm-rep-foot"><table>${colgroup}<tbody>
-            ${footLigne("scwm-rep-bourse", tl("Bourse (total)"), "")}
-            ${footLigne("scwm-rep-fort", tl("Rangé (total)"), "tot")}
-            ${footLigne("scwm-rep-fort", tl("Reste sur la bourse"), "reste")}
-        </tbody></table></div>
         <p class="scwm-rep-err" data-err></p>
     </div>`;
 
@@ -179,8 +187,7 @@ function injecterIconeSac(app, html) {
         const b = document.createElement("button");
         b.type = "button";
         b.className = "scwm-rep-open";
-        b.dataset.tooltip = tl("Répartir les pièces dans les contenants (poids du sac sans fond).");
-        b.style.cssText = "margin-left:8px;cursor:pointer;color:#c9a227;background:none;border:none;font-size:1em;padding:0;";
+        b.dataset.tooltip = tl("Répartir mes pièces dans mes contenants — le sac sans fond retire leur poids de l'encombrement.");
         b.innerHTML = `<i class="fa-solid fa-sack-dollar"></i>`;
         b.addEventListener("click", (ev) => { ev.preventDefault(); ouvrirRepartition(actor); });
         sec.appendChild(b);

@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 7.0.7
+Version : 7.0.8
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -217,6 +217,26 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v7.0.8 | 2026-11-26
+   - Casier → Extensions (ergonomie). Suppression : un seul bouton
+     « Supprimer… » qui ouvre une fenêtre où l'on choisit les types à retirer
+     (sorts, armes, équipement, autres — avec le compte de chacun) ou « Tout
+     supprimer ». La structure (classe/sous-classe/espèce/historique) reste
+     intouchable. Par personnage : dépliage à deux niveaux — on déplie un PJ,
+     puis chaque extension pour voir la liste nominative des sorts/objets
+     (chargée à la demande, les sorts avec leur niveau). Tableaux retravaillés
+     (en-têtes, zébrures, badges colorés, chiffres alignés).
+   - Ajout de sorts à une classe : nouvelle option « Plafonner au niveau
+     lançable » — n'ajoute que les sorts du niveau que le personnage peut
+     réellement lancer (d'après ses emplacements ; les tours de magie passent
+     toujours).
+   - Magiciens sous quota : comptage du grimoire fiabilisé — on ne compte plus
+     « sorts préparés » (qui gonflait pour les multiclassés) mais les sorts de
+     niveau 1+ de la liste magicien (via flags.plutonium.spellClassNames),
+     préparés ou non. Légende clarifiée.
+     Fichiers : modules/grimoires.js, modules/casier.js, styles/casier.css,
+     modules/i18n-en.js.
 
 v7.0.7 | 2026-11-26
    - Casier → Extensions : la suppression ne se limite plus aux sorts. Deux

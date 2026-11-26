@@ -25,7 +25,7 @@ import {
 } from "./charvalidation.js";
 import { downtimeContentHtml, wireDowntime, applyDowntimeFromRoot } from "./tm.js";
 import { mondeActif, ongletMondeHtml, cablerOngletMonde } from "./monde.js";
-import { extensionsActif, collectGrimoires, supprimerParExtension, analyseLanceurs, ajouterSortsAClasses, LABEL_CLASSE } from "./grimoires.js";
+import { extensionsActif, collectGrimoires, ouvrirSuppressionParExtension, itemsDuLivre, analyseLanceurs, ajouterSortsAClasses, LABEL_CLASSE } from "./grimoires.js";
 import { tl, locale } from "./i18n.js";
 import { verifierAdmin } from "./adminpass.js";
 import { maxEtoilesSession } from "./starxp.js";
@@ -1280,15 +1280,19 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                 <td style="text-align:right;font-weight:600;">${c.total}</td>
             </tr>`).join("");
 
+        const badge = (val, cls, lab) => val ? `<span class="scwm-grim-b ${cls}" title="${lab}">${val}</span>` : "";
         const pcRows = data.pcs.map(p => {
             const perBook = Object.entries(p.perBook)
                 .sort((a, b) => b[1].total - a[1].total || a[0].localeCompare(b[0], "fr", { sensitivity: "base" }));
-            const inner = perBook.map(([b, c]) => `
-                <tr><td>${esc(b)}</td>
-                    <td style="text-align:right;">${n(c.spell)}</td>
-                    <td style="text-align:right;">${n(c.weapon)}</td>
-                    <td style="text-align:right;">${n(c.equipment)}</td>
-                    <td style="text-align:right;">${n(c.autre)}</td></tr>`).join("");
+            const bookDetails = perBook.map(([b, c]) => `
+                <details class="scwm-grim-bd" data-aid="${esc(p.id)}" data-book="${esc(b)}">
+                    <summary>
+                        <i class="fa-solid fa-chevron-right scwm-grim-bchev"></i>
+                        <span class="scwm-grim-bname">${esc(b)}</span>
+                        <span class="scwm-grim-bbadges">${badge(c.spell, "sp", tl("Sorts"))}${badge(c.weapon, "wp", tl("Armes"))}${badge(c.equipment, "eq", tl("Équip."))}${badge(c.autre, "ot", tl("Autres"))}</span>
+                    </summary>
+                    <div class="scwm-grim-items"><span class="scwm-grim-loading">${tl("Chargement…")}</span></div>
+                </details>`).join("");
             return `
             <details class="scwm-grim-pc">
                 <summary>
@@ -1298,10 +1302,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                     <span class="scwm-grim-sum">${tl("{0} ext. · {1} sorts · {2} obj.", perBook.length, p.tot.spell, p.tot.total - p.tot.spell)}</span>
                     <i class="fa-solid fa-chevron-down scwm-grim-chevron"></i>
                 </summary>
-                <table class="scwm-reg-table scwm-grim-inner">
-                    <thead><tr><th>${tl("Extension")}</th><th>${tl("Sorts")}</th><th>${tl("Armes")}</th><th>${tl("Équip.")}</th><th>${tl("Autres")}</th></tr></thead>
-                    <tbody>${inner || `<tr><td colspan="5" style="opacity:.6;">—</td></tr>`}</tbody>
-                </table>
+                <div class="scwm-grim-books">${bookDetails || `<p class="scwm-grim-empty">—</p>`}</div>
             </details>`;
         }).join("");
 
@@ -1321,9 +1322,8 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                     <tbody>${globalRows || `<tr><td colspan="7" style="opacity:.6;">${tl("Aucun personnage dans le dossier joueurs.")}</td></tr>`}</tbody>
                 </table>
                 <div class="scwm-reg-toolbar" style="margin-top:8px;">
-                    <span style="flex:1;font-size:.85em;color:#9a8b70;">${tl("Coche des extensions (colonne de gauche) puis supprime, sur tous les PJ, soit leurs sorts, soit tout leur contenu. La classe, l'espèce et l'historique ne sont jamais touchés.")}</span>
-                    <button type="button" class="scwm-grim-del" data-scope="spells"><i class="fa-solid fa-wand-sparkles"></i> ${tl("Supprimer les sorts cochés")}</button>
-                    <button type="button" class="scwm-grim-del scwm-grim-del-all" data-scope="all"><i class="fa-solid fa-trash"></i> ${tl("Supprimer tout le contenu coché")}</button>
+                    <span style="flex:1;font-size:.85em;color:#9a8b70;">${tl("Coche des extensions (colonne de gauche) puis ouvre la fenêtre de suppression pour choisir quels types retirer — ou tout. Structure jamais touchée.")}</span>
+                    <button type="button" class="scwm-grim-del scwm-grim-del-all"><i class="fa-solid fa-trash"></i> ${tl("Supprimer…")}</button>
                 </div>
 
                 ${this.#ajoutClasseSection(books)}
@@ -1349,8 +1349,25 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                     <select class="scwm-grim-addbook">${opts || `<option value="">${tl("— aucune —")}</option>`}</select>
                 </label>
                 <div class="scwm-grim-classes">${classes}</div>
+                <label class="scwm-grim-cl scwm-grim-cap"><input type="checkbox" class="scwm-grim-plafond"> ${tl("Plafonner au niveau lançable")}</label>
                 <button type="button" class="scwm-grim-addbtn"><i class="fa-solid fa-plus"></i> ${tl("Ajouter aux classes cochées")}</button>
             </div>`;
+    }
+
+    // Rendu de la liste d'éléments d'une extension pour un PJ (dépliage niv. 2).
+    #grimItemsHtml(items) {
+        if (!items.length) return `<span class="scwm-grim-loading">—</span>`;
+        const LAB = { spell: tl("Sorts"), weapon: tl("Armes"), equipment: tl("Équip."), autre: tl("Autres") };
+        const groups = {};
+        for (const it of items) (groups[it.cat] ??= []).push(it);
+        return ["spell", "weapon", "equipment", "autre"].filter(k => groups[k]).map(k => {
+            const lis = groups[k].map(it => {
+                const lvl = it.cat === "spell"
+                    ? ` <span class="scwm-grim-lvl">${it.level ? tl("niv. {0}", it.level) : tl("tour")}</span>` : "";
+                return `<li>${esc(it.name)}${lvl}</li>`;
+            }).join("");
+            return `<div class="scwm-grim-cat"><h5>${LAB[k]} <span class="scwm-grim-catn">${groups[k].length}</span></h5><ul>${lis}</ul></div>`;
+        }).join("");
     }
 
     // Phase 2a — magiciens sous leur quota de grimoire.
@@ -1367,7 +1384,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             </tr>`).join("");
         return `
             <h3 style="margin-top:14px;">${tl("<i class=\"fa-solid fa-book-journal-whills\"></i> Magiciens — quota de grimoire")}</h3>
-            <p class="scwm-reg-legend">${tl("Règle PHB : 6 sorts (niveau 1+) au niveau 1, puis +2 par niveau de magicien. Grimoire = sorts de niveau 1+ préparables. ")}<i class="fa-solid fa-code-branch"></i> ${tl("= multiclassé, total approximatif.")}</p>
+            <p class="scwm-reg-legend">${tl("Règle PHB : un magicien a 6 sorts dans son grimoire au niveau 1, +2 à chaque niveau — soit 6 + 2×(niveau−1). « Grimoire » compté ici = ses sorts de niveau 1+ de la liste magicien (préparés ou non). « Manque » = sorts qu'il aurait dû obtenir en montant de niveau.")} <i class="fa-solid fa-code-branch"></i> ${tl("= multiclassé.")}</p>
             <table class="scwm-reg-table scwm-grim-casters">
                 <thead><tr>
                     <th>${tl("Magicien")}</th><th style="text-align:center;">${tl("Niv.")}</th>
@@ -1387,13 +1404,21 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                 this.render();
             }));
 
-        // ---- Onglet Extensions : suppression (sorts seuls ou tout le contenu) ----
-        root.querySelectorAll(".scwm-grim-del").forEach(btn =>
-            btn.addEventListener("click", async () => {
-                const livres = [...root.querySelectorAll(".scwm-grim-book:checked")].map(c => c.value);
-                if (!livres.length) { ui.notifications?.warn(tl("Coche au moins une extension.")); return; }
-                const r = await supprimerParExtension(livres, { tout: btn.dataset.scope === "all" });
-                if (r) this.render();
+        // ---- Onglet Extensions : suppression (fenêtre « par type ou tout ») ----
+        root.querySelector(".scwm-grim-del")?.addEventListener("click", async () => {
+            const livres = [...root.querySelectorAll(".scwm-grim-book:checked")].map(c => c.value);
+            if (!livres.length) { ui.notifications?.warn(tl("Coche au moins une extension.")); return; }
+            const r = await ouvrirSuppressionParExtension(livres);
+            if (r) this.render();
+        });
+
+        // ---- Onglet Extensions : dépliage extension → éléments (à la demande) ----
+        root.querySelectorAll(".scwm-grim-bd").forEach(d =>
+            d.addEventListener("toggle", () => {
+                if (!d.open || d.dataset.loaded) return;
+                d.dataset.loaded = "1";
+                const box = d.querySelector(".scwm-grim-items");
+                if (box) box.innerHTML = this.#grimItemsHtml(itemsDuLivre(d.dataset.aid, d.dataset.book));
             }));
 
         // ---- Onglet Extensions : ajout de sorts à une classe ----
@@ -1402,7 +1427,8 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             const idents = [...root.querySelectorAll(".scwm-grim-addclass:checked")].map(c => c.value);
             if (!book) { ui.notifications?.warn(tl("Choisis une extension.")); return; }
             if (!idents.length) { ui.notifications?.warn(tl("Coche au moins une classe.")); return; }
-            const r = await ajouterSortsAClasses(book, idents);
+            const plafonner = !!root.querySelector(".scwm-grim-plafond")?.checked;
+            const r = await ajouterSortsAClasses(book, idents, { plafonner });
             if (r) this.render();
         });
 

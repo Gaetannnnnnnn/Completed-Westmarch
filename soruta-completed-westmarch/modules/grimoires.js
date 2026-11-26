@@ -103,59 +103,123 @@ export function collectGrimoires() {
     return { ok: true, folderId, pcs, books };
 }
 
-// Supprime, sur tous les PJ du dossier, le contenu des extensions données.
-//   options.tout = false → seulement les SORTS ;
-//   options.tout = true  → TOUT le contenu (sorts, armes, équipement, objets,
-//                          aptitudes…) SAUF la structure (classe/espèce/
-//                          historique/sous-classe), jamais touchée.
-// Confirmation (avec le détail par type) + mot de passe admin avant d'agir.
-// Renvoie { total, pcs } en cas de succès, sinon null.
-export async function supprimerParExtension(livres, { tout = false } = {}) {
-    if (!game.user.isGM) { ui.notifications?.warn(tl("Réservé au MJ.")); return null; }
-    const set = new Set((livres ?? []).filter(Boolean));
-    if (!set.size) { ui.notifications?.warn(tl("Aucune extension cochée.")); return null; }
+// Compte, pour un ensemble de livres, le nombre d'éléments par type (contenu
+// seulement) sur les PJ du dossier. → { type: n }.
+function compterParType(set) {
+    const parType = {};
+    for (const a of pjsDuDossier())
+        for (const i of a.items)
+            if (!!categorie(i.type) && set.has(livreDeItem(i)))
+                parType[i.type] = (parType[i.type] ?? 0) + 1;
+    return parType;
+}
 
-    const garde = (i) => set.has(livreDeItem(i)) && !!categorie(i.type) && (tout || i.type === "spell");
+// Supprime le contenu des livres `set` dont le type ∈ typesSet, sur tous les
+// PJ. Mot de passe admin avant d'agir. Renvoie { total, pcs } ou null.
+async function supprimerContenu(set, typesSet, liste) {
     const cibles = [];
     const parType = {};
     let total = 0;
     for (const a of pjsDuDossier()) {
-        const items = a.items.filter(garde);
+        const items = a.items.filter(i => typesSet.has(i.type) && !!categorie(i.type) && set.has(livreDeItem(i)));
         if (!items.length) continue;
         total += items.length;
         cibles.push({ actor: a, ids: items.map(i => i.id) });
         for (const i of items) parType[i.type] = (parType[i.type] ?? 0) + 1;
     }
-    if (!total) { ui.notifications?.info(tl("Rien à supprimer pour ces extensions.")); return null; }
+    if (!total) { ui.notifications?.info(tl("Rien à supprimer pour cette sélection.")); return null; }
 
-    const liste = [...set].join(", ");
-    const detail = Object.entries(parType).sort((a, b) => b[1] - a[1])
-        .map(([t, n]) => `${n} ${tl(LABEL_TYPE[t] ?? t)}`).join(", ");
-    const action = tout ? tl("Supprimer tout le contenu par extension") : tl("Supprimer des sorts par extension");
-
-    const ok = await foundry.applications.api.DialogV2.confirm({
-        window: { title: action, icon: "fa-solid fa-trash" },
-        content: `<p>${tl("Supprimer <b>{0}</b> élément(s) des extensions <b>{1}</b> sur <b>{2}</b> personnage(s) ?", total, liste, cibles.length)}</p>
-            <p style="margin:4px 0 0;">${tl("Détail :")} ${detail}.</p>
-            ${tout ? `<p style="opacity:.75;margin:6px 0 0;font-size:.9em;"><i class="fa-solid fa-shield-halved"></i> ${tl("La classe, la sous-classe, l'espèce et l'historique ne sont jamais supprimés.")}</p>` : ""}
-            <p style="opacity:.8;margin:6px 0 0;"><i class="fa-solid fa-triangle-exclamation"></i> ${tl("Action irréversible — une sauvegarde du monde est conseillée avant.")}</p>`,
-        rejectClose: false
-    }).catch(() => false);
-    if (!ok) return null;
-
-    if (!(await verifierAdmin(action))) return null;
+    if (!(await verifierAdmin(tl("Supprimer par extension")))) return null;
 
     for (const { actor, ids } of cibles) {
         try { await actor.deleteEmbeddedDocuments("Item", ids, { render: false }); }
         catch (e) { journal.erreur(tl("[{0}] Suppression par extension ({1}) :", MOD, actor.name), e); }
     }
-    journal.info(tl("[{0}] {1} élément(s) supprimé(s) par extension ({2}) sur {3} PJ — par {4}.", MOD, total, liste, cibles.length, game.user.name));
+    const detail = Object.entries(parType).sort((a, b) => b[1] - a[1]).map(([t, n]) => `${n} ${tl(LABEL_TYPE[t] ?? t)}`).join(", ");
+    journal.info(tl("[{0}] {1} élément(s) supprimé(s) ({2}) des extensions ({3}) sur {4} PJ — par {5}.", MOD, total, detail, liste, cibles.length, game.user.name));
     ui.notifications?.info(tl("{0} élément(s) supprimé(s).", total));
     return { total, pcs: cibles.length };
 }
 
-// Compat. : ancien nom (sorts seulement).
-export const supprimerSortsParExtension = (livres) => supprimerParExtension(livres, { tout: false });
+// Ouvre la fenêtre de suppression : pour les extensions cochées, propose de
+// supprimer par type (cases cochées) ou tout. Puis mot de passe admin.
+export async function ouvrirSuppressionParExtension(livres) {
+    if (!game.user.isGM) { ui.notifications?.warn(tl("Réservé au MJ.")); return null; }
+    const set = new Set((livres ?? []).filter(Boolean));
+    if (!set.size) { ui.notifications?.warn(tl("Coche au moins une extension.")); return null; }
+
+    const compte = compterParType(set);
+    const types = Object.entries(compte).sort((a, b) => b[1] - a[1]);
+    const totalTous = types.reduce((s, [, n]) => s + n, 0);
+    if (!totalTous) { ui.notifications?.info(tl("Rien à supprimer pour ces extensions.")); return null; }
+
+    const liste = [...set].join(", ");
+    const rows = types.map(([t, n]) => `
+        <label class="scwm-del-type">
+            <input type="checkbox" name="type" value="${t}">
+            <span class="scwm-del-lab">${tl(LABEL_TYPE[t] ?? t)}</span>
+            <span class="scwm-del-n">${n}</span>
+        </label>`).join("");
+
+    const content = `
+        <div class="scwm-del-dialog">
+            <p class="scwm-del-ext">${tl("Extensions :")} <b>${liste}</b></p>
+            <label class="scwm-del-type scwm-del-all">
+                <input type="checkbox" name="all" checked>
+                <span class="scwm-del-lab"><b>${tl("Tout supprimer")}</b></span>
+                <span class="scwm-del-n">${totalTous}</span>
+            </label>
+            <div class="scwm-del-types">${rows}</div>
+            <p class="scwm-del-note"><i class="fa-solid fa-shield-halved"></i> ${tl("Classe, sous-classe, espèce et historique ne sont jamais supprimés.")}</p>
+            <p class="scwm-del-warn"><i class="fa-solid fa-triangle-exclamation"></i> ${tl("Action irréversible — sauvegarde du monde conseillée.")}</p>
+        </div>`;
+
+    const choix = await foundry.applications.api.DialogV2.wait({
+        window: { title: tl("Supprimer par extension"), icon: "fa-solid fa-trash" },
+        content,
+        render: (ev, dialog) => {
+            try {
+                const root = dialog?.element ?? dialog;
+                const all = root?.querySelector?.('input[name="all"]');
+                const cases = [...(root?.querySelectorAll?.('input[name="type"]') ?? [])];
+                if (!all || !cases.length) return;
+                const sync = () => cases.forEach(c => { c.checked = all.checked; c.disabled = all.checked; });
+                sync();
+                all.addEventListener("change", sync);
+            } catch (e) { /* non bloquant : les cases restent utilisables à la main */ }
+        },
+        buttons: [
+            {
+                action: "ok", label: tl("Supprimer"), icon: "fa-solid fa-trash", default: true,
+                callback: (ev, btn) => {
+                    const form = btn.form ?? btn.closest(".window-content");
+                    const all = form.querySelector('input[name="all"]')?.checked;
+                    const sel = [...form.querySelectorAll('input[name="type"]:checked')].map(c => c.value);
+                    return { all, types: sel };
+                }
+            },
+            { action: "cancel", label: tl("Annuler"), icon: "fa-solid fa-xmark" }
+        ],
+        rejectClose: false
+    }).catch(() => null);
+
+    if (!choix || typeof choix !== "object") return null;   // annulé / fermé
+    const typesSet = choix.all ? new Set(Object.keys(compte)) : new Set(choix.types ?? []);
+    if (!typesSet.size) { ui.notifications?.warn(tl("Coche au moins un type (ou « Tout »).")); return null; }
+    return await supprimerContenu(set, typesSet, liste);
+}
+
+// Détail des éléments (contenu) d'un PJ pour un livre donné — pour le dépliage
+// à deux niveaux (joueur → extension → éléments). → [{ cat, type, name, level }].
+export function itemsDuLivre(actorId, book) {
+    const a = game.actors?.get(actorId);
+    if (!a) return [];
+    const ordre = { spell: 0, weapon: 1, equipment: 2, autre: 3 };
+    return a.items
+        .filter(i => !!categorie(i.type) && livreDeItem(i) === book)
+        .map(i => ({ cat: categorie(i.type), type: i.type, name: i.name, level: Number(i.system?.level) || 0 }))
+        .sort((x, y) => (ordre[x.cat] - ordre[y.cat]) || (x.level - y.level) || x.name.localeCompare(y.name, "fr", { sensitivity: "base" }));
+}
 
 // ---------------------------------------------------------------- Phase 2a
 // Magiciens sous leur quota de grimoire. Règle PHB : 6 sorts de niveau 1+ au
@@ -173,8 +237,11 @@ export function analyseLanceurs() {
         const niv = niveauDeClasse(a, "wizard");
         if (!niv) continue;
         const quota = 6 + 2 * (niv - 1);
+        // Grimoire = sorts de niveau ≥ 1 dont la liste de classes Plutonium
+        // contient « Wizard » (isole le magicien, ignore les autres classes
+        // d'un multiclassé, compte aussi les sorts non préparés).
         const connus = a.items.filter(i =>
-            i.type === "spell" && (Number(i.system?.level) || 0) >= 1 && i.system?.preparation?.mode === "prepared"
+            i.type === "spell" && (Number(i.system?.level) || 0) >= 1 && classesDuSort(i).includes("wizard")
         ).length;
         const multi = a.items.filter(i => i.type === "class").length > 1;
         rows.push({ id: a.id, name: a.name, img: a.img, niv, connus, quota, manque: Math.max(0, quota - connus), multi });
@@ -221,10 +288,21 @@ function poolSorts() {
 
 const acteurAClasse = (a, ident) => a.items.some(i => i.type === "class" && i.system?.identifier === ident);
 
+// Niveau de sort maximum qu'un acteur peut lancer (d'après ses emplacements).
+// Les tours de magie (niveau 0) passent toujours.
+function niveauMaxLancable(a) {
+    const sp = a.system?.spells ?? {};
+    let max = 0;
+    for (let L = 1; L <= 9; L++) if (Number(sp["spell" + L]?.max) > 0) max = L;
+    const pact = Number(sp.pact?.level) || 0;
+    if (pact > max) max = pact;
+    return max;
+}
+
 // Ajoute, sur chaque PJ du dossier ayant l'une des classes choisies, tous les
 // sorts de cette classe issus du livre `book` qu'il n'a pas déjà.
 // Confirmation (détail par classe) + mot de passe admin. Renvoie { total, pcs }.
-export async function ajouterSortsAClasses(book, idents) {
+export async function ajouterSortsAClasses(book, idents, { plafonner = false } = {}) {
     if (!game.user.isGM) { ui.notifications?.warn(tl("Réservé au MJ.")); return null; }
     const classes = (idents ?? []).filter(id => CLASSES_PLEINES[id]);
     if (!book) { ui.notifications?.warn(tl("Choisis une extension.")); return null; }
@@ -242,12 +320,14 @@ export async function ajouterSortsAClasses(book, idents) {
     let total = 0;
     for (const a of pjsDuDossier()) {
         const existants = new Set(a.items.filter(i => i.type === "spell").map(hashSort));
+        const cap = plafonner ? niveauMaxLancable(a) : Infinity;   // tours (niv. 0) toujours OK
         const aAjouter = new Map();
         const compte = {};
         for (const id of classes) {
             if (!acteurAClasse(a, id)) continue;
             for (const e of candParClasse[id]) {
                 if (existants.has(e.hash) || aAjouter.has(e.hash)) continue;
+                if ((Number(e.data.system?.level) || 0) > cap) continue;   // plafonné au niveau lançable
                 const d = foundry.utils.deepClone(e.data);
                 delete d._id;
                 d.system = d.system || {};
@@ -270,7 +350,8 @@ export async function ajouterSortsAClasses(book, idents) {
         window: { title: tl("Ajouter des sorts à une classe"), icon: "fa-solid fa-wand-magic-sparkles" },
         content: `<p>${tl("Ajouter <b>{0}</b> sort(s) du livre <b>{1}</b> à <b>{2}</b> personnage(s) ?", total, book, plan.length)}</p>
             <p style="margin:4px 0 0;">${tl("Détail :")} ${detail}.</p>
-            <p style="opacity:.75;margin:6px 0 0;font-size:.9em;">${tl("Les sorts sont ajoutés au grimoire/liste (non préparés ; les tours de magie restent préparés). Les doublons sont ignorés.")}</p>`,
+            <p style="opacity:.75;margin:6px 0 0;font-size:.9em;">${tl("Les sorts sont ajoutés au grimoire/liste (non préparés ; les tours de magie restent préparés). Les doublons sont ignorés.")}</p>
+            ${plafonner ? `<p style="opacity:.75;margin:3px 0 0;font-size:.9em;"><i class="fa-solid fa-arrows-down-to-line"></i> ${tl("Plafonné : seuls les sorts du niveau lançable par chaque personnage sont ajoutés.")}</p>` : ""}`,
         rejectClose: false
     }).catch(() => false);
     if (!ok) return null;

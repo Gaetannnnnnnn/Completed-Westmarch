@@ -25,7 +25,7 @@ import {
 } from "./charvalidation.js";
 import { downtimeContentHtml, wireDowntime, applyDowntimeFromRoot } from "./tm.js";
 import { mondeActif, ongletMondeHtml, cablerOngletMonde } from "./monde.js";
-import { extensionsActif, collectGrimoires, supprimerSortsParExtension } from "./grimoires.js";
+import { extensionsActif, collectGrimoires, supprimerParExtension, analyseLanceurs, ajouterSortsAClasses, LABEL_CLASSE } from "./grimoires.js";
 import { tl, locale } from "./i18n.js";
 import { verifierAdmin } from "./adminpass.js";
 import { maxEtoilesSession } from "./starxp.js";
@@ -1271,7 +1271,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
 
         const globalRows = books.map(([b, c]) => `
             <tr>
-                <td style="text-align:center;">${c.spell ? `<input type="checkbox" class="scwm-grim-book" value="${esc(b)}" title="${tl("{0} sort(s)", c.spell)}">` : ""}</td>
+                <td style="text-align:center;">${c.total ? `<input type="checkbox" class="scwm-grim-book" value="${esc(b)}" title="${tl("{0} élément(s) — dont {1} sort(s)", c.total, c.spell)}">` : ""}</td>
                 <td>${esc(b)}</td>
                 <td style="text-align:right;">${n(c.spell)}</td>
                 <td style="text-align:right;">${n(c.weapon)}</td>
@@ -1321,13 +1321,61 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                     <tbody>${globalRows || `<tr><td colspan="7" style="opacity:.6;">${tl("Aucun personnage dans le dossier joueurs.")}</td></tr>`}</tbody>
                 </table>
                 <div class="scwm-reg-toolbar" style="margin-top:8px;">
-                    <span style="flex:1;font-size:.85em;color:#9a8b70;">${tl("Coche des extensions (colonne de gauche, seulement celles qui ont des sorts) puis supprime leurs sorts sur tous les PJ.")}</span>
-                    <button type="button" class="scwm-grim-del"><i class="fa-solid fa-trash"></i> ${tl("Supprimer les sorts cochés")}</button>
+                    <span style="flex:1;font-size:.85em;color:#9a8b70;">${tl("Coche des extensions (colonne de gauche) puis supprime, sur tous les PJ, soit leurs sorts, soit tout leur contenu. La classe, l'espèce et l'historique ne sont jamais touchés.")}</span>
+                    <button type="button" class="scwm-grim-del" data-scope="spells"><i class="fa-solid fa-wand-sparkles"></i> ${tl("Supprimer les sorts cochés")}</button>
+                    <button type="button" class="scwm-grim-del scwm-grim-del-all" data-scope="all"><i class="fa-solid fa-trash"></i> ${tl("Supprimer tout le contenu coché")}</button>
                 </div>
+
+                ${this.#ajoutClasseSection(books)}
 
                 <h3 style="margin-top:14px;">${tl("Par personnage")}</h3>
                 <div class="scwm-grim-list">${pcRows || `<p class="scwm-casier-empty">${tl("Aucun personnage.")}</p>`}</div>
+
+                ${this.#lanceursSection()}
             </div>`;
+    }
+
+    // Phase 2b — ajouter les sorts d'une extension à une classe à liste complète.
+    #ajoutClasseSection(books) {
+        const avecSorts = books.filter(([, c]) => c.spell > 0);
+        const opts = avecSorts.map(([b, c]) => `<option value="${esc(b)}">${esc(b)} (${c.spell})</option>`).join("");
+        const classes = Object.entries(LABEL_CLASSE)
+            .map(([id, lab]) => `<label class="scwm-grim-cl"><input type="checkbox" class="scwm-grim-addclass" value="${id}"> ${tl(lab)}</label>`).join("");
+        return `
+            <h3 style="margin-top:16px;">${tl("<i class=\"fa-solid fa-wand-magic-sparkles\"></i> Ajouter des sorts à une classe")}</h3>
+            <p class="scwm-reg-legend">${tl("Ajoute à chaque PJ ayant la classe tous les sorts de cette classe issus de l'extension choisie (Clerc, Druide, Paladin, Artificier, Rôdeur préparent sur toute leur liste). Doublons ignorés, structure jamais touchée.")}</p>
+            <div class="scwm-grim-add">
+                <label>${tl("Extension :")}
+                    <select class="scwm-grim-addbook">${opts || `<option value="">${tl("— aucune —")}</option>`}</select>
+                </label>
+                <div class="scwm-grim-classes">${classes}</div>
+                <button type="button" class="scwm-grim-addbtn"><i class="fa-solid fa-plus"></i> ${tl("Ajouter aux classes cochées")}</button>
+            </div>`;
+    }
+
+    // Phase 2a — magiciens sous leur quota de grimoire.
+    #lanceursSection() {
+        const rows = analyseLanceurs();
+        if (!rows.length) return "";
+        const body = rows.map(r => `
+            <tr class="${r.manque ? "scwm-grim-under" : ""}">
+                <td><img class="scwm-grim-mini" src="${esc(r.img || "icons/svg/mystery-man.svg")}" alt=""> ${esc(r.name)}${r.multi ? ` <i class="fa-solid fa-code-branch" title="${tl("Multiclassé : total approximatif")}"></i>` : ""}</td>
+                <td style="text-align:center;">${r.niv}</td>
+                <td style="text-align:center;">${r.connus}</td>
+                <td style="text-align:center;">${r.quota}</td>
+                <td style="text-align:center;font-weight:600;">${r.manque ? `<span class="scwm-grim-miss">-${r.manque}</span>` : "✓"}</td>
+            </tr>`).join("");
+        return `
+            <h3 style="margin-top:14px;">${tl("<i class=\"fa-solid fa-book-journal-whills\"></i> Magiciens — quota de grimoire")}</h3>
+            <p class="scwm-reg-legend">${tl("Règle PHB : 6 sorts (niveau 1+) au niveau 1, puis +2 par niveau de magicien. Grimoire = sorts de niveau 1+ préparables. ")}<i class="fa-solid fa-code-branch"></i> ${tl("= multiclassé, total approximatif.")}</p>
+            <table class="scwm-reg-table scwm-grim-casters">
+                <thead><tr>
+                    <th>${tl("Magicien")}</th><th style="text-align:center;">${tl("Niv.")}</th>
+                    <th style="text-align:center;">${tl("Grimoire")}</th><th style="text-align:center;">${tl("Quota")}</th>
+                    <th style="text-align:center;">${tl("Manque")}</th>
+                </tr></thead>
+                <tbody>${body}</tbody>
+            </table>`;
     }
 
     // ---- Écouteurs ----
@@ -1339,11 +1387,22 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                 this.render();
             }));
 
-        // ---- Onglet Extensions : suppression des sorts cochés ----
-        root.querySelector(".scwm-grim-del")?.addEventListener("click", async () => {
-            const livres = [...root.querySelectorAll(".scwm-grim-book:checked")].map(c => c.value);
-            if (!livres.length) { ui.notifications?.warn(tl("Coche au moins une extension.")); return; }
-            const r = await supprimerSortsParExtension(livres);
+        // ---- Onglet Extensions : suppression (sorts seuls ou tout le contenu) ----
+        root.querySelectorAll(".scwm-grim-del").forEach(btn =>
+            btn.addEventListener("click", async () => {
+                const livres = [...root.querySelectorAll(".scwm-grim-book:checked")].map(c => c.value);
+                if (!livres.length) { ui.notifications?.warn(tl("Coche au moins une extension.")); return; }
+                const r = await supprimerParExtension(livres, { tout: btn.dataset.scope === "all" });
+                if (r) this.render();
+            }));
+
+        // ---- Onglet Extensions : ajout de sorts à une classe ----
+        root.querySelector(".scwm-grim-addbtn")?.addEventListener("click", async () => {
+            const book = root.querySelector(".scwm-grim-addbook")?.value || "";
+            const idents = [...root.querySelectorAll(".scwm-grim-addclass:checked")].map(c => c.value);
+            if (!book) { ui.notifications?.warn(tl("Choisis une extension.")); return; }
+            if (!idents.length) { ui.notifications?.warn(tl("Coche au moins une classe.")); return; }
+            const r = await ajouterSortsAClasses(book, idents);
             if (r) this.render();
         });
 

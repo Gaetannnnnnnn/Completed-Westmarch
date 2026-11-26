@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 7.0.6
+Version : 7.0.7
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -217,6 +217,33 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v7.0.7 | 2026-11-26
+   - Casier → Extensions : la suppression ne se limite plus aux sorts. Deux
+     boutons : « Supprimer les sorts cochés » et « Supprimer tout le contenu
+     coché » (sorts, armes, équipement, objets, aptitudes…). La confirmation
+     affiche le détail par type. Sécurité : la classe, la sous-classe,
+     l'espèce et l'historique ne sont JAMAIS comptés ni supprimés (les
+     effacer casserait la fiche). Chaque extension est cochable dès qu'elle a
+     du contenu (plus seulement des sorts).
+     Fichiers : modules/grimoires.js, modules/casier.js, styles/casier.css,
+     modules/i18n-en.js.
+   - Casier → Extensions (Phase 2a) : nouveau tableau « Magiciens — quota de
+     grimoire ». Pour chaque magicien du dossier joueurs : niveau, taille du
+     grimoire (sorts de niveau 1+ préparables), quota attendu (règle PHB :
+     6 + 2 par niveau) et le manque éventuel. Les multiclassés sont marqués
+     (total approximatif). Fichiers : modules/grimoires.js, modules/casier.js,
+     styles/casier.css, modules/i18n-en.js.
+   - Casier → Extensions (Phase 2b) : « Ajouter des sorts à une classe ».
+     On choisit une extension et une ou plusieurs classes à liste complète
+     (Clerc, Druide, Paladin, Artificier, Rôdeur) ; le module ajoute à chaque
+     PJ ayant la classe tous les sorts de cette classe issus de l'extension,
+     sans doublon, en se basant sur les classes portées par les données
+     Plutonium (flags.plutonium.spellClassNames) et en copiant les documents
+     depuis les sorts déjà présents dans le monde. Non préparés (tours de
+     magie préparés), confirmation + mot de passe admin. Fichiers :
+     modules/grimoires.js, modules/casier.js, styles/casier.css,
+     modules/i18n-en.js.
 
 v7.0.6 | 2026-11-25
    - NOUVEAU — Casier : onglet « Extensions » (réglage « Casier : onglet

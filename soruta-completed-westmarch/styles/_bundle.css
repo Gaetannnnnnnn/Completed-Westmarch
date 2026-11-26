@@ -3277,6 +3277,8 @@ body.scwm-players-collapsed #players { display: none !important; }
     border: 1px solid rgba(200, 80, 70, .5); border-radius: 5px; padding: 4px 10px;
 }
 .scwm-grim .scwm-grim-del:hover { background: rgba(200, 80, 70, .22); color: #f0c8c2; }
+.scwm-grim .scwm-grim-del-all { color: #f3d2cc; background: rgba(200, 80, 70, .3); border-color: rgba(200, 80, 70, .75); font-weight: 600; }
+.scwm-grim .scwm-grim-del-all:hover { background: rgba(200, 80, 70, .45); color: #fff; }
 
 .scwm-grim-list { display: flex; flex-direction: column; gap: 5px; }
 .scwm-grim-pc {
@@ -3302,6 +3304,16 @@ body.scwm-players-collapsed #players { display: none !important; }
 .scwm-grim-inner { margin: 0 9px 9px; width: calc(100% - 18px); }
 .scwm-grim-inner th { text-align: right; font-weight: 600; opacity: .8; }
 .scwm-grim-inner th:first-child { text-align: left; }
+
+.scwm-grim-add { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid rgba(127, 127, 127, .25); border-radius: 6px; background: rgba(255, 255, 255, .02); }
+.scwm-grim-add select { min-width: 11em; }
+.scwm-grim-classes { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.scwm-grim-cl { display: inline-flex; align-items: center; gap: 4px; font-size: .9em; white-space: nowrap; }
+.scwm-grim-addbtn { cursor: pointer; white-space: nowrap; color: #bfe0c0; background: rgba(95, 170, 110, .14); border: 1px solid rgba(95, 170, 110, .5); border-radius: 5px; padding: 4px 10px; }
+.scwm-grim-addbtn:hover { background: rgba(95, 170, 110, .26); color: #d6f0d6; }
+.scwm-grim-mini { width: 20px; height: 20px; border-radius: 3px; object-fit: cover; vertical-align: middle; margin-right: 5px; border: 1px solid rgba(127, 127, 127, .4); }
+.scwm-grim-casters .scwm-grim-under td { background: rgba(200, 80, 70, .08); }
+.scwm-grim-miss { color: #e06c5a; }
 
 /* ===== pcstatus.css ===== */
 /* ============================================================

@@ -25,7 +25,7 @@ import {
 } from "./charvalidation.js";
 import { downtimeContentHtml, wireDowntime, applyDowntimeFromRoot } from "./tm.js";
 import { mondeActif, ongletMondeHtml, cablerOngletMonde } from "./monde.js";
-import { extensionsActif, collectGrimoires, ouvrirSuppressionParExtension, itemsDuLivre, analyseLanceurs, ajouterSortsAClasses, LABEL_CLASSE } from "./grimoires.js";
+import { extensionsActif, collectGrimoires, ouvrirSuppressionParExtension, itemsDuLivre, analyseLanceurs, ajouterSortsAClasses, LABEL_CLASSE, extensionsCompendiumCreatures } from "./grimoires.js";
 import { tl, locale } from "./i18n.js";
 import { verifierAdmin } from "./adminpass.js";
 import { maxEtoilesSession } from "./starxp.js";
@@ -1328,6 +1328,13 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
 
                 ${this.#ajoutClasseSection(books)}
 
+                <h3 style="margin-top:16px;">${tl("<i class=\"fa-solid fa-dragon\"></i> Extensions du compendium des créatures")}</h3>
+                <p class="scwm-reg-legend">${tl("Livres sources déjà présents dans le compendium des créatures — pour éviter de réimporter une extension en double.")}</p>
+                <div class="scwm-grim-add">
+                    <button type="button" class="scwm-grim-creabtn"><i class="fa-solid fa-list"></i> ${tl("Lister les extensions du compendium")}</button>
+                    <div class="scwm-grim-creaout" style="flex:1 0 100%;"></div>
+                </div>
+
                 <h3 style="margin-top:14px;">${tl("Par personnage")}</h3>
                 <div class="scwm-grim-list">${pcRows || `<p class="scwm-casier-empty">${tl("Aucun personnage.")}</p>`}</div>
 
@@ -1410,6 +1417,26 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             if (!livres.length) { ui.notifications?.warn(tl("Coche au moins une extension.")); return; }
             const r = await ouvrirSuppressionParExtension(livres);
             if (r) this.render();
+        });
+
+        // ---- Onglet Extensions : lister les extensions du compendium créatures ----
+        root.querySelector(".scwm-grim-creabtn")?.addEventListener("click", async (ev) => {
+            const btn = ev.currentTarget;
+            const out = root.querySelector(".scwm-grim-creaout");
+            if (!out) return;
+            btn.disabled = true;
+            out.innerHTML = `<span class="scwm-grim-loading">${tl("Lecture du compendium…")}</span>`;
+            const r = await extensionsCompendiumCreatures();
+            btn.disabled = false;
+            if (!r?.ok) { out.innerHTML = `<p class="scwm-casier-empty">${tl("Compendium des créatures non réglé ou illisible.")}</p>`; return; }
+            if (!r.rows.length) { out.innerHTML = `<p class="scwm-casier-empty">${tl("Compendium vide.")}</p>`; return; }
+            const lignes = r.rows.map(([b, n]) => `<tr><td>${esc(b)}</td><td style="text-align:right;">${n}</td></tr>`).join("");
+            out.innerHTML = `
+                <p style="margin:2px 0 4px;font-size:.85em;color:#9a8b70;">${tl("{0} — {1} créature(s), {2} extension(s)", esc(r.packLabel), r.total, r.rows.length)}</p>
+                <table class="scwm-reg-table scwm-grim-global" style="max-width:360px;">
+                    <thead><tr><th>${tl("Extension")}</th><th style="text-align:right;">${tl("Créatures")}</th></tr></thead>
+                    <tbody>${lignes}</tbody>
+                </table>`;
         });
 
         // ---- Onglet Extensions : dépliage extension → éléments (à la demande) ----

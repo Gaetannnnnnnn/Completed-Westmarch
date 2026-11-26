@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 7.0.9
+Version : 7.1.0
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -217,6 +217,16 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v7.1.0 | 2026-11-26
+   - Rangement des créatures du compendium : les sous-dossiers de TYPE sont
+     maintenant colorés (dragon rouge, bête vert, mort-vivant, etc.), y compris
+     les dossiers déjà créés sans couleur. Fichier : modules/charvalidation.js.
+   - Casier → Extensions : nouveau bouton « Lister les extensions du compendium
+     des créatures ». Il lit l'index du pack (léger) et affiche les livres
+     sources déjà présents avec le nombre de créatures de chacun — pour éviter
+     de réimporter une extension en double. Fichiers : modules/grimoires.js,
+     modules/casier.js, modules/i18n-en.js.
 
 v7.0.9 | 2026-11-26
    - Log Discord moins bavard sur les montées de niveau. Quand un niveau de

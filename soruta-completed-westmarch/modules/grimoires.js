@@ -17,7 +17,7 @@
 import { MOD } from "./const.js";
 import { tl } from "./i18n.js";
 import { journal } from "./log.js";
-import { commonFolderPJ } from "./settings.js";
+import { commonFolderPJ, commonPackCreatures } from "./settings.js";
 import { verifierAdmin } from "./adminpass.js";
 
 export const extensionsActif = () => {
@@ -207,6 +207,27 @@ export async function ouvrirSuppressionParExtension(livres) {
     const typesSet = choix.all ? new Set(Object.keys(compte)) : new Set(choix.types ?? []);
     if (!typesSet.size) { ui.notifications?.warn(tl("Coche au moins un type (ou « Tout »).")); return null; }
     return await supprimerContenu(set, typesSet, liste);
+}
+
+// Liste les extensions (livres sources) présentes dans le compendium des
+// créatures, pour éviter les doublons à l'import. Lit l'INDEX du pack (léger,
+// pas de chargement des fiches complètes). → { ok, packLabel, total, rows:[[livre,n]] }.
+export async function extensionsCompendiumCreatures() {
+    const packId = (commonPackCreatures() ?? "").trim();
+    const pack = packId ? game.packs.get(packId) : null;
+    if (!pack) return { ok: false };
+    let index;
+    try { index = await pack.getIndex({ fields: ["system.source"] }); }
+    catch (e) { return { ok: false, erreur: true }; }
+    const books = {};
+    for (const e of index) {
+        const s = e.system?.source;
+        const b = (s && typeof s === "object") ? (s.book || s.custom || "") : (s || "");
+        const key = String(b).trim() || "(sans livre)";
+        books[key] = (books[key] ?? 0) + 1;
+    }
+    const rows = Object.entries(books).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "fr", { sensitivity: "base" }));
+    return { ok: true, packLabel: pack.metadata?.label ?? packId, total: index.size ?? rows.reduce((s, [, n]) => s + n, 0), rows };
 }
 
 // Détail des éléments (contenu) d'un PJ pour un livre donné — pour le dépliage

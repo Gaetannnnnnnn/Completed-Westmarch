@@ -293,9 +293,20 @@ const _formatCR = (cr) => {
     if (n === 0.5) return "1/2";
     return String(n);
 };
+// Couleur de dossier par type de créature dnd5e.
+const COULEURS_TYPE = {
+    aberration: "#6b3fa0", beast: "#5c8a3a", celestial: "#d4af37", construct: "#8a8d93",
+    dragon: "#b02a2a", elemental: "#2a9d8f", fey: "#c65fa0", fiend: "#7a1f2b",
+    giant: "#a9744f", humanoid: "#3f6fb0", monstrosity: "#4a7a6f", ooze: "#7a9a2a",
+    plant: "#3f8a5a", undead: "#556b4f"
+};
+const _typeValue = (actor) => {
+    const t = actor.system?.details?.type;
+    return (t && typeof t === "object") ? t.value : t;
+};
 function _labelTypeCreature(actor) {
     const t = actor.system?.details?.type;
-    const v = (t && typeof t === "object") ? t.value : t;
+    const v = _typeValue(actor);
     if (v === "custom") {
         const c = (t && typeof t === "object" ? t.custom : "") || "";
         return c.trim() || tl("Autre");
@@ -304,10 +315,13 @@ function _labelTypeCreature(actor) {
     if (def) return game.i18n?.localize?.(def.label ?? def) ?? String(v);
     return v ? (String(v).charAt(0).toUpperCase() + String(v).slice(1)) : tl("Sans type");
 }
-async function _ensurePackFolder(pack, name, parentId) {
+async function _ensurePackFolder(pack, name, parentId, color = null) {
     const found = pack.folders.find(f => f.name === name && (f.folder?.id ?? null) === (parentId ?? null));
-    if (found) return found;
-    return await Folder.create({ name, type: pack.documentName, folder: parentId ?? null }, { pack: pack.collection });
+    if (found) {
+        if (color && !found.color) { try { await found.update({ color }); } catch (e) {} }   // colore les dossiers déjà créés
+        return found;
+    }
+    return await Folder.create({ name, type: pack.documentName, folder: parentId ?? null, ...(color ? { color } : {}) }, { pack: pack.collection });
 }
 // Quand une créature est importée dans le compendium des créatures, la ranger
 // dans un sous-dossier par type puis par CR (si l'option est active et le pack
@@ -321,7 +335,7 @@ async function rangerCreatureCompendium(actor, userId) {
     const pack = game.packs.get(packId);
     if (!pack || pack.locked) return;                                // pack verrouillé : on ne touche à rien
     try {
-        const typeF = await _ensurePackFolder(pack, _labelTypeCreature(actor), null);
+        const typeF = await _ensurePackFolder(pack, _labelTypeCreature(actor), null, COULEURS_TYPE[_typeValue(actor)] ?? null);
         const crF = await _ensurePackFolder(pack, "CR " + _formatCR(actor.system?.details?.cr), typeF.id);
         if ((actor.folder?.id ?? null) !== crF.id) await actor.update({ folder: crF.id });
     } catch (e) { journal.avert(tl("[{0}] Rangement créature (compendium) :", MOD), e); }

@@ -93,6 +93,7 @@ export function guideHtml() {
     section("fa-dragon", tl("Créatures et monstres"), `
         <p>${tl("Compendium des créatures : {0}.", valeur(packCrea, nomPack(packCrea), !!game.packs.get(packCrea)))}</p>
         <ul>
+            <li>${tl("<strong>Pour AJOUTER une nouvelle créature</strong> (import Plutonium, création maison…) : fais-le <strong>directement dans le compendium des créatures</strong>, pas dans le monde. Le compendium est le coffre-fort — c'est là qu'une créature devient reconnue par le bestiaire. Avec Plutonium, choisis ce compendium comme destination d'import plutôt que les Acteurs du monde.")}</li>
             <li>${tl("<strong>Bestiaire</strong> : une créature s'ajoute au bestiaire d'un PJ quand il la voit, à condition d'être <strong>importée depuis ce compendium</strong> (glisser-déposer depuis le compendium vers la scène ou les acteurs).")}</li>
             <li>${tl("Une créature fabriquée à la main n'est reconnue que si elle porte <strong>exactement</strong> le nom d'une entrée du compendium. Sinon, ajoute-la d'abord au compendium.")}</li>
             <li>${tl("Ne range pas une créature dans le dossier des PNJ : elle apparaîtrait dans les relations au lieu du bestiaire.")}</li>

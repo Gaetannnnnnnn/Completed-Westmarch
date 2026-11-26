@@ -131,6 +131,10 @@ export function registerSettings() {
     game.settings.register(MOD, "commonPackCreatures", S(
         tl("Compendium des créatures"),
         tl("Compendium d'acteurs créatures. Utilisé par le Bestiaire (ajout et reconnaissance des créatures).")));
+    game.settings.register(MOD, "autoFileCreaturesByType", B(
+        tl("Ranger les créatures importées (par type puis CR)"),
+        tl("Quand une créature est importée dans le compendium des créatures (ci-dessus), la ranger automatiquement dans un sous-dossier par TYPE (dragon, bête, humanoïde…) puis un sous-dossier par CR / facteur de puissance (« CR 1/4 », « CR 5 »…). N'agit que dans ce compendium, et seulement s'il est déverrouillé. Désactivé par défaut."),
+        false));
     game.settings.register(MOD, "commonPackCraft", S(
         tl("Compendium des objets craftables"),
         tl("Compendium d'OBJETS (ex. importé via Plutonium). Utilisé par l'artisanat des temps morts pour attribuer l'objet fabriqué.")));
@@ -1388,7 +1392,7 @@ const CATEGORIES = [
       open: () => openUiHideDialog(), keys: [] },
     { firstKey: "commonFolderPJ", icon: "fa-folder-tree", title: tl("Dossiers & Compendiums"),
       desc: tl("Dossiers et compendiums communs, renseignés une seule fois ici et utilisés par toutes les fonctions (Relations, Bestiaire, Création de personnages, Temps morts)."),
-      keys: ["commonFolderPJ","autoPlayerFolder","gmAutoFolderParent","commonFolderPNJ","commonFolderNewChars","commonPackPNJ","commonPackCemetery","commonPackCreatures","commonPackCraft"] },
+      keys: ["commonFolderPJ","autoPlayerFolder","gmAutoFolderParent","commonFolderPNJ","commonFolderNewChars","commonPackPNJ","commonPackCemetery","commonPackCreatures","autoFileCreaturesByType","commonPackCraft"] },
     { firstKey: "enableParty", master: "enableParty",           icon: "fa-users",           title: tl("Système de Party"),
       desc: tl("Groupes de joueurs : chat filtré, combat par party, téléportation de groupe, journal de session, anti-cheat."),
       keys: ["enableParty","enableJoinScene","enableShowParty","enablePlayerGrouping","enableGoWithPartyScenes","enableGoWithPartyJournal","enableChatFilter","enableChatTabs","enableTrade","enableNoteLink","enableSessionLog","sessionLogWebhookUrl","sessionLogForum","sessionTags","enableCombatParty","enableCombatTurnLock","enablePartyPause","enableAntiCheat"] },

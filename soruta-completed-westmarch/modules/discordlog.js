@@ -173,11 +173,21 @@ const IGNORE_ITEM = [/^_id$/, /^_stats/, /^flags(\.|$)/, /^sort$/, /^ownership/,
     /^system\.uses\.(spent|value)$/, /^system\.recharge\.charged$/, /^system\.hd\.spent$/,
     /^system\.activities\.[^.]+\.uses\.(spent|value)$/,
     /^system\.equipped$/, /^system\.attuned$/, /^system\.prepared$/, /^system\.preparation\.prepared$/,
-    /^system\.container$/];
+    /^system\.container$/,
+    /^system\.advancement/, /^system\.activities/];   // données mécaniques (avancement, activités) : jamais des éditions « humaines »
 const IGNORE_ACTOR = [/^_id$/, /^_stats/, /^flags(\.|$)/, /^sort$/, /^ownership/, /^folder$/, /^prototypeToken/,
     /^system\.attributes\.hp\.(value|temp|tempmax)$/, /^system\.attributes\.death/, /^system\.attributes\.exhaustion$/,
     /^system\.attributes\.inspiration$/, /^system\.details\.xp/, /^system\.currency/,
     /^system\.resources\.[^.]+\.value$/, /^system\.spells\.[^.]+\.value$/, /^system\.favorites/];
+
+// Fenêtre « avancement » : quand un niveau de classe change, l'avancement
+// dnd5e crée en rafale les aptitudes/sorts accordés puis les enrichit
+// automatiquement. Ces changements ne sont PAS des éditions humaines ; on les
+// étouffe pendant un court délai pour ne pas inonder le log (ni les attribuer
+// au MJ qui a simplement cliqué « monter de niveau »).
+const _AVANCEMENT_MS = 20000;
+const _niveauRecent = new Map();   // actorId → timestamp du dernier changement de niveau
+const _enAvancement = (actorId) => (Date.now() - (_niveauRecent.get(actorId) ?? 0)) < _AVANCEMENT_MS;
 
 const LIBELLES_ITEM = [["name", "nom"], ["img", "image"], ["system.description", "description"],
     ["system.activities", "actions"], ["system.damage", tl("dégâts")], ["system.range", tl("portée")], ["system.uses", "utilisations"],
@@ -272,6 +282,12 @@ export function DiscordLogHooks() {
             sendToDiscord(`📦 **${actor.name}** a obtenu **${item.name}**${qty > 1 ? ` x${qty}` : ""}. ${authorTag(userId, actor)}`, "inventaire");
         } else if (ELEMENT_TYPES.includes(item.type)) {
             if (!_log("logLevelsElements")) return;
+            const estClasse = item.type === "class";
+            // Une classe créée (nouveau perso / multiclassage) déclenche la
+            // cascade d'avancement : on garde cette ligne mais on ouvre la
+            // fenêtre pour étouffer les aptitudes accordées qui suivent.
+            if (_enAvancement(actor.id) && !estClasse) return;
+            if (estClasse) _niveauRecent.set(actor.id, Date.now());
             sendToDiscord(tl("➕ **{0}** a ajouté **{1}** ({2}). {3}", actor.name, item.name, ELEMENT_LABELS[item.type] ?? item.type, authorTag(userId, actor)), "elements");
         }
     });
@@ -285,6 +301,7 @@ export function DiscordLogHooks() {
             sendToDiscord(`🗑️ **${actor.name}** a perdu **${item.name}**. ${authorTag(userId, actor)}`, "inventaire");
         } else if (ELEMENT_TYPES.includes(item.type)) {
             if (!_log("logLevelsElements")) return;
+            if (_enAvancement(actor.id)) return;   // retiré/remplacé automatiquement par l'avancement
             sendToDiscord(tl("➖ **{0}** a retiré **{1}** ({2}). {3}", actor.name, item.name, ELEMENT_LABELS[item.type] ?? item.type, authorTag(userId, actor)), "elements");
         }
     });
@@ -316,7 +333,7 @@ export function DiscordLogHooks() {
         }
 
         // ---- Modification de l'objet / aptitude / sort ----
-        if (_log("logSheetEdits") && _actorLogged(actor)) {
+        if (_log("logSheetEdits") && _actorLogged(actor) && !_enAvancement(actor.id)) {
             const mods = clesModifiees(item, changes, IGNORE_ITEM);
             if (mods.length) {
                 const lib = decrire(mods, LIBELLES_ITEM);
@@ -326,11 +343,15 @@ export function DiscordLogHooks() {
         }
 
         // ---- Niveau (via l'item de classe) ----
-        if (_log("logLevelsElements") && _actorLogged(actor) && item.type === "class" && changes.system?.levels !== undefined) {
+        if (item.type === "class" && changes.system?.levels !== undefined) {
             const before = item.system.levels ?? 0;
             const after = changes.system.levels;
             if (before !== after) {
-                sendToDiscordDirect(tl("⬆️ **{0}** : niveau de **{1}** {2} → {3}. {4}", actor.name, item.name, before, after, authorTag(userId, actor)), "progression");
+                // Ouvre la fenêtre « avancement » (même si ce canal est coupé) :
+                // la cascade d'aptitudes qui suit sera étouffée sur ce perso.
+                _niveauRecent.set(actor.id, Date.now());
+                if (_log("logLevelsElements") && _actorLogged(actor))
+                    sendToDiscordDirect(tl("⬆️ **{0}** : niveau de **{1}** {2} → {3}. {4}", actor.name, item.name, before, after, authorTag(userId, actor)), "progression");
             }
         }
     });

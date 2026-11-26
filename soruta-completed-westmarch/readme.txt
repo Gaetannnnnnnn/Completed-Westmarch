@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 7.0.8
+Version : 7.0.9
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -217,6 +217,41 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v7.0.9 | 2026-11-26
+   - Log Discord moins bavard sur les montées de niveau. Quand un niveau de
+     classe change (ou qu'une classe est ajoutée à la création d'un perso),
+     l'avancement dnd5e crée en rafale les aptitudes accordées puis les
+     enrichit automatiquement (« : actions », « : description »,
+     « : avancements »). Ces changements NE sont PAS des éditions humaines :
+       • les champs mécaniques « avancement » et « activités » ne sont plus
+         jamais remontés comme des modifications ;
+       • une fenêtre de 20 s après chaque changement de niveau étouffe la
+         cascade d'aptitudes accordées et leurs éditions auto sur ce perso.
+     On garde l'essentiel : la ligne de montée de niveau (⬆️) et les gains
+     d'XP. Fini le « ✏️ a modifié … : actions » attribué au MJ pour des
+     changements faits en réalité par le système.
+     Fichier : modules/discordlog.js.
+   - Rangement auto des créatures importées : fonctionne maintenant aussi pour
+     les imports Plutonium. La fonction ne reconnaissait que les créatures
+     venant d'un compendium Foundry (source « Compendium.… ») ; les PNJ
+     construits par Plutonium (sans cette source) étaient ignorés. On accepte
+     désormais aussi les imports Plutonium (flags.plutonium) : un PNJ importé
+     non rangé est déplacé dans le sous-dossier « Import » du dossier GM.
+     Rappel : nécessite que le « dossier parent des GM » soit renseigné et que
+     la créature arrive à la racine des Acteurs. Fichier : modules/charvalidation.js.
+   - Guide « Où ranger quoi ? » : la section Créatures précise désormais
+     qu'une NOUVELLE créature (import Plutonium, création maison) se met
+     directement dans le COMPENDIUM des créatures, pas dans le monde — et
+     qu'avec Plutonium il faut choisir ce compendium comme destination
+     d'import. Fichier : modules/rangement.js.
+   - NOUVEAU réglage « Ranger les créatures importées (par type puis CR) »
+     (catégorie Dossiers & Compendiums, désactivé par défaut). Quand une
+     créature est importée dans le compendium des créatures, elle est rangée
+     automatiquement dans un sous-dossier par TYPE (dragon, bête, humanoïde…)
+     puis par CR (« CR 1/4 », « CR 5 »…). N'agit que dans ce compendium et
+     seulement s'il est déverrouillé. Fichiers : modules/settings.js,
+     modules/charvalidation.js, modules/i18n-en.js.
 
 v7.0.8 | 2026-11-26
    - Casier → Extensions (ergonomie). Suppression : un seul bouton

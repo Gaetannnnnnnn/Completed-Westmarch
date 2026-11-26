@@ -271,7 +271,9 @@ async function placeImportedCreature(actor, userId) {
     if (actor.type !== "npc" || actor.pack) return;              // PNJ du monde uniquement
     if (actor.folder) return;                                    // déjà rangé
     const src = actor._stats?.compendiumSource ?? actor.getFlag?.("core", "sourceId") ?? "";
-    if (!(typeof src === "string" && src.startsWith("Compendium."))) return;   // import compendium seulement
+    const deCompendium = typeof src === "string" && src.startsWith("Compendium.");
+    const dePlutonium = !!actor.flags?.plutonium;                // import Plutonium (pas de source « Compendium. »)
+    if (!deCompendium && !dePlutonium) return;                   // seulement les créatures importées
     try {
         const gmSub = await gmActorSubfolder(game.user);
         if (!gmSub) return;
@@ -280,6 +282,49 @@ async function placeImportedCreature(actor, userId) {
         if (!dest) dest = await Folder.create({ name: tl("Import"), type: "Actor", folder: gmSub.id });
         await actor.update({ folder: dest.id });
     } catch (e) { journal.avert(tl("[{0}] Rangement créature importée :", MOD), e); }
+}
+
+// ---- Rangement auto des créatures DANS le compendium (Type → CR) ----
+const _formatCR = (cr) => {
+    const n = Number(cr);
+    if (!Number.isFinite(n)) return "?";
+    if (n === 0.125) return "1/8";
+    if (n === 0.25) return "1/4";
+    if (n === 0.5) return "1/2";
+    return String(n);
+};
+function _labelTypeCreature(actor) {
+    const t = actor.system?.details?.type;
+    const v = (t && typeof t === "object") ? t.value : t;
+    if (v === "custom") {
+        const c = (t && typeof t === "object" ? t.custom : "") || "";
+        return c.trim() || tl("Autre");
+    }
+    const def = CONFIG.DND5E?.creatureTypes?.[v];
+    if (def) return game.i18n?.localize?.(def.label ?? def) ?? String(v);
+    return v ? (String(v).charAt(0).toUpperCase() + String(v).slice(1)) : tl("Sans type");
+}
+async function _ensurePackFolder(pack, name, parentId) {
+    const found = pack.folders.find(f => f.name === name && (f.folder?.id ?? null) === (parentId ?? null));
+    if (found) return found;
+    return await Folder.create({ name, type: pack.documentName, folder: parentId ?? null }, { pack: pack.collection });
+}
+// Quand une créature est importée dans le compendium des créatures, la ranger
+// dans un sous-dossier par type puis par CR (si l'option est active et le pack
+// déverrouillé).
+async function rangerCreatureCompendium(actor, userId) {
+    if (!game.user.isGM || userId !== game.user.id) return;
+    if (actor.type !== "npc" || !actor.pack) return;                 // document de compendium uniquement
+    try { if (!game.settings.get(MOD, "autoFileCreaturesByType")) return; } catch { return; }
+    const packId = (game.settings.get(MOD, "commonPackCreatures") ?? "").trim();
+    if (!packId || actor.pack !== packId) return;                    // seulement le compendium des créatures
+    const pack = game.packs.get(packId);
+    if (!pack || pack.locked) return;                                // pack verrouillé : on ne touche à rien
+    try {
+        const typeF = await _ensurePackFolder(pack, _labelTypeCreature(actor), null);
+        const crF = await _ensurePackFolder(pack, "CR " + _formatCR(actor.system?.details?.cr), typeF.id);
+        if ((actor.folder?.id ?? null) !== crF.id) await actor.update({ folder: crF.id });
+    } catch (e) { journal.avert(tl("[{0}] Rangement créature (compendium) :", MOD), e); }
 }
 
 // Si l'acteur est rangé dans un sous-dossier « au nom d'un joueur » situé dans
@@ -971,6 +1016,8 @@ export function CharValidationHooks() {
     Hooks.on("createActor", async (actor, options, userId) => {
         // Rangement des créatures importées de compendium (indépendant du reste).
         placeImportedCreature(actor, userId);
+        // Rangement dans le compendium des créatures : Type → CR (option).
+        rangerCreatureCompendium(actor, userId);
         // Déjà rattachée à un joueur (ex. validation d'une demande) → juste rafraîchir.
         if (actor?.getFlag?.(MOD, "createdFor")) { ui.actors?.render(); return; }
         // PJ créé DIRECTEMENT par le GM dans le sous-dossier d'un joueur :

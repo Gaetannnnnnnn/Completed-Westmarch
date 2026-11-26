@@ -25,6 +25,7 @@ import {
 } from "./charvalidation.js";
 import { downtimeContentHtml, wireDowntime, applyDowntimeFromRoot } from "./tm.js";
 import { mondeActif, ongletMondeHtml, cablerOngletMonde } from "./monde.js";
+import { extensionsActif, collectGrimoires, supprimerSortsParExtension } from "./grimoires.js";
 import { tl, locale } from "./i18n.js";
 import { verifierAdmin } from "./adminpass.js";
 import { maxEtoilesSession } from "./starxp.js";
@@ -678,7 +679,8 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             { key: "stats",       icon: "fa-chart-pie",    label: tl("Statistiques") },
             { key: "dispos",      icon: "fa-user-check",   label: tl("Disponibilités") },
             { key: "attendance",  icon: "fa-chart-column", label: tl("Assiduité") },
-            { key: "scenesize",   icon: "fa-hard-drive",   label: tl("Poids du monde") }
+            { key: "scenesize",   icon: "fa-hard-drive",   label: tl("Poids du monde") },
+            ...(extensionsActif() ? [{ key: "extensions", icon: "fa-book-sparkles", label: tl("Extensions") }] : [])
         ];
         const tabBtn = (t) => `
             <button type="button" class="scwm-casier-tab ${this.#tab === t.key ? "active" : ""}" data-tab="${t.key}">
@@ -715,6 +717,7 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
         else if (this.#tab === "dispos")      detail = this.#disposDetail();
         else if (this.#tab === "scenesize")   detail = this.#sceneSizeDetail();
         else if (this.#tab === "attendance")  detail = this.#attendanceDetail();
+        else if (this.#tab === "extensions")  detail = this.#extensionsDetail();
         else if (this.#tab === "validation")  detail = this.#validationDetail();
         else if (this.#tab === "monde")       detail = ongletMondeHtml(this.#mondeEtat);
         else                                  detail = this.#gmsDetail();
@@ -1252,6 +1255,81 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
             </div>`;
     }
 
+    // ---- Onglet Extensions ----
+    #extensionsDetail() {
+        const data = collectGrimoires();
+        if (!data.ok) {
+            return `
+            <div class="scwm-casier-detail scwm-grim">
+                <h2>${tl("<i class=\"fa-solid fa-book-sparkles\"></i> Extensions")}</h2>
+                <p class="scwm-casier-empty">${tl("Aucun dossier joueurs défini (Réglages → Dossiers & Compendiums → « Dossier des PJ »).")}</p>
+            </div>`;
+        }
+        const n = (v) => v || "";
+        const books = Object.entries(data.books)
+            .sort((a, b) => b[1].total - a[1].total || a[0].localeCompare(b[0], "fr", { sensitivity: "base" }));
+
+        const globalRows = books.map(([b, c]) => `
+            <tr>
+                <td style="text-align:center;">${c.spell ? `<input type="checkbox" class="scwm-grim-book" value="${esc(b)}" title="${tl("{0} sort(s)", c.spell)}">` : ""}</td>
+                <td>${esc(b)}</td>
+                <td style="text-align:right;">${n(c.spell)}</td>
+                <td style="text-align:right;">${n(c.weapon)}</td>
+                <td style="text-align:right;">${n(c.equipment)}</td>
+                <td style="text-align:right;">${n(c.autre)}</td>
+                <td style="text-align:right;font-weight:600;">${c.total}</td>
+            </tr>`).join("");
+
+        const pcRows = data.pcs.map(p => {
+            const perBook = Object.entries(p.perBook)
+                .sort((a, b) => b[1].total - a[1].total || a[0].localeCompare(b[0], "fr", { sensitivity: "base" }));
+            const inner = perBook.map(([b, c]) => `
+                <tr><td>${esc(b)}</td>
+                    <td style="text-align:right;">${n(c.spell)}</td>
+                    <td style="text-align:right;">${n(c.weapon)}</td>
+                    <td style="text-align:right;">${n(c.equipment)}</td>
+                    <td style="text-align:right;">${n(c.autre)}</td></tr>`).join("");
+            return `
+            <details class="scwm-grim-pc">
+                <summary>
+                    <img src="${esc(p.img || "icons/svg/mystery-man.svg")}" alt="">
+                    <span class="scwm-grim-name">${esc(p.name)}</span>
+                    ${p.player ? `<span class="scwm-grim-player">${esc(p.player)}</span>` : ""}
+                    <span class="scwm-grim-sum">${tl("{0} ext. · {1} sorts · {2} obj.", perBook.length, p.tot.spell, p.tot.total - p.tot.spell)}</span>
+                    <i class="fa-solid fa-chevron-down scwm-grim-chevron"></i>
+                </summary>
+                <table class="scwm-reg-table scwm-grim-inner">
+                    <thead><tr><th>${tl("Extension")}</th><th>${tl("Sorts")}</th><th>${tl("Armes")}</th><th>${tl("Équip.")}</th><th>${tl("Autres")}</th></tr></thead>
+                    <tbody>${inner || `<tr><td colspan="5" style="opacity:.6;">—</td></tr>`}</tbody>
+                </table>
+            </details>`;
+        }).join("");
+
+        return `
+            <div class="scwm-casier-detail scwm-grim">
+                <h2>${tl("<i class=\"fa-solid fa-book-sparkles\"></i> Extensions")}</h2>
+                <p class="scwm-reg-legend">${tl("Contenu par livre source sur les personnages du dossier joueurs. La suppression des sorts demande le mot de passe admin.")}</p>
+
+                <h3>${tl("Vue d'ensemble (tous les PJ)")}</h3>
+                <table class="scwm-reg-table scwm-grim-global">
+                    <thead><tr>
+                        <th style="width:1.8em;"></th><th>${tl("Extension")}</th>
+                        <th style="text-align:right;">${tl("Sorts")}</th><th style="text-align:right;">${tl("Armes")}</th>
+                        <th style="text-align:right;">${tl("Équip.")}</th><th style="text-align:right;">${tl("Autres")}</th>
+                        <th style="text-align:right;">${tl("Total")}</th>
+                    </tr></thead>
+                    <tbody>${globalRows || `<tr><td colspan="7" style="opacity:.6;">${tl("Aucun personnage dans le dossier joueurs.")}</td></tr>`}</tbody>
+                </table>
+                <div class="scwm-reg-toolbar" style="margin-top:8px;">
+                    <span style="flex:1;font-size:.85em;color:#9a8b70;">${tl("Coche des extensions (colonne de gauche, seulement celles qui ont des sorts) puis supprime leurs sorts sur tous les PJ.")}</span>
+                    <button type="button" class="scwm-grim-del"><i class="fa-solid fa-trash"></i> ${tl("Supprimer les sorts cochés")}</button>
+                </div>
+
+                <h3 style="margin-top:14px;">${tl("Par personnage")}</h3>
+                <div class="scwm-grim-list">${pcRows || `<p class="scwm-casier-empty">${tl("Aucun personnage.")}</p>`}</div>
+            </div>`;
+    }
+
     // ---- Écouteurs ----
     #wire(root) {
         root.querySelectorAll(".scwm-casier-tab").forEach(btn =>
@@ -1260,6 +1338,14 @@ class CasierApp extends foundry.applications.api.ApplicationV2 {
                 this.#viewGmId = null;   // on quitte la vue dashboard d'un GM
                 this.render();
             }));
+
+        // ---- Onglet Extensions : suppression des sorts cochés ----
+        root.querySelector(".scwm-grim-del")?.addEventListener("click", async () => {
+            const livres = [...root.querySelectorAll(".scwm-grim-book:checked")].map(c => c.value);
+            if (!livres.length) { ui.notifications?.warn(tl("Coche au moins une extension.")); return; }
+            const r = await supprimerSortsParExtension(livres);
+            if (r) this.render();
+        });
 
         // ---- Suivi des GM : ouvrir / fermer le dashboard d'un GM ----
         root.querySelectorAll(".scwm-casier-gm-open").forEach(el =>

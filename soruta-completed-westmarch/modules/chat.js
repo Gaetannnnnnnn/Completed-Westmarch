@@ -203,6 +203,158 @@ export function applyChatCardPrefs() {
     if (st.textContent !== CHAT_CARDS_CSS) st.textContent = CHAT_CARDS_CSS;
 }
 
+// ══════════════════════════════════════════════════════════════════════
+//  Cartes de chat colorées par joueur — fonctionnement NATIF préservé
+//  (option « enableChatPlayerCards », indépendante de l'ancien reskin).
+//  On NE reconstruit RIEN : boutons, jets et repli des descriptions restent
+//  gérés par dnd5e. On se contente, pour chaque message :
+//    • de teinter le fond avec une version MATE et SOMBRE (mélangée de noir)
+//      de la couleur de profil de l'auteur (celle de la liste des joueurs) ;
+//    • d'ajouter un filet d'accent à gauche dans cette même couleur, pour
+//      reconnaître le joueur d'un coup d'œil ;
+//    • d'ajouter un séparateur plus marqué quand l'auteur change (les
+//      messages consécutifs d'un même joueur forment un bloc).
+//  Le texte passe en clair pour rester lisible sur le fond sombre ; les
+//  cartes dnd5e suivent la variable --dnd5e-chat-background, donc elles se
+//  teintent sans qu'on touche à leur structure.
+// ══════════════════════════════════════════════════════════════════════
+
+export const cartesJoueurActives = () => {
+    try { return !!game.settings.get(MOD, "enableChatPlayerCards"); } catch { return false; }
+};
+
+function _rgbInt(hex) {
+    const m = /^#?([0-9a-f]{6})$/i.exec(String(hex ?? "").trim());
+    if (!m) return null;
+    const n = parseInt(m[1], 16);
+    return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+// Couleur de profil → version mate (désaturée vers le gris) puis sombre
+// (mélangée de noir) : agréable en fond de carte, jamais criarde.
+function _matteSombre(rgb) {
+    const lum = 0.2126 * rgb.r + 0.7152 * rgb.g + 0.0722 * rgb.b;
+    const MAT = 0.70;     // garde 70 % de la chroma → mat
+    const SOMBRE = 0.30;  // 30 % de la luminosité → foncé, mélangé au noir
+    const f = (v) => Math.round(Math.max(0, Math.min(255, (lum + (v - lum) * MAT) * SOMBRE)));
+    return `rgb(${f(rgb.r)}, ${f(rgb.g)}, ${f(rgb.b)})`;
+}
+function _couleurAuteur(el) {
+    const id = el?.dataset?.messageId;
+    const m = id ? game.messages.get(id) : null;
+    const author = m?.author ?? null;
+    const raw = author ? (author.color?.css ?? author.color ?? "") : "";
+    return _rgbInt(String(raw));
+}
+// Pose la teinte + l'accent sur un message (idempotent).
+function appliquerCarteJoueur(el) {
+    if (!el || !el.classList || !el.dataset) return;
+    const rgb = _couleurAuteur(el);
+    if (!rgb) { el.classList.remove("scwm-pcard"); return; }
+    const matte = _matteSombre(rgb);
+    el.style.setProperty("--dnd5e-chat-background", matte);
+    el.style.setProperty("--scwm-pc", `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`);
+    el.style.background = matte;
+    el.classList.add("scwm-pcard");
+}
+
+// Séparateurs : on balaie les messages dans l'ordre et on marque
+// « scwm-newspeaker » le premier d'une suite d'un même auteur. Les messages
+// masqués (filtre party / onglets) sont ignorés pour ne pas casser les blocs.
+let _logEl = null;
+let _sepScheduled = false;
+function planifierSeparateurs() {
+    if (_sepScheduled) return;
+    _sepScheduled = true;
+    requestAnimationFrame(() => {
+        _sepScheduled = false;
+        try { rebalayerSeparateurs(_logEl ?? document.querySelector("#chat-log, .chat-log")); } catch (e) {}
+    });
+}
+function rebalayerSeparateurs(logEl) {
+    const msgs = logEl?.querySelectorAll?.(".chat-message");
+    if (!msgs) return;
+    let prev = null;
+    msgs.forEach(el => {
+        if (el.style.display === "none") return;
+        if (!el.classList.contains("scwm-pcard")) { el.classList.remove("scwm-newspeaker"); return; }
+        const id = el.dataset.messageId;
+        const m = id ? game.messages.get(id) : null;
+        const aid = m?.author?.id ?? "?";
+        el.classList.toggle("scwm-newspeaker", aid !== prev);
+        prev = aid;
+    });
+}
+
+const PCOLOR_CSS = `
+/* Carte colorée par joueur : fond mat sombre (teinte de profil) + accent. */
+body.scwm-pcolor ${SCOPE} .message.scwm-pcard {
+    --dnd5e-border-gold: 1px solid rgba(255,255,255,0.12);
+    --color-text-primary: #ece6da;
+    --color-text-secondary: #cfc7b5;
+    --color-text-tertiary: #cfc7b5;
+    color: #ece6da;
+    border-left: 4px solid var(--scwm-pc, #666) !important;
+    border-radius: 4px;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.35);
+}
+/* En-tête lisible (nom, horodatage, destinataire du chuchotement). */
+body.scwm-pcolor ${SCOPE} .message.scwm-pcard .message-sender,
+body.scwm-pcolor ${SCOPE} .message.scwm-pcard .message-timestamp,
+body.scwm-pcolor ${SCOPE} .message.scwm-pcard .message-metadata,
+body.scwm-pcolor ${SCOPE} .message.scwm-pcard .whisper-to {
+    color: #ece6da !important; opacity: 1 !important;
+}
+/* Texte de la carte dnd5e lisible sur le fond sombre (on ne touche qu'aux
+   couleurs de texte, jamais à la structure). */
+body.scwm-pcolor ${SCOPE} .message.scwm-pcard .chat-card .card-header .title { color: #e8cc6a; text-shadow: none; }
+body.scwm-pcolor ${SCOPE} .message.scwm-pcard .chat-card .card-header .subtitle,
+body.scwm-pcolor ${SCOPE} .message.scwm-pcard .chat-card .card-description .wrapper,
+body.scwm-pcolor ${SCOPE} .message.scwm-pcard .chat-card .card-flavor,
+body.scwm-pcolor ${SCOPE} .message.scwm-pcard .chat-card p.supplement {
+    color: #e8e2d4;
+}
+body.scwm-pcolor ${SCOPE} .message.scwm-pcard .chat-card p.supplement > strong { color: #e8cc6a; }
+/* Barres de dés : texte clair garanti sur leur fond sombre. */
+body.scwm-pcolor ${SCOPE} .message.scwm-pcard .dice-roll .dice-formula,
+body.scwm-pcolor ${SCOPE} .message.scwm-pcard .dice-roll .dice-total,
+body.scwm-pcolor ${SCOPE} .message.scwm-pcard .dice-roll .dice-formula * {
+    color: #efe7cf !important;
+}
+/* Séparateur : messages d'un même joueur collés, auteur suivant détaché. */
+body.scwm-pcolor ${SCOPE} .message.scwm-pcard { margin-top: 2px; }
+body.scwm-pcolor ${SCOPE} .message.scwm-pcard.scwm-newspeaker {
+    margin-top: 11px;
+    border-top: 1px solid rgba(255,255,255,0.10);
+    padding-top: 6px;
+}
+`;
+
+export function applyPlayerCardPrefs() {
+    const body = document.body;
+    if (!body) return;
+    const on = cartesJoueurActives();
+    body.classList.toggle("scwm-pcolor", on);
+
+    let st = document.getElementById("scwm-pcolor-style");
+    if (!st) { st = document.createElement("style"); st.id = "scwm-pcolor-style"; document.head.appendChild(st); }
+    if (st.textContent !== PCOLOR_CSS) st.textContent = PCOLOR_CSS;
+
+    // (Ré)appliquer sur tout le log existant, ou nettoyer si on coupe.
+    const log = _logEl ?? document.querySelector("#chat-log, .chat-log");
+    if (log) {
+        log.querySelectorAll?.(".chat-message").forEach(el => {
+            if (on) { appliquerCarteJoueur(el); }
+            else {
+                el.classList.remove("scwm-pcard", "scwm-newspeaker");
+                el.style.removeProperty("--dnd5e-chat-background");
+                el.style.removeProperty("--scwm-pc");
+                el.style.removeProperty("background");
+            }
+        });
+        if (on) planifierSeparateurs();
+    }
+}
+
 // Transforme une carte de chat dnd5e 6.0 (usage-card) vers le rendu « 5.3.x ».
 // `root` peut être UN message (li.chat-message) OU le ChatLog entier : on
 // balaie tout le sous-arbre (les rangées de boutons/dés sont parfois des
@@ -312,11 +464,22 @@ function observeChatLog(logEl) {
         if (!targets.size) return;
         requestAnimationFrame(() => {
             try {
-                if (!cartesActives()) return;
-                targets.forEach(n => reskinChatCard(n.closest?.(".chat-message") ?? n));
+                const reskin = cartesActives();
+                const pcolor = cartesJoueurActives();
+                if (!reskin && !pcolor) return;
+                targets.forEach(n => {
+                    const msg = n.closest?.(".chat-message") ?? n;
+                    if (reskin) reskinChatCard(msg);
+                    if (pcolor) {
+                        if (msg?.classList?.contains?.("chat-message")) appliquerCarteJoueur(msg);
+                        else msg?.querySelectorAll?.(".chat-message").forEach(appliquerCarteJoueur);
+                    }
+                });
+                if (pcolor) planifierSeparateurs();
             } catch (e) {}
         });
     });
+    _logEl = logEl;
     _chatObs.observe(logEl, { childList: true, subtree: true });
 }
 
@@ -324,7 +487,7 @@ export function ChatHooks() {
     Hooks.on("renderChatMessageHTML", (message, html, messageData) => renderChatMessageHTML(message, html, messageData));
     Hooks.on("renderChatLog", async (log, html, data) => await renderChatLog(log, html, data));
 
-    Hooks.once("ready", () => applyChatCardPrefs());
+    Hooks.once("ready", () => { applyChatCardPrefs(); applyPlayerCardPrefs(); });
 
     // Injection des boutons GM au chargement initial (ready garantit que
     // #chat-controls est dans le DOM) ET à chaque re-render du ChatLog
@@ -406,6 +569,15 @@ function renderChatMessageHTML(message, html, messageData) {
         }
     } catch (e) {}
 
+    // Carte colorée par joueur (natif préservé) : teinte + accent + séparateur.
+    try {
+        if (cartesJoueurActives()) {
+            const root = html instanceof HTMLElement ? html : html?.[0];
+            const msg = root?.classList?.contains?.("chat-message") ? root : root?.closest?.(".chat-message");
+            if (msg) { appliquerCarteJoueur(msg); planifierSeparateurs(); }
+        }
+    } catch (e) {}
+
     if (!partyFeatureEnabled("enableChatFilter")) return;
 
     if(!isPartyMember(message.author)) {
@@ -439,11 +611,16 @@ async function renderChatLog(log, html, data) {
     // Catch-all reskin + observateur : rebalaie tout le log au (re)rendu de la
     // sidebar, puis surveille les nouvelles cartes et les re-renders en place.
     try {
-        if (cartesActives()) {
-            const root = html instanceof HTMLElement ? html : html?.[0];
-            reskinChatCard(root);
-            observeChatLog(root);
+        const root = html instanceof HTMLElement ? html : html?.[0];
+        const reskin = cartesActives();
+        const pcolor = cartesJoueurActives();
+        if (reskin) reskinChatCard(root);
+        if (pcolor) {
+            _logEl = root;
+            root?.querySelectorAll?.(".chat-message").forEach(appliquerCarteJoueur);
+            planifierSeparateurs();
         }
+        if (reskin || pcolor) observeChatLog(root);
     } catch (e) {}
 
     // Éviter la duplication des tabs si renderChatLog fire plusieurs fois

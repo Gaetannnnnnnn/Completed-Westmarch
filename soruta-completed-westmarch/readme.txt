@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 7.0.5
+Version : 7.0.6
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -217,6 +217,29 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v7.0.6 | 2026-11-25
+   - NOUVEAU — Casier : onglet « Extensions » (réglage « Casier : onglet
+     Extensions », désactivé par défaut). Recense, par livre source
+     (extension : XPHB, XGE, TCE…), le contenu des personnages du dossier
+     joueurs — sorts, armes, équipement, autres — en lignes dépliantes avec
+     portrait et nom. Vue d'ensemble tous PJ + détail par personnage. On peut
+     cocher des extensions et supprimer leurs SORTS sur tous les PJ d'un coup
+     (confirmation + mot de passe admin, action irréversible). Phase 1 ;
+     l'ajout de sorts aux classes à liste complète et le repérage des lanceurs
+     « à choix » sous leur quota viendront ensuite.
+     Fichiers : modules/grimoires.js (nouveau), modules/casier.js,
+     modules/settings.js, styles/casier.css, modules/i18n-en.js.
+   - NOUVEAU — Cartes de chat colorées par joueur (réglage « Cartes colorées
+     par joueur », désactivé par défaut). L'affichage NATIF des cartes est
+     conservé (aucun bouton, jet ni repli reconstruit) ; on ajoute seulement :
+       • un fond mat et sombre teinté de la couleur de profil de l'auteur
+         (celle de la liste des joueurs, mélangée de noir pour rester sobre),
+       • un filet d'accent à gauche dans cette couleur (reconnaissance rapide),
+       • un séparateur quand l'auteur change — les messages consécutifs d'un
+         même joueur forment un bloc.
+     Indépendant de l'ancien habillage « Cartes de chat » (resté gelé).
+     Fichiers : modules/chat.js, modules/settings.js, modules/i18n-en.js.
 
 v7.0.5 | 2026-11-25
    - Répartition des pièces : les contenants « liquides » (gourde, flasque,

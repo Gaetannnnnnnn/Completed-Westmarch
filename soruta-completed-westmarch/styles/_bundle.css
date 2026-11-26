@@ -3269,6 +3269,40 @@ body.scwm-players-collapsed #players { display: none !important; }
 .scwm-reg-joue  { color: #9fd9a8; background: rgba(95, 191, 119, .14); border: 1px solid rgba(95, 191, 119, .45); }
 .scwm-reg-stock { color: #b9bec6; background: rgba(138, 143, 152, .14); border: 1px solid rgba(138, 143, 152, .45); }
 
+/* ===== Onglet « Extensions » (grimoires.js) ===== */
+.scwm-grim .scwm-grim-global th { white-space: nowrap; }
+.scwm-grim .scwm-grim-del {
+    cursor: pointer; white-space: nowrap;
+    color: #e0b4ad; background: rgba(200, 80, 70, .12);
+    border: 1px solid rgba(200, 80, 70, .5); border-radius: 5px; padding: 4px 10px;
+}
+.scwm-grim .scwm-grim-del:hover { background: rgba(200, 80, 70, .22); color: #f0c8c2; }
+
+.scwm-grim-list { display: flex; flex-direction: column; gap: 5px; }
+.scwm-grim-pc {
+    border: 1px solid var(--color-border-light-2, rgba(127,127,127,.25));
+    border-radius: 6px; background: rgba(255, 255, 255, .02); overflow: hidden;
+}
+.scwm-grim-pc > summary {
+    display: flex; align-items: center; gap: 9px;
+    padding: 6px 9px; cursor: pointer; list-style: none; user-select: none;
+}
+.scwm-grim-pc > summary::-webkit-details-marker { display: none; }
+.scwm-grim-pc > summary:hover { background: rgba(201, 162, 39, .07); }
+.scwm-grim-pc > summary img {
+    width: 30px; height: 30px; flex: 0 0 auto; border-radius: 5px;
+    object-fit: cover; background: rgba(0, 0, 0, .25);
+    border: 1px solid rgba(127, 127, 127, .4);
+}
+.scwm-grim-name { font-weight: 600; }
+.scwm-grim-player { font-size: .82em; opacity: .7; }
+.scwm-grim-sum { margin-left: auto; font-size: .82em; opacity: .75; white-space: nowrap; }
+.scwm-grim-chevron { opacity: .55; transition: transform .15s ease; }
+.scwm-grim-pc[open] > summary .scwm-grim-chevron { transform: rotate(180deg); }
+.scwm-grim-inner { margin: 0 9px 9px; width: calc(100% - 18px); }
+.scwm-grim-inner th { text-align: right; font-weight: 600; opacity: .8; }
+.scwm-grim-inner th:first-child { text-align: left; }
+
 /* ===== pcstatus.css ===== */
 /* ============================================================
    pcstatus.css — Badge de statut de disponibilité des PJ

@@ -14,7 +14,7 @@ import { registerSiteSettings, URL_PAGE_MODULE } from "./site.js";
 import { applyPartyPause } from "./partypause.js";
 import { openProfilesEditor } from "./companions.js";
 import { openUiHideDialog, applyUiHiding } from "./uihide.js";
-import { applyChatCardPrefs } from "./chat.js";
+import { applyChatCardPrefs, applyPlayerCardPrefs } from "./chat.js";
 import { blocGuideReglagesHtml, genererEtOuvrirGuide } from "./rangement.js";
 import { registerXpProgressSettings, XP_PROG_KEYS, xpProgControlHtml, wireXpProg, readXpProg } from "./xpprogress.js";
 import { registerMondeSettings, MONDE_KEYS, mondeControlHtml, cablerMonde, lireMonde, afficherBanniere } from "./monde.js";
@@ -581,6 +581,10 @@ export function registerSettings() {
     game.settings.register(MOD, "enableCasierGm", B(
         tl("Casier du MJ (barre WestMarch)"),
         tl("Bouton « Casier » de la barre WestMarch (MJ) et bouton « Présentations des MJ » (joueurs). Désactivé : les brouillons de session enregistrés « pour plus tard » restent stockés, mais ne sont plus accessibles tant que le Casier est coupé.")));
+    game.settings.register(MOD, "enableCasierExtensions", B(
+        tl("Casier : onglet « Extensions »"),
+        tl("Ajoute dans le Casier (MJ) un onglet qui recense, par livre source (extension), le contenu des personnages du dossier joueurs — sorts, armes, équipement… — en lignes dépliantes avec portrait et nom. Permet aussi de supprimer les sorts de certaines extensions (action protégée par le mot de passe admin). Désactivé par défaut."),
+        false));
     game.settings.register(MOD, "enableExpeditionDate", B(
         tl("Bouton « Date Expédition » (ouvrir / clôturer)"),
         tl("Bouton de la barre WestMarch (MJ) qui ouvre ou clôture une expédition datée. Désactivé : plus d'expédition ouverte depuis la barre, donc l'Horloge de party ne peut plus avancer.")));
@@ -743,6 +747,13 @@ export function registerSettings() {
     game.settings.register(MOD, "chatCardColor", {
         scope: "user", config: false, type: String, default: "#f4ecd8",
         onChange: () => applyChatCardPrefs()
+    });
+    // ---- Cartes colorées par joueur (fonctionnement natif + séparateurs) ----
+    game.settings.register(MOD, "enableChatPlayerCards", {
+        name: tl("Cartes de chat colorées par joueur"),
+        hint: tl("Garde l'affichage NATIF des cartes (boutons, jets et descriptions inchangés) et ajoute seulement : un fond mat et sombre teinté de la couleur de profil de l'auteur, un filet d'accent à gauche dans cette couleur, et un séparateur quand l'auteur change (les messages d'un même joueur forment un bloc). La couleur est celle de la liste des joueurs."),
+        scope: "world", config: false, type: Boolean, default: false,
+        onChange: () => applyPlayerCardPrefs()
     });
     game.settings.register(MOD, "enableTemplateSnap", B(
         tl("Snap des templates AoE au dixième de pied"),
@@ -1417,6 +1428,9 @@ const CATEGORIES = [
     { firstKey: "enableChatCards", master: "enableChatCards", icon: "fa-comment-dots", title: tl("Cartes de chat"),
       desc: tl("Habillage des cartes de chat dnd5e (attaques, sorts, objets). Interrupteur général + choix de ce qui est activé. La couleur reste un choix par joueur (fenêtre « Accessibilité »)."),
       keys: ["enableChatCards","chatCardsTheme","chatCardsBigButtons","chatCardsExpandDice","chatCardsFoldDescription"] },
+    { firstKey: "enableChatPlayerCards", master: "enableChatPlayerCards", icon: "fa-palette", title: tl("Cartes colorées par joueur"),
+      desc: tl("Affichage natif des cartes de chat, enrichi : fond teinté de la couleur de profil de chaque joueur (mat et sombre), accent à gauche et séparateurs entre joueurs. Ne reconstruit aucun bouton ni mécanisme."),
+      keys: ["enableChatPlayerCards"] },
     { firstKey: "enablePolymorph", master: "enablePolymorph", icon: "fa-paw", title: tl("Transformation"),
       desc: tl("Wild Shape (druide) et Polymorphie (sort) — deux systèmes distincts via le moteur dnd5e. Active/désactive l'ensemble et règle l'application des limites de facteur de puissance (FP)."),
       keys: ["enablePolymorph","transformEnforceCr","transformStrictCr"] },
@@ -1428,7 +1442,7 @@ const CATEGORIES = [
       keys: ["tmEnabled","tmSkillBase","tmAddAbilityMod","tmBonusMaitrise","tmBonusExpertise","tmBonusTools","tmRollMinDays","tmReliableTalent","tmSkillFormula","tmCraftNonMagicCostDiv","tmCraftNonMagicDaysPerGp","tmCraftNonMagicCostFormula","tmCraftNonMagicDaysFormula","tmSingleUseFactor","tmScrollTable","tmMagicTable","tmRollTable"] },
     { firstKey: "enableTokenAppearance", icon: "fa-toolbox",         title: "Toolkit",
       desc: tl("Apparences de tokens, transformations, tailles Large, TGCM, utilitaires GM, templates AoE, boutiques MEJ et réapprovisionnement."),
-      keys: ["enableCasierGm","enableExpeditionDate","enableChatTools","enableExportDialog","enablePlayerListToggle","enableTokenAppearance","enableTokenPortraitButton","enableTokenAccroche","enableGmNotesNpc","enableTgcm","enableCompanions","enableFolderMove","enableToolAbilityFix","enableConnStats","enablePlayerListCompact","enableTemplateSnap","enableFollowTemplates","enableMejShopFix","enableMejCompendiumFix","enablePlaylistPackViewer","playlistUploadDossier","playlistUploadSousDossier","enableSceneMusic","enableEncumbrancePenalty","encPenalty1","encPenalty2","encPenalty3","enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
+      keys: ["enableCasierGm","enableCasierExtensions","enableExpeditionDate","enableChatTools","enableExportDialog","enablePlayerListToggle","enableTokenAppearance","enableTokenPortraitButton","enableTokenAccroche","enableGmNotesNpc","enableTgcm","enableCompanions","enableFolderMove","enableToolAbilityFix","enableConnStats","enablePlayerListCompact","enableTemplateSnap","enableFollowTemplates","enableMejShopFix","enableMejCompendiumFix","enablePlaylistPackViewer","playlistUploadDossier","playlistUploadSousDossier","enableSceneMusic","enableEncumbrancePenalty","encPenalty1","encPenalty2","encPenalty3","enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
     { firstKey: "enableSecondaryCampaign", master: "enableSecondaryCampaign", icon: "fa-folder-tree", title: tl("Campagnes secondaires"),
       desc: tl("Un dossier d'acteurs « hors campagne principale » : ses persos profitent du bestiaire, des relations et des expéditions, mais restent hors du casier, des statistiques, des assiduités, de la validation et de Discord."),
       keys: ["enableSecondaryCampaign","secondaryFolderId"] },
@@ -1596,7 +1610,7 @@ const CONFIG_GROUPS = [
     { title: "Serveur & monde", icon: "fa-server",
       cats: ["enableXpBlock", "mondeEnabled", "enableDiscordLog", "tmSkillBase", "enableSceneCues", "commonFolderPJ"] },
     { title: "Personnalisation & interface", icon: "fa-sliders",
-      cats: ["enableChatCards", "enableTokenAppearance", "uihide", "tweakTree", "companionProfiles"] },
+      cats: ["enableChatCards", "enableChatPlayerCards", "enableTokenAppearance", "uihide", "tweakTree", "companionProfiles"] },
     { title: tl("Aide & découverte"), icon: "fa-circle-question",
       cats: ["serverName", "enableDiagnosticMenu"] }
 ];

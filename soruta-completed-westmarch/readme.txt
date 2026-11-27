@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 7.1.4
+Version : 7.1.5
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -217,6 +217,31 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v7.1.5 | 2026-11-27
+   - Évolution — Mise en valeur des descriptions revue. On ne met plus en gras
+     les dés. Les TYPES DE DÉGÂTS sont colorés avec des couleurs plus vives et un
+     halo lisible (contour sombre serré + léger halo coloré, pour que les lettres
+     restent nettes). Les TERMES DE JET (jet d'attaque au corps à corps / à
+     distance, jet de sauvegarde, jet/test de caractéristique, et équivalents
+     anglais : melee/ranged attack roll, saving throw, ability check) ne sont
+     plus en gras mais simplement SOULIGNÉS (accent doré discret). Le terme est
+     souligné EN ENTIER : « melee/ranged attack roll », et la caractéristique est
+     incluse avec la sauvegarde (« Dexterity saving throw », « jet de sauvegarde
+     de Dextérité »). Rattrapage prévu si Plutonium coupe le terme sur un lien.
+     Deux correctifs rendaient la couleur enfin visible :
+       • Plutonium (5etools) rend les dégâts dans des LIENS cliquables
+         (« a.roll-link-group »), que le module excluait : le type (feu, fire…)
+         n'était jamais coloré. Les liens ne sont plus exclus en bloc (colorer
+         le mot ne casse pas le clic du jet).
+       • Le thème dnd5e2 / 5etools imposait la couleur via des sélecteurs plus
+         forts : les règles passent en « .chat-message span.scwm-dmg* { … !important } ».
+   - Évolution — Source des dégâts : les étiquettes de TYPE dans la décomposition
+     (« 1d12 tranchant », « 2d6 feu ») reçoivent désormais la MÊME couleur + halo
+     que les descriptions (classes scwm-dmg* partagées). Les étiquettes de
+     caractéristique (« + 7 Force ») restent discrètes.
+     Fichiers : modules/descenrich.js, modules/rollsource.js, modules/settings.js,
+     styles/chat-cards.css, modules/i18n-en.js.
 
 v7.1.4 | 2026-11-27
    - Évolution — « Source des jets » → « Source des dégâts » (v3). On retire le

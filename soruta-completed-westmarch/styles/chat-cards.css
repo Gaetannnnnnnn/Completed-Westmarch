@@ -1,7 +1,9 @@
 /* chat-cards.css — source des jets (rollsource.js) + mise en valeur des
    descriptions (descenrich.js). L'ancien habillage « reskin » a été retiré. */
 
-/* ── Source des dégâts : étiquette inline après chaque dé / bonus (rollsource.js) ── */
+/* ── Source des dégâts : étiquette inline après chaque dé / bonus (rollsource.js) ──
+   Les étiquettes de CARACTÉRISTIQUE restent discrètes ; celles de TYPE DE DÉGÂTS
+   portent en plus les classes scwm-dmg* (couleur + halo, voir plus bas). */
 .dice-formula .scwm-src-tag {
     margin-left: 3px;
     margin-right: 1px;
@@ -11,17 +13,38 @@
     opacity: 0.68;
     white-space: nowrap;
 }
+.dice-formula .scwm-src-tag.scwm-dmg { opacity: 1; }   /* type de dégâts coloré : pleine intensité */
 
-/* ── Mise en valeur des descriptions (descenrich.js) ── */
-.scwm-kw { font-weight: 700; }
-.scwm-dmg { font-weight: 600; }
-.scwm-dmg-fire      { color: #d2691e; }   /* feu — orange */
-.scwm-dmg-cold      { color: #2f8fbf; }   /* froid — bleu glace */
-.scwm-dmg-lightning { color: #2f6fe8; }   /* foudre — bleu électrique */
-.scwm-dmg-thunder   { color: #5a5fd0; }   /* tonnerre — indigo */
-.scwm-dmg-acid      { color: #6f9e1e; }   /* acide — vert-jaune */
-.scwm-dmg-poison    { color: #2f9e4f; }   /* poison — vert */
-.scwm-dmg-necrotic  { color: #5a7a3a; }   /* nécrotique — vert sombre */
-.scwm-dmg-radiant   { color: #c89a20; }   /* radiant — doré */
-.scwm-dmg-psychic   { color: #c24a9e; }   /* psychique — magenta */
-.scwm-dmg-phys      { color: #8a6f5a; }   /* physique — brun */
+/* Termes de jet (jet d'attaque, jet de sauvegarde…) : simple soulignement
+   discret (accent doré), sans gras ni changement de couleur du texte. */
+.chat-message span.scwm-kw {
+    text-decoration: underline;
+    text-decoration-color: rgba(201, 162, 39, 0.85);
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 2px;
+}
+
+/* ── Mise en valeur des descriptions + étiquettes de type (descenrich.js / rollsource.js) ──
+   !important + spécificité (.chat-message … span) pour l'emporter sur le thème
+   dnd5e2 et le rendu Plutonium (5etools), qui imposent la couleur du texte via
+   des sélecteurs descendants plus forts. Sans ça les spans resteraient incolores.
+   Couleurs vives + halo dégradé dans la couleur du type pour bien ressortir. */
+.chat-message span.scwm-dmg {
+    font-weight: 600 !important;
+    /* Contour sombre serré (lisibilité) + halo coloré doux autour (ambiance),
+       pour que les lettres restent nettes au lieu de baver dans le dégradé. */
+    text-shadow:
+        0 0 1px rgba(0, 0, 0, 0.95),
+        0 0 2px rgba(0, 0, 0, 0.9),
+        0 0 6px currentColor;
+}
+.chat-message span.scwm-dmg-fire      { color: #ff7a2e !important; }   /* feu — orange vif */
+.chat-message span.scwm-dmg-cold      { color: #49c6f5 !important; }   /* froid — bleu glace */
+.chat-message span.scwm-dmg-lightning { color: #5b8cff !important; }   /* foudre — bleu électrique */
+.chat-message span.scwm-dmg-thunder   { color: #9385ff !important; }   /* tonnerre — indigo */
+.chat-message span.scwm-dmg-acid      { color: #a6e22e !important; }   /* acide — vert-jaune */
+.chat-message span.scwm-dmg-poison    { color: #46d16a !important; }   /* poison — vert vif */
+.chat-message span.scwm-dmg-necrotic  { color: #8fbe5a !important; }   /* nécrotique — vert */
+.chat-message span.scwm-dmg-radiant   { color: #ffd84d !important; }   /* radiant — doré */
+.chat-message span.scwm-dmg-psychic   { color: #ef6fc8 !important; }   /* psychique — magenta */
+.chat-message span.scwm-dmg-phys      { color: #c2a58f !important; }   /* physique — brun clair */

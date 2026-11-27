@@ -53,11 +53,27 @@ function labelType(t) {
     return d?.label || t || "";
 }
 
+// Type de dégâts dnd5e → classe de couleur partagée avec les descriptions.
+const TYPE_CLS = {
+    slashing: "phys", piercing: "phys", bludgeoning: "phys",
+    fire: "fire", cold: "cold", lightning: "lightning", thunder: "thunder",
+    acid: "acid", poison: "poison", necrotic: "necrotic", radiant: "radiant", psychic: "psychic"
+};
+
+// Étiquette neutre (caractéristique).
 const tag = (txt) => txt ? `<span class="scwm-src-tag">${esc(txt)}</span>` : "";
+// Étiquette de type de dégâts : colorée + halo via les classes scwm-dmg*.
+function tagType(txt, typeKey) {
+    if (!txt) return "";
+    const cls = TYPE_CLS[typeKey];
+    const extra = cls ? ` scwm-dmg scwm-dmg-${cls}` : "";
+    return `<span class="scwm-src-tag${extra}">${esc(txt)}</span>`;
+}
 
 // Reconstruit la formule d'un jet de DÉGÂTS avec les étiquettes de source.
 function formuleDegats(roll, actor, abilityKey) {
-    const typeLbl = roll?.options?.type ? labelType(roll.options.type) : "";
+    const typeKey = roll?.options?.type || "";
+    const typeLbl = typeKey ? labelType(typeKey) : "";
     const mod = (actor && abilityKey)
         ? Number(actor.system?.abilities?.[abilityKey]?.mod)
         : null;
@@ -66,7 +82,7 @@ function formuleDegats(roll, actor, abilityKey) {
         const expr = t?.expression ?? "";
         if (estOperateur(t)) { bouts.push(esc(expr)); continue; }
         if (estDe(t)) {
-            bouts.push(esc(expr) + tag(typeLbl));                  // dé → type de dégâts
+            bouts.push(esc(expr) + tagType(typeLbl, typeKey));     // dé → type de dégâts (coloré)
         } else if (mod != null && abilityKey && Number(expr) === mod) {
             bouts.push(esc(expr) + tag(labelAbility(abilityKey))); // bonus plat → caractéristique
         } else {

@@ -749,7 +749,7 @@ export function registerSettings() {
     game.settings.register(MOD, "enableDescHighlight", {
         ...B(
             tl("Mise en valeur des descriptions"),
-            tl("Dans le pavé de description d'un sort/objet dans le chat : colore les types de dégâts (feu orange, foudre bleu, poison vert…) et met en gras les mots-clés (jet d'attaque, jet de sauvegarde, test de caractéristique) et les dés (1d8…). FR et EN. N'altère que l'affichage. Désactivé par défaut."),
+            tl("Dans le pavé de description d'un sort/objet dans le chat : colore les types de dégâts (feu orange vif, foudre bleu, poison vert…) avec un léger halo dégradé, et souligne les termes de jet (jet d'attaque au corps à corps / à distance, jet de sauvegarde, jet de caractéristique). FR et EN. Fonctionne aussi sur les cartes Plutonium. N'altère que l'affichage. Désactivé par défaut."),
             false),
         onChange: () => { try { balayerDescriptions(); } catch (e) {} }
     });
@@ -1430,7 +1430,7 @@ const CATEGORIES = [
       desc: tl("Annote les jets de dégâts dans le chat : chaque dé reçoit son type (tranchant, feu…) et le bonus plat sa caractéristique (« 1d12 tranchant + 7 Force »). L'attaque reste étiquetée par dnd5e."),
       keys: ["enableRollProvenance"] },
     { firstKey: "enableDescHighlight", master: "enableDescHighlight", icon: "fa-highlighter", title: tl("Descriptions mises en valeur"),
-      desc: tl("Colore les types de dégâts et met en gras les mots-clés et les dés dans les descriptions affichées dans le chat."),
+      desc: tl("Colore les types de dégâts (avec un léger halo) et souligne les termes de jet (attaque, sauvegarde, caractéristique) dans les descriptions du chat, y compris sur les cartes Plutonium."),
       keys: ["enableDescHighlight"] },
     { firstKey: "enablePolymorph", master: "enablePolymorph", icon: "fa-paw", title: tl("Transformation"),
       desc: tl("Wild Shape (druide) et Polymorphie (sort) — deux systèmes distincts via le moteur dnd5e. Active/désactive l'ensemble et règle l'application des limites de facteur de puissance (FP)."),

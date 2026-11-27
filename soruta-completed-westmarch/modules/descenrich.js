@@ -2,14 +2,15 @@
 // descenrich.js — Mise en valeur des descriptions (carte de chat)
 //
 // Dans le « pavé » de description d'un sort/objet affiché dans le chat :
-//   • colore les TYPES DE DÉGÂTS (feu orange, foudre bleu électrique,
-//     poison vert…), en FR et EN ;
-//   • met en GRAS les mots-clés (jet d'attaque, jet de sauvegarde, test de
-//     caractéristique…) et les DÉS (1d8, 2d6…).
+//   • colore les TYPES DE DÉGÂTS (feu, foudre, poison…), FR et EN, avec un
+//     léger halo dégradé dans leur propre couleur ;
+//   • souligne les TERMES DE JET (jet d'attaque au corps à corps / à distance,
+//     jet de sauvegarde, jet/test de caractéristique, et équivalents anglais).
 //
-// Travaille UNIQUEMENT sur les nœuds de texte, en évitant les liens, les
-// boutons de jet, les décompositions de dés et les en-têtes : le HTML
-// d'origine n'est jamais cassé, et rien de ce qui est cliquable n'est touché.
+// Travaille UNIQUEMENT sur les nœuds de texte. Les types de dégâts sont souvent
+// rendus par Plutonium (5etools) dans des liens de jet cliquables : on colore
+// le mot sans toucher au clic (le jet lit sa formule dans les attributs). On
+// évite boutons, décompositions de dés et en-têtes : le HTML n'est jamais cassé.
 // © 2026 Soruta.
 // ============================================================
 
@@ -35,16 +36,28 @@ const DMG = {
 };
 
 const DMG_ALT = Object.keys(DMG).join("|");
-// Un seul passage : dés | mots-clés | types de dégâts. Frontières « Unicode »
-// (lettres accentuées comprises) via lookbehind/lookahead.
+// Deux mises en valeur : les TYPES DE DÉGÂTS (couleur + halo) et les TERMES DE
+// JET (soulignés) — jet d'attaque (corps à corps / à distance), jet de
+// sauvegarde, jet/test de caractéristique, et leurs équivalents anglais.
+// Frontières « Unicode » (lettres accentuées comprises) via lookbehind/lookahead.
+const ABILITIES = "Strength|Dexterity|Constitution|Intelligence|Wisdom|Charisma"
+    + "|Force|Dextérité|Sagesse|Charisme";   // Constitution/Intelligence communs
+const KW_ALT =
+    "jets?\\s+d['’]attaque(?:\\s+au\\s+corps\\s+à\\s+corps|\\s+à\\s+distance)?"
+    + "|jets?\\s+de\\s+sauvegarde(?:\\s+de\\s+(?:" + ABILITIES + "))?"   // FR : carac après
+    + "|(?:jets?|tests?)\\s+de\\s+caract[ée]ristique"
+    + "|(?:melee\\s+|ranged\\s+)?attack\\s+rolls?"
+    + "|(?:(?:" + ABILITIES + ")\\s+)?saving\\s+throws?"               // EN : carac avant
+    + "|ability\\s+checks?";
 const RE = new RegExp(
-    "(?<dice>(?<![\\p{L}\\p{N}])\\d+\\s?[dD]\\s?\\d+(?![\\p{L}\\p{N}]))"
-    + "|(?<kw>(?<![\\p{L}])(?:jet\\s+d['’]attaque|jets?\\s+de\\s+sauvegarde|jet\\s+de\\s+caract[ée]ristique|attack\\s+rolls?|saving\\s+throws?|ability\\s+checks?)(?![\\p{L}]))"
+    "(?<kw>(?<![\\p{L}])(?:" + KW_ALT + ")(?![\\p{L}]))"
     + "|(?<dmg>(?<![\\p{L}])(?:" + DMG_ALT + ")(?![\\p{L}]))",
     "giu"
 );
 
-const SKIP_TAG = new Set(["A", "BUTTON", "CODE", "KBD", "SELECT", "INPUT", "TEXTAREA", "H1", "H2", "H3", "H4", "H5"]);
+const SKIP_TAG = new Set(["BUTTON", "CODE", "KBD", "SELECT", "INPUT", "TEXTAREA", "H1", "H2", "H3", "H4", "H5"]);
+// On n'exclut PAS les <a> : les types de dégâts vivent souvent dans des liens
+// de jet 5etools (« a.roll-link-group ») — colorer le mot ne casse pas le clic.
 const SKIP_CLASS = ["card-header", "dice-roll", "dice-formula", "dice-tooltip", "dice-result", "inline-roll", "scwm-dmg", "scwm-kw"];
 
 function exclu(node, root) {
@@ -52,7 +65,6 @@ function exclu(node, root) {
     const stop = root.parentElement;
     while (p && p !== stop) {
         if (SKIP_TAG.has(p.tagName)) return true;
-        if (p.dataset && p.dataset.action) return true;
         const cl = p.classList;
         if (cl && SKIP_CLASS.some(c => cl.contains(c))) return true;
         p = p.parentElement;
@@ -70,7 +82,7 @@ function traiter(tn) {
         const span = document.createElement("span");
         span.textContent = m[0];
         if (m.groups.dmg) span.className = "scwm-dmg scwm-dmg-" + (DMG[m[0].toLowerCase()] ?? "phys");
-        else span.className = "scwm-kw";   // dés + mots-clés
+        else span.className = "scwm-kw";   // terme de jet → souligné
         frag.appendChild(span);
         last = m.index + m[0].length;
         if (RE.lastIndex === m.index) RE.lastIndex++;   // garde anti-boucle
@@ -91,6 +103,47 @@ function enrichir(card) {
     const nodes = [];
     while (walker.nextNode()) nodes.push(walker.currentNode);
     for (const tn of nodes) traiter(tn);
+    rattraperPrefixes(card);
+}
+
+// Quand Plutonium (5etools) rend « attack roll » ou « saving throw » dans un
+// LIEN séparé, le mot qui le qualifie (melee/ranged, ou la caractéristique) est
+// dans le nœud de texte voisin : on le rattache au soulignement.
+const RATTRAP = [
+    { term: /^attack\s+rolls?$/i, prefix: new RegExp("(?:melee|ranged|corps\\s+à\\s+corps|à\\s+distance)\\s*$", "iu") },
+    { term: /^saving\s+throws?$/i, prefix: new RegExp("(?:" + ABILITIES + ")\\s*$", "iu") }
+];
+
+// Dernier nœud de texte situé AVANT `el` dans l'ordre du document, sous `root`.
+function texteAmont(el, root) {
+    const tw = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let prev = null, n;
+    while ((n = tw.nextNode())) {
+        const pos = el.compareDocumentPosition(n);
+        if (pos & Node.DOCUMENT_POSITION_PRECEDING) prev = n;
+        else if (pos & Node.DOCUMENT_POSITION_CONTAINED_BY) continue;   // texte interne à el
+        else break;                                                     // on a dépassé el
+    }
+    return prev;
+}
+
+function rattraperPrefixes(card) {
+    card.querySelectorAll("span.scwm-kw").forEach(span => {
+        const t = (span.textContent || "").trim();
+        const rule = RATTRAP.find(r => r.term.test(t));
+        if (!rule) return;
+        const tn = texteAmont(span, card);
+        if (!tn) return;
+        const mm = tn.nodeValue.match(rule.prefix);
+        if (!mm) return;
+        const frag = document.createDocumentFragment();
+        if (mm.index > 0) frag.appendChild(document.createTextNode(tn.nodeValue.slice(0, mm.index)));
+        const s = document.createElement("span");
+        s.className = "scwm-kw";
+        s.textContent = mm[0];
+        frag.appendChild(s);
+        tn.parentNode.replaceChild(frag, tn);
+    });
 }
 
 // Le contenu des cartes dnd5e/midi arrive APRÈS le rendu du message, et la

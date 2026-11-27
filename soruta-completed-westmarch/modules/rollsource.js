@@ -1,63 +1,74 @@
 // ============================================================
-// rollsource.js — Provenance des termes d'un jet au survol (v1)
+// rollsource.js — Source d'un jet (v2)
 //
-// Dans la décomposition d'un jet affichée dans le chat (ex. « 1d20 + 3 + 2 »),
-// chaque bonus/dé devient survolable : l'info-bulle montre sa PROVENANCE
-// quand dnd5e l'a renseignée dans le « flavor » du terme (caractéristique,
-// maîtrise, type de dégâts…).
+// Sous chaque bloc de dés d'une carte de chat, un petit libellé indique DE QUOI
+// vient le jet : l'arme, le sort ou l'aptitude qui l'a déclenché (image + nom).
+// La décomposition des bonus (caractéristique, maîtrise…) est déjà fournie
+// nativement par dnd5e, donc on ne double plus avec un survol.
 //
-// v1 : on exploite uniquement les flavors déjà présents (robuste, aucune
-// dépendance aux entrailles de dnd5e). Les termes non étiquetés (dés, modif
-// de dégâts…) restent nus — ils seront enrichis en v2 via les hooks de jet.
-// On ne modifie QUE l'affichage de la formule, jamais le résultat du jet.
-// © 2026 Soruta.
+// Source fiable : message.getAssociatedItem() — l'objet à l'origine du jet.
+//   • Un même message peut porter plusieurs jets (attaque + dégâts tranchants +
+//     dégâts de feu d'une arme à propriété) : ils partagent le même objet source.
+//   • On ne peut PAS attribuer un dé isolé à une aptitude différente quand
+//     plusieurs effets empilent leurs dés dans un seul jet (le système fusionne
+//     sans conserver l'origine dé par dé). On étiquette donc au niveau du jet.
+//   • Un jet sans objet (sauvegarde ou test de caractéristique brut) n'a pas de
+//     source : aucun libellé n'est ajouté.
+//
+// N'altère que l'affichage, jamais le résultat. © 2026 Soruta.
 // ============================================================
 
 import { MOD } from "./const.js";
+import { tl } from "./i18n.js";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-const provenanceActive = () => {
+const sourceActive = () => {
     try { return !!game.settings.get(MOD, "enableRollProvenance"); } catch { return false; }
 };
 
-function estOperateur(t) {
-    if (t?.constructor?.name === "OperatorTerm") return true;
-    const OT = foundry.dice?.terms?.OperatorTerm;
-    return !!(OT && t instanceof OT);
+// Icône de repli selon le type d'objet dnd5e (si l'objet n'a pas d'image).
+function iconeType(type) {
+    const map = {
+        weapon: "fa-gavel", spell: "fa-wand-magic-sparkles", feat: "fa-star",
+        consumable: "fa-flask", equipment: "fa-shield-halved", tool: "fa-screwdriver-wrench"
+    };
+    return `<i class="fa-solid ${map[type] || "fa-dice-d20"} scwm-src-ic"></i>`;
 }
 
-// Reconstruit la formule en enveloppant chaque terme non-opérateur d'un span
-// porteur d'une info-bulle (son flavor). Les nombres/dés affichés ne changent pas.
-function formuleAvecProvenance(roll) {
-    const bouts = [];
-    for (const t of (roll?.terms ?? [])) {
-        const expr = t?.expression ?? "";
-        if (estOperateur(t)) { bouts.push(esc(expr)); continue; }
-        const flavor = t?.flavor || t?.options?.flavor || "";
-        bouts.push(flavor
-            ? `<span class="scwm-rs" data-tooltip="${esc(flavor)}">${esc(expr)}</span>`
-            : `<span class="scwm-rs scwm-rs-nu">${esc(expr)}</span>`);
-    }
-    return bouts.join(" ");
+// Libellé source : vignette (image de l'objet) + nom.
+function tagSource(item) {
+    const nom = esc(item?.name || "");
+    if (!nom) return "";
+    const vignette = item?.img
+        ? `<img class="scwm-src-img" src="${esc(item.img)}" alt="">`
+        : iconeType(item?.type);
+    return `<div class="scwm-src" data-tooltip="${esc(tl("Source du jet"))}">${vignette}<span>${nom}</span></div>`;
 }
 
-// Applique la provenance sur un message (idempotent via data-scwm-rs).
+// Étiquette chaque bloc de dés d'un message avec sa source (idempotent).
 function traiterMessage(message, el) {
     if (!message?.rolls?.length || !el) return;
-    const blocs = el.querySelectorAll(".dice-roll");
-    message.rolls.forEach((roll, i) => {
-        const f = blocs[i]?.querySelector?.(".dice-formula");
-        if (f && !f.dataset.scwmRs) { f.dataset.scwmRs = "1"; f.innerHTML = formuleAvecProvenance(roll); }
+    let item = null;
+    try { item = message.getAssociatedItem?.(); } catch (e) { item = null; }
+    if (!item) return;                       // jet sans objet source → rien
+    const html = tagSource(item);
+    if (!html) return;
+    el.querySelectorAll(".dice-roll").forEach(bloc => {
+        if (bloc.dataset.scwmSrc) return;
+        const f = bloc.querySelector(".dice-formula");
+        if (!f) return;
+        bloc.dataset.scwmSrc = "1";
+        f.insertAdjacentHTML("afterend", html);
     });
 }
 
 // Balaye tout le log (le contenu des cartes dnd5e/midi arrive APRÈS le rendu
-// du message, d'où l'observer ci-dessous plutôt que renderChatMessageHTML).
+// du message, d'où l'observer plutôt que renderChatMessageHTML).
 let _root = null, _obs = null, _planif = false;
 function traiterTout() {
-    if (!provenanceActive()) return;
+    if (!sourceActive()) return;
     const root = _root ?? document.querySelector("#chat-log, .chat-log");
     root?.querySelectorAll?.(".chat-message").forEach(el => {
         const m = game.messages?.get(el.dataset?.messageId);
@@ -75,7 +86,7 @@ function observer(root) {
     _root = root;
     traiterTout();
     if (_obs) return;
-    _obs = new MutationObserver(() => { if (provenanceActive()) planifier(); });
+    _obs = new MutationObserver(() => { if (sourceActive()) planifier(); });
     _obs.observe(root, { childList: true, subtree: true });
 }
 

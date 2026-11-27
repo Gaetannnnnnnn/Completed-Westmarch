@@ -93,8 +93,11 @@ function enrichir(card) {
     for (const tn of nodes) traiter(tn);
 }
 
-// Le contenu des cartes dnd5e/midi arrive APRÈS le rendu du message, d'où un
-// MutationObserver sur le log (comme chat.js) plutôt que renderChatMessageHTML.
+// Le contenu des cartes dnd5e/midi arrive APRÈS le rendu du message, et la
+// DESCRIPTION n'est injectée dans .collapsible-content qu'au DÉPLIAGE. D'où un
+// MutationObserver sur le log : à chaque changement dans une carte, on remet
+// cette carte à « non traitée » pour la ré-enrichir (ré-enrichir est sans
+// risque — le texte déjà coloré est dans des spans scwm-* exclus).
 let _root = null, _obs = null, _planif = false;
 function traiterTout() {
     if (!actif()) return;
@@ -106,12 +109,26 @@ function planifier() {
 }
 export const balayerDescriptions = () => { try { traiterTout(); } catch (e) {} };
 
+// Remet à zéro le garde-fou des cartes touchées par une série de mutations.
+function invaliderCartes(records) {
+    for (const r of records) {
+        const t = r.target;
+        const base = t?.nodeType === 1 ? t : t?.parentElement;
+        const card = base?.closest?.(".chat-card");
+        if (card && card.dataset.scwmEnriched) delete card.dataset.scwmEnriched;
+    }
+}
+
 function observer(root) {
     if (!root) return;
     _root = root;
     traiterTout();
     if (_obs) return;
-    _obs = new MutationObserver(() => { if (actif()) planifier(); });
+    _obs = new MutationObserver((records) => {
+        if (!actif()) return;
+        invaliderCartes(records);   // le dépliage injecte la description → ré-enrichir
+        planifier();
+    });
     _obs.observe(root, { childList: true, subtree: true });
 }
 

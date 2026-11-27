@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 7.1.2
+Version : 7.1.3
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -217,6 +217,32 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v7.1.3 | 2026-11-27
+   - Correctif — Mise en valeur des descriptions : les couleurs de dégâts et la
+     mise en gras ne s'appliquaient jamais. Sous dnd5e 6.1.1 / Foundry v14, la
+     description n'est PAS dans le DOM tant que la carte est repliée : elle n'est
+     injectée dans « .collapsible-content » qu'au dépliage. Or le module
+     enrichissait la carte au rendu (description vide) puis la marquait « déjà
+     traitée », ce qui bloquait l'enrichissement une fois la description
+     apparue. Désormais, tout changement de contenu dans une carte réinitialise
+     son garde-fou : la description est ré-enrichie au dépliage. Sans risque de
+     double traitement ni de boucle (le texte déjà coloré est protégé).
+     Fichier : modules/descenrich.js.
+   - Évolution — « Provenance des jets » devient « Source des jets » (v2). Le
+     survol (qui ne faisait que répéter la décomposition déjà fournie par dnd5e :
+     +3 Sagesse, +2 Maîtrise…) est supprimé. À la place, sous chaque bloc de dés
+     d'une carte, un petit libellé indique l'objet à l'origine du jet : image +
+     nom de l'arme, du sort ou de l'aptitude (via message.getAssociatedItem()).
+     Un même message peut porter plusieurs jets (attaque + dégâts tranchants +
+     dégâts de feu d'une arme à propriété) : tous partagent le même objet source,
+     donc chaque ligne de dés reçoit le libellé. Un jet sans objet (sauvegarde,
+     test de caractéristique brut) n'affiche rien. Le réglage et sa catégorie
+     sont renommés (clé inchangée : enableRollProvenance). Limite connue : quand
+     plusieurs effets empilent des dés dans UN SEUL jet, le système ne conserve
+     pas l'origine dé par dé — l'étiquetage reste au niveau du jet. Fichiers :
+     modules/rollsource.js, modules/settings.js, styles/chat-cards.css,
+     modules/i18n-en.js.
 
 v7.1.2 | 2026-11-27
    - Réorganisation — Réglages mieux rangés. L'ancien fourre-tout « Toolkit »

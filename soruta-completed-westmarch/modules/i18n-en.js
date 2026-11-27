@@ -59,6 +59,8 @@ export default {
  "Les sorts sont ajoutés au grimoire/liste (non préparés ; les tours de magie restent préparés). Les doublons sont ignorés.": "Spells are added to the spellbook/list (unprepared; cantrips stay prepared). Duplicates are ignored.",
  "Rien à ajouter : ces personnages ont déjà ces sorts (ou aucun sort de cette classe dans ce livre n'a été trouvé dans le monde).": "Nothing to add: these characters already have these spells (or no spell of that class in this book was found in the world).",
  "{0} sort(s) ajouté(s).": "{0} spell(s) added.",
+ "Bloquer l'import d'équipement de classe (auto-skip)": "Block class starting-equipment import (auto-skip)",
+ "À l'import d'une classe (Plutonium), la fenêtre d'équipement de départ est automatiquement passée (clic sur « Skip ») : aucun équipement n'est ajouté, l'import continue à l'étape suivante. Désactivé par défaut.": "When importing a class (Plutonium), the starting-equipment window is skipped automatically (clicks “Skip”): no equipment is added, the import moves to the next step. Off by default.",
  "Ranger les créatures importées (par type puis CR)": "File imported creatures (by type then CR)",
  "<i class=\"fa-solid fa-dragon\"></i> Extensions du compendium des créatures": "<i class=\"fa-solid fa-dragon\"></i> Extensions in the creatures compendium",
  "Livres sources déjà présents dans le compendium des créatures — pour éviter de réimporter une extension en double.": "Source books already present in the creatures compendium — to avoid re-importing an extension twice.",

@@ -27,7 +27,7 @@ import { badgeActif } from "./gere.js";
 // dnd5e (−10 / −20 ft, plafond 5 ft) sont neutralisées pour ne pas se
 // cumuler ; les icônes de statut dnd5e restent (information).
 //
-// Réglages (Toolkit) : enableEncumbrancePenalty (désactivé par défaut),
+// Réglages (catégorie « Encombrement ») : enableEncumbrancePenalty (désactivé par défaut),
 // encPenalty1, encPenalty2, encPenalty3.
 // Calcul en mémoire, rien n'est écrit sur la fiche.
 // © 2026 Soruta.

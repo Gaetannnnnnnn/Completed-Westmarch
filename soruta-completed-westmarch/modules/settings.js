@@ -14,7 +14,10 @@ import { registerSiteSettings, URL_PAGE_MODULE } from "./site.js";
 import { applyPartyPause } from "./partypause.js";
 import { openProfilesEditor } from "./companions.js";
 import { openUiHideDialog, applyUiHiding } from "./uihide.js";
-import { applyChatCardPrefs, applyPlayerCardPrefs } from "./chat.js";
+import { applyPlayerCardPrefs } from "./chat.js";
+import { balayerProvenance } from "./rollsource.js";
+import { balayerDescriptions } from "./descenrich.js";
+import { ouvrirConfigNiveaux } from "./creationlevel.js";
 import { blocGuideReglagesHtml, genererEtOuvrirGuide } from "./rangement.js";
 import { registerXpProgressSettings, XP_PROG_KEYS, xpProgControlHtml, wireXpProg, readXpProg } from "./xpprogress.js";
 import { registerMondeSettings, MONDE_KEYS, mondeControlHtml, cablerMonde, lireMonde, afficherBanniere } from "./monde.js";
@@ -131,6 +134,10 @@ export function registerSettings() {
     game.settings.register(MOD, "commonPackCreatures", S(
         tl("Compendium des créatures"),
         tl("Compendium d'acteurs créatures. Utilisé par le Bestiaire (ajout et reconnaissance des créatures).")));
+    game.settings.register(MOD, "blockClassEquipment", B(
+        tl("Bloquer l'import d'équipement de classe (auto-skip)"),
+        tl("À l'import d'une classe (Plutonium), la fenêtre d'équipement de départ est automatiquement passée (clic sur « Skip ») : aucun équipement n'est ajouté, l'import continue à l'étape suivante. Désactivé par défaut."),
+        false));
     game.settings.register(MOD, "autoFileCreaturesByType", B(
         tl("Ranger les créatures importées (par type puis CR)"),
         tl("Quand une créature est importée dans le compendium des créatures (ci-dessus), la ranger automatiquement dans un sous-dossier par TYPE (dragon, bête, humanoïde…) puis un sous-dossier par CR / facteur de puissance (« CR 1/4 », « CR 5 »…). N'agit que dans ce compendium, et seulement s'il est déverrouillé. Désactivé par défaut."),
@@ -278,6 +285,12 @@ export function registerSettings() {
         tl("Personnages actifs simultanés"),
         tl("Nombre de personnages jouables en même temps. Les autres passent « en stock » (cadenas, en Observateur, non jouables)."),
         2));
+    // Niveaux de création (liste éditée via un bouton dans la fenêtre de la
+    // catégorie « Validation des personnages », voir buildCategoryForm).
+    game.settings.register(MOD, "creationLevels", {
+        scope: "world", config: false, type: Array, requiresReload: false,
+        default: [{ level: 1, nb: 0, req: 0 }]
+    });
     game.settings.register(MOD, "blockPlayerPlutonium", B(
         tl("Bloquer les imports Plutonium hors autorisation"),
         tl("Empêche les joueurs d'importer du contenu Plutonium sur une fiche VERROUILLÉE. L'import n'est possible que pendant une fenêtre autorisée par le MJ (création du personnage, ou montée de niveau validée). Les GM ne sont jamais bloqués.")));
@@ -717,41 +730,6 @@ export function registerSettings() {
         tl("Échange entre joueurs"),
         tl("Ajoute un bouton « Échanger » dans la liste des joueurs : fenêtre d'échange synchronisée (objets + monnaies), arbitrée par le MJ. Interdit en party sans expédition ; en expédition, uniquement entre membres de la même expédition ; libre en ville."),
         true));
-    // ---- Cartes de chat ----
-    game.settings.register(MOD, "enableChatCards", {
-        name: tl("Activer l'habillage des cartes de chat"),
-        hint: tl("Interrupteur général. Les options ci-dessous n'ont d'effet que si celui-ci est activé."),
-        scope: "world", config: false, type: Boolean, default: true,
-        onChange: () => applyChatCardPrefs()
-    });
-    game.settings.register(MOD, "chatCardsTheme", {
-        name: tl("Thème (couleurs & bordures)"),
-        hint: tl("Reteinte les cartes (fond crème par défaut, bordures dorées, titres, pastilles). Chaque joueur choisit sa couleur dans « Accessibilité »."),
-        scope: "world", config: false, type: Boolean, default: true,
-        onChange: () => applyChatCardPrefs()
-    });
-    game.settings.register(MOD, "chatCardsBigButtons", {
-        name: tl("Gros boutons Attaque / Dégâts"),
-        hint: tl("Boutons de jet pleine largeur et plus hauts, plus faciles à cliquer."),
-        scope: "world", config: false, type: Boolean, default: true,
-        onChange: () => applyChatCardPrefs()
-    });
-    game.settings.register(MOD, "chatCardsExpandDice", {
-        name: tl("Déplier les jets de dés par défaut"),
-        hint: tl("Affiche d'office le détail du jet (dés individuels, bonus et provenance)."),
-        scope: "world", config: false, type: Boolean, default: true
-    });
-    game.settings.register(MOD, "chatCardsFoldDescription", {
-        name: tl("Replier la description par défaut"),
-        hint: tl("La description de l'objet/sort est repliée à l'ouverture de la carte ; un clic sur l'en-tête la déplie (mécanisme natif dnd5e). Décoché : la description est affichée d'emblée. Pilote le réglage dnd5e « Auto Collapse Item Cards » de chaque client."),
-        scope: "world", config: false, type: Boolean, default: true,
-        onChange: () => applyChatCardPrefs()
-    });
-    // Couleur de fond des cartes de chat — PAR JOUEUR (défaut : blanc crème).
-    game.settings.register(MOD, "chatCardColor", {
-        scope: "user", config: false, type: String, default: "#f4ecd8",
-        onChange: () => applyChatCardPrefs()
-    });
     // ---- Cartes colorées par joueur (fonctionnement natif + séparateurs) ----
     game.settings.register(MOD, "enableChatPlayerCards", {
         name: tl("Cartes de chat colorées par joueur"),
@@ -760,15 +738,21 @@ export function registerSettings() {
         onChange: () => applyPlayerCardPrefs()
     });
     // ---- Provenance des termes d'un jet au survol ----
-    game.settings.register(MOD, "enableRollProvenance", B(
-        tl("Provenance des jets au survol"),
-        tl("Dans la décomposition d'un jet affichée dans le chat (ex. « 1d20 + 3 + 2 »), chaque bonus/dé devient survolable : l'info-bulle indique sa provenance quand dnd5e la renseigne (caractéristique, maîtrise, type de dégâts…). N'altère pas le résultat du jet. Désactivé par défaut."),
-        false));
+    game.settings.register(MOD, "enableRollProvenance", {
+        ...B(
+            tl("Provenance des jets au survol"),
+            tl("Dans la décomposition d'un jet affichée dans le chat (ex. « 1d20 + 3 + 2 »), chaque bonus/dé devient survolable : l'info-bulle indique sa provenance quand dnd5e la renseigne (caractéristique, maîtrise, type de dégâts…). N'altère pas le résultat du jet. Désactivé par défaut."),
+            false),
+        onChange: () => { try { balayerProvenance(); } catch (e) {} }
+    });
     // ---- Mise en valeur des descriptions (couleurs dégâts + mots-clés) ----
-    game.settings.register(MOD, "enableDescHighlight", B(
-        tl("Mise en valeur des descriptions"),
-        tl("Dans le pavé de description d'un sort/objet dans le chat : colore les types de dégâts (feu orange, foudre bleu, poison vert…) et met en gras les mots-clés (jet d'attaque, jet de sauvegarde, test de caractéristique) et les dés (1d8…). FR et EN. N'altère que l'affichage. Désactivé par défaut."),
-        false));
+    game.settings.register(MOD, "enableDescHighlight", {
+        ...B(
+            tl("Mise en valeur des descriptions"),
+            tl("Dans le pavé de description d'un sort/objet dans le chat : colore les types de dégâts (feu orange, foudre bleu, poison vert…) et met en gras les mots-clés (jet d'attaque, jet de sauvegarde, test de caractéristique) et les dés (1d8…). FR et EN. N'altère que l'affichage. Désactivé par défaut."),
+            false),
+        onChange: () => { try { balayerDescriptions(); } catch (e) {} }
+    });
     game.settings.register(MOD, "enableTemplateSnap", B(
         tl("Snap des templates AoE au dixième de pied"),
         tl("Pendant le placement d'un template, la taille s'incrémente par paliers de 0,1 ft. Nécessite lib-wrapper pour le snap live.")));
@@ -1402,7 +1386,7 @@ const CATEGORIES = [
       open: () => openUiHideDialog(), keys: [] },
     { firstKey: "commonFolderPJ", icon: "fa-folder-tree", title: tl("Dossiers & Compendiums"),
       desc: tl("Dossiers et compendiums communs, renseignés une seule fois ici et utilisés par toutes les fonctions (Relations, Bestiaire, Création de personnages, Temps morts)."),
-      keys: ["commonFolderPJ","autoPlayerFolder","gmAutoFolderParent","commonFolderPNJ","commonFolderNewChars","commonPackPNJ","commonPackCemetery","commonPackCreatures","autoFileCreaturesByType","commonPackCraft"] },
+      keys: ["commonFolderPJ","autoPlayerFolder","gmAutoFolderParent","commonFolderPNJ","commonFolderNewChars","commonPackPNJ","commonPackCemetery","commonPackCreatures","autoFileCreaturesByType","blockClassEquipment","commonPackCraft"] },
     { firstKey: "enableParty", master: "enableParty",           icon: "fa-users",           title: tl("Système de Party"),
       desc: tl("Groupes de joueurs : chat filtré, combat par party, téléportation de groupe, journal de session, anti-cheat."),
       keys: ["enableParty","enableJoinScene","enableShowParty","enablePlayerGrouping","enableGoWithPartyScenes","enableGoWithPartyJournal","enableChatFilter","enableChatTabs","enableTrade","enableNoteLink","enableSessionLog","sessionLogWebhookUrl","sessionLogForum","sessionTags","enableCombatParty","enableCombatTurnLock","enablePartyPause","enableAntiCheat"] },
@@ -1439,9 +1423,6 @@ const CATEGORIES = [
     { firstKey: "enableDiscordLog", master: "enableDiscordLog", icon: "fa-clipboard-list", title: tl("Log Discord"),
       desc: tl("Envoie un message Discord à chaque modification de fiche (objets, XP, pièces, niveaux…) et, en option, à la création/suppression de fiches, scènes et journaux. Cochez précisément ce qui est loggé, et si les PNJ sont inclus."),
       keys: ["enableDiscordLog","discordLogWebhookUrl","logInventory","logXp","logCurrency","logLevelsElements","logSheetEdits","logModuleErrors","logActors","logScenes","logJournals","logIncludeNpc"] },
-    { firstKey: "enableChatCards", master: "enableChatCards", icon: "fa-comment-dots", title: tl("Cartes de chat"),
-      desc: tl("Habillage des cartes de chat dnd5e (attaques, sorts, objets). Interrupteur général + choix de ce qui est activé. La couleur reste un choix par joueur (fenêtre « Accessibilité »)."),
-      keys: ["enableChatCards","chatCardsTheme","chatCardsBigButtons","chatCardsExpandDice","chatCardsFoldDescription"] },
     { firstKey: "enableChatPlayerCards", master: "enableChatPlayerCards", icon: "fa-palette", title: tl("Cartes colorées par joueur"),
       desc: tl("Affichage natif des cartes de chat, enrichi : fond teinté de la couleur de profil de chaque joueur (mat et sombre), accent à gauche et séparateurs entre joueurs. Ne reconstruit aucun bouton ni mécanisme."),
       keys: ["enableChatPlayerCards"] },
@@ -1460,9 +1441,31 @@ const CATEGORIES = [
     { firstKey: "tmSkillBase", master: "tmEnabled", icon: "fa-hourglass-half",  title: tl("Temps morts"),
       desc: tl("Règles configurables des temps morts : valeurs, formules (gain de compétence, artisanat) et tables (parchemins, objets magiques). Chaque serveur peut avoir ses propres règles."),
       keys: ["tmEnabled","tmSkillBase","tmAddAbilityMod","tmBonusMaitrise","tmBonusExpertise","tmBonusTools","tmRollMinDays","tmReliableTalent","tmSkillFormula","tmCraftNonMagicCostDiv","tmCraftNonMagicDaysPerGp","tmCraftNonMagicCostFormula","tmCraftNonMagicDaysFormula","tmSingleUseFactor","tmScrollTable","tmMagicTable","tmRollTable"] },
-    { firstKey: "enableTokenAppearance", icon: "fa-toolbox",         title: "Toolkit",
-      desc: tl("Apparences de tokens, transformations, tailles Large, TGCM, utilitaires GM, templates AoE, boutiques MEJ et réapprovisionnement."),
-      keys: ["enableCasierGm","enableCasierExtensions","enableExpeditionDate","enableChatTools","enableExportDialog","enablePlayerListToggle","enableTokenAppearance","enableTokenPortraitButton","enableTokenAccroche","enableGmNotesNpc","enableTgcm","enableCompanions","enableFolderMove","enableToolAbilityFix","enableConnStats","enablePlayerListCompact","enableTemplateSnap","enableFollowTemplates","enableMejShopFix","enableMejCompendiumFix","enablePlaylistPackViewer","playlistUploadDossier","playlistUploadSousDossier","enableSceneMusic","enableEncumbrancePenalty","encPenalty1","encPenalty2","encPenalty3","enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
+    // L'ancien fourre-tout « Toolkit » a été éclaté en catégories thématiques :
+    { firstKey: "enableTokenAppearance", icon: "fa-user-large", title: tl("Tokens — apparence & HUD"),
+      desc: tl("Boutons et automatismes propres aux tokens : apparences cyclables, bouton « Voir le portrait », accroche d'un token à un PJ (porter / mener), et protection TGCM (token qui ne tombe pas à 0 PV)."),
+      keys: ["enableTokenAppearance","enableTokenPortraitButton","enableTokenAccroche","enableTgcm"] },
+    { firstKey: "enableCasierGm", icon: "fa-screwdriver-wrench", title: tl("Outils du MJ"),
+      desc: tl("Barre WestMarch et utilitaires du MJ : Casier (et son onglet Extensions), bouton « Date Expédition », outils de chat, export d'acteur avec choix, « Déplacer / Dupliquer vers… », Note GM sur les PNJ, et correction de la stat des outils."),
+      keys: ["enableCasierGm","enableCasierExtensions","enableExpeditionDate","enableChatTools","enableExportDialog","enableFolderMove","enableGmNotesNpc","enableToolAbilityFix"] },
+    { firstKey: "enablePlayerListToggle", icon: "fa-users-rectangle", title: tl("Liste des joueurs"),
+      desc: tl("Affichage de la liste des joueurs : bouton pour la replier, mode compact avec recherche, et fenêtre d'infos de connexion au chargement."),
+      keys: ["enablePlayerListToggle","enablePlayerListCompact","enableConnStats"] },
+    { firstKey: "enableTemplateSnap", icon: "fa-draw-polygon", title: tl("Gabarits & zones (AoE)"),
+      desc: tl("Gabarits de zone : incrément fin pendant le placement, et zones (gabarits ou Régions) qui suivent le token sur lequel elles sont posées."),
+      keys: ["enableTemplateSnap","enableFollowTemplates"] },
+    { firstKey: "enableSceneMusic", icon: "fa-music", title: tl("Audio & musique"),
+      desc: tl("Musique de scène jouée pour le groupe, et gestion des playlists rangées en compendium (voir/écouter/ajouter des pistes, dossier d'upload et sous-dossiers)."),
+      keys: ["enableSceneMusic","enablePlaylistPackViewer","playlistUploadDossier","playlistUploadSousDossier"] },
+    { firstKey: "enableMejShopFix", icon: "fa-store", title: tl("Boutiques & Journaux (MEJ)"),
+      desc: tl("Monk's Enhanced Journal : correctifs (boutiques « groupe uniquement », envoi vers les compendiums) et réapprovisionnement automatique des boutiques par rareté."),
+      keys: ["enableMejShopFix","enableMejCompendiumFix","enableMejRestock","shopRestockDays","shopRestockDaysCommon","shopRestockDaysUncommon","shopRestockDaysRare","shopRestockDaysVeryRare","shopRestockDaysLegendary"] },
+    { firstKey: "enableEncumbrancePenalty", icon: "fa-weight-hanging", title: tl("Encombrement"),
+      desc: tl("Pénalités de vitesse selon les paliers de la barre d'encombrement de la fiche (facteur ou vitesse maximale par palier). Calcul en mémoire, rien n'est écrit sur la fiche."),
+      keys: ["enableEncumbrancePenalty","encPenalty1","encPenalty2","encPenalty3"] },
+    { firstKey: "enableCompanions", icon: "fa-dog", title: tl("Compagnons évolutifs"),
+      desc: tl("Resynchronise les stats d'une créature liée (compagnon, invocation) sur le niveau de son maître, via des profils de formules (édités dans « Profils de compagnons »)."),
+      keys: ["enableCompanions"] },
     { firstKey: "enableSecondaryCampaign", master: "enableSecondaryCampaign", icon: "fa-folder-tree", title: tl("Campagnes secondaires"),
       desc: tl("Un dossier d'acteurs « hors campagne principale » : ses persos profitent du bestiaire, des relations et des expéditions, mais restent hors du casier, des statistiques, des assiduités, de la validation et de Discord."),
       keys: ["enableSecondaryCampaign","secondaryFolderId"] },
@@ -1496,7 +1499,7 @@ const ACCENT = "#e67e22";
 
 // Réglages GELÉS : affichés grisés/désactivés dans la configuration (on ne peut
 // pas les modifier). Utilisé pour une fonctionnalité temporairement coupée.
-export const FROZEN_SETTINGS = new Set(["enableTgcm", "enableChatCards"]);
+export const FROZEN_SETTINGS = new Set(["enableTgcm"]);
 
 // Schémas des tables de temps morts éditées en grille (champs structurés).
 const TM_TABLE_SCHEMAS = {
@@ -1621,17 +1624,19 @@ function readStarTableFromForm(root) {
 // Regroupement des catégories (firstKey) par thème. Les catégories non
 // listées ici sont ajoutées automatiquement à « Divers ».
 const CONFIG_GROUPS = [
-    { title: tl("Fiche PJ & personnages"), icon: "fa-id-card",
-      cats: ["relationsEnabled", "bestiaryEnabled", "carnetEnabled", "enableCharValidation", "enableStarXp", "xpProgEnabled", "enableSourceControl", "disableElectrum"] },
-    { title: tl("Party & jeu de groupe"), icon: "fa-users",
-      cats: ["enableParty", "enablePartyTime", "enableExpeditionMap", "enableHarvest"] },
-    { title: "Combat", icon: "fa-bolt",
-      cats: ["enableReactReminder", "rangeFixEnabled", "enablePolymorph"] },
-    { title: "Serveur & monde", icon: "fa-server",
-      cats: ["enableXpBlock", "mondeEnabled", "enableDiscordLog", "tmSkillBase", "enableSceneCues", "commonFolderPJ"] },
-    { title: "Personnalisation & interface", icon: "fa-sliders",
-      cats: ["enableChatCards", "enableChatPlayerCards", "enableRollProvenance", "enableDescHighlight", "enableTokenAppearance", "uihide", "tweakTree", "companionProfiles"] },
-    { title: tl("Aide & découverte"), icon: "fa-circle-question",
+    { title: tl("Personnages & fiche PJ"), icon: "fa-id-card",
+      cats: ["relationsEnabled", "bestiaryEnabled", "carnetEnabled", "enableCharValidation", "enableStarXp", "xpProgEnabled", "enableSourceControl", "disableElectrum", "enableBirthday", "enableEncumbrancePenalty", "enableCompanions", "companionProfiles"] },
+    { title: tl("Party, expéditions & temps"), icon: "fa-users",
+      cats: ["enableParty", "enablePartyTime", "enableExpeditionMap", "enableHarvest", "enableSecondaryCampaign"] },
+    { title: tl("Combat & gabarits"), icon: "fa-bolt",
+      cats: ["enableReactReminder", "rangeFixEnabled", "enablePolymorph", "enableTemplateSnap"] },
+    { title: tl("Monde, scènes & contenu"), icon: "fa-earth-europe",
+      cats: ["mondeEnabled", "enableSceneCues", "enableSceneMusic", "enableMejShopFix"] },
+    { title: tl("Serveur, Discord & outils MJ"), icon: "fa-server",
+      cats: ["enableXpBlock", "enableDiscordLog", "commonFolderPJ", "tmSkillBase", "enableCasierGm"] },
+    { title: tl("Interface & affichage"), icon: "fa-sliders",
+      cats: ["enableChatPlayerCards", "enableRollProvenance", "enableDescHighlight", "enableTokenAppearance", "enablePlayerListToggle", "uihide", "tweakTree"] },
+    { title: tl("Aide & base du module"), icon: "fa-circle-question",
       cats: ["serverName", "enableDiagnosticMenu"] }
 ];
 
@@ -1989,6 +1994,7 @@ function buildCategoryForm(category, uid, { banner = true } = {}) {
         ${toggleBar}
         ${category.tree ? renderTweakTree(category.tree) : category.keys.map(settingControlHtml).join("")}
         ${category.firstKey === "commonFolderPJ" ? blocGuideReglagesHtml() : ""}
+        ${category.firstKey === "enableCharValidation" ? blocNiveauxCreationHtml() : ""}
     </div>`;
 }
 
@@ -2003,6 +2009,24 @@ export function licenseBannerHtml() {
         <div style="font-size:.78em;line-height:1.4;color:#d8cfa8;">
             ${tl("<strong>Soruta — Completed Westmarch</strong> · v{0}<br>\n            © 2026 Soruta — Tous droits réservés. Usage personnel autorisé ; toute\n            redistribution, modification ou usage commercial est interdit sans autorisation écrite.", version)}
         </div>
+    </div>`;
+}
+
+// Bloc « Niveaux de création » injecté dans la fenêtre de validation des persos.
+function blocNiveauxCreationHtml() {
+    let n = 1;
+    try { const v = game.settings.get(MOD, "creationLevels"); if (Array.isArray(v) && v.length) n = v.length; } catch (e) {}
+    const resume = n <= 1
+        ? tl("Un seul niveau (niveau 1) : le champ niveau n'apparaît pas à la création.")
+        : tl("{0} niveaux proposés à la création.", n);
+    return `<div class="scwm-set" style="padding:10px 4px;border-bottom:1px solid rgba(255,255,255,0.06);">
+        <label style="display:block;font-weight:600;margin-bottom:4px;">${tl("Niveaux de création")}</label>
+        <p style="margin:0 0 6px;font-size:.8em;color:#999;">${tl("Niveaux proposés au joueur à la création (1, 3, 5…) et critères pour débloquer les niveaux supérieurs. À la création d'un niveau K, la fiche reçoit l'XP du seuil de K.")} ${resume}</p>
+        <button type="button" class="scwm-niveaux-creation"
+                style="padding:4px 12px;border-radius:4px;cursor:pointer;
+                       border:1px solid rgba(201,162,39,0.4);background:rgba(201,162,39,0.12);color:#c9a227;">
+            <i class="fa-solid fa-ranking-star"></i> ${tl("Configurer les niveaux")}
+        </button>
     </div>`;
 }
 
@@ -2150,6 +2174,22 @@ function wireCategoryForm(category, root) {
     });
     root.querySelector(".scwm-all-on")?.addEventListener("click",  e => { e.preventDefault(); setAll(true); });
     root.querySelector(".scwm-all-off")?.addEventListener("click", e => { e.preventDefault(); setAll(false); });
+
+    // Niveaux de création : ouvrir la fenêtre d'édition de la liste.
+    root.querySelector(".scwm-niveaux-creation")?.addEventListener("click", async (e) => {
+        e.preventDefault();
+        await ouvrirConfigNiveaux();
+        // Rafraîchit le résumé affiché sous le bouton.
+        const bloc = e.currentTarget.closest(".scwm-set");
+        const p = bloc?.querySelector("p");
+        if (p) {
+            let n = 1;
+            try { const v = game.settings.get(MOD, "creationLevels"); if (Array.isArray(v) && v.length) n = v.length; } catch (_) {}
+            const base = tl("Niveaux proposés au joueur à la création (1, 3, 5…) et critères pour débloquer les niveaux supérieurs. À la création d'un niveau K, la fiche reçoit l'XP du seuil de K.");
+            const resume = n <= 1 ? tl("Un seul niveau (niveau 1) : le champ niveau n'apparaît pas à la création.") : tl("{0} niveaux proposés à la création.", n);
+            p.textContent = `${base} ${resume}`;
+        }
+    });
 
     // Boutons « Parcourir » (FilePicker) pour les champs d'image.
     root.querySelectorAll(".scwm-filepicker").forEach(btn => btn.addEventListener("click", (e) => {

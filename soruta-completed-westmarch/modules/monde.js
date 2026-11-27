@@ -1536,7 +1536,11 @@ export function lireMonde(key, root) {
 // ============================================================
 // Points d'entrée : bouton sur les fiches d'acteurs, menus contextuels
 // ============================================================
-const estPnj = (a) => a instanceof Actor && !a.pack && !a.hasPlayerOwner && (a.type === "npc" || a.type === "character");
+// Registre du monde : strictement les acteurs de type PNJ. On n'inclut PAS les
+// acteurs de type « personnage » (ce sont des PJ, même sans propriétaire
+// Propriétaire assigné ou « en stock » en Observateur), pour que le bouton ne
+// fuite jamais sur une fiche de joueur.
+const estPnj = (a) => a instanceof Actor && !a.pack && a.type === "npc";
 
 export function MondeHooks() {
     enregistrerQueryBanniere();

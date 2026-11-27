@@ -74,6 +74,7 @@ import { SourceControlHooks } from "./modules/sourcecontrol.js";
 import { CurrencyHooks } from "./modules/currency.js";
 import { RollSourceHooks } from "./modules/rollsource.js";
 import { DescEnrichHooks } from "./modules/descenrich.js";
+import { SkipEquipHooks } from "./modules/skipequip.js";
 import { HarvestHooks }       from "./modules/harvest.js";
 import { CompanionHooks }     from "./modules/companions.js";
 import { AntiCheatHooks } from "./modules/anticheat.js";
@@ -243,6 +244,7 @@ Hooks.on("init", () => {
     CurrencyHooks();
     RollSourceHooks();
     DescEnrichHooks();
+    SkipEquipHooks();
     HarvestHooks();
     CompanionHooks();
     AntiCheatHooks();

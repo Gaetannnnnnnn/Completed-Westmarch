@@ -27,6 +27,7 @@ import { Dialog } from "./compat.js";
 import { commonFolderNewChars, commonFolderPJ } from "./settings.js";
 import { tl, memeNom } from "./i18n.js";
 import { starXpEnabled, progressFor } from "./starxp.js";
+import { selectNiveauHtml, niveauAutorise, niveauMaxDebloque, xpPourNiveau, niveauxConfig } from "./creationlevel.js";
 
 // ---- Frontière construction / jeu -------------------------------------------
 // Chemins d'acteur relevant de la CONSTRUCTION (verrouillés).
@@ -367,20 +368,27 @@ export async function approveCreation(userId) {
     // Si le joueur a déjà atteint sa limite de persos actifs, le nouveau est
     // créé « en stock » (Observateur) ; sinon actif (Propriétaire).
     const asStock = activeCountForUser(userId) >= maxActive();
+    // Niveau de création : niveau demandé, borné au max débloqué pour ce joueur
+    // (défense au cas où sa situation aurait changé depuis la demande).
+    const nivDemande = Number(req.level) || niveauxConfig()[0].level;
+    const niveau = niveauAutorise(userId, nivDemande) ? nivDemande : niveauMaxDebloque(userId);
+    const xp = xpPourNiveau(niveau);
     const actor = await Actor.create({
         name: req.name || tl("{0} — personnage", user.name),
         type: "character",
         folder: folder.id,
         ownership: { default: L.NONE, [userId]: asStock ? L.OBSERVER : L.OWNER },
-        flags: { [MOD]: { createdFor: userId, concept: req.concept || "", validated: false, locked: false, stock: asStock } }
+        system: { details: { xp: { value: xp } } },
+        flags: { [MOD]: { createdFor: userId, concept: req.concept || "", validated: false, locked: false, stock: asStock, creationLevel: niveau } }
     });
     await user.unsetFlag(MOD, "charRequest");
+    const mentionNiv = niveau > 1 ? tl(" Elle est ouverte au <strong>niveau {0}</strong> (XP attribués).", niveau) : "";
     ChatMessage.create({
         whisper: [userId],
         speaker: { alias: tl("Validation") },
-        content: `${tl("✅ Votre demande de personnage est acceptée. La fiche <strong>{0}</strong> est dans vos acteurs — construisez-la (imports Plutonium compris) puis soumettez-la pour validation.", actor?.name)}`
+        content: `${tl("✅ Votre demande de personnage est acceptée. La fiche <strong>{0}</strong> est dans vos acteurs — construisez-la (imports Plutonium compris) puis soumettez-la pour validation.", actor?.name)}${mentionNiv}`
     });
-    ui.notifications?.info(tl("Personnage créé pour {0}.", user.name));
+    ui.notifications?.info(tl("Personnage créé pour {0}{1}.", user.name, niveau > 1 ? tl(" (niveau {0})", niveau) : ""));
 }
 export async function rejectCreation(userId) {
     if (!game.user.isGM) return;
@@ -539,10 +547,13 @@ export function myCharActors() {
 
 // Sous-fenêtre : formulaire de demande d'un NOUVEAU personnage.
 function promptNewCharRequest() {
+    // Sélecteur de niveau : seulement si le MJ a configuré plus d'un niveau.
+    const niveauSel = niveauxConfig().length > 1 ? selectNiveauHtml(game.user.id) : "";
     new Dialog({
         title: tl("Demander un nouveau personnage"),
         content: `<div class="scwm-cv-hub">
             <div class="form-group"><label>${tl("Nom")}</label><input type="text" name="cv-name" placeholder="${tl("Nom du personnage")}"/></div>
+            ${niveauSel}
         </div>`,
         buttons: {
             send: {
@@ -551,9 +562,17 @@ function promptNewCharRequest() {
                     const root = html[0] ?? html;
                     const name = root.querySelector("[name=cv-name]")?.value.trim();
                     if (!name) { ui.notifications?.warn(tl("Indiquez un nom.")); return; }
-                    await game.user.setFlag(MOD, "charRequest", { name, dateISO: new Date().toISOString() });
-                    ChatMessage.create({ whisper: gmIds(), speaker: { alias: tl("Validation") }, content: `${tl("📝 <strong>{0}</strong> demande la création d'un personnage : « {1} ».", esc(game.user.name), esc(name))}` });
-                    notifierDiscord(tl("📝 **{0}** demande la création d'un personnage : « {1} ».", md(game.user.name), md(name)));
+                    // Niveau demandé : valeur du <select>, repli sur le plus bas configuré.
+                    let level = Number(root.querySelector("[name=cv-level]")?.value) || niveauxConfig()[0].level;
+                    // Garde-fou : refuse un niveau non débloqué (option trafiquée).
+                    if (!niveauAutorise(game.user.id, level)) {
+                        ui.notifications?.warn(tl("Ce niveau n'est pas débloqué pour vous."));
+                        return;
+                    }
+                    await game.user.setFlag(MOD, "charRequest", { name, level, dateISO: new Date().toISOString() });
+                    const mentionNiv = niveauSel ? tl(" (niveau {0})", level) : "";
+                    ChatMessage.create({ whisper: gmIds(), speaker: { alias: tl("Validation") }, content: `${tl("📝 <strong>{0}</strong> demande la création d'un personnage : « {1} »{2}.", esc(game.user.name), esc(name), esc(mentionNiv))}` });
+                    notifierDiscord(tl("📝 **{0}** demande la création d'un personnage : « {1} »{2}.", md(game.user.name), md(name), mentionNiv));
                     ui.notifications?.info(tl("Demande envoyée."));
                 }
             },

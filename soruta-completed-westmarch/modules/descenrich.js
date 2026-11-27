@@ -93,13 +93,32 @@ function enrichir(card) {
     for (const tn of nodes) traiter(tn);
 }
 
+// Le contenu des cartes dnd5e/midi arrive APRÈS le rendu du message, d'où un
+// MutationObserver sur le log (comme chat.js) plutôt que renderChatMessageHTML.
+let _root = null, _obs = null, _planif = false;
+function traiterTout() {
+    if (!actif()) return;
+    (_root ?? document).querySelectorAll?.(".chat-card").forEach(enrichir);
+}
+function planifier() {
+    if (_planif) return; _planif = true;
+    requestAnimationFrame(() => { _planif = false; try { traiterTout(); } catch (e) {} });
+}
+export const balayerDescriptions = () => { try { traiterTout(); } catch (e) {} };
+
+function observer(root) {
+    if (!root) return;
+    _root = root;
+    traiterTout();
+    if (_obs) return;
+    _obs = new MutationObserver(() => { if (actif()) planifier(); });
+    _obs.observe(root, { childList: true, subtree: true });
+}
+
 export function DescEnrichHooks() {
-    Hooks.on("renderChatMessageHTML", (message, html) => {
-        try {
-            if (!actif()) return;
-            const root = html instanceof HTMLElement ? html : html?.[0];
-            if (!root) return;
-            root.querySelectorAll(".chat-card").forEach(enrichir);
-        } catch (e) { /* non bloquant */ }
+    Hooks.on("renderChatLog", (log, html) => {
+        try { observer(html instanceof HTMLElement ? html : html?.[0]); } catch (e) {}
     });
+    const log = document.querySelector("#chat-log, .chat-log");
+    if (log) observer(log);
 }

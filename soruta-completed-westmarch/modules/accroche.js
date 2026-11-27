@@ -24,7 +24,7 @@
 //
 // Données : flag de TOKEN `accroche` = { porteur, mode, distance } sur le token
 // accroché. La piste de « mener » est gardée en mémoire sur le client du MJ.
-// Réglage : enableTokenAccroche (Toolkit).
+// Réglage : enableTokenAccroche (catégorie « Tokens — apparence & HUD »).
 // © 2026 Soruta.
 // ============================================================
 

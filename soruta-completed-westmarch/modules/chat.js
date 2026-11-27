@@ -6,202 +6,11 @@ import { tl } from "./i18n.js";
 
 var tabSelected = "IC";
 
-// ── Habillage des cartes de chat (thème + couleur par joueur) ──
-// Pose/retire body.scwm-chat-theme selon le réglage monde, et calcule les
-// couleurs de texte lisibles selon la couleur de fond choisie par le joueur.
-function _luminance(hex) {
-    const m = /^#?([0-9a-f]{6})$/i.exec(String(hex ?? "").trim());
-    if (!m) return 1;
-    const n = parseInt(m[1], 16);
-    const r = ((n >> 16) & 255) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
-    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-}
 // CSS injecté en JS : plus fiable que le fichier du manifeste (sur certains
 // hébergements comme The Forge, un NOUVEAU fichier .css d'un module n'est pas
 // injecté sans relancer le monde). Ici, le style suit toujours le code.
 // Portée commune : le conteneur de chat en v13/v14.
 const SCOPE = ":is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications)";
-const CHAT_CARDS_CSS = `
-/* ══════════════════════════════════════════════════════════════════════
-   Reskin « dnd5e 5.3.x » posé sur le DOM RÉEL de dnd5e 6.0 (usage-card) :
-     .chat-card
-       section.card-header[data-action=toggleDescription]
-         .item-icon > img.gold-icon      (+ éventuel .activity-icon .gold-icon)
-         .name-stacked > .title/.subtitle
-         .chevron > i
-       section.card-description.collapsible > .collapsible-content > .wrapper
-       p.supplement > strong
-       section.icon-row (infos)  → ul.pills.unlist > li.pill > .label
-       section.icon-row (actions)→ i.fa-circle-play + ul.unlist > li > button.icon[data-action]
-   L'état replié est la classe .collapsed sur .card-header/.card-description
-   (ajoutée seulement si le réglage dnd5e « autoCollapseItemCards » est actif).
-   ══════════════════════════════════════════════════════════════════════ */
-
-/* ── Thème (couleurs) : on habille le FOND du message, mais on n'impose PAS
-   la couleur du texte à tout le message — sinon les commandes natives dnd5e à
-   fond sombre (barre de dégâts/effets, ciblage, boutons) héritent d'un texte
-   foncé → illisible sur leur fond foncé. On colore donc uniquement le texte
-   DE LA CARTE (titre, description, pastilles…) ci-dessous. ── */
-body.scwm-chat-theme ${SCOPE} .message {
-    --dnd5e-chat-background: var(--scwm-chat-bg);
-    background: var(--scwm-chat-bg) !important;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.35);
-}
-/* Texte des messages (en-tête, chuchotements, texte hors carte) lisible sur le
-   fond crème. SANS !important : les composants sombres natifs (dés, bacs de
-   dégâts/effets/ciblage) qui posent leur PROPRE couleur claire gardent leur
-   texte clair — on ne recrée pas le « clair sur sombre » illisible. */
-body.scwm-chat-theme ${SCOPE} .message { color: var(--scwm-chat-fg); }
-body.scwm-chat-theme ${SCOPE} .message .message-header,
-body.scwm-chat-theme ${SCOPE} .message .message-metadata,
-body.scwm-chat-theme ${SCOPE} .message .message-content {
-    color: var(--scwm-chat-fg);
-}
-/* Lignes d'en-tête parfois atténuées (expéditeur, horodatage, « To: … » du
-   chuchotement) : on remet la couleur ET l'opacité pleine pour la lisibilité. */
-body.scwm-chat-theme ${SCOPE} .message .message-sender,
-body.scwm-chat-theme ${SCOPE} .message .message-timestamp,
-body.scwm-chat-theme ${SCOPE} .message .message-metadata,
-body.scwm-chat-theme ${SCOPE} .message .whisper-to,
-body.scwm-chat-theme ${SCOPE} .message .message-whisper {
-    color: var(--scwm-chat-fg) !important;
-    opacity: 1 !important;
-}
-body.scwm-chat-theme ${SCOPE} .message .chat-card { border-radius: 5px; }
-/* Texte de la carte, sur le fond crème (les zones sombres natives gardent
-   leur propre texte clair). */
-body.scwm-chat-theme ${SCOPE} .message .chat-card .card-description .wrapper,
-body.scwm-chat-theme ${SCOPE} .message .chat-card .card-flavor,
-body.scwm-chat-theme ${SCOPE} .message .chat-card p.supplement,
-body.scwm-chat-theme ${SCOPE} .message .chat-card .name-stacked .subtitle {
-    color: var(--scwm-chat-fg);
-}
-
-/* Barres sombres des jets (formule « 1d20 + 7 » des cartes dnd5e / Midi-QOL) :
-   elles n'ont pas de couleur de texte propre et héritaient du texte foncé du
-   thème → illisible sur leur fond sombre. On leur rend un texte clair. */
-body.scwm-chat-theme ${SCOPE} .message .dice-roll .dice-formula,
-body.scwm-chat-theme ${SCOPE} .message .dice-roll .dice-total,
-body.scwm-chat-theme ${SCOPE} .message .dice-roll .dice-formula * {
-    color: #efe7cf !important;
-}
-
-/* ── En-tête 5.3.x : grosse icône encadrée + titre gras + sous-titre italique + filet ── */
-body.scwm-chat-theme ${SCOPE} .message .chat-card .card-header {
-    display: flex; align-items: center; gap: 8px;
-    padding: 4px 2px 7px; margin: 0;
-    border-bottom: 2px groove rgba(154,123,30,0.40);
-}
-body.scwm-chat-theme ${SCOPE} .message .chat-card .card-header .item-icon img.gold-icon,
-body.scwm-chat-theme ${SCOPE} .message .chat-card .card-header .activity-icon .gold-icon {
-    width: 40px !important; height: 40px !important; flex: 0 0 40px;
-    object-fit: cover; border: 2px solid var(--scwm-chat-gold) !important;
-    border-radius: 4px; box-shadow: 0 0 4px rgba(0,0,0,0.3);
-}
-body.scwm-chat-theme ${SCOPE} .message .chat-card .card-header .name-stacked { line-height: 1.15; flex: 1 1 auto; min-width: 0; }
-body.scwm-chat-theme ${SCOPE} .message .chat-card .card-header .title { color: var(--scwm-chat-gold); text-shadow: none; font-size: 15px; font-weight: 700; letter-spacing: .2px; }
-body.scwm-chat-theme ${SCOPE} .message .chat-card .card-header .subtitle { color: var(--scwm-chat-fg2); font-size: 11px; font-style: italic; opacity: .9; }
-body.scwm-chat-theme ${SCOPE} .message .chat-card .card-header .chevron { margin-left: auto; opacity: .55; }
-
-/* ── Description : lisible et confortable (ouverte par défaut, cf. JS) ── */
-body.scwm-chat-theme ${SCOPE} .message .chat-card .card-description .wrapper {
-    padding: 8px 3px 4px; font-size: 13px; line-height: 1.42;
-}
-body.scwm-chat-theme ${SCOPE} .message .chat-card .card-flavor { font-style: italic; padding: 4px 2px; opacity: .95; }
-body.scwm-chat-theme ${SCOPE} .message .chat-card p.supplement > strong { color: var(--scwm-chat-gold); }
-
-/* ── Pastilles (infos + propriétés) ── */
-body.scwm-chat-theme ${SCOPE} .message .icon-row .pill,
-body.scwm-chat-theme ${SCOPE} .message .pills .pill {
-    border: 1px solid rgba(154,123,30,0.4); background: rgba(154,123,30,0.10);
-    border-radius: 3px; color: var(--scwm-chat-fg);
-}
-body.scwm-chat-theme ${SCOPE} .message .icon-row > i { color: var(--scwm-chat-gold); }
-
-/* ── GROS BOUTONS d'action (5.3.x) ──
-   Les boutons natifs 6.0 sont de petites icônes dans .icon-row > ul.unlist ;
-   le JS marque cette rangée .scwm-btn-row et ajoute un libellé texte
-   (.scwm-btn-label) tiré de l'aria-label. On la transforme en colonne de
-   boutons pleine largeur, façon 5.3.x. */
-body.scwm-chat-bigbtn ${SCOPE} .message .scwm-btn-row {
-    display: flex; flex-direction: column; align-items: stretch; gap: 6px; margin-top: 6px;
-}
-body.scwm-chat-bigbtn ${SCOPE} .message .scwm-btn-row > i { display: none; } /* icône « play » de tête */
-/* Grille 2 colonnes : les boutons s'apparient (Attaque|Dégâts, Consommer|Gabarit…). */
-body.scwm-chat-bigbtn ${SCOPE} .message .scwm-btn-row > ul {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
-    margin: 0; padding: 0; list-style: none; width: 100%;
-}
-body.scwm-chat-bigbtn ${SCOPE} .message .scwm-btn-row > ul > li { margin: 0; }
-/* Un bouton seul en fin de rangée impaire prend toute la largeur. */
-body.scwm-chat-bigbtn ${SCOPE} .message .scwm-btn-row > ul > li:last-child:nth-child(odd) { grid-column: 1 / -1; }
-body.scwm-chat-bigbtn ${SCOPE} .message .scwm-btn-row button {
-    display: flex; align-items: center; justify-content: center; gap: 6px;
-    width: 100%; min-height: 20px; box-sizing: border-box; padding: 2px 8px;
-    border: 1px solid rgba(154,123,30,0.6); border-radius: 5px;
-    background: linear-gradient(180deg, rgba(154,123,30,0.18), rgba(154,123,30,0.05));
-    color: var(--scwm-chat-fg) !important;
-    font-family: var(--font-sans, "Signika", sans-serif); font-weight: 600; font-size: 12px;
-    transition: box-shadow .15s, background .15s, border-color .15s;
-}
-body.scwm-chat-bigbtn ${SCOPE} .message .scwm-btn-row button:hover {
-    border-color: #e67e22; background: rgba(230,126,34,0.16); box-shadow: 0 0 6px rgba(230,126,34,0.35);
-}
-body.scwm-chat-bigbtn ${SCOPE} .message .scwm-btn-row button .scwm-btn-label {
-    font-family: var(--font-sans, "Signika", sans-serif); font-size: 12px; font-weight: 600; letter-spacing: 0;
-}
-/* Le petit bouton-icône natif : on neutralise sa taille fixe pour qu'il s'étende. */
-body.scwm-chat-bigbtn ${SCOPE} .message .scwm-btn-row button.icon { width: 100% !important; height: auto !important; aspect-ratio: auto !important; }
-
-/* Les jets et bacs de dés/effets/ciblage restent sur leur fond sombre natif
-   avec leur texte clair natif : on n'y touche pas (sinon texte foncé sur fond
-   foncé, illisible). Le thème ne colore que le texte de la CARTE (ci-dessus). */
-`;
-
-// Habillage des cartes de chat temporairement DÉSACTIVÉ (en attente d'une
-// décision). Le réglage est grisé dans la configuration. Pour réactiver :
-// repasser à false et retirer "enableChatCards" de FROZEN_SETTINGS (settings.js).
-const CARTES_DISABLED = true;
-export const cartesActives = () => { if (CARTES_DISABLED) return false; try { return !!game.settings.get(MOD, "enableChatCards"); } catch { return false; } };
-
-export function applyChatCardPrefs() {
-    const body = document.body;
-    if (!body) return;
-    const get = (k, d) => { try { const v = game.settings.get(MOD, k); return v === undefined ? d : v; } catch { return d; } };
-
-    const master = !CARTES_DISABLED && !!get("enableChatCards", true);
-    const theme  = master && get("chatCardsTheme", true) !== false;
-    const bigBtn = master && get("chatCardsBigButtons", true) !== false;
-
-    body.classList.toggle("scwm-chat",        master);
-    body.classList.toggle("scwm-chat-theme",  theme);
-    body.classList.toggle("scwm-chat-bigbtn", bigBtn);
-
-    // Repli de la description : on aligne le réglage NATIF dnd5e
-    // « autoCollapseItemCards » (client) sur notre option. Son clic de dépli
-    // fonctionne nativement. On ne le touche que si notre habillage est actif.
-    try {
-        if (master) {
-            const fold = get("chatCardsFoldDescription", true) !== false;
-            if (game.settings.get("dnd5e", "autoCollapseItemCards") !== fold) {
-                game.settings.set("dnd5e", "autoCollapseItemCards", fold);
-            }
-        }
-    } catch (e) {}
-
-    const color = get("chatCardColor", "#f4ecd8") || "#f4ecd8";
-    body.style.setProperty("--scwm-chat-bg", color);
-    const dark = _luminance(color) < 0.5;   // fond sombre → texte clair
-    body.style.setProperty("--scwm-chat-fg",  dark ? "#f2ead4" : "#2a2418");
-    body.style.setProperty("--scwm-chat-fg2", dark ? "#c9bd99" : "#5c5240");
-    body.style.setProperty("--scwm-chat-gold", dark ? "#e8cc6a" : "#9a7b1e");
-
-    // Style injecté (fiable quel que soit l'hébergement). Toujours présent : ses
-    // règles sont scopées par les classes body ci-dessus, donc sans effet si off.
-    let st = document.getElementById("scwm-chat-cards-style");
-    if (!st) { st = document.createElement("style"); st.id = "scwm-chat-cards-style"; document.head.appendChild(st); }
-    if (st.textContent !== CHAT_CARDS_CSS) st.textContent = CHAT_CARDS_CSS;
-}
 
 // ══════════════════════════════════════════════════════════════════════
 //  Cartes de chat colorées par joueur — fonctionnement NATIF préservé
@@ -355,102 +164,12 @@ export function applyPlayerCardPrefs() {
     }
 }
 
-// Transforme une carte de chat dnd5e 6.0 (usage-card) vers le rendu « 5.3.x ».
-// `root` peut être UN message (li.chat-message) OU le ChatLog entier : on
-// balaie tout le sous-arbre (les rangées de boutons/dés sont parfois des
-// FRÈRES de .chat-card, pas des enfants — d'où la recherche large).
-function reskinChatCard(root) {
-    if (!root) return;
-    // NOTE : le repli de la description N'EST PLUS géré ici. On pilote le
-    // réglage NATIF dnd5e « autoCollapseItemCards » (voir applyChatCardPrefs),
-    // dont le clic de dépli/repli sur l'en-tête fonctionne nativement — forcer
-    // la classe .collapsed nous-mêmes cassait ce clic.
-
-    // 2) Gros boutons libellés : en 6.0 les actions (Attaque/Dégâts) sont de
-    //    petites icônes dans .icon-row > ul > li > button.icon, sans texte
-    //    visible (libellé dans aria-label). On marque la rangée et on injecte
-    //    le libellé ; le CSS la met en colonne pleine largeur.
-    if (game.settings.get(MOD, "chatCardsBigButtons") !== false) {
-        try {
-            root.querySelectorAll(".icon-row").forEach(row => {
-                // On ne prend QUE les rangées de vraies actions (boutons avec
-                // data-action ou .icon), pas la rangée de dés (button.dice-roll)
-                // ni les rangées d'infos (pastilles sans bouton).
-                const btns = [...row.querySelectorAll("button")].filter(b =>
-                    (b.hasAttribute("data-action") || b.classList.contains("icon")) &&
-                    !b.classList.contains("dice-roll"));
-                if (!btns.length) return;
-                // Doublons : certaines cartes (ex. activité de soin de Midi-QOL)
-                // affichent déjà la même action en bouton texte (« Healing »)
-                // hors de cette rangée. On masque le bouton-icône en double au
-                // lieu d'en faire un second gros bouton.
-                const carte = row.closest(".chat-message, .message") ?? root;
-                const norme = (t) => String(t ?? "").replace(/\s+/g, " ").trim().toLowerCase();
-                const existants = new Set([...carte.querySelectorAll("button")]
-                    .filter(b => !row.contains(b) && !b.classList.contains("dice-roll"))
-                    .map(b => norme(b.textContent)).filter(Boolean));
-                btns.forEach(b => {
-                    const lbl = norme(b.getAttribute("aria-label") || b.getAttribute("data-tooltip") || b.textContent);
-                    if (lbl && existants.has(lbl)) { b.style.display = "none"; b.dataset.scwmDoublon = "1"; }
-                });
-                if (btns.every(b => b.dataset.scwmDoublon)) { row.style.display = "none"; return; }
-                row.classList.add("scwm-btn-row");
-                btns.forEach(btn => {
-                    if (btn.dataset.scwmDoublon || btn.querySelector(".scwm-btn-label")) return;
-                    const lbl = (btn.getAttribute("aria-label") || btn.getAttribute("data-tooltip") || btn.textContent || "").trim();
-                    if (lbl) {
-                        const s = document.createElement("span");
-                        s.className = "scwm-btn-label";
-                        s.textContent = lbl;
-                        btn.appendChild(s);
-                    }
-                });
-            });
-        } catch (e) {}
-    }
-
-    // 2 bis) Garantie « l'un ou l'autre » : dans une même carte, deux boutons
-    //    visibles pour la même action (même libellé, qu'ils viennent de dnd5e,
-    //    de Midi-QOL ou de notre habillage) ne s'affichent jamais ensemble.
-    //    On garde le premier bouton visible, on masque les suivants.
-    try {
-        const cartes = root.matches?.(".chat-message") ? [root] : [...root.querySelectorAll(".chat-message")];
-        for (const carte of cartes) dedoublonnerBoutons(carte);
-    } catch (e) {}
-
-    // 3) Jets dépliés par défaut.
-    if (game.settings.get(MOD, "chatCardsExpandDice") !== false) {
-        try { root.querySelectorAll(".dice-roll:not(.expanded)").forEach(r => r.classList.add("expanded")); } catch (e) {}
-    }
-}
-
-function libelleBouton(b) {
-    const clone = b.cloneNode(true);
-    clone.querySelectorAll(".scwm-btn-label").forEach(x => x.remove());
-    return String(b.getAttribute("aria-label") || b.getAttribute("data-tooltip") || clone.textContent || "")
-        .replace(/\s+/g, " ").trim().toLowerCase();
-}
-function dedoublonnerBoutons(carte) {
-    const vus = new Set();
-    for (const b of carte.querySelectorAll("button")) {
-        if (b.classList.contains("dice-roll") || b.dataset.scwmDoublon) continue;
-        if (b.offsetParent === null && b.style.display === "none") continue;
-        const lbl = libelleBouton(b);
-        if (!lbl) continue;
-        if (vus.has(lbl)) {
-            b.style.display = "none"; b.dataset.scwmDoublon = "1";
-            const ligne = b.closest(".icon-row");
-            if (ligne && [...ligne.querySelectorAll("button")].every(x => x.style.display === "none")) ligne.style.display = "none";
-        } else vus.add(lbl);
-    }
-}
 
 // ── Observateur du ChatLog ──
-// dnd5e RE-REND la carte à chaque clic sur un bouton (Attaque/Dégâts…), ce qui
-// efface nos libellés → retour aux petits carrés. Et le hook par message ne
-// couvre pas toujours les nouvelles cartes. Un MutationObserver ré-applique le
-// reskin dès qu'une carte apparaît OU est re-rendue en place. reskinChatCard
-// est idempotent (garde du libellé déjà posé) → pas de boucle.
+// dnd5e RE-REND la carte à chaque clic sur un bouton (Attaque/Dégâts…), et le
+// hook par message ne couvre pas toujours les nouvelles cartes. Un
+// MutationObserver ré-applique la teinte par joueur dès qu'une carte apparaît
+// OU est re-rendue en place (idempotent → pas de boucle).
 let _chatObs = null;
 function observeChatLog(logEl) {
     if (!logEl || !(logEl instanceof HTMLElement)) return;
@@ -464,18 +183,13 @@ function observeChatLog(logEl) {
         if (!targets.size) return;
         requestAnimationFrame(() => {
             try {
-                const reskin = cartesActives();
-                const pcolor = cartesJoueurActives();
-                if (!reskin && !pcolor) return;
+                if (!cartesJoueurActives()) return;
                 targets.forEach(n => {
                     const msg = n.closest?.(".chat-message") ?? n;
-                    if (reskin) reskinChatCard(msg);
-                    if (pcolor) {
-                        if (msg?.classList?.contains?.("chat-message")) appliquerCarteJoueur(msg);
-                        else msg?.querySelectorAll?.(".chat-message").forEach(appliquerCarteJoueur);
-                    }
+                    if (msg?.classList?.contains?.("chat-message")) appliquerCarteJoueur(msg);
+                    else msg?.querySelectorAll?.(".chat-message").forEach(appliquerCarteJoueur);
                 });
-                if (pcolor) planifierSeparateurs();
+                planifierSeparateurs();
             } catch (e) {}
         });
     });
@@ -487,7 +201,7 @@ export function ChatHooks() {
     Hooks.on("renderChatMessageHTML", (message, html, messageData) => renderChatMessageHTML(message, html, messageData));
     Hooks.on("renderChatLog", async (log, html, data) => await renderChatLog(log, html, data));
 
-    Hooks.once("ready", () => { applyChatCardPrefs(); applyPlayerCardPrefs(); });
+    Hooks.once("ready", () => applyPlayerCardPrefs());
 
     // Injection des boutons GM au chargement initial (ready garantit que
     // #chat-controls est dans le DOM) ET à chaque re-render du ChatLog
@@ -562,13 +276,6 @@ export function ReloadChat() {
 function renderChatMessageHTML(message, html, messageData) {
     // Reskin 5.3.x sur le DOM 6.0 (l'observateur du ChatLog assure le suivi des
     // re-renders après clic sur un bouton ; ici on traite le rendu initial).
-    try {
-        if (cartesActives()) {
-            const root = html instanceof HTMLElement ? html : html?.[0];
-            if (root) { reskinChatCard(root); requestAnimationFrame(() => reskinChatCard(root)); }
-        }
-    } catch (e) {}
-
     // Carte colorée par joueur (natif préservé) : teinte + accent + séparateur.
     try {
         if (cartesJoueurActives()) {
@@ -612,15 +319,12 @@ async function renderChatLog(log, html, data) {
     // sidebar, puis surveille les nouvelles cartes et les re-renders en place.
     try {
         const root = html instanceof HTMLElement ? html : html?.[0];
-        const reskin = cartesActives();
-        const pcolor = cartesJoueurActives();
-        if (reskin) reskinChatCard(root);
-        if (pcolor) {
+        if (cartesJoueurActives()) {
             _logEl = root;
             root?.querySelectorAll?.(".chat-message").forEach(appliquerCarteJoueur);
             planifierSeparateurs();
+            observeChatLog(root);
         }
-        if (reskin || pcolor) observeChatLog(root);
     } catch (e) {}
 
     // Éviter la duplication des tabs si renderChatLog fire plusieurs fois

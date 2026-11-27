@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 7.1.1
+Version : 7.1.2
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -217,6 +217,65 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v7.1.2 | 2026-11-27
+   - Réorganisation — Réglages mieux rangés. L'ancien fourre-tout « Toolkit »
+     (≈ 35 réglages mêlant tokens, outils MJ, gabarits, audio, boutiques,
+     encombrement…), qui ressemblait trop à un « divers », est supprimé et
+     éclaté en catégories thématiques : « Tokens — apparence & HUD »,
+     « Outils du MJ », « Liste des joueurs », « Gabarits & zones (AoE) »,
+     « Audio & musique », « Boutiques & Journaux (MEJ) », « Encombrement » et
+     « Compagnons évolutifs ». Le panneau de configuration est reclassé en
+     7 groupes couvrant TOUTES les catégories (plus aucune ne tombe dans
+     « Divers ») : Personnages & fiche PJ · Party, expéditions & temps ·
+     Combat & gabarits · Monde, scènes & contenu · Serveur, Discord & outils MJ ·
+     Interface & affichage · Aide & base du module. Aucun réglage n'est perdu ni
+     renommé (seul leur classement change). Fichier : modules/settings.js.
+   - Correctif — Registre du monde : le bouton d'en-tête « Créer la fiche du
+     monde de ce PNJ » apparaissait à tort sur des fiches de PERSONNAGE JOUEUR
+     (acteurs de type « personnage » sans propriétaire Propriétaire assigné, ou
+     « en stock » en Observateur). Le bouton (et l'option contextuelle « Rédiger
+     la fiche ») est désormais restreint aux acteurs de TYPE PNJ (« npc »)
+     uniquement. Fichier : modules/monde.js.
+   - Correctif — Provenance des jets & Mise en valeur des descriptions ne
+     s'affichaient pas (Foundry v14 + midi-qol). Cause : dnd5e/midi injecte le
+     contenu des cartes de chat APRÈS le rendu du message, donc le hook
+     renderChatMessageHTML tirait trop tôt (message vu avec rolls:0, sans
+     .dice-formula ni .chat-card). Les deux fonctions passent désormais par un
+     MutationObserver sur le log de chat (même méthode que les cartes colorées),
+     avec balayage initial et application immédiate à l'activation du réglage
+     (sans rechargement). Fichiers : modules/rollsource.js, modules/descenrich.js,
+     modules/settings.js.
+   - NOUVEAU — Bloquer l'import d'équipement de classe (réglage « Bloquer
+     l'import d'équipement de classe (auto-skip) », désactivé par défaut). À
+     l'import d'une classe via Plutonium, la fenêtre d'équipement de départ
+     (« EquipmentApp ») est automatiquement passée : clic sur son bouton
+     « Skip », aucun équipement ajouté, l'import continue. On ne ferme jamais
+     la fenêtre de force (ça romprait la chaîne d'import). Fichiers :
+     modules/skipequip.js (nouveau), modules/settings.js, modules/i18n-en.js,
+     index.js.
+   - Retrait — l'ancien habillage des cartes de chat (« Cartes de chat »,
+     reskin 5.3.x), gelé en attendant une décision, est supprimé : réglages
+     (enableChatCards, thème, gros boutons, dépli des dés, repli de
+     description, couleur par joueur), code et CSS associés retirés. Les
+     fonctions chat récentes restent en place : cartes colorées par joueur,
+     provenance des jets, mise en valeur des descriptions, filtre/onglets.
+     Fichiers : modules/chat.js, modules/settings.js, modules/accessibility.js,
+     styles/chat-cards.css.
+   - NOUVEAU — Niveaux de création des personnages. Dans les réglages de
+     « Validation des personnages », un bouton « Configurer les niveaux » ouvre
+     une fenêtre où le MJ liste les niveaux proposés à la création (ex. 1, 3, 5).
+     Chaque niveau au-dessus du premier porte un critère de déblocage : il faut
+     que le joueur possède déjà N personnage(s) — ses plus hauts niveaux — ayant
+     atteint un certain niveau (ex. « niveau 3 si 1 perso ≥ niv. 3 », « niveau 5
+     si 2 persos ≥ niv. 5 »). Tant qu'un seul niveau est configuré (défaut :
+     niveau 1), aucun champ n'apparaît côté joueur. Sinon, la fenêtre de demande
+     de personnage affiche un sélecteur de niveau ; les niveaux verrouillés y
+     sont grisés avec leur critère affiché. À la validation d'une demande de
+     niveau K, la fiche créée reçoit l'XP du seuil de K (table dnd5e) et un
+     drapeau « creationLevel » (niveau borné au max réellement débloqué par le
+     joueur au moment de la validation). Fichiers : modules/creationlevel.js
+     (nouveau), modules/charvalidation.js, modules/settings.js.
 
 v7.1.1 | 2026-11-27
    - NOUVEAU — Provenance des jets au survol (réglage « Provenance des jets »,

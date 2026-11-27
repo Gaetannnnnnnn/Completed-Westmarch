@@ -1,25 +1,25 @@
 // ============================================================
-// rollsource.js — Source d'un jet (v2)
+// rollsource.js — Source des dégâts (v3)
 //
-// Sous chaque bloc de dés d'une carte de chat, un petit libellé indique DE QUOI
-// vient le jet : l'arme, le sort ou l'aptitude qui l'a déclenché (image + nom).
-// La décomposition des bonus (caractéristique, maîtrise…) est déjà fournie
-// nativement par dnd5e, donc on ne double plus avec un survol.
+// dnd5e étiquette déjà les termes du JET D'ATTAQUE (+7 Force, +6 Maîtrise…)
+// dans sa décomposition native, mais PAS ceux des JETS DE DÉGÂTS. On comble ce
+// manque : dans la formule d'un jet de dégâts, chaque dé reçoit son TYPE de
+// dégâts (tranchant, feu…) et le bonus plat reçoit la CARACTÉRISTIQUE dont il
+// vient (quand sa valeur correspond au modificateur de l'arme).
 //
-// Source fiable : message.getAssociatedItem() — l'objet à l'origine du jet.
-//   • Un même message peut porter plusieurs jets (attaque + dégâts tranchants +
-//     dégâts de feu d'une arme à propriété) : ils partagent le même objet source.
-//   • On ne peut PAS attribuer un dé isolé à une aptitude différente quand
-//     plusieurs effets empilent leurs dés dans un seul jet (le système fusionne
-//     sans conserver l'origine dé par dé). On étiquette donc au niveau du jet.
-//   • Un jet sans objet (sauvegarde ou test de caractéristique brut) n'a pas de
-//     source : aucun libellé n'est ajouté.
+//   Ex. « 1d12 + 7 »  →  « 1d12 tranchant + 7 Force »
+//       « 2d6 »       →  « 2d6 feu »
+//
+// On ne touche PAS au jet d'attaque (déjà étiqueté par dnd5e) ni au nom de
+// l'objet (déjà affiché en en-tête de la carte). Reconstruction fiable à partir
+// du type du jet (roll.options.type) et du modificateur de caractéristique de
+// l'acteur. Limite : quand plusieurs effets empilent des dés dans un seul jet,
+// le type reste correct mais on ne distingue pas l'aptitude d'origine.
 //
 // N'altère que l'affichage, jamais le résultat. © 2026 Soruta.
 // ============================================================
 
 import { MOD } from "./const.js";
-import { tl } from "./i18n.js";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -28,44 +28,74 @@ const sourceActive = () => {
     try { return !!game.settings.get(MOD, "enableRollProvenance"); } catch { return false; }
 };
 
-// Icône de repli selon le type d'objet dnd5e (si l'objet n'a pas d'image).
-function iconeType(type) {
-    const map = {
-        weapon: "fa-gavel", spell: "fa-wand-magic-sparkles", feat: "fa-star",
-        consumable: "fa-flask", equipment: "fa-shield-halved", tool: "fa-screwdriver-wrench"
-    };
-    return `<i class="fa-solid ${map[type] || "fa-dice-d20"} scwm-src-ic"></i>`;
+function estOperateur(t) {
+    if (t?.constructor?.name === "OperatorTerm") return true;
+    const OT = foundry.dice?.terms?.OperatorTerm;
+    return !!(OT && t instanceof OT);
 }
 
-// Libellé source : vignette (image de l'objet) + nom.
-function tagSource(item) {
-    const nom = esc(item?.name || "");
-    if (!nom) return "";
-    const vignette = item?.img
-        ? `<img class="scwm-src-img" src="${esc(item.img)}" alt="">`
-        : iconeType(item?.type);
-    return `<div class="scwm-src" data-tooltip="${esc(tl("Source du jet"))}">${vignette}<span>${nom}</span></div>`;
+function estDe(t) {
+    if (t?.faces != null || t?.denomination != null) return true;
+    if (/Die$/.test(t?.constructor?.name || "")) return true;
+    return /^\s*\d*\s*[dD]\s*\d+/.test(t?.expression || "");
 }
 
-// Étiquette chaque bloc de dés d'un message avec sa source (idempotent).
+// Clé de caractéristique de l'objet à l'origine du jet (str, dex…).
+function abilityDe(item) {
+    return item?.abilityMod || item?.system?.ability || null;
+}
+function labelAbility(k) {
+    const a = CONFIG?.DND5E?.abilities?.[k];
+    return a?.label || a?.abbreviation || k || "";
+}
+function labelType(t) {
+    const d = CONFIG?.DND5E?.damageTypes?.[t] || CONFIG?.DND5E?.healingTypes?.[t];
+    return d?.label || t || "";
+}
+
+const tag = (txt) => txt ? `<span class="scwm-src-tag">${esc(txt)}</span>` : "";
+
+// Reconstruit la formule d'un jet de DÉGÂTS avec les étiquettes de source.
+function formuleDegats(roll, actor, abilityKey) {
+    const typeLbl = roll?.options?.type ? labelType(roll.options.type) : "";
+    const mod = (actor && abilityKey)
+        ? Number(actor.system?.abilities?.[abilityKey]?.mod)
+        : null;
+    const bouts = [];
+    for (const t of (roll?.terms ?? [])) {
+        const expr = t?.expression ?? "";
+        if (estOperateur(t)) { bouts.push(esc(expr)); continue; }
+        if (estDe(t)) {
+            bouts.push(esc(expr) + tag(typeLbl));                  // dé → type de dégâts
+        } else if (mod != null && abilityKey && Number(expr) === mod) {
+            bouts.push(esc(expr) + tag(labelAbility(abilityKey))); // bonus plat → caractéristique
+        } else {
+            bouts.push(esc(expr));                                  // bonus inconnu → nu
+        }
+    }
+    return bouts.join("");
+}
+
+// Annote les jets de DÉGÂTS d'un message (laisse l'attaque à dnd5e). Idempotent.
 function traiterMessage(message, el) {
     if (!message?.rolls?.length || !el) return;
-    let item = null;
-    try { item = message.getAssociatedItem?.(); } catch (e) { item = null; }
-    if (!item) return;                       // jet sans objet source → rien
-    const html = tagSource(item);
-    if (!html) return;
-    el.querySelectorAll(".dice-roll").forEach(bloc => {
-        if (bloc.dataset.scwmSrc) return;
-        const f = bloc.querySelector(".dice-formula");
-        if (!f) return;
-        bloc.dataset.scwmSrc = "1";
-        f.insertAdjacentHTML("afterend", html);
+    let item = null, actor = null;
+    try { item = message.getAssociatedItem?.(); } catch (e) {}
+    try { actor = message.getAssociatedActor?.(); } catch (e) {}
+    const abilityKey = abilityDe(item);
+    const blocs = el.querySelectorAll(".dice-roll");
+    message.rolls.forEach((roll, i) => {
+        if (!roll?.options?.type) return;                 // pas un jet de dégâts → on laisse dnd5e
+        const f = blocs[i]?.querySelector?.(".dice-formula");
+        if (f && !f.dataset.scwmSrc) {
+            f.dataset.scwmSrc = "1";
+            f.innerHTML = formuleDegats(roll, actor, abilityKey);
+        }
     });
 }
 
-// Balaye tout le log (le contenu des cartes dnd5e/midi arrive APRÈS le rendu
-// du message, d'où l'observer plutôt que renderChatMessageHTML).
+// Le contenu des cartes dnd5e/midi arrive APRÈS le rendu du message, d'où un
+// MutationObserver sur le log plutôt que renderChatMessageHTML.
 let _root = null, _obs = null, _planif = false;
 function traiterTout() {
     if (!sourceActive()) return;

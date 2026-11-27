@@ -740,8 +740,8 @@ export function registerSettings() {
     // ---- Provenance des termes d'un jet au survol ----
     game.settings.register(MOD, "enableRollProvenance", {
         ...B(
-            tl("Source des jets (arme / sort / aptitude)"),
-            tl("Sous chaque bloc de dés d'une carte de chat, affiche un petit libellé indiquant l'objet à l'origine du jet (image + nom : arme, sort, aptitude). La décomposition des bonus (caractéristique, maîtrise…) reste celle de dnd5e. Un jet sans objet (sauvegarde, test brut) n'affiche rien. N'altère pas le résultat. Désactivé par défaut."),
+            tl("Source des dégâts (type + caractéristique)"),
+            tl("dnd5e étiquette les termes du jet d'attaque (Force, Maîtrise…) mais pas ceux des dégâts. Cette option annote les JETS DE DÉGÂTS dans le chat : chaque dé reçoit son type (tranchant, feu…) et le bonus plat sa caractéristique quand il correspond au modificateur de l'arme (ex. « 1d12 tranchant + 7 Force », « 2d6 feu »). N'altère pas l'attaque ni le résultat. Désactivé par défaut."),
             false),
         onChange: () => { try { balayerProvenance(); } catch (e) {} }
     });
@@ -1426,8 +1426,8 @@ const CATEGORIES = [
     { firstKey: "enableChatPlayerCards", master: "enableChatPlayerCards", icon: "fa-palette", title: tl("Cartes colorées par joueur"),
       desc: tl("Affichage natif des cartes de chat, enrichi : fond teinté de la couleur de profil de chaque joueur (mat et sombre), accent à gauche et séparateurs entre joueurs. Ne reconstruit aucun bouton ni mécanisme."),
       keys: ["enableChatPlayerCards"] },
-    { firstKey: "enableRollProvenance", master: "enableRollProvenance", icon: "fa-dice-d20", title: tl("Source des jets"),
-      desc: tl("Sous chaque bloc de dés, un libellé indique l'objet à l'origine du jet (arme, sort, aptitude) : image + nom. Un jet sans objet (sauvegarde, test de caractéristique) n'affiche rien."),
+    { firstKey: "enableRollProvenance", master: "enableRollProvenance", icon: "fa-dice-d20", title: tl("Source des dégâts"),
+      desc: tl("Annote les jets de dégâts dans le chat : chaque dé reçoit son type (tranchant, feu…) et le bonus plat sa caractéristique (« 1d12 tranchant + 7 Force »). L'attaque reste étiquetée par dnd5e."),
       keys: ["enableRollProvenance"] },
     { firstKey: "enableDescHighlight", master: "enableDescHighlight", icon: "fa-highlighter", title: tl("Descriptions mises en valeur"),
       desc: tl("Colore les types de dégâts et met en gras les mots-clés et les dés dans les descriptions affichées dans le chat."),

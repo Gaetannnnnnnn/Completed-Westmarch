@@ -1,7 +1,7 @@
 {
   "id": "soruta-completed-westmarch",
   "title": "Soruta — Completed Westmarch",
-  "version": "7.1.3",
+  "version": "7.1.4",
   "changelog": "2026-10-31",
   "authors": [
     {
@@ -28,7 +28,7 @@
         "type": "system",
         "compatibility": {
           "minimum": "6",
-          "verified": "6.0.3",
+          "verified": "6.1.2",
           "maximum": "6"
         }
       }

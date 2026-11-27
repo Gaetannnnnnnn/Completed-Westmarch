@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 7.1.3
+Version : 7.1.4
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -217,6 +217,31 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v7.1.4 | 2026-11-27
+   - Évolution — « Source des jets » → « Source des dégâts » (v3). On retire le
+     libellé « nom de l'arme » affiché sous chaque jet (redondant : l'en-tête de
+     la carte donne déjà l'objet) et son survol. À la place, on comble ce que
+     dnd5e NE fait PAS : il étiquette les termes du jet d'ATTAQUE (Force,
+     Maîtrise…) mais pas ceux des DÉGÂTS. Désormais chaque jet de dégâts est
+     annoté dans la formule : chaque dé reçoit son TYPE (tranchant, feu…) et le
+     bonus plat sa CARACTÉRISTIQUE quand sa valeur égale le modificateur de
+     l'arme — ex. « 1d12 tranchant + 7 Force », « 2d6 feu ». L'attaque reste
+     gérée nativement par dnd5e. Reconstruction via roll.options.type +
+     message.getAssociatedItem()/getAssociatedActor(). Réglage et catégorie
+     renommés (clé inchangée : enableRollProvenance). Limite : plusieurs effets
+     empilant des dés dans un même jet gardent le bon type mais pas l'aptitude
+     d'origine. Fichiers : modules/rollsource.js, modules/settings.js,
+     styles/chat-cards.css, modules/i18n-en.js.
+   - Compatibilité — Audit dnd5e 6.1.2 (contre la source officielle du tag
+     release-6.1.2) : aucune API utilisée par le module n'a changé. Vérifiés :
+     ChatMessage.getAssociatedItem()/getAssociatedActor() (source des jets),
+     CONFIG.DND5E (creatureTypes, currencies, skills, abilities, tools,
+     transformation, spellPreparationStates, CHARACTER_EXP_LEVELS), les chemins
+     system.details.level/type.value/cr/xp.value et system.spells, et les classes
+     DOM des cartes (.chat-card, description en « collapsible », .dice-roll /
+     .dice-formula). module.json : dnd5e « verified » passe de 6.0.3 à 6.1.2
+     (aucun changement de code). Fichier : module.json.
 
 v7.1.3 | 2026-11-27
    - Correctif — Mise en valeur des descriptions : les couleurs de dégâts et la

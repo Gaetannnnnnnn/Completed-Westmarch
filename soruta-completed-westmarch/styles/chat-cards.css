@@ -89,3 +89,28 @@ body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #cha
 body.scwm-chat-cards :is(#chat-log, .chat-log, .chat-popout, .chat-sidebar, #chat-notifications) .message:not(.compact) .dice-total {
     border-color: rgba(154, 123, 30, 0.45);
 }
+
+/* ── Provenance des jets au survol (rollsource.js) ── */
+.dice-formula .scwm-rs {
+    cursor: help;
+    border-bottom: 1px dotted rgba(201, 162, 39, 0.7);
+    padding-bottom: 1px;
+}
+.dice-formula .scwm-rs-nu {
+    cursor: default;
+    border-bottom: 1px dotted transparent;   /* terme sans provenance connue */
+}
+
+/* ── Mise en valeur des descriptions (descenrich.js) ── */
+.scwm-kw { font-weight: 700; }
+.scwm-dmg { font-weight: 600; }
+.scwm-dmg-fire      { color: #d2691e; }   /* feu — orange */
+.scwm-dmg-cold      { color: #2f8fbf; }   /* froid — bleu glace */
+.scwm-dmg-lightning { color: #2f6fe8; }   /* foudre — bleu électrique */
+.scwm-dmg-thunder   { color: #5a5fd0; }   /* tonnerre — indigo */
+.scwm-dmg-acid      { color: #6f9e1e; }   /* acide — vert-jaune */
+.scwm-dmg-poison    { color: #2f9e4f; }   /* poison — vert */
+.scwm-dmg-necrotic  { color: #5a7a3a; }   /* nécrotique — vert sombre */
+.scwm-dmg-radiant   { color: #c89a20; }   /* radiant — doré */
+.scwm-dmg-psychic   { color: #c24a9e; }   /* psychique — magenta */
+.scwm-dmg-phys      { color: #8a6f5a; }   /* physique — brun */

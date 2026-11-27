@@ -759,6 +759,16 @@ export function registerSettings() {
         scope: "world", config: false, type: Boolean, default: false,
         onChange: () => applyPlayerCardPrefs()
     });
+    // ---- Provenance des termes d'un jet au survol ----
+    game.settings.register(MOD, "enableRollProvenance", B(
+        tl("Provenance des jets au survol"),
+        tl("Dans la décomposition d'un jet affichée dans le chat (ex. « 1d20 + 3 + 2 »), chaque bonus/dé devient survolable : l'info-bulle indique sa provenance quand dnd5e la renseigne (caractéristique, maîtrise, type de dégâts…). N'altère pas le résultat du jet. Désactivé par défaut."),
+        false));
+    // ---- Mise en valeur des descriptions (couleurs dégâts + mots-clés) ----
+    game.settings.register(MOD, "enableDescHighlight", B(
+        tl("Mise en valeur des descriptions"),
+        tl("Dans le pavé de description d'un sort/objet dans le chat : colore les types de dégâts (feu orange, foudre bleu, poison vert…) et met en gras les mots-clés (jet d'attaque, jet de sauvegarde, test de caractéristique) et les dés (1d8…). FR et EN. N'altère que l'affichage. Désactivé par défaut."),
+        false));
     game.settings.register(MOD, "enableTemplateSnap", B(
         tl("Snap des templates AoE au dixième de pied"),
         tl("Pendant le placement d'un template, la taille s'incrémente par paliers de 0,1 ft. Nécessite lib-wrapper pour le snap live.")));
@@ -1435,6 +1445,12 @@ const CATEGORIES = [
     { firstKey: "enableChatPlayerCards", master: "enableChatPlayerCards", icon: "fa-palette", title: tl("Cartes colorées par joueur"),
       desc: tl("Affichage natif des cartes de chat, enrichi : fond teinté de la couleur de profil de chaque joueur (mat et sombre), accent à gauche et séparateurs entre joueurs. Ne reconstruit aucun bouton ni mécanisme."),
       keys: ["enableChatPlayerCards"] },
+    { firstKey: "enableRollProvenance", master: "enableRollProvenance", icon: "fa-dice-d20", title: tl("Provenance des jets"),
+      desc: tl("Au survol d'un bonus ou d'un dé dans la décomposition d'un jet, affiche sa provenance (quand dnd5e la renseigne : caractéristique, maîtrise, type de dégâts)."),
+      keys: ["enableRollProvenance"] },
+    { firstKey: "enableDescHighlight", master: "enableDescHighlight", icon: "fa-highlighter", title: tl("Descriptions mises en valeur"),
+      desc: tl("Colore les types de dégâts et met en gras les mots-clés et les dés dans les descriptions affichées dans le chat."),
+      keys: ["enableDescHighlight"] },
     { firstKey: "enablePolymorph", master: "enablePolymorph", icon: "fa-paw", title: tl("Transformation"),
       desc: tl("Wild Shape (druide) et Polymorphie (sort) — deux systèmes distincts via le moteur dnd5e. Active/désactive l'ensemble et règle l'application des limites de facteur de puissance (FP)."),
       keys: ["enablePolymorph","transformEnforceCr","transformStrictCr"] },
@@ -1614,7 +1630,7 @@ const CONFIG_GROUPS = [
     { title: "Serveur & monde", icon: "fa-server",
       cats: ["enableXpBlock", "mondeEnabled", "enableDiscordLog", "tmSkillBase", "enableSceneCues", "commonFolderPJ"] },
     { title: "Personnalisation & interface", icon: "fa-sliders",
-      cats: ["enableChatCards", "enableChatPlayerCards", "enableTokenAppearance", "uihide", "tweakTree", "companionProfiles"] },
+      cats: ["enableChatCards", "enableChatPlayerCards", "enableRollProvenance", "enableDescHighlight", "enableTokenAppearance", "uihide", "tweakTree", "companionProfiles"] },
     { title: tl("Aide & découverte"), icon: "fa-circle-question",
       cats: ["serverName", "enableDiagnosticMenu"] }
 ];

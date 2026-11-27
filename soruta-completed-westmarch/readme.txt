@@ -3,7 +3,7 @@
                    Module Foundry VTT — Privé
 ================================================================================
 
-Version : 7.1.0
+Version : 7.1.1
 Auteur  : Soruta (Discord : s0ruta)
 Système : dnd5e sur Foundry VTT v13+ (ciblé v14)
 Accès   : © 2026 Soruta — Tous droits réservés. Usage personnel autorisé.
@@ -217,6 +217,27 @@ Tout diagnostic doit passer par le compte GM en reproduisant l'interaction UI.
 ================================================================================
                    COMPLETED WESTMARCH — MISES À JOUR
 ================================================================================
+
+v7.1.1 | 2026-11-27
+   - NOUVEAU — Provenance des jets au survol (réglage « Provenance des jets »,
+     désactivé par défaut). Dans la décomposition d'un jet affichée dans le
+     chat (ex. « 1d20 + 3 + 2 »), chaque bonus/dé devient survolable :
+     l'info-bulle indique sa provenance quand dnd5e la renseigne dans le
+     « flavor » du terme (caractéristique, maîtrise, type de dégâts…). N'altère
+     que l'affichage de la formule, jamais le résultat. v1 : exploite les
+     flavors déjà présents (robuste) ; les dés et le modif de dégâts, non
+     étiquetés par dnd5e, restent nus pour l'instant (enrichissement v2 prévu
+     via les hooks de jet). Fichiers : modules/rollsource.js (nouveau),
+     modules/settings.js, styles/chat-cards.css, modules/i18n-en.js, index.js.
+   - NOUVEAU — Mise en valeur des descriptions (réglage « Mise en valeur des
+     descriptions », désactivé par défaut). Dans le pavé de description d'un
+     sort/objet affiché dans le chat : les TYPES DE DÉGÂTS sont colorés (feu
+     orange, foudre bleu électrique, poison vert, froid bleu glace, etc.) et
+     les MOTS-CLÉS (jet d'attaque, jet de sauvegarde, test de caractéristique)
+     ainsi que les DÉS (1d8, 2d6…) sont mis en gras. FR et EN. N'agit que sur
+     le texte (jamais sur les boutons de jet, liens ou décompositions de dés),
+     sans casser le HTML. Fichiers : modules/descenrich.js (nouveau),
+     modules/settings.js, styles/chat-cards.css, modules/i18n-en.js, index.js.
 
 v7.1.0 | 2026-11-26
    - Rangement des créatures du compendium : les sous-dossiers de TYPE sont
